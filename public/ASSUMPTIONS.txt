@@ -1,0 +1,13 @@
+ASSUMPTIONS & DESIGN NOTES
+----------------------------
+1. The “Save Format” function should prompt the user for a format name only once per file upload. A global flag (savePromptShown) is used to enforce that.
+2. When saving a file format, the file’s header row is determined by a user‐provided input (dataRowInput). The merged file is built using only rows from that row onward (thus including the chosen header row).
+3. In the header mapping suggestion:
+   - Columns whose header text suggests a date (i.e. containing "date") are mapped to "Date".
+   - Numeric columns are analyzed: if all numbers are nonnegative they are suggested as "Income"; if all negative, as "Expenses".
+   - If the column would otherwise be classified as "Amount", that possibility is removed and "Income" is used (i.e. no generic "Amount" option is allowed).
+   - If the column name contains "outcome", it is renamed to "Expenses".
+4. The best‐guess function (suggestMapping) looks at the first row and up to three sample data rows to make a suggestion.
+5. Merged file duplication is prevented by computing a signature for a file (via JSON.stringify of its header row). If a file with the same signature was already saved, it is not duplicated.
+6. Other parts of the project (categories, dark mode, charts, export button, etc.) remain unchanged except for minor UI icon adjustments.
+----------------------------

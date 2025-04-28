@@ -1,0 +1,570 @@
+// main.js
+
+import { handleFileUpload } from "./fileUpload.js";
+import { defineHeaderRow, saveHeadersAndFormat, renderMappingList } from "./formatMapping.js";
+import { showElement, hideElement, clearElement, toggleDarkMode } from "./uiHelpers.js";
+
+/* ------------------- Toast Notifications ------------------- */
+function showToast(message, duration = 3000) {
+  console.log("Toast:", message);
+  const toast = document.createElement("div");
+  toast.textContent = message;
+  toast.style.position = "fixed";
+  toast.style.bottom = "20px";
+  toast.style.left = "50%";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.backgroundColor = "#333";
+  toast.style.color = "white";
+  toast.style.padding = "10px 20px";
+  toast.style.borderRadius = "5px";
+  toast.style.zIndex = "1000";
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    document.body.removeChild(toast);
+    console.log("Toast removed:", message);
+  }, duration);
+}
+
+/* ------------------- Categories Management ------------------- */
+let categories = JSON.parse(localStorage.getItem("expenseCategories")) || {
+  "Food": "#FF6384",
+  "Transport": "#36A2EB",
+  "Housing": "#FFCE56"
+};
+
+function saveCategories() {
+  localStorage.setItem("expenseCategories", JSON.stringify(categories));
+}
+
+function renderCategoryList() {
+  const container = document.getElementById("transactionsHeaderCategories");
+  if (!container) return;
+  container.innerHTML = "";
+  Object.entries(categories).forEach(([cat, color]) => {
+    const span = document.createElement("span");
+    span.style.marginRight = "10px";
+    span.style.padding = "2px 6px";
+    span.style.border = "1px solid #ccc";
+    span.style.borderRadius = "4px";
+    span.style.backgroundColor = color;
+    span.textContent = cat;
+    span.onclick = () => toggleCategoryFilter(cat, span);
+    container.appendChild(span);
+  });
+}
+
+function toggleCategoryFilter(cat, span) {
+  if (currentCategoryFilters.includes(cat)) {
+    currentCategoryFilters = currentCategoryFilters.filter((c) => c !== cat);
+    span.style.opacity = 1;
+  } else {
+    currentCategoryFilters.push(cat);
+    span.style.opacity = 0.7;
+  }
+  renderTransactions();
+}
+
+function deleteCategory(cat) {
+  if (confirm(`Are you sure you want to delete the category "${cat}"? This will remove it from all transactions.`)) {
+    delete categories[cat];
+    saveCategories();
+    renderCategoryList();
+    renderTransactions();
+    updateChart();
+    showToast(`Category "${cat}" deleted.`);
+  }
+}
+
+window.addCategory = function () {
+  const name = prompt("Enter new category name:");
+  if (!name) return;
+  if (categories[name]) {
+    showToast("Category already exists!");
+    return;
+  }
+  categories[name] =
+    "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
+  saveCategories();
+  renderCategoryList();
+  updateChart();
+  renderTransactions();
+  showToast(`Category "${name}" added.`);
+};
+
+/* ------------------- File Upload and Transactions ------------------- */
+let currentFileData = null;
+let currentFileName = null;
+let currentFileSignature = null;
+let currentSuggestedMapping = null;
+let mergedFiles = JSON.parse(localStorage.getItem("mergedFiles")) || [];
+window.mergedFiles = mergedFiles;
+let transactions = [];
+let currentCategoryFilters = [];
+let savePromptShown = false; // Global flag for save prompt
+
+function saveMergedFiles() {
+  localStorage.setItem("mergedFiles", JSON.stringify(mergedFiles));
+}
+
+window.addMergedFile = function (data, headerMapping, fileName, signature) {
+  if (mergedFiles.some((f) => f.signature === signature)) return;
+  let dataRowNum =
+    parseInt(document.getElementById("dataRowInput").value, 10) || 1;
+  let merged = {
+    fileName: fileName,
+    headerMapping: headerMapping,
+    data: data,
+    headerRow: dataRowNum,
+    dataRow: dataRowNum,
+    selected: true,
+    signature: signature,
+  };
+  mergedFiles.push(merged);
+  renderMergedFiles();
+  saveMergedFiles();
+  updateTransactions();
+};
+
+function updateTransactions() {
+  console.log("updateTransactions called");
+  transactions = [];
+  mergedFiles.forEach((file) => {
+    if (!file.headerMapping || file.headerMapping.length === 0) return;
+    for (let i = file.dataRow - 1; i < file.data.length; i++) {
+      const row = file.data[i];
+      if (!row || row.join("").trim() === "") continue;
+      let tx = { date: "", description: "", amount: "", category: "", fileName: file.fileName };
+      file.headerMapping.forEach((mapLabel, index) => {
+        const value = row[index] || "";
+        if (mapLabel === "Date") {
+          let numVal = Number(value);
+          if (!isNaN(numVal)) {
+            const d = XLSX.SSF.parse_date_code(numVal);
+            if (d) {
+              tx.date = `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+            } else {
+              tx.date = value;
+            }
+          } else {
+            tx.date = value;
+          }
+        } else if (mapLabel === "Income") {
+          tx.amount = value;
+        } else if (mapLabel === "Expenses") {
+          tx.amount = value.startsWith("-") ? value : "-" + value;
+        } else if (mapLabel === "Description") {
+          tx.description = value;
+        }
+      });
+      transactions.push(tx);
+    }
+  });
+  applyCategoryAutoAssign();
+  renderTransactions();
+  updateChart();
+}
+
+function applyCategoryAutoAssign() {
+  const descCategory = {};
+  transactions.forEach((tx) => {
+    if (tx.category && tx.description) {
+      descCategory[tx.description] = tx.category;
+    }
+  });
+  transactions.forEach((tx) => {
+    if (!tx.category && tx.description && descCategory[tx.description]) {
+      tx.category = descCategory[tx.description];
+    }
+  });
+}
+
+function renderTransactions() {
+  const table = document.getElementById("transactionsTable");
+  if (!table) return;
+  let filtered = transactions;
+  if (currentCategoryFilters.length > 0) {
+    filtered = transactions.filter((tx) =>
+      currentCategoryFilters.includes(tx.category)
+    );
+  }
+  let html =
+    '<tr><th>Date</th><th>Description</th><th>Income/Expenses</th><th>Category</th></tr>';
+  filtered.forEach((tx, index) => {
+    const selectStyle = (tx.category && categories[tx.category])
+      ? `style="background-color: ${categories[tx.category]};"`
+      : "";
+    html += `<tr>
+      <td>${tx.date}</td>
+      <td>${tx.description}</td>
+      <td>${tx.amount}</td>
+      <td>
+        <select onchange="changeTxCategory(${index}, this.value)" ${selectStyle}>
+          <option value="" ${!tx.category ? 'selected' : ''}>--</option>
+          ${Object.keys(categories)
+            .map(
+              (cat) =>
+                `<option value="${cat}" style="background-color: ${categories[cat]};" ${
+                  tx.category === cat ? "selected" : ""
+                }>${cat}</option>`
+            )
+            .join("")}
+        </select>
+      </td>
+    </tr>`;
+  });
+  table.innerHTML = html;
+}
+window.changeTxCategory = function (idx, cat) {
+  const tx = transactions[idx];
+  tx.category = cat;
+  transactions.forEach((t) => {
+    if (t.description === tx.description && !t.category) {
+      t.category = cat;
+    }
+  });
+  renderTransactions();
+  updateChart();
+};
+
+/* ------------------- Chart Updating and Export Button ------------------- */
+let pieChart;
+let timelineChart;
+function updateChart() {
+  const pieCtx = document.getElementById("expenseChart").getContext("2d");
+  const categorySums = {};
+  transactions.forEach((tx) => {
+    let amt = parseFloat(tx.amount);
+    if (isNaN(amt)) return;
+    const cat = tx.category || "Uncategorized";
+    categorySums[cat] = (categorySums[cat] || 0) + amt;
+  });
+  const pieLabels = Object.keys(categorySums);
+  const pieData = pieLabels.map((label) => categorySums[label]);
+  const pieColors = pieLabels.map((label) => (categories[label] || "#888888"));
+  if (pieChart) {
+    pieChart.data.labels = pieLabels;
+    pieChart.data.datasets[0].data = pieData;
+    pieChart.data.datasets[0].backgroundColor = pieColors;
+    pieChart.update();
+  } else {
+    pieChart = new Chart(pieCtx, {
+      type: "pie",
+      data: {
+        labels: pieLabels,
+        datasets: [
+          {
+            data: pieData,
+            backgroundColor: pieColors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  }
+  
+  const timelineCtx = document.getElementById("timelineChart").getContext("2d");
+  const dateSums = {};
+  transactions.forEach((tx) => {
+    if (!tx.date) return;
+    const month = tx.date.substring(0, 7);
+    let amt = parseFloat(tx.amount);
+    if (isNaN(amt)) return;
+    dateSums[month] = (dateSums[month] || 0) + amt;
+  });
+  const timelineLabels = Object.keys(dateSums).sort();
+  const timelineData = timelineLabels.map((label) => dateSums[label]);
+  if (timelineChart) {
+    timelineChart.data.labels = timelineLabels;
+    timelineChart.data.datasets[0].data = timelineData;
+    timelineChart.update();
+  } else {
+    timelineChart = new Chart(timelineCtx, {
+      type: "line",
+      data: {
+        labels: timelineLabels,
+        datasets: [
+          {
+            label: "Expenses",
+            data: timelineData,
+            borderColor: "#007bff",
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  }
+}
+window.updateChart = updateChart;
+window.updateTransactions = updateTransactions;
+window.toggleMergedFilesVisibility = function () {
+  const section = document.getElementById("mergedFilesSection");
+  section.classList.toggle("minimized");
+};
+
+function renderMergedFiles() {
+  const list = document.getElementById("mergedFilesList");
+  if (!list) return;
+  list.innerHTML = "";
+  mergedFiles.forEach((file, index) => {
+    const li = document.createElement("li");
+    li.textContent = file.fileName;
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "Remove";
+    removeBtn.onclick = () => {
+      mergedFiles.splice(index, 1);
+      renderMergedFiles();
+      saveMergedFiles();
+      showToast(`Merged file "${file.fileName}" removed.`);
+      updateTransactions();
+    };
+    li.appendChild(removeBtn);
+    list.appendChild(li);
+  });
+  const exportBtn = document.getElementById("exportMergedBtn");
+  if (mergedFiles.length > 1) {
+    exportBtn.style.display = "inline-block";
+  } else {
+    exportBtn.style.display = "none";
+  }
+}
+window.renderMergedFiles = renderMergedFiles;
+
+function exportMergedFiles() {
+  let csv = "";
+  mergedFiles.forEach((file) => {
+    file.data.forEach((row) => {
+      csv += row.join(",") + "\n";
+    });
+  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "merged_data.csv";
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+window.exportMergedFiles = exportMergedFiles;
+
+/* ------------------- File Upload Handling for Preview ------------------- */
+document.getElementById("fileInput").addEventListener("change", async function () {
+  const file = this.files[0];
+  if (file) {
+    try {
+      console.log("File selected:", file.name);
+      const fileData = await handleFileUpload(file);
+      console.log("File processed:", fileData);
+      // Render preview table:
+      // - First row: original header row.
+      // - Second row: For each column, a dropdown to choose one of the four allowed options plus "--" for ignore.
+      const headerRow = fileData[0];
+      const suggested = suggestMapping(fileData);
+      let tableHtml = "<table border='1' style='width:100%; border-collapse:collapse;'><tr>";
+      // Render header row.
+      for (let j = 0; j < headerRow.length; j++) {
+        tableHtml += `<td>${headerRow[j] || ""}</td>`;
+      }
+      tableHtml += "</tr><tr>";
+      // Render dropdown row.
+      for (let j = 0; j < suggested.length; j++) {
+        tableHtml += `<td>
+            <select class="mapping-select" data-index="${j}" style="width:90%; margin-top:4px;">
+              <option value="Date" ${suggested[j].toLowerCase() === "date" ? "selected" : ""}>Date</option>
+              <option value="Income" ${suggested[j].toLowerCase() === "income" ? "selected" : ""}>Income</option>
+              <option value="Expenses" ${suggested[j].toLowerCase() === "expenses" ? "selected" : ""}>Expenses</option>
+              <option value="Description" ${suggested[j].toLowerCase() === "description" ? "selected" : ""}>Description</option>
+              <option value="–">--</option>
+            </select>
+          </td>`;
+      }
+      tableHtml += "</tr></table>";
+      document.getElementById("previewTable").innerHTML = tableHtml;
+      
+      // Show the row selection panel.
+      document.getElementById("rowSelectionPanel").style.display = "block";
+      
+      // Set the total rows label.
+      document.getElementById("totalRowsLabel").textContent = "Total Rows: " + fileData.length;
+      
+      currentFileData = fileData;
+      currentFileName = file.name;
+      currentFileSignature = JSON.stringify(fileData[0]);
+      currentSuggestedMapping = suggested;
+      
+      document.getElementById("saveHeadersBtn").style.display = "block";
+      document.getElementById("clearPreviewBtn").style.display = "block";
+      savePromptShown = false;
+      showToast(`File "${file.name}" uploaded.`);
+    } catch (err) {
+      console.error(err);
+      showToast(`Error uploading file: ${err.message}`);
+    }
+  }
+});
+
+/* ------------------- Clear Preview Functionality ------------------- */
+document.getElementById("clearPreviewBtn").addEventListener("click", function () {
+  console.log("Clear preview button clicked");
+  document.getElementById("previewTable").innerHTML = "";
+  document.getElementById("saveHeadersBtn").style.display = "none";
+  document.getElementById("clearPreviewBtn").style.display = "none";
+  document.getElementById("fileInput").value = "";
+  currentFileData = null;
+  currentFileName = null;
+  currentFileSignature = null;
+  savePromptShown = false;
+  showToast("Preview cleared.");
+});
+
+/* ------------------- Save Headers Functionality ------------------- */
+document.getElementById("saveHeadersBtn").addEventListener("click", function () {
+  console.log("Save headers button clicked, savePromptShown =", savePromptShown);
+  if (savePromptShown) return;
+  savePromptShown = true;
+  const formatName = prompt("Enter a name for this file format mapping:");
+  if (!formatName) {
+    showToast("Format name is required.");
+    savePromptShown = false;
+    return;
+  }
+  // Build header mapping from the dropdowns.
+  const selects = document.querySelectorAll("#previewTable select.mapping-select");
+  let headerMapping = [];
+  selects.forEach((sel) => {
+    let val = sel.value.trim();
+    if (!["Date", "Income", "Expenses", "Description"].includes(val)) {
+      val = "–";
+    }
+    headerMapping.push(val);
+  });
+  
+  saveHeadersAndFormat(formatName, headerMapping);
+  
+  if (currentFileData && currentFileName && currentFileSignature) {
+    if (!mergedFiles.some((f) => f.signature === currentFileSignature)) {
+      window.addMergedFile(currentFileData, headerMapping, currentFileName, currentFileSignature);
+    } else {
+      showToast("This format is already saved; using existing mapping.");
+    }
+    currentFileData = null;
+    currentFileName = null;
+    currentFileSignature = null;
+  }
+  
+  document.getElementById("saveHeadersBtn").style.display = "none";
+  document.getElementById("clearPreviewBtn").style.display = "none";
+  updateTransactions();
+  showToast(`Format "${formatName}" saved successfully.`);
+});
+
+/* ------------------- Global Exposure for Dark Mode ------------------- */
+window.toggleDarkMode = function () {
+  console.log("toggleDarkMode invoked");
+  toggleDarkMode();
+  console.log("Dark mode toggled");
+};
+
+/* ------------------- Modal: Edit Categories ------------------- */
+function openEditCategoriesModal() {
+  console.log("Opening Edit Categories modal");
+  populateEditCategoriesModal();
+  document.getElementById("editCategoriesModal").style.display = "block";
+}
+function closeEditCategoriesModal() {
+  console.log("Closing Edit Categories modal");
+  document.getElementById("editCategoriesModal").style.display = "none";
+}
+function populateEditCategoriesModal() {
+  const table = document.getElementById("editCategoriesTable");
+  table.innerHTML =
+    `<tr>
+      <th>Name</th>
+      <th>Color</th>
+      <th>Actions</th>
+    </tr>`;
+  Object.entries(categories).forEach(([name, color]) => {
+    const row = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = name;
+    nameInput.addEventListener("change", () => {
+      const newName = nameInput.value.trim();
+      if (newName && newName !== name) {
+        categories[newName] = color;
+        delete categories[name];
+        saveCategories();
+        renderCategoryList();
+        populateEditCategoriesModal();
+        showToast(`Category renamed to "${newName}"`);
+      }
+    });
+    nameCell.appendChild(nameInput);
+    row.appendChild(nameCell);
+    const colorCell = document.createElement("td");
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = color;
+    colorInput.addEventListener("change", () => {
+      categories[name] = colorInput.value;
+      saveCategories();
+      renderCategoryList();
+      populateEditCategoriesModal();
+      showToast(`Color for "${name}" updated`);
+    });
+    colorCell.appendChild(colorInput);
+    row.appendChild(colorCell);
+    const actionsCell = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑️";
+    delBtn.addEventListener("click", () => {
+      if (confirm(`Delete category "${name}"? This will remove merged file(s) using this format.`)) {
+        // Remove merged files that use this format’s signature.
+        mergedFiles = mergedFiles.filter(
+          (f) => f.headerMapping.signature !== currentSuggestedMapping.join("")
+        );
+        renderMergedFiles();
+        saveMergedFiles();
+        delete categories[name];
+        saveCategories();
+        renderCategoryList();
+        populateEditCategoriesModal();
+        renderTransactions();
+        updateChart();
+        showToast(`Category "${name}" deleted`);
+      }
+    });
+    actionsCell.appendChild(delBtn);
+    row.appendChild(actionsCell);
+    table.appendChild(row);
+  });
+}
+window.openEditCategoriesModal = openEditCategoriesModal;
+window.closeEditCategoriesModal = closeEditCategoriesModal;
+document.getElementById("addCategoryModalBtn").addEventListener("click", () => {
+  const newCat = prompt("Enter new category name:");
+  if (newCat && !categories[newCat]) {
+    categories[newCat] = "#cccccc";
+    saveCategories();
+    renderCategoryList();
+    populateEditCategoriesModal();
+    showToast(`Category "${newCat}" added`);
+  } else {
+    showToast("Invalid or duplicate category name.");
+  }
+});
+
+/* ------------------- Initialization ------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  renderCategoryList();
+  updateTransactions();
+  renderMappingList();
+  window.toggleDarkMode = window.toggleDarkMode;
+});
