@@ -1,0 +1,114 @@
+# AI-Friendly Definitions for Expense Tracker
+
+### ✅ Transaction
+An object representing a row in a merged financial dataset.
+```json
+{
+  "date": "2024-01-01",
+  "description": "Grocery Store",
+  "amount": "-35.99",
+  "category": "Food",
+  "fileName": "expenses.xlsx"
+}
+```
+
+### ✅ Category
+A label (with a hex color) for grouping transactions.
+Stored in `AppState.categories` and localStorage.
+```json
+{
+  "Food": "#FF6384",
+  "Transport": "#36A2EB"
+}
+```
+
+### ✅ Merged File
+A single uploaded file, parsed and mapped to transaction fields.
+```json
+{
+  "fileName": "report.csv",
+  "headerMapping": ["Date", "Description", "Expenses"],
+  "data": [...],
+  "headerRow": 1,
+  "dataRow": 2,
+  "signature": "[\"Date\",\"Amount\"]"
+}
+```
+
+### ✅ Header Mapping
+Maps spreadsheet columns to: `Date`, `Income`, `Expenses`, or `Description`.
+Used to normalize different spreadsheet formats.
+
+### ✅ Signature
+A stringified version of the header row that uniquely identifies a file format.
+```js
+const signature = JSON.stringify(headerRow);
+```
+
+### ✅ AppState (Shared Global State)
+Centralized object to store all session-related data:
+```js
+AppState = {
+  categories: { ... },
+  mergedFiles: [ ... ],
+  transactions: [ ... ],
+  currentCategoryFilters: [ ... ],
+  currentFileData: [...],
+  currentFileName: "...",
+  currentFileSignature: "...",
+  savePromptShown: false
+};
+```
+
+### ✅ Local Storage Keys
+- `expenseCategories`
+- `mergedFiles`
+- `fileFormatMappings`
+- `userDefinedHeaders`
+
+### ✅ Component Responsibilities
+- `fileHandler.js`: file parsing & merging
+- `categoryManager.js`: category CRUD & rendering
+- `transactionManager.js`: process, render, assign
+- `chartManager.js`: pie and timeline chart rendering
+- `mappingsManager.js`: header format management
+- `uiManager.js`: UI utilities and merged file list
+- `main.js`: initialization, event bindings, glue
+
+### ✅ Toast
+Temporary floating UI element for alerts/notifications.
+```js
+showToast("Upload complete")
+```
+
+---
+Use these conventions when modifying or extending the app.
+All modules should work independently and use `AppState` where needed.
+
+### File Signature
+- A JSON-stringified version of the first header row.
+- Used to detect file format identity and deduplicate uploads.
+
+### suggestMapping(data)
+- Guesses a column's role based on sample data and header name.
+- Supports: "Date", "Income", "Expenses", "Description"
+
+### renderHeaderPreview()
+- Renders a table with:
+  1. First row as headers
+  2. Second row as dropdowns for mapping
+  3. Third row as sample data
+
+### onSaveHeaders()
+- Saves header mapping to localStorage
+- Merges file if not already added
+- Re-renders transactions
+
+### File Deduplication
+- On upload, if a file has the same header signature, it will be:
+  - Auto-merged without asking the user again
+  - Skipped if already in merged list
+
+### Categories Section
+- Add Category button (`➕`)
+- Future: Edit modal with rename, color, delete

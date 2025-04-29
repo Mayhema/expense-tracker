@@ -1,8 +1,8 @@
 // main.js
 
-import { handleFileUpload } from "./fileUpload.js";
-import { defineHeaderRow, saveHeadersAndFormat, renderMappingList } from "./formatMapping.js";
-import { showElement, hideElement, clearElement, toggleDarkMode } from "./uiHelpers.js";
+import { handleFileUpload } from "./fileUpload.old/index.js";
+import { defineHeaderRow, saveHeadersAndFormat, renderMappingList } from "./formatMapping.old";
+import { showElement, hideElement, clearElement, toggleDarkMode } from "./uiHelpers.old";
 
 /* ------------------- Toast Notifications ------------------- */
 function showToast(message, duration = 3000) {

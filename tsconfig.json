@@ -12,7 +12,7 @@
   },
   "include": [
     "src/**/*", "backend/**/*"
-  ],
+, "src/fileHandler.js", "src/appState.js"  ],
   "exclude": [
     "node_modules"
   ]

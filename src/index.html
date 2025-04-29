@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      color: #222;
+    }
+    .dark-mode {
+      background: #121212;
+      color: #e0e0e0;
+    }
+    .dark-mode .section {
+      background: #1e1e1e;
+      color: #eee;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .left-panel, .right-panel {
+      flex: 1;
+      min-width: 300px;
+      padding: 10px;
+    }
+    .section {
+      padding: 20px;
+      margin: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    button.icon-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #007bff;
+      font-size: 20px;
+      position: relative;
+    }
+    button.icon-button:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    canvas {
+      width: 100% !important;
+      max-width: 500px;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <header class="section">
+    <h1>Expense Tracker</h1>
+    <button id="darkModeBtn" class="icon-button" data-tooltip="Toggle Dark Mode">🌓</button>
+  </header>
+
+  <main class="container">
+    <div class="left-panel">
+      <div class="section">
+        <h2>Upload File</h2>
+        <input type="file" id="fileInput" />
+        <div style="margin: 8px 0;">
+          <label>Header Row: <input id="headerRowInput" type="number" min="1" value="1" style="width: 60px;" /></label>
+          &nbsp;&nbsp;
+          <label>Data Row: <input id="dataRowInput" type="number" min="1" value="2" style="width: 60px;" /></label>
+          <span id="totalRowsLabel" style="margin-left:10px;"></span>
+        </div>
+        <button id="saveHeadersBtn" class="icon-button" style="display:none;" data-tooltip="Save Header Mapping">💾</button>
+        <div id="previewTable"></div>
+      </div>
+
+      <div class="section" id="mergedFilesSection">
+        <h2>Merged Files <button class="icon-button" onclick="toggleMergedFilesVisibility()" data-tooltip="Toggle Merged View">🔽</button></h2>
+        <ul id="mergedFilesList"></ul>
+        <button id="exportMergedBtn" class="icon-button" data-tooltip="Export Merged Files">📤</button>
+      </div>
+
+      <div class="section">
+        <h2>Categories</h2>
+        <div id="transactionsHeaderCategories"></div>
+        <div>
+          <button id="editCategoriesBtn" class="icon-button" data-tooltip="Edit Categories">✏️</button>          
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="section">
+        <h2>Transactions</h2>
+        <table id="transactionsTable"></table>
+      </div>
+
+      <div class="section">
+        <h2>Charts</h2>
+        <canvas id="expenseChart"></canvas>
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
