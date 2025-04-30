@@ -1,49 +1,71 @@
 // Directory: /src/fileHandler.js
 
 import { AppState, saveMergedFiles } from "./appState.js";
+import { showToast } from "./uiManager.js";
+
+console.log("XLSX object:", XLSX);
 
 export async function handleFileUpload(file) {
   const fileExtension = file.name.split(".").pop().toLowerCase();
-  if (["xml", "xls", "xlsx"].includes(fileExtension)) {
-    return await parseFile(file, fileExtension);
+
+  console.log("Uploading file:", file.name, "File type:", fileExtension);
+
+  if (fileExtension === "xml") {
+    return await parseXMLFile(file);
+  } else if (fileExtension === "xls" || fileExtension === "xlsx") {
+    return await parseExcelFile(file);
   } else {
-    alert("Unsupported file type. Please upload an XML or Excel file.");
-    throw new Error("Unsupported file type.");
+    throw new Error("Unsupported file format. Please upload an XML or Excel file.");
   }
 }
 
-async function parseFile(file, fileType) {
-  const arrayBuffer = await file.arrayBuffer();
-  if (fileType === "xml") {
-    return await parseXmlFile(file);
-  } else {
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-    const rows = XLSX.utils.sheet_to_json(
-      workbook.Sheets[workbook.SheetNames[0]],
-      { header: 1 }
-    );
-    return rows.filter(row => row.some(cell => cell !== undefined && cell !== null));
+async function parseXMLFile(file) {
+  try {
+    const text = await file.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(text, "application/xml");
+
+    const rows = Array.from(xmlDoc.getElementsByTagName("row")).map(row => {
+      return Array.from(row.children).map(cell => cell.textContent.trim());
+    });
+
+    console.log("Parsed XML data:", rows);
+    if (rows.length === 0 || rows.every(row => row.length === 0)) {
+      throw new Error("No valid rows found in the XML file.");
+    }
+    return rows.filter(row => row.length > 0); // Filter out empty rows
+  } catch (error) {
+    console.error("Error parsing XML file:", error);
+    showToast("Failed to parse XML file. Please check the file format.", "error");
+    return [];
   }
 }
 
-async function parseXmlFile(file) {
-  const text = await file.text();
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(text, "application/xml");
-  let rowElements = xmlDoc.getElementsByTagName("row");
-  if (rowElements.length === 0) rowElements = xmlDoc.getElementsByTagName("Row");
-  if (rowElements.length === 0 && xmlDoc.documentElement) rowElements = xmlDoc.documentElement.children;
-  const rows = Array.from(rowElements).map(rowElem => {
-    const cells = rowElem.getElementsByTagName("cell");
-    return cells.length > 0
-      ? Array.from(cells).map(cell => cell.textContent)
-      : Array.from(rowElem.children).map(child => child.textContent);
-  });
-  return rows;
+async function parseExcelFile(file) {
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    console.log("Parsed Excel data:", rows);
+    return rows;
+  } catch (error) {
+    console.error("Error parsing Excel file:", error);
+    showToast("Failed to parse Excel file. Please check the file format.", "error");
+    return [];
+  }
 }
 
 export function addMergedFile(data, headerMapping, fileName, signature, dataRow = 1) {
-  if (AppState.mergedFiles.some(f => f.signature === signature)) return;
+  console.log("Saving file with signature:", signature);
+
+  if (AppState.mergedFiles.some(f => f.signature === signature)) {
+    console.log("File with the same structure already exists:", signature);
+    return;
+  }
+
   const merged = {
     fileName,
     headerMapping,
@@ -55,4 +77,13 @@ export function addMergedFile(data, headerMapping, fileName, signature, dataRow 
   };
   AppState.mergedFiles.push(merged);
   saveMergedFiles();
+}
+
+export function generateFileSignature(data) {
+  const headerRow = JSON.stringify(data[0]);
+  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(headerRow)).then(hashBuffer => {
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  });
 }

@@ -1,59 +1,118 @@
-// Directory: /src/categoryManager.js
+const CATEGORIES_KEY = "expenseCategories";
 
-import { AppState, saveCategories } from "./appState.js";
-import { updateChart } from "./chartManager.js";
-import { renderTransactions } from "./transactionManager.js";
+let categories = JSON.parse(localStorage.getItem(CATEGORIES_KEY)) || {
+  Food: "#FF6384",
+  Transport: "#36A2EB",
+  Housing: "#FFCE56"
+};
+
+export function saveCategories() {
+  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+}
+
+export function getCategories() {
+  return categories;
+}
 
 export function renderCategoryList() {
-  const container = document.getElementById("transactionsHeaderCategories");
-  if (!container) return;
-  container.innerHTML = "";
-  Object.entries(AppState.categories).forEach(([cat, color]) => {
-    const span = document.createElement("span");
-    span.style.marginRight = "10px";
-    span.style.padding = "2px 6px";
-    span.style.border = "1px solid #ccc";
-    span.style.borderRadius = "4px";
-    span.style.backgroundColor = color;
-    span.textContent = cat;
-    span.onclick = () => toggleCategoryFilter(cat, span);
-    container.appendChild(span);
-  });
+  const categoryList = document.getElementById("categoryList");
+  if (!categoryList) return;
+
+  const categories = getCategories();
+  categoryList.innerHTML = Object.entries(categories)
+    .map(
+      ([name, color]) => `
+      <button
+        class="category-btn"
+        style="background-color: ${color};"
+        onclick="window.toggleCategoryFilter('${name}', this)"
+      >
+        ${name}
+      </button>
+    `
+    )
+    .join("");
 }
 
-export function toggleCategoryFilter(cat, span) {
-  if (AppState.currentCategoryFilters.includes(cat)) {
-    AppState.currentCategoryFilters = AppState.currentCategoryFilters.filter((c) => c !== cat);
-    span.style.opacity = 1;
-  } else {
-    AppState.currentCategoryFilters.push(cat);
-    span.style.opacity = 0.7;
-  }
-  renderTransactions();
-}
-
-export function addCategory(name) {
-  if (!name) return;
-  if (AppState.categories[name]) {
-    alert("Category already exists!");
+export function toggleCategoryFilter(name, element) {
+  const transactions = AppState.transactions || [];
+  if (transactions.length === 0) {
+    console.log("No transactions to filter.");
     return;
   }
-  AppState.categories[name] = randomColor();
-  saveCategories();
-  renderCategoryList();
-  updateChart();
-  renderTransactions();
+
+  if (window.currentCategoryFilters.includes(name)) {
+    window.currentCategoryFilters = window.currentCategoryFilters.filter(c => c !== name);
+    element.style.opacity = 1;
+  } else {
+    window.currentCategoryFilters.push(name);
+    element.style.opacity = 0.5;
+  }
+  renderTransactions(transactions);
+}
+
+let modalOpen = false;
+
+export function openEditCategoriesModal() {
+  const modal = document.getElementById("categoryModal") || document.createElement("div");
+  modal.id = "categoryModal";
+  modal.style.position = "fixed";
+  modal.style.top = "50%";
+  modal.style.left = "50%";
+  modal.style.transform = "translate(-50%, -50%)";
+  modal.style.background = "#fff";
+  modal.style.padding = "20px";
+  modal.style.borderRadius = "8px";
+  modal.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.2)";
+  modal.style.zIndex = "1000";
+
+  modal.innerHTML = `
+    <div>
+      <h2>Edit Categories</h2>
+      <ul id="editCategoryList"></ul>
+      <button id="addCategoryBtn">Add Category</button>
+      <button id="closeCategoryModalBtn">Close</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const editCategoryList = document.getElementById("editCategoryList");
+  const categories = getCategories();
+  editCategoryList.innerHTML = Object.entries(categories)
+    .map(
+      ([name, color]) => `
+      <li>
+        <input type="text" value="${name}" />
+        <input type="color" value="${color}" />
+        <button onclick="window.deleteCategory('${name}')">Delete</button>
+      </li>
+    `
+    )
+    .join("");
+
+  document.getElementById("addCategoryBtn").onclick = () => {
+    const newCategory = prompt("Enter new category name:");
+    if (newCategory) {
+      categories[newCategory] = "#cccccc";
+      saveCategories();
+      renderCategoryList();
+      openEditCategoriesModal(); // Reopen modal to refresh the list
+    }
+  };
+
+  document.getElementById("closeCategoryModalBtn").onclick = () => {
+    modal.remove();
+  };
 }
 
 export function deleteCategory(name) {
-  if (!confirm(`Are you sure you want to delete the category "${name}"?`)) return;
-  delete AppState.categories[name];
+  const categories = getCategories();
+  delete categories[name];
   saveCategories();
   renderCategoryList();
-  renderTransactions();
-  updateChart();
+  openEditCategoriesModal(); // Reopen modal to reflect changes
 }
 
-function randomColor() {
-  return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
-}
+// Attach functions to the window object for global access
+window.deleteCategory = deleteCategory;
+window.toggleCategoryFilter = toggleCategoryFilter;

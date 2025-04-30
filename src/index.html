@@ -6,6 +6,7 @@
   <title>Expense Tracker</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -22,9 +23,12 @@
       background: #1e1e1e;
       color: #eee;
     }
+    .dark-mode th {
+      background: #333;
+      color: #fff;
+    }
     .container {
       display: flex;
-      flex-wrap: wrap;
     }
     .left-panel, .right-panel {
       flex: 1;
@@ -45,6 +49,7 @@
       color: #007bff;
       font-size: 20px;
       position: relative;
+      margin-right: 5px;
     }
     button.icon-button:hover::after {
       content: attr(data-tooltip);
@@ -76,6 +81,28 @@
       max-width: 500px;
       height: auto !important;
     }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .row-input {
+      width: 80px;
+      text-align: center;
+    }
+    #categoryList {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .category-btn {
+      margin: 5px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -85,49 +112,63 @@
   </header>
 
   <main class="container">
+    <!-- Left Panel -->
     <div class="left-panel">
-      <div class="section">
-        <h2>Upload File</h2>
-        <input type="file" id="fileInput" />
-        <div style="margin: 8px 0;">
-          <label>Header Row: <input id="headerRowInput" type="number" min="1" value="1" style="width: 60px;" /></label>
-          &nbsp;&nbsp;
-          <label>Data Row: <input id="dataRowInput" type="number" min="1" value="2" style="width: 60px;" /></label>
-          <span id="totalRowsLabel" style="margin-left:10px;"></span>
-        </div>
-        <button id="saveHeadersBtn" class="icon-button" style="display:none;" data-tooltip="Save Header Mapping">💾</button>
-        <div id="previewTable"></div>
-      </div>
-
-      <div class="section" id="mergedFilesSection">
-        <h2>Merged Files <button class="icon-button" onclick="toggleMergedFilesVisibility()" data-tooltip="Toggle Merged View">🔽</button></h2>
-        <ul id="mergedFilesList"></ul>
-        <button id="exportMergedBtn" class="icon-button" data-tooltip="Export Merged Files">📤</button>
-      </div>
-
-      <div class="section">
-        <h2>Categories</h2>
-        <div id="transactionsHeaderCategories"></div>
-        <div>
-          <button id="editCategoriesBtn" class="icon-button" data-tooltip="Edit Categories">✏️</button>          
-        </div>
-      </div>
-    </div>
-
-    <div class="right-panel">
-      <div class="section">
-        <h2>Transactions</h2>
-        <table id="transactionsTable"></table>
-      </div>
-
+      <!-- Charts Section -->
       <div class="section">
         <h2>Charts</h2>
         <canvas id="expenseChart"></canvas>
         <canvas id="timelineChart"></canvas>
       </div>
+
+      <!-- Transactions Section -->
+      <section id="transactionsSection" class="section">
+        <div class="section-header">
+          <h2>Transactions</h2>
+          <button id="editCategoriesBtn" class="icon-button" data-tooltip="Edit Categories">🛠️</button>
+        </div>
+        <div id="categoryList"></div>
+        <table id="transactionsTable"></table>
+      </section>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <!-- File Upload Section -->
+      <section id="fileUploadSection" class="section">
+        <div class="section-header">
+          <h2>Upload File</h2>
+          <button id="fileUploadBtn" class="icon-button" data-tooltip="Upload File">📁</button>
+        </div>
+        <input type="file" id="fileInput" style="display: none;" />
+        <div id="rowSelectionPanel" style="display:none; margin: 10px 0;">
+          Header Row: <input type="number" id="headerRowInput" class="row-input" value="1" min="1" />
+          &nbsp;&nbsp;
+          Data Row: <input type="number" id="dataRowInput" class="row-input" value="2" min="1" />
+        </div>
+        <button id="saveHeadersBtn" class="icon-button" style="display:none;" data-tooltip="Save Mapping">💾</button>
+        <button id="clearPreviewBtn" class="icon-button" style="display:none;" data-tooltip="Clear Preview">🧹</button>
+        <div id="previewTable"></div>
+      </section>
+
+      <!-- Merged Files Section -->
+      <div class="section" id="mergedFilesSection">
+        <h2>
+          Merged Files
+          <button class="icon-button" id="toggleMergedBtn" data-tooltip="Toggle Merged View">🔽</button>
+          <button id="exportMergedBtn" class="icon-button" data-tooltip="Export Merged Files">📤</button>
+        </h2>
+        <ul id="mergedFilesList"></ul>
+      </div>
+
+      <!-- Saved Format Mappings Section -->
+      <div class="section">
+        <h2>Saved Format Mappings</h2>
+        <table id="mappingTable"></table>
+      </div>
     </div>
   </main>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>

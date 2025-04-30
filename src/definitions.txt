@@ -1,3 +1,64 @@
+# Expense Tracker Project Definitions
+
+## Purpose
+The Expense Tracker application helps users manage their expenses by uploading transaction files, categorizing transactions, and visualizing expenses. It provides intelligent features to simplify the process of managing and analyzing financial data.
+
+## Core Functionality
+1. **File Upload and Parsing**:
+   - Users can upload `.xls`, `.xlsx`, or `.xml` files containing transaction data.
+   - The application parses the files and extracts headers and data rows.
+   - Each uploaded file is assigned a unique identifier (e.g., SHA-256 hash) to prevent duplicate uploads.
+
+2. **Header Mapping**:
+   - Users can map file headers to predefined fields (`Date`, `Income`, `Expenses`, `Description`, etc.).
+   - If a file with the same header structure is uploaded again, it is automatically recognized, and the user does not need to define the headers again.
+
+3. **File Merging**:
+   - Users can merge multiple files into a unified dataset.
+   - Merged files are stored in `localStorage` and can be managed (e.g., added, removed).
+   - If a file is removed from the merged list, its associated transaction data is also removed.
+
+4. **Category Management**:
+   - Users can define and manage categories for transactions (e.g., `Food`, `Transport`, `Utilities`).
+   - Categories are used for filtering and grouping transactions.
+   - Rows with descriptions that match previously categorized rows are automatically assigned the same category.
+
+5. **Transaction Management**:
+   - Transactions are displayed in a table or list format.
+   - Users can filter transactions by category or view uncategorized rows.
+   - Users can assign categories to rows, and the assignments are saved persistently in `localStorage`.
+
+6. **Visualization**:
+   - A pie chart shows income vs. expenses for selected time periods (e.g., month, quarter, half-year, year).
+   - A pie chart shows expenses by category for the same time periods.
+   - A timeline chart shows income vs. expenses over time (e.g., by year or half-year).
+
+7. **Smart Features**:
+   - **Smart Header Mapping**:
+     - The application uses AI to suggest header mappings based on the content of the file.
+     - For example, columns with dates are automatically recognized as `Date`, and numeric columns are suggested as `Income` or `Expenses`.
+   - **Smart Category Guessing**:
+     - The application learns from user input to suggest categories for new rows based on their descriptions.
+
+8. **Dark Mode**:
+   - Users can toggle between light and dark themes.
+
+## Future Enhancements (Version 2.0)
+1. **Advanced AI Auto-Categorization**:
+   - Use machine learning to predict categories for rows based on historical data and user behavior.
+2. **Validation**:
+   - Validate uploaded files to ensure they meet the required format and structure.
+3. **User Accounts**:
+   - Add user authentication to allow multiple users to manage their expenses.
+4. **Export Functionality**:
+   - Allow users to export merged files or transaction data in `.xls` or `.csv` formats.
+5. **Mobile Responsiveness**:
+   - Optimize the UI for mobile devices.
+
+## Notes
+- All major functionality must align with the definitions outlined here.
+- Any new major functionality must be added to this file to ensure consistency and clarity.
+
 # AI-Friendly Definitions for Expense Tracker
 
 ### ✅ Transaction
@@ -112,3 +173,10 @@ All modules should work independently and use `AppState` where needed.
 ### Categories Section
 - Add Category button (`➕`)
 - Future: Edit modal with rename, color, delete
+
+### New Functions
+- `openEditTransactionsModal`: Opens a modal for editing transactions.
+- `renderCategoryList`: Renders the categories in the "Categories" section.
+- `toggleCategoryFilter`: Toggles the visibility of transactions by category.
+- `renderTransactions`: Centralized function for rendering transactions.
+- `deleteTransaction`: Deletes a transaction from the list.
