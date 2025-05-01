@@ -14,6 +14,8 @@ export function getCategories() {
   return categories;
 }
 
+// Update the toggleCategoryFilter function
+
 export function renderCategoryList() {
   const categoryList = document.getElementById("categoryList");
   if (!categoryList) return;
@@ -23,9 +25,10 @@ export function renderCategoryList() {
     .map(
       ([name, color]) => `
       <button
-        class="category-btn"
+        class="category-btn active"
         style="background-color: ${color};"
         onclick="window.toggleCategoryFilter('${name}', this)"
+        data-category="${name}"
       >
         ${name}
       </button>
@@ -41,13 +44,19 @@ export function toggleCategoryFilter(name, element) {
     return;
   }
 
-  if (window.currentCategoryFilters.includes(name)) {
+  if (window.currentCategoryFilters && window.currentCategoryFilters.includes(name)) {
     window.currentCategoryFilters = window.currentCategoryFilters.filter(c => c !== name);
-    element.style.opacity = 1;
+    element.classList.remove('inactive');
+    element.classList.add('active');
   } else {
+    if (!window.currentCategoryFilters) {
+      window.currentCategoryFilters = [];
+    }
     window.currentCategoryFilters.push(name);
-    element.style.opacity = 0.5;
+    element.classList.remove('active');
+    element.classList.add('inactive');
   }
+  
   renderTransactions(transactions);
 }
 

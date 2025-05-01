@@ -102,6 +102,59 @@
       border-radius: 5px;
       color: #fff;
       cursor: pointer;
+      position: relative;
+    }
+    .category-btn.inactive {
+      opacity: 0.5;
+    }
+    .category-btn.inactive:after {
+      content: "✓";
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      font-size: 0.8em;
+      color: #fff;
+      display: none;
+    }
+    .category-btn.active:after {
+      content: "✓";
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      font-size: 0.8em;
+      color: #fff;
+      display: block;
+    }
+    .button-group {
+      display: flex;
+      align-items: center;
+    }
+    .button-group button {
+      margin-left: 5px;
+    }
+    .mapping-hint {
+      margin: 10px 0;
+      color: #666;
+      font-style: italic;
+      font-size: 0.9em;
+    }
+    .auto-generated {
+      background-color: #fff3cd;
+      font-style: italic;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .header-map {
+      border: 1px solid #ccc;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .header-map[style*="red"] {
+      background-color: #fff0f0;
     }
   </style>
 </head>
@@ -127,6 +180,38 @@
           <h2>Transactions</h2>
           <button id="editCategoriesBtn" class="icon-button" data-tooltip="Edit Categories">🛠️</button>
         </div>
+        <div id="filters">
+          <label>
+            Start Date:
+            <input type="date" id="filterStartDate" />
+          </label>
+          <label>
+            End Date:
+            <input type="date" id="filterEndDate" />
+          </label>
+          <label>
+            Category:
+            <select id="filterCategory">
+              <option value="">All</option>
+              <option value="Food">Food</option>
+              <option value="Transport">Transport</option>
+              <option value="Housing">Housing</option>
+            </select>
+          </label>
+          <label>
+            Min Amount:
+            <input type="number" id="filterMinAmount" />
+          </label>
+          <label>
+            Max Amount:
+            <input type="number" id="filterMaxAmount" />
+          </label>
+          <button id="applyFiltersBtn">Apply Filters</button>
+        </div>
+        <div>
+          <label for="transactionSearch">Search Transactions:</label>
+          <input type="text" id="transactionSearch" placeholder="Search by description..." />
+        </div>
         <div id="categoryList"></div>
         <table id="transactionsTable"></table>
       </section>
@@ -138,7 +223,11 @@
       <section id="fileUploadSection" class="section">
         <div class="section-header">
           <h2>Upload File</h2>
-          <button id="fileUploadBtn" class="icon-button" data-tooltip="Upload File">📁</button>
+          <div class="button-group">
+            <button id="fileUploadBtn" class="icon-button" data-tooltip="Upload File">📁</button>
+            <button id="saveHeadersBtn" class="icon-button" style="display:none;" data-tooltip="Save Mapping">💾</button>
+            <button id="clearPreviewBtn" class="icon-button" style="display:none;" data-tooltip="Clear Preview">🧹</button>
+          </div>
         </div>
         <input type="file" id="fileInput" style="display: none;" />
         <div id="rowSelectionPanel" style="display:none; margin: 10px 0;">
@@ -146,8 +235,6 @@
           &nbsp;&nbsp;
           Data Row: <input type="number" id="dataRowInput" class="row-input" value="2" min="1" />
         </div>
-        <button id="saveHeadersBtn" class="icon-button" style="display:none;" data-tooltip="Save Mapping">💾</button>
-        <button id="clearPreviewBtn" class="icon-button" style="display:none;" data-tooltip="Clear Preview">🧹</button>
         <div id="previewTable"></div>
       </section>
 
@@ -166,6 +253,7 @@
         <h2>Saved Format Mappings</h2>
         <table id="mappingTable"></table>
       </div>
+      <div id="summary"></div>
     </div>
   </main>
 

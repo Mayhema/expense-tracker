@@ -1,4 +1,4 @@
-# Expense Tracker Project Definitions
+# Expense Tracker - Project Definitions
 
 ## Purpose
 The Expense Tracker application helps users manage their expenses by uploading transaction files, categorizing transactions, and visualizing expenses. It provides intelligent features to simplify the process of managing and analyzing financial data.
@@ -180,3 +180,64 @@ All modules should work independently and use `AppState` where needed.
 - `toggleCategoryFilter`: Toggles the visibility of transactions by category.
 - `renderTransactions`: Centralized function for rendering transactions.
 - `deleteTransaction`: Deletes a transaction from the list.
+
+## File Handling
+
+### Format Recognition
+- The application identifies file formats based on:
+  1. File extension (XML, XLS, XLSX)
+  2. Number of columns
+  3. Header names (normalized)
+- Files with identical structures generate the same signature
+- When a file with a known signature is uploaded, its format mapping is applied automatically
+
+### XML Files
+- XML files are parsed using multiple strategies to extract data
+- The parser attempts to find structured rows in various XML formats
+- Date recognition is improved for multiple date formats and languages
+
+### Excel Files
+- Excel files may contain empty rows which are filtered out
+- Excel dates (numeric values 40000-50000) are automatically converted to YYYY-MM-DD format
+- Header detection looks for the first non-empty row
+
+## Transaction Management
+
+### Data Normalization
+- Fields are normalized before validation:
+  - "expenses" field is mapped to "amount"
+  - "income" field is also mapped to "amount"
+- Negative values are properly handled for expenses
+
+### Transaction Validation
+- Each transaction requires a date, description, and valid amount
+- Invalid transactions are filtered out with warnings
+- All displayed transactions are validated
+
+## User Interface
+
+### File Mapping
+- Users can map columns from imported files to standard fields
+- Default mappings are suggested based on column content
+- Mappings are saved for future use with similar files
+
+### Format Management
+- Users can delete saved formats
+- When deleting a format, associated files are also removed after confirmation
+
+### Export
+- Transactions can be exported to CSV format
+- Export includes Date, Description, Category, and Amount fields
+- All transaction data is normalized before export
+
+## Changes & Improvements
+
+### Fixed Issues
+- XML parsing now supports multiple file structures
+- Excel date values are properly converted to human-readable dates
+- File signatures are more reliable for format detection
+- Field normalization prevents "Invalid amount" warnings
+- Export includes all transactions with proper headers
+
+### Removed Features
+- Keyboard shortcuts removed due to conflicts with Chrome browser defaults

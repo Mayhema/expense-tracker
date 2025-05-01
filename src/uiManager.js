@@ -1,5 +1,7 @@
 // Directory: /src/uiManager.js
 
+let activeToast = null;
+
 export function showElement(id) {
     const el = document.getElementById(id);
     if (!el) return console.error(`Element #${id} not found.`);
@@ -21,8 +23,12 @@ export function showElement(id) {
   export function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
   }
-  
+      
   export function showToast(message, type = "info") {
+    if (activeToast) {
+      activeToast.remove(); // Remove any existing toast
+    }
+  
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
@@ -42,5 +48,39 @@ export function showElement(id) {
     });
   
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
+    activeToast = toast;
+  
+    setTimeout(() => {
+      toast.remove();
+      activeToast = null;
+    }, 3500);
+  }
+
+  export function handleError(error, userMessage = "An error occurred.") {
+    console.error(error);
+    showToast(userMessage, "error");
+  }
+
+  export function initializeDragAndDrop(onFileUpload) {
+    const dropZone = document.getElementById("fileUploadSection");
+    if (!dropZone) return;
+  
+    dropZone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      dropZone.style.backgroundColor = "#f0f0f0";
+    });
+  
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.style.backgroundColor = "white";
+    });
+  
+    dropZone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      dropZone.style.backgroundColor = "white";
+  
+      const file = event.dataTransfer.files[0];
+      if (file) {
+        onFileUpload({ target: { files: [file] } });
+      }
+    });
   }
