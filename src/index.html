@@ -156,12 +156,29 @@
     .header-map[style*="red"] {
       background-color: #fff0f0;
     }
+    /* Fix for blinking black line */
+    #transactionsTable {
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    
+    #transactionsTable td, #transactionsTable th {
+      border: 1px solid #ccc;
+      transition: none; /* Disable transitions that might cause flicker */
+    }
+    
+    /* Prevent layout shifts */
+    .category-dropdown {
+      width: 100%;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
   <header class="section">
     <h1>Expense Tracker</h1>
     <button id="darkModeBtn" class="icon-button" data-tooltip="Toggle Dark Mode">🌓</button>
+    <button id="debugChartsBtn" class="icon-button" data-tooltip="Debug Charts">🔍</button>
   </header>
 
   <main class="container">
@@ -169,7 +186,11 @@
     <div class="left-panel">
       <!-- Charts Section -->
       <div class="section">
-        <h2>Charts</h2>
+        <h2>
+          Charts
+          <button id="toggleExpenseChartBtn" class="icon-button" data-tooltip="Toggle Expense Chart">📊</button>
+          <button id="toggleTimelineChartBtn" class="icon-button" data-tooltip="Toggle Timeline Chart">📈</button>
+        </h2>
         <canvas id="expenseChart"></canvas>
         <canvas id="timelineChart"></canvas>
       </div>
@@ -246,17 +267,24 @@
           <button id="exportMergedBtn" class="icon-button" data-tooltip="Export Merged Files">📤</button>
         </h2>
         <ul id="mergedFilesList"></ul>
+        <button onclick="window.debugMergedFiles()" class="btn secondary-btn">Debug Files</button>
+        <!-- Add this near your Debug Files button -->
+        <button onclick="window.debugSignatures()" class="btn secondary-btn">Debug Signatures</button>
       </div>
 
       <!-- Saved Format Mappings Section -->
       <div class="section">
-        <h2>Saved Format Mappings</h2>
+        <h2>
+          Saved Format Mappings
+          <button id="deleteAllMappingsBtn" class="icon-button" data-tooltip="Delete All Format Mappings">🗑️</button>
+        </h2>
         <table id="mappingTable"></table>
       </div>
       <div id="summary"></div>
     </div>
   </main>
 
+  <script type="module" src="./debug.js"></script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>

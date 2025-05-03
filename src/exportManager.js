@@ -53,6 +53,10 @@ export function exportMergedFilesAsCSV() {
   });
 
   const csvContent = allRows.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+  
+  // Note: The HTTPS warning will appear in development environments
+  // when accessing over HTTP. This is normal and can be ignored.
+  // In production, ensure your site is served over HTTPS to avoid this warning.
   const blob = new Blob([csvContent], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
 

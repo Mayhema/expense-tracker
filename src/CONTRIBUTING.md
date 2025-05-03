@@ -1,3 +1,164 @@
+# Expense Tracker - Developer Guide
+
+## Project Architecture
+
+The application follows a modular architecture with clear separation of concerns:
+
+### Core Modules
+
+- **appState.js**: Central state management
+- **chartManager.js**: Chart rendering and visualization
+- **fileHandler.js**: File parsing and signature generation
+- **transactionManager.js**: Transaction processing and display
+- **categoryManager.js**: Category management and filtering
+- **mappingsManager.js**: Format mapping storage and retrieval
+- **uiManager.js**: UI utilities and toast notifications
+- **utils.js**: Shared utility functions
+- **debug.js**: Debugging tools and functions
+
+### Data Flow
+
+1. User uploads a file → `fileHandler.js` parses it
+2. Application generates signatures → `mappingsManager.js` checks for existing formats
+3. User maps columns or auto-mapping is applied → Format stored for future use
+4. File is merged into AppState → `transactionManager.js` processes transactions
+5. `renderTransactions()` updates UI and triggers chart updates
+
+## File Signature System
+
+The application uses multiple signature types to track files and formats:
+
+- **formatSig**: Identifies file structure (for format recognition)
+- **contentSig**: Identifies file contents (for duplicate detection)
+- **mappingSig**: Ties a specific header mapping to a file format
+- **structureSig**: Legacy signature (maintained for backward compatibility)
+
+When modifying signature generation, ensure all signature types are updated consistently in:
+- `generateFileSignature()` in fileHandler.js
+- `getMappingBySignature()` in mappingsManager.js
+- `saveHeadersAndFormat()` in mappingsManager.js
+
+## Chart Rendering System
+
+The chart system uses Chart.js with several safeguards against common issues:
+
+- **Throttling**: Prevents too many chart updates in rapid succession
+- **Canvas Management**: Ensures proper cleanup before rendering new charts
+- **Error Boundaries**: Catches and logs errors without crashing the application
+
+When modifying charts:
+1. Always destroy existing chart instances before creating new ones
+2. Use the chart toggle buttons for testing
+3. Keep the chart debug tools accessible during development
+
+## Known Challenges
+
+### XML File Handling
+XML files require special treatment:
+- Header and data rows are often the same (index 0)
+- Column structure may vary between files
+- Special date format handling is required
+
+### Date Parsing
+The application handles multiple date formats:
+- Excel numeric dates (e.g., 44927 = 2023-01-01)
+- ISO strings (YYYY-MM-DD)
+- Various localized formats (DD/MM/YYYY, MM/DD/YYYY)
+
+## Testing
+
+### Manual Testing Checklist
+1. Upload XML and XLSX files to verify parsing
+2. Verify format recognition when uploading similar files
+3. Test chart rendering with different data sets
+4. Test category assignment and filtering
+5. Verify dark mode toggle works correctly
+6. Test debug tools (Debug Files, Debug Signatures)
+
+### Performance Testing
+- Test with large files (1000+ rows)
+- Test with multiple merged files (5+)
+- Verify chart performance with numerous data points
+
+## Debugging Tools
+
+The application includes several debugging tools:
+- `debug.js`: Provides window.debugMergedFiles() and window.debugSignatures()
+- Chart debug mode: Toggle with debugChartsBtn
+- Transaction inspector: Available through window.inspectTransactionData()
+
+## Coding Standards
+
+### File Organization
+
+- Each file should focus on a single responsibility
+- Keep files under 300 lines if possible
+- Use clear, descriptive file names
+
+### Function Design
+
+- Functions should do one thing well
+- Use descriptive function names (verb + noun)
+- Add JSDoc comments for all public functions
+- Return values consistently (avoid mixing returns)
+
+### Variable Naming
+
+- Use camelCase for variables and functions
+- Use PascalCase for classes
+- Use UPPER_SNAKE_CASE for constants
+- Avoid abbreviations unless very common (e.g., ID, UI)
+
+### Error Handling
+
+- Use try/catch blocks for critical operations
+- Provide meaningful error messages
+- Log errors with context information
+- Handle edge cases gracefully
+
+### Performance Best Practices
+
+- Avoid DOM manipulation in loops
+- Batch DOM updates when possible
+- Use debounce for frequent events (resize, scroll)
+- Limit chart data points to prevent browser freezing
+
+## Testing Strategy
+
+- Add unit tests for core business logic
+- Test edge cases and error scenarios
+- Use test-driven development for complex features
+- Manual testing checklist for UI components
+
+## Debugging
+
+- Use the built-in debug mode for charts (`setChartDebugLevel(2)`)
+- Check browser console for detailed logs
+- Use the transaction inspector (`window.inspectTransactionData()`)
+- Look for red highlighted validation errors
+
+## Common Issues and Solutions
+
+1. **Charts not rendering**: Check date formats and data point count
+2. **Format not recognized**: Verify signature generation algorithm
+3. **Category colors not updating**: Force re-render with `renderTransactions()`
+4. **Excel dates incorrect**: Ensure proper conversion via `parseToDateString()`
+
+## Adding New Features
+
+1. Identify which module should contain the feature
+2. Update state management in AppState if needed
+3. Add UI components in HTML
+4. Implement business logic in appropriate module
+5. Connect UI to logic via event handlers
+6. Add documentation and update this guide
+
+## Deployment
+
+The application is designed to run as a client-side web app with no server dependencies.
+All data is stored in localStorage and processed in the browser.
+
+
 # Expense Tracker - Project Definitions
 
 ## Purpose

@@ -165,19 +165,47 @@ async function parseXMLFile(file) {
   }
 }
 
+// Update the parseExcelFile function
+
 async function parseExcelFile(file) {
   try {
     const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
+    const workbook = XLSX.read(data, { type: "array", dateNF: 'yyyy-mm-dd' });
+    
+    // Get the first sheet
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    
+    // Convert to JSON with specific options for better date handling
+    const rows = XLSX.utils.sheet_to_json(sheet, { 
+      header: 1,
+      raw: false, 
+      dateNF: 'yyyy-mm-dd'
+    });
 
     // Remove empty rows
-    const cleanedRows = rows.filter(row => row && row.length > 0);
+    const cleanedRows = rows.filter(row => 
+      row && row.length > 0 && row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')
+    );
     
-    console.log("Parsed Excel data:", cleanedRows);
-    return cleanedRows;
+    // Process Excel dates
+    const processedRows = cleanedRows.map(row => 
+      row.map(cell => {
+        // Handle Excel date values
+        if (typeof cell === 'number' && cell > 35000 && cell < 50000) {
+          try {
+            const jsDate = new Date((cell - 25569) * 86400 * 1000);
+            return jsDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+          } catch (e) {
+            return cell; // Keep original if conversion fails
+          }
+        }
+        return cell;
+      })
+    );
+    
+    console.log("Parsed Excel data:", processedRows);
+    return processedRows;
   } catch (error) {
     console.error("Error parsing Excel file:", error);
     throw new Error(`Excel parsing error: ${error.message}`);
@@ -205,88 +233,85 @@ export function addMergedFile(data, headerMapping, fileName, signature, dataRow 
   saveMergedFiles();
 }
 
-// Update the signature generation function
-
+// Update the generateFileSignature function
 export function generateFileSignature(fileName, data, headerMapping = null) {
   try {
-    // 1. Always generate structure signature
-    const structureSig = createSignatureFromStructure(fileName, data);
+    // 1. Generate format signature (for recognizing similar files)
+    const formatSig = createFormatSignature(fileName, data);
     
-    // 2. If we have mapping info, generate a mapping signature too
+    // 2. Generate content signature (for detecting duplicate uploads)
+    const contentSig = createContentSignature(fileName, data);
+    
+    // 3. If we have mapping info, generate a mapping signature too
     if (headerMapping) {
-      const mappingSig = createSignatureFromMapping(fileName, headerMapping, data);
-      return { structureSig, mappingSig };
+      const mappingSig = createMappingSignature(fileName, headerMapping);
+      
+      // IMPORTANT: For backwards compatibility
+      return { 
+        formatSig, 
+        contentSig, 
+        mappingSig,
+        structureSig: formatSig  // Add this for compatibility with older code
+      };
     }
     
-    // 3. Return just the structure signature when no mapping is available
-    return { structureSig };
+    // IMPORTANT: For backwards compatibility
+    return { 
+      formatSig, 
+      contentSig,
+      structureSig: formatSig  // Add this for compatibility with older code
+    };
   } catch (error) {
     console.error("Error generating file signature:", error);
-    showToast("Failed to generate file signature.", "error");
-    return { structureSig: null };
+    return { formatSig: null, contentSig: null, structureSig: null };
   }
+}
+
+// Format signature - based purely on column count and file type
+function createFormatSignature(fileName, data) {
+  const fileFormat = fileName.split('.').pop().toLowerCase();
+  const columnCount = data[0]?.length || 0;
+  return simpleHash(`${fileFormat}:${columnCount}:format`);
+}
+
+// Content signature - based on actual data samples
+function createContentSignature(fileName, data) {
+  // Use a sample of the actual content to identify duplicates
+  const sampleSize = Math.min(3, data.length);
+  let contentSample = [];
+  
+  for (let i = 0; i < sampleSize; i++) {
+    if (i < data.length) {
+      contentSample.push(data[i]);
+    }
+  }
+  
+  return simpleHash(fileName + JSON.stringify(contentSample));
+}
+
+// Mapping signature - based on user-defined header mapping
+function createMappingSignature(fileName, headerMapping) {
+  const fileFormat = fileName.split('.').pop().toLowerCase();
+  const filterMapping = headerMapping.filter(h => h !== "–");
+  const mappingString = filterMapping.join('|');
+  return simpleHash(`${fileFormat}:${mappingString}:mapping`);
 }
 
 // Update the signature generation for XML files
 
 function createSignatureFromStructure(fileName, data) {
   const fileFormat = fileName.split('.').pop().toLowerCase();
-  // Find the header row - first row that's not empty
-  const headerRow = data.find(row => row && row.length > 0) || [];
   
-  // For XML files, use a more lenient approach
+  // For XML files, use a more consistent approach
   if (fileFormat === 'xml') {
-    // Create a structure-based signature for XML that ignores specific content
-    // Focus on column count and types instead of exact headers
-    const columnCount = headerRow.length;
+    // Focus on column count and pattern rather than specific content
+    const columnCount = data[0]?.length || 0;
     
-    // Sample a few data rows to understand structure
-    const sampleRows = data.slice(1, Math.min(4, data.length));
-    const columnTypes = [];
-    
-    for (let i = 0; i < columnCount; i++) {
-      let hasNumbers = false;
-      let hasText = false;
-      let hasDates = false;
-      
-      sampleRows.forEach(row => {
-        if (i < row.length) {
-          const val = row[i];
-          
-          // Check for dates
-          if (/\d{1,4}[-/\.]\d{1,2}[-/\.]\d{1,4}/.test(String(val))) {
-            hasDates = true;
-          }
-          // Check for numbers
-          else if (!isNaN(parseFloat(val)) && isFinite(val)) {
-            hasNumbers = true;
-          }
-          // Check for text
-          else if (typeof val === 'string' && val.trim() !== '') {
-            hasText = true;
-          }
-        }
-      });
-      
-      // Determine dominant type
-      if (hasDates) columnTypes.push('date');
-      else if (hasNumbers) columnTypes.push('number');
-      else if (hasText) columnTypes.push('text');
-      else columnTypes.push('unknown');
-    }
-    
-    // Use column types for XML signature instead of actual header content
-    return simpleHash(`${fileFormat}:${columnCount}:${columnTypes.join('|')}`);
+    // Create a signature based on column count and file extension
+    return simpleHash(`xml:${columnCount}:columns`);
   }
   
-  // For other file formats, use the normal approach
-  const normalizedHeaders = headerRow.map(h => 
-    (h || '').toString().toLowerCase().trim()
-  );
-  
-  const columnsCount = normalizedHeaders.length;
-  const structureSignature = `${fileFormat}:${columnsCount}:${normalizedHeaders.join('|')}`;
-  return simpleHash(structureSignature);
+  // Rest of the function for other file types...
 }
 
 function createSignatureFromMapping(fileName, headerMapping, data) {
