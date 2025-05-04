@@ -1,62 +1,17 @@
-// Add this at the beginning of your main.js file (before any other code)
-// Make sure it's outside any function scope
-window.debugMergedFiles = function() {
-  console.log("Current merged files:", AppState.mergedFiles);
-  
-  AppState.mergedFiles.forEach((file, i) => {
-    console.log(`File ${i+1}: ${file.fileName}, Signature: ${file.signature}`);
-    console.log(`Header mapping:`, file.headerMapping);
-    console.log(`Data rows: ${file.data.length}`);
-    console.log(`Sample row:`, file.data[1] || "No data rows");
-  });
-  
-  console.log("Current transactions:", AppState.transactions);
-};
-
 import { handleFileUpload, generateFileSignature, excelDateToJSDate } from "./fileHandler.js";
 import { saveHeadersAndFormat, getMappingBySignature, renderMappingList, deleteMapping } from "./mappingsManager.js";
 import { showElement, hideElement, showToast, toggleDarkMode, initializeDragAndDrop } from "./uiManager.js";
 import { renderTransactions, updateTransactions, applyFilters } from "./transactionManager.js";
 import { renderCategoryList, openEditCategoriesModal } from "./categoryManager.js";
-import { updateChart, toggleChartDebugMode, toggleExpenseChart, toggleTimelineChart } from "./chartManager.js";
 import { HEADERS } from "./constants.js";
 import { AppState, saveMergedFiles, resetFileState } from "./appState.js";
 import { exportMergedFilesAsCSV } from "./exportManager.js";
+import { updateCharts, resetCharts, toggleExpenseChart, toggleTimelineChart } from "./charts/chartManager.js";
 
-// Add this function near the top of the file, after imports but before other functions
-function migrateSignatures() {
-  // Get existing merged files
-  const mergedFiles = JSON.parse(localStorage.getItem("mergedFiles") || "[]");
-  
-  // Update each file with new signature format
-  const updatedFiles = mergedFiles.map(file => {
-    if (!file.formatSig || !file.contentSig) {
-      // Generate new signatures
-      const signatures = generateFileSignature(file.fileName, file.data, file.headerMapping);
-      
-      return {
-        ...file,
-        formatSig: signatures.formatSig,
-        contentSig: signatures.contentSig,
-        // Keep original signature for compatibility
-        signature: file.signature || signatures.contentSig
-      };
-    }
-    return file;
-  });
-  
-  // Save updated files
-  localStorage.setItem("mergedFiles", JSON.stringify(updatedFiles));
-  
-  console.log("Migrated signatures for", updatedFiles.length, "files");
-}
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOMContentLoaded event fired.");
-  
-  // Add this line at the beginning of the function
-  migrateSignatures();
-  
+
   const fileInput = document.getElementById("fileInput");
   const fileUploadBtn = document.getElementById("fileUploadBtn");
   const saveButton = document.getElementById("saveHeadersBtn");
@@ -91,8 +46,24 @@ document.addEventListener("DOMContentLoaded", () => {
     applyFilters(filters);
   });
 
+  // Replace the debugChartsBtn event listener
+
   document.getElementById("debugChartsBtn").addEventListener("click", () => {
-    toggleChartDebugMode();
+    // Target the section containing charts instead of a non-existent "charts" element
+    const chartSection = document.querySelector("#expenseChart").parentNode;
+    if (chartSection) {
+      chartSection.classList.toggle("debug-mode");
+      console.log("Chart debug mode toggled");
+      showToast("Chart debug mode toggled", "info");
+      
+      // Force refresh charts when debug mode is toggled
+      setTimeout(() => {
+        if (AppState.transactions && AppState.transactions.length) {
+          resetCharts(); // Reset charts first
+          setTimeout(() => updateCharts(AppState.transactions), 100); // Then update with fresh data
+        }
+      }, 200);
+    }
   });
 
   initializeDragAndDrop(onFileUpload); // Initialize drag-and-drop
@@ -101,111 +72,142 @@ document.addEventListener("DOMContentLoaded", () => {
   renderCategoryList();
   renderMappingList();
   updateTransactions();
-  
-  document.getElementById("deleteAllMappingsBtn").addEventListener("click", () => {
-    if (confirm("Are you sure you want to delete all Format Mappings?")) {
-      localStorage.removeItem("fileFormatMappings");
-      renderMappingList();
-      showToast("All format mappings have been deleted.", "success");
+
+  document.getElementById("toggleExpenseChartBtn").addEventListener("click", () => {
+    console.log("Toggle expense chart clicked");
+    try {
+      const enabled = toggleExpenseChart();
+      console.log(`Expense chart ${enabled ? 'enabled' : 'disabled'}`);
+      showToast(`Expense chart ${enabled ? 'enabled' : 'disabled'}`, "info");
+    } catch (error) {
+      console.error("Error toggling expense chart:", error);
+      showToast("Failed to toggle expense chart", "error");
     }
   });
 
-  // Explicitly set up the delete all mappings button with debug logging
+  document.getElementById("toggleTimelineChartBtn").addEventListener("click", () => {
+    console.log("Toggle timeline chart clicked");
+    try {
+      const enabled = toggleTimelineChart();
+      console.log(`Timeline chart ${enabled ? 'enabled' : 'disabled'}`);
+      showToast(`Timeline chart ${enabled ? 'enabled' : 'disabled'}`, "info");
+    } catch (error) {
+      console.error("Error toggling timeline chart:", error);
+      showToast("Failed to toggle timeline chart", "error");
+    }
+  });
+
+  // Add this at the bottom of the DOMContentLoaded handler
+  
+  // Set up deleteAllMappingsBtn with single event listener
   const deleteAllBtn = document.getElementById("deleteAllMappingsBtn");
   if (deleteAllBtn) {
-    console.log("Delete All Mappings button found, attaching event listener");
-    deleteAllBtn.addEventListener("click", function() {
-      console.log("Delete All Mappings button clicked");
+    // Clean up any existing listeners
+    const newBtn = deleteAllBtn.cloneNode(true);
+    deleteAllBtn.parentNode.replaceChild(newBtn, deleteAllBtn);
+    
+    // Add a single event listener
+    newBtn.addEventListener("click", () => {
       if (confirm("Are you sure you want to delete all Format Mappings?")) {
-        console.log("User confirmed deletion");
-        
-        // Remove format mappings
         localStorage.removeItem("fileFormatMappings");
-        
-        // Also remove all merged files that depend on these mappings
+        renderMappingList();
         AppState.mergedFiles = [];
         saveMergedFiles();
-        
-        // Update UI
-        renderMappingList();
         renderMergedFiles();
         updateTransactions();
-        
-        showToast("All format mappings and associated files have been deleted.", "success");
+        showToast("All format mappings have been deleted.", "success");
       }
     });
-  } else {
-    console.error("Delete All Mappings button not found in the DOM", document.getElementById("deleteAllMappingsBtn"));
   }
 
-  // Add event listeners for chart toggle buttons
-  const toggleExpenseChartBtn = document.getElementById("toggleExpenseChartBtn");
-  const toggleTimelineChartBtn = document.getElementById("toggleTimelineChartBtn");
-  
-  if (toggleExpenseChartBtn) {
-    toggleExpenseChartBtn.addEventListener("click", () => {
-      const enabled = toggleExpenseChart();
-      showToast(`Expense chart ${enabled ? 'enabled' : 'disabled'}`, "info");
-    });
-  }
-  
-  if (toggleTimelineChartBtn) {
-    toggleTimelineChartBtn.addEventListener("click", () => {
-      const enabled = toggleTimelineChart();
-      showToast(`Timeline chart ${enabled ? 'enabled' : 'disabled'}`, "info");
-    });
-  }
+  // Add to your DOMContentLoaded event handler
+
+  document.getElementById("resetChartsBtn").addEventListener("click", () => {
+    console.log("Resetting charts");
+    resetCharts();
+    showToast("Charts reset successfully", "info");
+    
+    // Update charts with current data after reset
+    setTimeout(() => {
+      if (AppState.transactions && AppState.transactions.length) {
+        updateCharts(AppState.transactions);
+      }
+    }, 300);
+  });
 });
 
 // Update the addMergedFile function
 
-window.addMergedFile = function(data, headerMapping, fileName, signature) {
-  console.log("Adding file to merged files:", fileName);
-  
-  // Generate comprehensive signatures
-  const signatures = generateFileSignature(fileName, data, headerMapping);
-  console.log("Generated signatures:", signatures);
-  
-  // For duplicate check, use contentSig which represents actual file content
-  const isDuplicate = AppState.mergedFiles.some(file => {
-    const contentMatch = file.contentSig === signatures.contentSig || file.signature === signatures.contentSig;
-    const nameMatch = file.fileName === fileName;
-    
-    // Only consider it a duplicate if BOTH content matches AND name matches
-    return contentMatch && nameMatch;
-  });
-  
-  if (isDuplicate) {
-    console.log("This exact file is already in the merged files list.");
-    showToast("File already exists in your merged files.", "warning");
+window.addMergedFile = function (data, mapping, name, signature) {
+  const dataRowIndex = parseInt(document.getElementById("dataRowInput").value, 10) - 1;
+  const headerRowIndex = parseInt(document.getElementById("headerRowInput").value, 10) - 1;
+
+  if (AppState.mergedFiles.some(f => f.signature === signature)) {
+    showToast("This file is already merged.", "error");
     return;
   }
+
+  // Create a clean copy of mapping to avoid reference issues
+  const cleanMapping = [...mapping];
   
-  // Create a copy of the data to avoid reference issues
-  const fileCopy = {
-    data: JSON.parse(JSON.stringify(data)),
-    headerMapping: [...headerMapping],
-    fileName,
-    formatSig: signatures.formatSig,  // For format recognition
-    contentSig: signatures.contentSig, // For duplicate detection
-    mappingSig: signatures.mappingSig, // For header mapping
-    structureSig: signatures.structureSig || signatures.formatSig, // For backward compatibility
-    signature: signatures.contentSig,  // Legacy field for compatibility
-    headerRow: fileName.toLowerCase().endsWith('.xml') ? 0 : 0,
-    dataRow: fileName.toLowerCase().endsWith('.xml') ? 0 : 1,
-    selected: true
+  // Log the mapping and data for debugging
+  console.log("Original mapping:", mapping);
+  console.log("Header row:", data[headerRowIndex]);
+  console.log("Data row:", data[dataRowIndex]);
+  
+  // Create map of which columns to keep and their types
+  const columnMap = {};
+  cleanMapping.forEach((headerType, index) => {
+    if (headerType !== "–") {
+      columnMap[index] = headerType;
+    }
+  });
+  
+  // Create processed data - only include columns with valid headers
+  const processedData = data.slice(dataRowIndex).map(row => {
+    const processedRow = [];
+    Object.entries(columnMap).forEach(([origIndex, headerType]) => {
+      const colIndex = parseInt(origIndex, 10);
+      let cellValue = colIndex < row.length ? row[colIndex] : '';
+      
+      // Convert Excel dates in Date columns
+      if (headerType === "Date" && !isNaN(parseFloat(cellValue)) && 
+          parseFloat(cellValue) > 30000 && parseFloat(cellValue) < 50000) {
+        const excelDate = parseFloat(cellValue);
+        cellValue = excelDateToJSDate(excelDate);
+      }
+      
+      processedRow.push(cellValue);
+    });
+    return processedRow;
+  });
+  
+  // Only include mappings for columns we're keeping
+  const processedMapping = Object.values(columnMap);
+  
+  console.log("Processed mapping:", processedMapping);
+  console.log("Sample processed data:", processedData.slice(0, 2));
+
+  const merged = {
+    fileName: name,
+    headerMapping: processedMapping,
+    data: processedData,
+    dataRow: dataRowIndex,
+    headerRow: headerRowIndex,
+    signature,
+    selected: true,
   };
-  
-  // Add the file
-  AppState.mergedFiles.push(fileCopy);
+
+  console.log("Adding merged file:", merged);
+  AppState.mergedFiles.push(merged);
   saveMergedFiles();
   
-  // Make sure to call these functions to update the UI
-  console.log("About to render merged files list");
-  renderMergedFiles();  // This must be called to update the UI
-  updateTransactions();
+  // Update the UI components in the correct order
+  renderMergedFiles();
+  renderMappingList(); // This ensures format mappings are displayed immediately
+  updateTransactions(); // This updates the transactions table
   
-  console.log("File added to merged files:", fileName, "with signature:", signatures.contentSig);
+  showToast("File merged successfully!", "success");
 };
 
 // Special handling for XML files in file upload
@@ -233,7 +235,7 @@ function onFileUpload(event) {
       // Generate a preliminary signature based on file structure
       AppState.currentFileSignature = generateFileSignature(file.name, data);
 
-      if (!AppState.currentFileSignature.structureSig && !AppState.currentFileSignature.formatSig) {
+      if (!AppState.currentFileSignature.structureSig) {
         showToast("Failed to process the file. Please try again.", "error");
         return;
       }
@@ -242,56 +244,19 @@ function onFileUpload(event) {
       AppState.currentSuggestedMapping = suggestMapping(data);
 
       // Check if we have an existing mapping that matches this file structure
-      const existingMapping = getMappingBySignature(
-        AppState.currentFileSignature.structureSig || AppState.currentFileSignature.formatSig
-      );
+      const existingMapping = getMappingBySignature(AppState.currentFileSignature);
       if (existingMapping) {
         console.log("Found matching format signature:", AppState.currentFileSignature);
         
         // Double-check that the structure really matches by comparing column count
         const headerCount = data[0].length;
         if (existingMapping.length === headerCount) {
-          console.log("Using existing mapping:", existingMapping);
-          
-          // Generate signature with the existing mapping - IMPORTANT FIX HERE
-          const autoSignature = generateFileSignature(
-            AppState.currentFileName,
-            AppState.currentFileData,
-            existingMapping
-          );
-
-          // Use the discovered mapping signature - NOT the file signature
-          const signatureToUse = autoSignature.mappingSig || autoSignature.formatSig;
-          console.log("Using signature for merged file:", signatureToUse);
-          
-          // Check if this exact file is already merged - use both name AND content
-          const fileContent = JSON.stringify(AppState.currentFileData);
-          const isDuplicate = AppState.mergedFiles.some(f => 
-            f.fileName === AppState.currentFileName && 
-            JSON.stringify(f.data) === fileContent
-          );
-          
-          if (isDuplicate) {
-            console.log("This exact file is already in the merged files list.");
-            showToast("File already exists in your merged files.", "warning");
-            clearPreview();
-            return;
-          }
-          
-          // Add the file to merged files with mapping signature
-          window.addMergedFile(
-            AppState.currentFileData,
-            existingMapping,
-            AppState.currentFileName,
-            signatureToUse
-          );
-          
-          clearPreview();
-          showToast("File automatically processed with existing mapping.", "success");
+          console.log("Auto-merging with saved mapping:", existingMapping);
+          window.addMergedFile(data, existingMapping, file.name, AppState.currentFileSignature);
+          showToast("Auto-merged using saved header mapping.", "success");
           return;
         } else {
-          console.log("Column count mismatch: existing mapping has", existingMapping.length, "but file has", headerCount);
-          // Continue with manual mapping
+          console.log("Column count mismatch. Format found but not applied.");
         }
       } else {
         console.log("No matching format found. User needs to define mapping.");
@@ -302,6 +267,7 @@ function onFileUpload(event) {
       showElement("clearPreviewBtn");
       
       // For XML files, default to the same row for header and data
+      // if that's how the structure is
       if (isXml) {
         document.getElementById("headerRowInput").value = "1";
         document.getElementById("dataRowInput").value = "1";
@@ -319,7 +285,7 @@ function onFileUpload(event) {
     });
 }
 
-// Enhance the suggestMapping function for better description detection
+// Update the suggestMapping function
 
 function suggestMapping(data) {
   if (!data || !data.length || !data[0]) {
@@ -327,35 +293,45 @@ function suggestMapping(data) {
   }
   
   const headers = data[0];
-  const dateColumnIndex = []; // Track multiple potential date columns
+  let dateColumnFound = false;
+  let incomeColumnFound = false;
+  let expensesColumnFound = false;
   
   // First pass - check headers for obvious matches
   const initialMapping = headers.map((cell, i) => {
     const headerText = (cell || "").toString().toLowerCase().trim();
     
     // Date detection in headers
-    if (headerText.includes("date") || 
+    if (!dateColumnFound && (
+        headerText.includes("date") || 
         headerText.includes("day") ||
-        headerText.includes("time")) {
-      dateColumnIndex.push(i);
+        headerText.includes("time") || 
+        headerText.includes("תאריך"))) { // Hebrew word for date
+      dateColumnFound = true;
       return "Date";
     }
     
     // Expense detection in headers
-    if (headerText.includes("expense") || 
+    if (!expensesColumnFound && (
+        headerText.includes("expense") || 
         headerText.includes("debit") || 
         headerText.includes("cost") ||
         headerText.includes("payment") ||
-        headerText.includes("out")) {
+        headerText.includes("out") ||
+        headerText.includes("חובה"))) { // Hebrew word for debit/expense
+      expensesColumnFound = true;
       return "Expenses";
     }
     
     // Income detection in headers
-    if (headerText.includes("income") || 
+    if (!incomeColumnFound && (
+        headerText.includes("income") || 
         headerText.includes("credit") || 
         headerText.includes("deposit") ||
         headerText.includes("revenue") ||
-        headerText.includes("in")) {
+        headerText.includes("in") ||
+        headerText.includes("זכות"))) { // Hebrew word for credit/income
+      incomeColumnFound = true;
       return "Income";
     }
     
@@ -364,7 +340,9 @@ function suggestMapping(data) {
         headerText.includes("note") || 
         headerText.includes("memo") ||
         headerText.includes("text") ||
-        headerText.includes("detail")) {
+        headerText.includes("detail") ||
+        headerText.includes("תאור") ||    // Hebrew word for description
+        headerText.includes("פרטים")) {   // Hebrew word for details
       return "Description";
     }
     
@@ -393,70 +371,69 @@ function suggestMapping(data) {
     
     if (columnValues.length === 0) return "–";
     
-    // Check for Excel dates (numeric values between 35000-50000)
-    const numberValues = columnValues.filter(v => 
-      !isNaN(parseFloat(v)) && isFinite(v)
-    ).map(v => parseFloat(v));
-    
-    if (numberValues.length > 0 && 
-        dateColumnIndex.length === 0 && // Only if we haven't found a date column yet
-        numberValues.some(n => n > 35000 && n < 50000)) {
-      console.log("Found potential Excel date column:", colIndex, numberValues);
-      dateColumnIndex.push(colIndex);
-      return "Date";
-    }
-    
-    // Check for text date patterns
-    const datePatterns = [
-      /\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}/,  // DD/MM/YYYY or MM/DD/YYYY
-      /\d{4}[-/\.]\d{1,2}[-/\.]\d{1,2}/     // YYYY/MM/DD
-    ];
-    
-    if (dateColumnIndex.length === 0 && // Only if we haven't found a date column yet
-        columnValues.some(v => {
-          const str = String(v);
-          return datePatterns.some(pattern => pattern.test(str));
-        })) {
-      console.log("Found text date patterns in column:", colIndex);
-      dateColumnIndex.push(colIndex);
-      return "Date";
-    }
-    
-    // Check for monetary values (often contain decimal points)
-    if (numberValues.length > 0 && columnValues.some(v => String(v).includes('.'))) {
-      // Separate positive/negative
-      if (numberValues.every(n => n >= 0)) return "Income";
-      if (numberValues.every(n => n <= 0)) return "Expenses";
+    // Only try to detect another date column if we don't already have one
+    if (!dateColumnFound) {
+      // Excel date detection
+      const numberValues = columnValues.filter(v => 
+        !isNaN(parseFloat(v)) && isFinite(v)
+      ).map(v => parseFloat(v));
       
-      // Mix of positive/negative - go with most common
-      const positiveCount = numberValues.filter(n => n >= 0).length;
-      const negativeCount = numberValues.filter(n => n < 0).length;
-      return positiveCount >= negativeCount ? "Income" : "Expenses";
+      if (numberValues.length > 0 && 
+          numberValues.some(n => n > 35000 && n < 50000)) {
+        console.log("Found potential Excel date column:", colIndex, numberValues);
+        dateColumnFound = true;
+        return "Date";
+      }
+      
+      // Text date patterns detection
+      const datePatterns = [
+        /\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}/,  // DD/MM/YYYY or MM/DD/YYYY
+        /\d{4}[-/\.]\d{1,2}[-/\.]\d{1,2}/     // YYYY/MM/DD
+      ];
+      
+      if (columnValues.some(v => {
+        const str = String(v);
+        return datePatterns.some(pattern => pattern.test(str));
+      })) {
+        console.log("Found text date patterns in column:", colIndex);
+        dateColumnFound = true;
+        return "Date";
+      }
     }
     
-    // Improved description detection for XML
-    // Look for text content with certain characteristics
-    if (columnValues.some(v => {
-      const str = String(v);
-      // Check for longer text that looks like descriptions
-      return (
-        // Longer strings are likely descriptions
-        (str.length > 8) || 
-        // Strings with spaces are likely descriptions
-        (str.includes(' ') && str.length > 5) ||
-        // Strings with multiple words
-        (str.split(' ').length > 2) ||
-        // Strings with special characters typical in descriptions
-        (/[,#&\-:]/.test(str)) || 
-        // Strings that start with capital letters (proper nouns common in descriptions)
-        (/^[A-Z][a-z]/.test(str))
-      );
-    })) {
+    // Check for monetary values and assign as income or expenses if not already found
+    if (!incomeColumnFound || !expensesColumnFound) {
+      // Check for monetary values (often contain decimal points)
+      const numberValues = columnValues.filter(v => 
+        !isNaN(parseFloat(v)) && isFinite(v)
+      ).map(v => parseFloat(v));
+      
+      if (numberValues.length > 0) {
+        // If all values are negative or zero, likely expenses
+        if (!expensesColumnFound && numberValues.every(n => n <= 0)) {
+          expensesColumnFound = true;
+          return "Expenses";
+        }
+        
+        // If all values are positive or zero, likely income
+        if (!incomeColumnFound && numberValues.every(n => n >= 0)) {
+          incomeColumnFound = true;
+          return "Income";
+        }
+      }
+    }
+    
+    // Check for text content (likely descriptions)
+    if (columnValues.some(v => 
+      typeof v === 'string' && 
+      v.length > 3 && 
+      // Include Latin and Hebrew character ranges
+      /[a-zA-Z\u0590-\u05FF]{3,}/.test(v))) {
       return "Description";
     }
     
-    // Default to Description for anything else with content
-    return "Description";
+    // Default to placeholder for anything else
+    return "–";
   });
 }
 
@@ -623,66 +600,68 @@ function renderHeaderPreview(data) {
     const newValue = select.value;
     console.log(`Changing column ${index} mapping to ${newValue}`);
     
-    // Reset all dropdown borders first
-    document.querySelectorAll(".header-map").forEach(el => {
-      el.style.borderColor = "";
-    });
-    
-    // If selecting Date, Income, or Expenses (not Description or placeholder)
-    // check if another column already has this mapping
-    if (newValue !== "–" && newValue !== "Description") {
-      // Find any existing column with the same mapping
-      const existingIndex = AppState.currentSuggestedMapping.findIndex(
-        (mapping, i) => i !== index && mapping === newValue
-      );
+    // Skip further processing if setting to placeholder
+    if (newValue === "–") {
+      AppState.currentSuggestedMapping[index] = newValue;
       
-      if (existingIndex !== -1) {
-        // Change the previous column to placeholder
-        AppState.currentSuggestedMapping[existingIndex] = "–";
-        // Update the dropdown visually
-        const previousDropdown = document.querySelector(`.header-map[data-index="${existingIndex}"]`);
-        if (previousDropdown) {
-          previousDropdown.value = "–";
-        }
-        showToast(`Only one column can be mapped as "${newValue}". Previous mapping has been reset.`, "info");
+      // Check if we have valid required fields for saving
+      const hasDate = AppState.currentSuggestedMapping.includes("Date");
+      const hasAmount = AppState.currentSuggestedMapping.includes("Income") || 
+                       AppState.currentSuggestedMapping.includes("Expenses");
+      
+      // Enable/disable save button
+      const saveButton = document.getElementById("saveHeadersBtn");
+      if (saveButton) {
+        saveButton.disabled = !(hasDate && hasAmount);
+        saveButton.title = hasDate && hasAmount ? 
+          "Save this mapping" : 
+          "You need at least Date and either Income or Expenses columns";
       }
+      return;
     }
     
-    // Update the mapping
+    // Check for duplicates on ALL fields (including Description)
+    const existingIndex = AppState.currentSuggestedMapping.findIndex(
+      (value, i) => i !== index && value === newValue
+    );
+    
+    // If this header type already exists elsewhere, reset the other one
+    if (existingIndex !== -1) {
+      // Create a visual indication
+      const existingDropdown = document.querySelector(`.header-map[data-index="${existingIndex}"]`);
+      if (existingDropdown) {
+        // Flash the element to show it was changed
+        existingDropdown.style.backgroundColor = "#ffecec";
+        existingDropdown.value = "–";
+        
+        // Reset after animation
+        setTimeout(() => {
+          existingDropdown.style.backgroundColor = "";
+        }, 1000);
+      }
+      
+      // Update the mapping
+      AppState.currentSuggestedMapping[existingIndex] = "–";
+      console.log(`Reset duplicate mapping at column ${existingIndex} to –`);
+      showToast(`Only one column can be mapped as "${newValue}". Previous selection reset.`, "info");
+    }
+    
+    // Update the current mapping
     AppState.currentSuggestedMapping[index] = newValue;
     
-    // If changing to Date, update preview row with formatted date
-    if (newValue === "Date") {
-      const dataRowIndex = parseInt(document.getElementById("dataRowInput").value, 10) - 1;
-      if (dataRowIndex >= 0 && AppState.currentFileData && 
-          dataRowIndex < AppState.currentFileData.length) {
-        
-        const dataRow = AppState.currentFileData[dataRowIndex];
-        if (index < dataRow.length) {
-          const cell = dataRow[index];
-          // Format date for preview
-          const previewRow = document.querySelector("#previewTable tbody tr");
-          if (previewRow && previewRow.cells[index]) {
-            let formattedDate = cell;
-            
-            // For Excel dates
-            if (!isNaN(parseFloat(cell)) && parseFloat(cell) > 30000 && parseFloat(cell) < 50000) {
-              try {
-                const jsDate = new Date((parseFloat(cell) - 25569) * 86400 * 1000);
-                formattedDate = jsDate.toISOString().split('T')[0];
-              } catch(e) {
-                console.error("Error formatting Excel date:", e);
-              }
-            }
-            
-            previewRow.cells[index].textContent = formattedDate;
-          }
-        }
-      }
-    }
+    // Check if we have valid required fields for saving
+    const hasDate = AppState.currentSuggestedMapping.includes("Date");
+    const hasAmount = AppState.currentSuggestedMapping.includes("Income") || 
+                     AppState.currentSuggestedMapping.includes("Expenses");
     
-    // Ensure we don't have duplicates
-    checkForDuplicateHeaders();
+    // Enable/disable save button
+    const saveButton = document.getElementById("saveHeadersBtn");
+    if (saveButton) {
+      saveButton.disabled = !(hasDate && hasAmount);
+      saveButton.title = hasDate && hasAmount ? 
+        "Save this mapping" : 
+        "You need at least Date and either Income or Expenses columns";
+    }
   };
   
   // Check for initial duplicates immediately
@@ -733,21 +712,9 @@ function checkForDuplicateHeaders() {
   }
 }
 
-// Update the onSaveHeaders function
-
 function onSaveHeaders() {
-  // Get the current mapping from the dropdowns
   const selects = document.querySelectorAll(".header-map");
   const mapping = Array.from(selects).map(sel => sel.value);
-  
-  // Validate the mapping - ensure required fields exist
-  const hasDate = mapping.includes("Date");
-  const hasAmount = mapping.includes("Income") || mapping.includes("Expenses");
-  
-  if (!hasDate || !hasAmount) {
-    showToast("Please map at least a Date column and either Income or Expenses.", "error");
-    return;
-  }
   
   // Generate the signature AFTER the user has mapped the headers
   // This ensures the signature reflects the user's chosen structure
@@ -756,9 +723,6 @@ function onSaveHeaders() {
     AppState.currentFileData, 
     mapping
   );
-  
-  console.log("Saving mapping:", mapping);
-  console.log("With signature:", finalSignature);
   
   // Save the mapping with the new signature
   saveHeadersAndFormat(finalSignature, mapping);
@@ -783,66 +747,33 @@ function clearPreview() {
   document.getElementById("previewTable").innerHTML = "";
 }
 
+// Export the renderMergedFiles function
 export function renderMergedFiles() {
-  const mergedFilesList = document.getElementById("mergedFilesList");
-  if (!mergedFilesList) {
-    console.error("Could not find mergedFilesList element");
-    return;
-  }
-  
-  console.log("Rendering merged files list:", AppState.mergedFiles);
-  
-  // Clear existing content
-  mergedFilesList.innerHTML = '';
-  
-  if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    const emptyMsg = document.createElement("li");
-    emptyMsg.textContent = "No merged files yet";
-    emptyMsg.classList.add("empty-list-message");
-    mergedFilesList.appendChild(emptyMsg);
-    return;
-  }
-  
-  // Create list items for each merged file
-  AppState.mergedFiles.forEach((file, index) => {
+  const list = document.getElementById("mergedFilesList");
+  list.innerHTML = "";
+
+  (AppState.mergedFiles || []).forEach((file, i) => {
     const li = document.createElement("li");
-    li.classList.add("merged-file-item");
-    
-    // Create checkbox for file selection
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = file.selected !== false; // Default to true
-    checkbox.addEventListener("change", () => {
-      file.selected = checkbox.checked;
+    li.textContent = file.fileName;
+
+    const btn = document.createElement("button");
+    btn.textContent = "🗑️";
+    btn.onclick = () => {
+      AppState.mergedFiles.splice(i, 1);
       saveMergedFiles();
+      renderMergedFiles();
       updateTransactions();
-    });
-    
-    // File info
-    const fileInfo = document.createElement("span");
-    fileInfo.textContent = `${file.fileName} (${file.data.length} rows)`;
-    fileInfo.classList.add("file-name");
-    
-    // Delete button
-    const deleteBtn = document.createElement("button");
-    deleteBtn.innerHTML = "🗑️";
-    deleteBtn.classList.add("icon-button");
-    deleteBtn.title = "Remove file";
-    deleteBtn.addEventListener("click", () => {
-      if (confirm(`Remove ${file.fileName} from merged files?`)) {
-        AppState.mergedFiles.splice(index, 1);
-        saveMergedFiles();
-        renderMergedFiles();
-        updateTransactions();
-      }
-    });
-    
-    // Assemble the list item
-    li.appendChild(checkbox);
-    li.appendChild(fileInfo);
-    li.appendChild(deleteBtn);
-    mergedFilesList.appendChild(li);
+      showToast("File removed.", "success");
+    };
+
+    li.appendChild(btn);
+    list.appendChild(li);
   });
+
+  if (AppState.mergedFiles.length === 0) {
+    AppState.transactions = [];
+    renderTransactions([]);
+  }
 }
 
 function loadMergedFiles() {
@@ -870,10 +801,11 @@ window.debugLastFileMapping = function() {
   console.log("Header mapping:", lastFile.headerMapping);
   
   // Show a sample of data rows
+  console.log("Data sample:");
   lastFile.data.slice(0, 3).forEach((row, i) => {
     const mappedRow = {};
     lastFile.headerMapping.forEach((header, j) => {
-      if (j < row.length && header !== "–") {
+      if (j < row.length) {
         mappedRow[header] = row[j];
       }
     });
@@ -950,44 +882,3 @@ window.inspectTransactionData = function() {
 document.getElementById("fileUploadBtn").addEventListener("dblclick", () => {
   window.inspectTransactionData();
 });
-
-// Add this near the end of the file
-
-// Ensure global functions are defined
-window.updateHeaderMapping = window.updateHeaderMapping || function() {};
-window.toggleCategoryFilter = window.toggleCategoryFilter || function() {};
-
-// Find the updateTransactions function and check it:
-
-// DELETE the following function around line 849
-// function updateTransactions() {
-//   console.log("Updating transactions from", AppState.mergedFiles.length, "merged files");
-//   
-//   // Reset transactions
-//   AppState.transactions = [];
-//   
-//   if (!AppState.mergedFiles.length) {…}
-//   
-//   // Process each merged file
-//   AppState.mergedFiles.forEach(file => {…});
-//   
-//   console.log("Total transactions:", AppState.transactions.length);
-//   renderTransactions(AppState.transactions);
-// }
-
-// Instead, just use the imported updateTransactions function throughout the file
-
-// Add this function at the end of the file
-
-window.debugMergedFiles = function() {
-  console.log("Current merged files:", AppState.mergedFiles);
-  
-  AppState.mergedFiles.forEach((file, i) => {
-    console.log(`File ${i+1}: ${file.fileName}, Signature: ${file.signature}`);
-    console.log(`Header mapping:`, file.headerMapping);
-    console.log(`Data rows: ${file.data.length}`);
-    console.log(`Sample row:`, file.data[1] || "No data rows");
-  });
-  
-  console.log("Current transactions:", AppState.transactions);
-};

@@ -5,13 +5,26 @@ import { showToast } from "./uiManager.js";
 
 console.log("XLSX object:", XLSX);
 
+// Add better file validation
 function validateFileData(data) {
-  if (!Array.isArray(data) || data.length < 2) {
+  if (!Array.isArray(data)) {
+    throw new Error("Invalid file format: Data must be an array.");
+  }
+  
+  if (data.length < 2) {
     throw new Error("File must contain at least one header row and one data row.");
   }
 
   // Clean up data - remove empty rows and empty cells at the beginning
-  const cleanedData = data.filter(row => row && row.length > 0);
+  const cleanedData = data.filter(row => 
+    Array.isArray(row) && 
+    row.length > 0 && 
+    row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')
+  );
+  
+  if (cleanedData.length === 0) {
+    throw new Error("File contains no valid data rows.");
+  }
   
   // Find the first non-empty row to use as headers
   const headerIndex = cleanedData.findIndex(row => 
@@ -24,7 +37,7 @@ function validateFileData(data) {
 
   // Make sure there's at least one data row after the header
   if (cleanedData.length <= headerIndex + 1) {
-    throw new Error("File must contain at least one data row.");
+    throw new Error("File must contain at least one data row after the header.");
   }
 
   return cleanedData;
@@ -59,6 +72,7 @@ export async function handleFileUpload(file) {
   }
 }
 
+// Update XML file handling with better detection
 async function parseXMLFile(file) {
   try {
     const text = await file.text();
@@ -71,136 +85,120 @@ async function parseXMLFile(file) {
       throw new Error("Invalid XML format");
     }
 
-    // Try multiple approaches to extract data
+    // Improved automatic row detection - preserves ALL rows including empty ones
+    const possibleRows = [
+      Array.from(xmlDoc.getElementsByTagName("row")),
+      Array.from(xmlDoc.getElementsByTagName("entry")),
+      Array.from(xmlDoc.getElementsByTagName("transaction")),
+      Array.from(xmlDoc.getElementsByTagName("record"))
+    ];
+
+    // Find the first valid row set
     let rows = [];
-
-    // Approach 1: Look for <row> elements
-    rows = Array.from(xmlDoc.getElementsByTagName("row")).map(row => {
-      return Array.from(row.children).map(cell => cell.textContent.trim());
-    });
-
-    // Approach 2: Look for <entry> elements
-    if (rows.length === 0) {
-      rows = Array.from(xmlDoc.getElementsByTagName("entry")).map(entry => {
-        return Array.from(entry.children).map(cell => cell.textContent.trim());
-      });
-    }
-
-    // Approach 3: Look for table structure
-    if (rows.length === 0) {
-      const tables = xmlDoc.getElementsByTagName('table');
-      if (tables.length > 0) {
-        const tableRows = tables[0].getElementsByTagName('tr');
-        rows = Array.from(tableRows).map(tr => {
-          return Array.from(tr.getElementsByTagName('td')).map(td => td.textContent.trim());
+    for (const rowSet of possibleRows) {
+      if (rowSet.length > 0) {
+        rows = rowSet.map(row => {
+          return Array.from(row.children).map(cell => cell.textContent.trim());
         });
+        console.log(`Found ${rows.length} rows in XML using ${rowSet[0].tagName} tags`);
+        break;
       }
     }
 
-    // Approach 4: Try to extract from any elements with consistent patterns
+    // If no common patterns found, use a more general approach
     if (rows.length === 0) {
-      // Find all elements that might contain transaction data
-      const possibleTransactionContainers = Array.from(xmlDoc.documentElement.children);
-      if (possibleTransactionContainers.length > 0) {
-        // Get all children of the first container to use as a template
-        const firstContainer = possibleTransactionContainers[0];
-        const childNames = Array.from(firstContainer.children).map(c => c.nodeName);
-        
-        // Check if all containers have the same structure
-        if (possibleTransactionContainers.every(container => 
-          container.children.length === childNames.length)) {
-          
-          rows = possibleTransactionContainers.map(container => {
-            return Array.from(container.children).map(child => child.textContent.trim());
-          });
-        }
-      }
-    }
-    
-    // Approach 5: Last resort - try to find ANY elements with similar structure
-    if (rows.length === 0) {
-      // Get all elements in the document
+      // Find repeating elements that likely represent rows
       const allElements = xmlDoc.getElementsByTagName("*");
+      const tagCounts = {};
       
-      // Group elements by tag name
-      const elementGroups = {};
+      // Count occurrences of each tag
       for (let i = 0; i < allElements.length; i++) {
-        const tagName = allElements[i].tagName;
-        if (!elementGroups[tagName]) elementGroups[tagName] = [];
-        elementGroups[tagName].push(allElements[i]);
+        const tag = allElements[i].tagName;
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
       }
       
-      // Find the group with most elements (potential rows)
-      let mostCommonTag = null;
-      let maxCount = 0;
+      // Find tags with multiple occurrences (likely rows)
+      const repeatingTags = Object.entries(tagCounts)
+        .filter(([tag, count]) => count > 1 && count < 100) // Avoid too few or too many
+        .sort((a, b) => b[1] - a[1]); // Sort by frequency
       
-      for (const tag in elementGroups) {
-        if (elementGroups[tag].length > maxCount) {
-          maxCount = elementGroups[tag].length;
-          mostCommonTag = tag;
-        }
-      }
-      
-      if (mostCommonTag && maxCount > 1) {
-        rows = elementGroups[mostCommonTag].map(element => {
-          // If element has child elements, use them as cells
-          if (element.children.length > 0) {
-            return Array.from(element.children).map(child => child.textContent.trim());
-          }
-          // Otherwise use text content as a single cell
-          return [element.textContent.trim()];
+      if (repeatingTags.length > 0) {
+        const mostLikelyRowTag = repeatingTags[0][0];
+        const rowElements = xmlDoc.getElementsByTagName(mostLikelyRowTag);
+        
+        rows = Array.from(rowElements).map(elem => {
+          // Get all immediate children as cells
+          return Array.from(elem.children).map(child => child.textContent.trim());
         });
+        console.log(`Found ${rows.length} rows in XML using ${mostLikelyRowTag} tags (general approach)`);
       }
     }
 
+    // IMPORTANT: Don't filter out empty rows here
     console.log("Parsed XML data:", rows);
-    if (rows.length === 0) {
-      throw new Error("No valid rows found in the XML file.");
-    }
-    
-    return rows.filter(row => row.length > 0); // Filter out empty rows
+    return rows; // Return all rows, including potentially empty ones
   } catch (error) {
     console.error("Error parsing XML file:", error);
     throw new Error(`XML parsing error: ${error.message}`);
   }
 }
 
-// Update the parseExcelFile function
+// Replace the parseExcelFile function with this improved version
 
 async function parseExcelFile(file) {
   try {
     const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array", dateNF: 'yyyy-mm-dd' });
+    const workbook = XLSX.read(data, { 
+      type: "array", 
+      cellDates: true,
+      dateNF: 'yyyy-mm-dd' 
+    });
     
     // Get the first sheet
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     
-    // Convert to JSON with specific options for better date handling
+    // Convert to JSON with better options for international text and date handling
     const rows = XLSX.utils.sheet_to_json(sheet, { 
       header: 1,
       raw: false, 
-      dateNF: 'yyyy-mm-dd'
+      dateNF: 'yyyy-mm-dd',
+      defval: '',  // Use empty string for empty cells
+      // This ensures proper encoding for non-Latin characters like Hebrew
+      codepage: 65001  // UTF-8
     });
 
-    // Remove empty rows
+    // Remove empty rows but keep empty cells
     const cleanedRows = rows.filter(row => 
       row && row.length > 0 && row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')
     );
     
-    // Process Excel dates
+    // Process Excel dates and improve Hebrew text handling
     const processedRows = cleanedRows.map(row => 
       row.map(cell => {
+        // Always convert to string first for text operations
+        const cellStr = String(cell || '');
+        
+        // Trim and normalize whitespace
+        const trimmedCell = cellStr.trim().replace(/\s+/g, ' ');
+        
         // Handle Excel date values
         if (typeof cell === 'number' && cell > 35000 && cell < 50000) {
           try {
             const jsDate = new Date((cell - 25569) * 86400 * 1000);
             return jsDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
           } catch (e) {
-            return cell; // Keep original if conversion fails
+            return trimmedCell; // Keep original if conversion fails
           }
         }
-        return cell;
+        
+        // Special handling for RTL text (like Hebrew)
+        if (/[\u0590-\u05FF\u0600-\u06FF]/.test(trimmedCell)) {
+          // Add RTL mark for better rendering
+          return '\u200F' + trimmedCell;
+        }
+        
+        return trimmedCell;
       })
     );
     
@@ -236,34 +234,37 @@ export function addMergedFile(data, headerMapping, fileName, signature, dataRow 
 // Update the generateFileSignature function
 export function generateFileSignature(fileName, data, headerMapping = null) {
   try {
+    // Use consistent naming and structure
+    const result = {
+      formatSig: null,
+      contentSig: null,
+      mappingSig: null,
+      structureSig: null
+    };
+    
     // 1. Generate format signature (for recognizing similar files)
-    const formatSig = createFormatSignature(fileName, data);
+    result.formatSig = createFormatSignature(fileName, data);
+    
+    // For backward compatibility
+    result.structureSig = result.formatSig;
     
     // 2. Generate content signature (for detecting duplicate uploads)
-    const contentSig = createContentSignature(fileName, data);
+    result.contentSig = createContentSignature(fileName, data);
     
     // 3. If we have mapping info, generate a mapping signature too
     if (headerMapping) {
-      const mappingSig = createMappingSignature(fileName, headerMapping);
-      
-      // IMPORTANT: For backwards compatibility
-      return { 
-        formatSig, 
-        contentSig, 
-        mappingSig,
-        structureSig: formatSig  // Add this for compatibility with older code
-      };
+      result.mappingSig = createMappingSignature(fileName, headerMapping);
     }
     
-    // IMPORTANT: For backwards compatibility
-    return { 
-      formatSig, 
-      contentSig,
-      structureSig: formatSig  // Add this for compatibility with older code
-    };
+    return result;
   } catch (error) {
     console.error("Error generating file signature:", error);
-    return { formatSig: null, contentSig: null, structureSig: null };
+    return { 
+      formatSig: null, 
+      contentSig: null, 
+      mappingSig: null,
+      structureSig: null 
+    };
   }
 }
 

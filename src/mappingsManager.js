@@ -69,37 +69,32 @@ export function getFilesForFormat(formatSig) {
 
 // Update to support dual signatures
 
-// Update the saveHeadersAndFormat function
+// Replace saveHeadersAndFormat function to prevent duplicates
 
 export function saveHeadersAndFormat(signatures, headerMapping) {
+  // Get all current mappings
   const allMappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   
-  // Get the main signature to use as key
-  const mainSig = signatures.structureSig || signatures.formatSig || signatures;
-  const mappingSig = signatures.mappingSig;
+  // Extract signatures we'll use as keys
+  const { formatSig, mappingSig, structureSig } = signatures;
+  const primarySig = structureSig || formatSig || mappingSig;
   
-  console.log("Saving format mapping with signature:", mainSig);
+  console.log(`Saving format mapping with signature: ${primarySig}`);
   
-  // Check if mapping already exists to avoid duplicates
-  if (allMappings[mainSig] && JSON.stringify(allMappings[mainSig].mapping) === JSON.stringify(headerMapping)) {
-    console.log("Format mapping already exists, skipping save");
-    return;
-  }
-  
-  // Store all available signatures and the mapping
-  allMappings[mainSig] = { 
+  // Create the mapping entry
+  const mappingEntry = { 
     mapping: headerMapping,
-    formatSig: signatures.formatSig || mainSig,
-    structureSig: signatures.structureSig || signatures.formatSig || mainSig,
+    formatSig: formatSig || primarySig,
+    structureSig: structureSig || formatSig || primarySig,
     mappingSig: mappingSig,
-    created: new Date().toISOString() // Add timestamp for sorting
+    created: new Date().toISOString()
   };
+
+  // Store the entry under the primary signature and avoid duplication
+  // We will NOT store it under both primary sig and mapping sig to avoid confusion
+  allMappings[primarySig] = mappingEntry;
   
-  // Also store by mapping signature if available
-  if (mappingSig && mappingSig !== mainSig) {
-    allMappings[mappingSig] = allMappings[mainSig];
-  }
-  
+  // Save back to localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify(allMappings));
   console.log("Format mapping saved successfully");
   
@@ -107,11 +102,12 @@ export function saveHeadersAndFormat(signatures, headerMapping) {
   renderMappingList();
 }
 
-// Update getMappingBySignature to handle all signature formats
+// Improve the getMappingBySignature function to be more reliable
 export function getMappingBySignature(signature) {
+  // Get all mappings
   const allMappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   
-  // Extract the format signature
+  // Extract the format signature to look up
   let lookupSig;
   if (typeof signature === 'object') {
     // Try all possible signature properties in order of preference
@@ -122,16 +118,23 @@ export function getMappingBySignature(signature) {
   
   console.log("Looking up mapping by signature:", lookupSig);
   
-  // First try direct lookup
+  // Direct lookup - the most reliable method
   if (allMappings[lookupSig]) {
     console.log("Found direct mapping match:", allMappings[lookupSig]);
     return allMappings[lookupSig].mapping;
   }
   
-  // If not found, check for matching formatSig in any entry
+  // Try secondary lookup methods
   for (const [sig, entry] of Object.entries(allMappings)) {
-    if (entry.formatSig === lookupSig || entry.structureSig === lookupSig) {
-      console.log("Found indirect mapping match:", entry);
+    // Match by formatSig
+    if (entry.formatSig === lookupSig) {
+      console.log("Found mapping match by formatSig:", entry);
+      return entry.mapping;
+    }
+    
+    // Match by structureSig
+    if (entry.structureSig === lookupSig) {
+      console.log("Found mapping match by structureSig:", entry);
       return entry.mapping;
     }
   }
@@ -140,7 +143,7 @@ export function getMappingBySignature(signature) {
   return null;
 }
 
-// Replace the renderMappingList function with this version:
+// Fix the renderMappingList to handle duplicates properly
 export function renderMappingList() {
   const table = document.getElementById("mappingTable");
   if (!table) return;
@@ -149,24 +152,10 @@ export function renderMappingList() {
   const allMappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   console.log("Rendering mappings table with data:", allMappings);
   
-  // Create a map to track unique mappings, using stringified mapping as the key
-  // This ensures we only show each unique mapping once regardless of signature
-  const uniqueMappings = new Map();
+  // Keep track of unique mappings already displayed by their content
+  const displayedMappingHashes = new Set();
   
-  // Process all mappings, preferring formatSig entries
-  Object.entries(allMappings).forEach(([sig, entry]) => {
-    if (!entry || !entry.mapping || !Array.isArray(entry.mapping)) return;
-    
-    // Create a unique key based on the actual mapping content
-    const mappingKey = JSON.stringify(entry.mapping);
-    
-    // Only add if not already added or if this is the format signature (preferred)
-    if (!uniqueMappings.has(mappingKey) || entry.formatSig === sig) {
-      uniqueMappings.set(mappingKey, { sig, entry });
-    }
-  });
-  
-  // Set table headers with adjusted widths
+  // Set table headers
   table.innerHTML = `
     <tr>
       <th style="width: 25%;">Format ID</th>
@@ -175,21 +164,41 @@ export function renderMappingList() {
     </tr>
   `;
 
-  if (uniqueMappings.size === 0) {
+  if (Object.keys(allMappings).length === 0) {
     const emptyRow = document.createElement("tr");
     emptyRow.innerHTML = '<td colspan="3" style="text-align: center; padding: 10px;">No saved format mappings yet</td>';
     table.appendChild(emptyRow);
     return;
   }
 
-  // Build table rows
-  uniqueMappings.forEach(({ sig, entry }) => {
+  // Sort mappings by creation date (newest first)
+  const sortedMappings = Object.entries(allMappings)
+    .sort((a, b) => {
+      const dateA = new Date(a[1].created || 0);
+      const dateB = new Date(b[1].created || 0);
+      return dateB - dateA; // Newest first
+    });
+
+  // Build table rows - one per unique mapping content
+  sortedMappings.forEach(([sig, entry]) => {
+    // Skip invalid entries
+    if (!entry || !entry.mapping || !Array.isArray(entry.mapping)) return;
+    
+    // Create a content hash to avoid duplicate display of same mapping
+    const nonEmptyFields = entry.mapping.filter(m => m !== "–");
+    const mappingHash = JSON.stringify(nonEmptyFields);
+    
+    // Skip if we've already displayed this mapping
+    if (displayedMappingHashes.has(mappingHash)) return;
+    
+    // Mark this mapping as displayed
+    displayedMappingHashes.add(mappingHash);
+    
+    // Create the table row
     const row = document.createElement("tr");
     
-    // Format the mapping for display
-    const mapping = Array.isArray(entry.mapping) 
-      ? entry.mapping.filter(m => m !== "–").join(", ") 
-      : "Invalid mapping";
+    // Format the mapping for display (show only non-empty fields)
+    const mapping = nonEmptyFields.join(", ");
 
     // Create delete button
     const deleteButton = document.createElement("button");
@@ -197,7 +206,7 @@ export function renderMappingList() {
     deleteButton.className = "icon-button";
     deleteButton.addEventListener("click", () => deleteMapping(sig));
 
-    // Add signature as ID with tooltip
+    // Add signature with tooltip
     const sigCell = document.createElement("td");
     sigCell.title = sig; // Full signature as tooltip
     sigCell.textContent = sig.substring(0, 8) + "...";

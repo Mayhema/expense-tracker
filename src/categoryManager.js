@@ -1,6 +1,6 @@
 import { AppState } from "./appState.js";
 import { renderTransactions } from "./transactionManager.js";
-import { updateChart } from "./chartManager.js";
+import { updateCharts } from "./charts/chartManager.js";
 import { getContrastColor } from "./utils.js";
 
 const CATEGORIES_KEY = "expenseCategories";
@@ -81,7 +81,7 @@ export function addCategory(name, color = "#cccccc") {
   
   // Also update chart to reflect new category colors
   setTimeout(() => {
-    updateChart(AppState.transactions);
+    updateCharts(AppState.transactions);
   }, 100);
 }
 
@@ -114,7 +114,7 @@ export function deleteCategory(name) {
   
   // Update chart with a small delay
   setTimeout(() => {
-    updateChart(AppState.transactions);
+    updateCharts(AppState.transactions);
   }, 100);
 }
 
@@ -200,7 +200,7 @@ export function updateCategoryColor(name, color) {
   renderTransactions(AppState.transactions, true);
   
   setTimeout(() => {
-    updateChart(AppState.transactions);
+    updateCharts(AppState.transactions);
   }, 100);
 }
 

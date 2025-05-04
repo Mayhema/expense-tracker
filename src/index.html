@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Expense Tracker</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0/dist/chartjs-adapter-luxon.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -172,6 +173,31 @@
       width: 100%;
       box-sizing: border-box;
     }
+    
+    /* Debug mode styles */
+    .debug-mode {
+      border: 2px dashed red !important;
+      padding: 10px !important;
+      position: relative;
+      overflow: visible !important;
+    }
+    
+    .debug-mode::before {
+      content: 'DEBUG MODE';
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      background: red;
+      color: white;
+      padding: 2px 5px;
+      font-size: 10px;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+    
+    .debug-mode canvas {
+      border: 1px dotted blue;
+    }
   </style>
 </head>
 <body>
@@ -190,6 +216,7 @@
           Charts
           <button id="toggleExpenseChartBtn" class="icon-button" data-tooltip="Toggle Expense Chart">📊</button>
           <button id="toggleTimelineChartBtn" class="icon-button" data-tooltip="Toggle Timeline Chart">📈</button>
+          <button id="resetChartsBtn" class="icon-button" data-tooltip="Reset Charts">🔄</button>
         </h2>
         <canvas id="expenseChart"></canvas>
         <canvas id="timelineChart"></canvas>
@@ -285,6 +312,12 @@
   </main>
 
   <script type="module" src="./debug.js"></script>
-  <script type="module" src="./main.js"></script>
+  <script type="module">
+    import './charts/chartCore.js';
+    import './charts/expenseChart.js';
+    import './charts/timelineChart.js';
+    import './charts/chartManager.js';
+    import './main.js';
+  </script>
 </body>
 </html>
