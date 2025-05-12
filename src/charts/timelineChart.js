@@ -1,220 +1,283 @@
-import { destroyChart, displayNoDataMessage, validateChartData } from './chartCore.js';
-
 let timelineChart = null;
 
+import { destroyChart, displayNoDataMessage, validateChartData, createSafeChart } from './chartCore.js';
+
 /**
- * Samples transactions evenly to avoid overloading the timeline chart
- * @param {Array} transactions - The transactions to sample
- * @param {number} maxPoints - Maximum number of data points
- * @returns {Array} Sampled transactions
+ * Updates the timeline chart with transactions aggregated by period
+ * @param {Array} transactions - The transactions to display
+ * @param {string} period - The period to aggregate by (year, half, quarter, month)
  */
-function sampleTransactions(transactions, maxPoints) {
-  if (!transactions || transactions.length <= maxPoints) return transactions;
-  
-  // Sort by date
-  const sortedTx = [...transactions].sort((a, b) => {
-    return new Date(a.date) - new Date(b.date);
-  });
-  
-  // Take evenly spaced samples
-  const result = [];
-  const step = sortedTx.length / maxPoints;
-  
-  // Always include first and last
-  result.push(sortedTx[0]);
-  
-  for (let i = 1; i < maxPoints - 1; i++) {
-    const index = Math.floor(i * step);
-    if (index < sortedTx.length) {
-      result.push(sortedTx[index]);
-    }
-  }
-  
-  // Add the last point
-  if (sortedTx.length > 1) {
-    result.push(sortedTx[sortedTx.length - 1]);
-  }
-  
-  return result;
-}
-
-// Replace the updateTimelineChart function with this optimized version
-
-export function updateTimelineChart(transactions) {
+export function updateTimelineChart(transactions, period = 'month') {
   try {
-    console.log("Updating timeline chart with", transactions?.length || 0, "transactions");
-    
-    // Get the canvas
     const canvas = document.getElementById("timelineChart");
-    if (!canvas) {
-      console.error("Timeline chart canvas not found");
-      return false;
-    }
-    
+    if (!canvas) return;
+
     // Clean up existing chart
     timelineChart = destroyChart(timelineChart);
-    
+
     // Validate data
     const validTransactions = validateChartData(transactions);
-    
-    // If no valid transactions, show a message
     if (!validTransactions.length) {
       displayNoDataMessage("timelineChart", "No transaction data to display");
-      return false;
+      return;
     }
-    
-    // Sort transactions by date
-    // Sample transactions if there are too many to display
-    const MAX_CHART_POINTS = 100;
-    const sampledTransactions = sampleTransactions(validTransactions, MAX_CHART_POINTS);
-    
-    // Sort transactions by date
-    const sortedTransactions = [...sampledTransactions].sort((a, b) => 
-      new Date(a.date) - new Date(b.date)
-    );
-    // Determine date range for better scale configuration
-    const firstDate = new Date(sortedTransactions[0].date);
-    const lastDate = new Date(sortedTransactions[sortedTransactions.length - 1].date);
-    const dayDiff = Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-    
-    // Choose appropriate time unit based on date range
-    let timeUnit = 'day';
-    if (dayDiff > 60) timeUnit = 'month';
-    if (dayDiff > 730) timeUnit = 'year';
-    
-    console.log(`Date range spans ${dayDiff} days, using ${timeUnit} as time unit`);
-    
-    // Group by date using a simplified approach to avoid manipulation issues
-    const incomeByDate = {};
-    const expensesByDate = {};
-    const allDates = new Set();
-    
-    sortedTransactions.forEach(tx => {
-      const dateStr = tx.date;
-      allDates.add(dateStr);
-      
-      if (tx.income) {
-        const amount = parseFloat(tx.income) || 0;
-        incomeByDate[dateStr] = (incomeByDate[dateStr] || 0) + amount;
-      }
-      
-      if (tx.expenses) {
-        const amount = parseFloat(tx.expenses) || 0;
-        expensesByDate[dateStr] = (expensesByDate[dateStr] || 0) + amount;
-      }
-    });
-    
-    // Convert to arrays for Chart.js
-    const dateLabels = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b));
-    
-    // Create chart with simpler configuration
-    try {
-      timelineChart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: dateLabels,
-          datasets: [
-            {
-              label: 'Income',
-              data: dateLabels.map(date => incomeByDate[date] || 0),
-              borderColor: '#36A2EB',
-              backgroundColor: 'rgba(54, 162, 235, 0.2)',
-              fill: true,
-              tension: 0.1
-            },
-            {
-              label: 'Expenses',
-              data: dateLabels.map(date => expensesByDate[date] || 0),
-              borderColor: '#FF6384',
-              backgroundColor: 'rgba(255, 99, 132, 0.2)',
-              fill: true,
-              tension: 0.1
-            }
-          ]
+
+    // Aggregate data by period
+    const { labels, incomeData, expenseData } = aggregateByPeriod(validTransactions, period);
+
+    // Create chart data
+    const data = {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Income',
+          data: incomeData,
+          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          borderColor: 'rgb(75, 192, 192)',
+          borderWidth: 1,
+          // Change to line for income
+          type: 'line',
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: false
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: timeUnit,
-                displayFormats: {
-                  day: 'MMM d',
-                  month: 'MMM yyyy',
-                  year: 'yyyy'
-                }
-              },
-              title: {
-                display: true,
-                text: 'Date'
-              },
-              ticks: {
-                maxRotation: 45,
-                autoSkip: true,
-                maxTicksLimit: 12
-              }
-            },
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Amount ($)'
-              },
-              ticks: {
-                // Use a safe formatter that won't cause range errors
-                callback: function(value) {
-                  return '$' + value.toLocaleString('en-US', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2
-                  });
-                }
-              }
-            }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = context.parsed.y;
-                  return '$' + value.toLocaleString('en-US', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2
-                  });
-                }
-              },
-              position: 'nearest' // Use a simpler positioning mode
-            },
-            legend: {
-              position: 'top'
-            }
-          },
-          // Disable animations for better performance and fewer positioning issues
-          animation: {
-            duration: 0
-          },
-          // Use simpler interaction mode to avoid positioning issues
-          interaction: {
-            mode: 'nearest',
-            intersect: false
-          },
-          // Limit events that might cause positioning issues
-          events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove']
+        {
+          label: 'Expenses',
+          data: expenseData,
+          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          borderColor: 'rgb(255, 99, 132)',
+          borderWidth: 1,
+          // Keep as bar for expenses
+          type: 'bar'
         }
-      });
-      
-      return true;
-    } catch (chartError) {
-      console.error("Error creating timeline chart:", chartError);
-      displayNoDataMessage("timelineChart", "Error creating chart");
-      return false;
-    }
+      ]
+    };
+
+    // Create chart with options based on period - using mixed chart type
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        title: {
+          display: true,
+          text: `Income & Expenses By ${capitalize(period)}`
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.raw || 0;
+              return context.dataset.label + ': $' + value.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+              });
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Amount ($)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    };
+
+    // Use mixed chart type (bar and line)
+    timelineChart = createSafeChart("timelineChart", {
+      type: 'bar', // Default type for datasets without a specified type
+      data: data,
+      options: options
+    });
+
   } catch (error) {
     console.error("Error updating timeline chart:", error);
     displayNoDataMessage("timelineChart", "Error rendering chart");
-    return false;
   }
+}
+
+/**
+ * Get chart options based on selected period
+ * @param {string} period - The time period (year, half, quarter, month)
+ * @returns {Object} Chart options
+ */
+function getTimelineOptions(period) {
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: `Income & Expenses By ${capitalize(period)}`
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const value = context.raw || 0;
+            return context.dataset.label + ': $' + value.toLocaleString('en-US', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2
+            });
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Amount ($)'
+        }
+      }
+    }
+  };
+
+  return baseOptions;
+}
+
+/**
+ * Aggregate transaction data by the selected period
+ * @param {Array} transactions - The transactions to aggregate
+ * @param {string} period - The time period (year, half, quarter, month)
+ * @returns {Object} Object containing labels and data arrays
+ */
+function aggregateByPeriod(transactions, period) {
+  // Sort transactions by date
+  transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Get date range
+  const firstDate = new Date(transactions[0].date);
+  const lastDate = new Date(transactions[transactions.length - 1].date);
+
+  let periodMap = {};
+
+  // Create period labels based on selected period
+  switch (period) {
+    case 'year':
+      // Group by year
+      for (let year = firstDate.getFullYear(); year <= lastDate.getFullYear(); year++) {
+        periodMap[year] = { income: 0, expenses: 0 };
+      }
+
+      // Aggregate data
+      transactions.forEach(tx => {
+        const year = new Date(tx.date).getFullYear();
+        periodMap[year].income += parseFloat(tx.income || 0);
+        periodMap[year].expenses += parseFloat(tx.expenses || 0);
+      });
+      break;
+
+    case 'half':
+      // Group by half-year (1H and 2H)
+      for (let year = firstDate.getFullYear(); year <= lastDate.getFullYear(); year++) {
+        periodMap[`${year}-1H`] = { income: 0, expenses: 0 };
+        periodMap[`${year}-2H`] = { income: 0, expenses: 0 };
+      }
+
+      // Aggregate data
+      transactions.forEach(tx => {
+        const date = new Date(tx.date);
+        const year = date.getFullYear();
+        const halfYear = date.getMonth() < 6 ? '1H' : '2H';
+        const key = `${year}-${halfYear}`;
+
+        periodMap[key].income += parseFloat(tx.income || 0);
+        periodMap[key].expenses += parseFloat(tx.expenses || 0);
+      });
+      break;
+
+    case 'quarter':
+      // Group by quarter (Q1-Q4)
+      for (let year = firstDate.getFullYear(); year <= lastDate.getFullYear(); year++) {
+        for (let q = 1; q <= 4; q++) {
+          periodMap[`${year}-Q${q}`] = { income: 0, expenses: 0 };
+        }
+      }
+
+      // Aggregate data
+      transactions.forEach(tx => {
+        const date = new Date(tx.date);
+        const year = date.getFullYear();
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        const key = `${year}-Q${quarter}`;
+
+        periodMap[key].income += parseFloat(tx.income || 0);
+        periodMap[key].expenses += parseFloat(tx.expenses || 0);
+      });
+      break;
+
+    case 'month':
+    default:
+      // Group by month
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      for (let year = firstDate.getFullYear(); year <= lastDate.getFullYear(); year++) {
+        for (let month = 0; month < 12; month++) {
+          periodMap[`${year}-${month}`] = {
+            income: 0,
+            expenses: 0,
+            label: `${months[month]} ${year}`
+          };
+        }
+      }
+
+      // Aggregate data
+      transactions.forEach(tx => {
+        const date = new Date(tx.date);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const key = `${year}-${month}`;
+
+        periodMap[key].income += parseFloat(tx.income || 0);
+        periodMap[key].expenses += parseFloat(tx.expenses || 0);
+      });
+      break;
+  }
+
+  // Convert to arrays for chart
+  const periods = Object.keys(periodMap).sort();
+  const labels = periods.map(p => {
+    // Format labels based on period type
+    if (period === 'month') {
+      return periodMap[p].label;
+    }
+    return p;
+  });
+
+  const incomeData = periods.map(p => periodMap[p].income);
+  const expenseData = periods.map(p => periodMap[p].expenses);
+
+  return { labels, incomeData, expenseData };
+}
+
+/**
+ * Capitalizes the first letter of a string
+ */
+function capitalize(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 /**

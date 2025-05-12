@@ -1,22 +1,22 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
+        desc = { enumerable: true, get: function () { return m[k]; } };
     }
     Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
+}) : (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function (o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
+}) : function (o, v) {
     o["default"] = v;
 });
 var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
+    var ownKeys = function (o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
             var ar = [];
             for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
@@ -77,6 +77,74 @@ class XmlParser {
         }
         else {
             return false; // Return false for empty or null XML data
+        }
+    }
+
+    /**
+     * Parses XML data into a 2D array format compatible with the file handler
+     * @param {string} xmlData - Raw XML string
+     * @returns {Array<Array>} 2D array of table-like data
+     */
+    parseToArray(xmlData) {
+        if (!this.validate(xmlData)) {
+            console.error('XML validation failed.');
+            return [];
+        }
+
+        try {
+            // Try to find transaction elements
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlData, "application/xml");
+
+            // Check for parse errors
+            const parseError = xmlDoc.querySelector('parsererror');
+            if (parseError) {
+                throw new Error("Invalid XML format");
+            }
+
+            // Try multiple tag types that might represent rows
+            const possibleRowTags = ['transaction', 'row', 'entry', 'record', 'item'];
+            let rowElements = null;
+            let tagName = '';
+
+            for (const tag of possibleRowTags) {
+                const elements = xmlDoc.getElementsByTagName(tag);
+                if (elements.length > 0) {
+                    rowElements = elements;
+                    tagName = tag;
+                    break;
+                }
+            }
+
+            if (!rowElements || rowElements.length === 0) {
+                return [];
+            }
+
+            // Extract field names from the first element
+            const firstElement = rowElements[0];
+            const fieldNames = Array.from(firstElement.children).map(child => child.tagName);
+
+            // Create the 2D array with header row first
+            const result = [fieldNames];
+
+            // Add data rows
+            for (let i = 0; i < rowElements.length; i++) {
+                const dataRow = [];
+                const rowElement = rowElements[i];
+
+                // For each field in our field names, extract the value
+                for (const field of fieldNames) {
+                    const fieldElement = rowElement.getElementsByTagName(field)[0];
+                    dataRow.push(fieldElement ? fieldElement.textContent.trim() : '');
+                }
+
+                result.push(dataRow);
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Error converting XML to array:', error);
+            return [];
         }
     }
 }

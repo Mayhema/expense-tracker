@@ -1,153 +1,195 @@
-import { displayNoDataMessage } from './chartCore.js';
-import { updateExpenseChart, cleanupExpenseChart } from './expenseChart.js';
-import { updateTimelineChart, cleanupTimelineChart } from './timelineChart.js';
-import { AppState } from '../appState.js'; // Also adding AppState import
+import { AppState } from "../core/appState.js";
+import { updateTimelineChart } from "./timelineChart.js";
+import { updateIncomeExpenseChart } from "./incomeExpenseChart.js";
+import { updateExpenseChart } from "./expenseChart.js";
+import { throttle } from "./chartCore.js";
 
-// Track which charts are enabled
-export let expenseChartEnabled = true;
-export let timelineChartEnabled = true;
-
-/**
- * Updates all charts with the given transactions
- * @param {Array} transactions - The transactions to display
- */
-export function updateCharts(transactions) {
-  console.log("Chart update requested with", transactions?.length || 0, "transactions");
-  
-  // Add transaction logging to help debug
-  if (transactions && transactions.length > 0) {
-    console.log("First transaction:", JSON.stringify(transactions[0]));
-  }
-  
-  // No need to update if no data
-  if (!transactions || !transactions.length) {
-    if (expenseChartEnabled) {
-      try {
-        updateExpenseChart([]);
-      } catch (e) {
-        console.error("Error updating empty expense chart:", e);
-      }
-    }
-    
-    if (timelineChartEnabled) {
-      try {
-        updateTimelineChart([]);
-      } catch (e) {
-        console.error("Error updating empty timeline chart:", e);
-      }
-    }
-    return;
-  }
-  
-  // Update expense chart first if enabled
-  if (expenseChartEnabled) {
-    try {
-      // Use direct update instead of throttled to minimize race conditions
-      updateExpenseChart(transactions);
-    } catch (e) {
-      console.error("Error in expense chart update:", e);
-    }
-  }
-  
-  // Short delay before updating timeline chart to avoid resource contention
-  setTimeout(() => {
-    if (timelineChartEnabled) {
-      try {
-        // Use direct update instead of throttled
-        updateTimelineChart(transactions);
-      } catch (e) {
-        console.error("Error in timeline chart update:", e);
-      }
-    }
-  }, 300);
-}
-
-// Update the toggle functions to be more robust
+// Store chart update functions for reuse
+const updateFunctions = {
+  timeline: updateTimelineChart,
+  incomeExpense: updateIncomeExpenseChart,
+  expense: updateExpenseChart
+};
 
 /**
- * Toggle the expense chart on/off
- * @returns {boolean} New state
+ * Updates all charts with current transaction data
  */
-export function toggleExpenseChart() {
+export function updateChartsWithCurrentData() {
   try {
-    expenseChartEnabled = !expenseChartEnabled;
-    console.log(`Expense chart ${expenseChartEnabled ? 'enabled' : 'disabled'}`);
-    
-    if (!expenseChartEnabled) {
-      cleanupExpenseChart();
-      // Use try-catch around displayNoDataMessage
-      try {
-        displayNoDataMessage("expenseChart", "Expense chart disabled");
-      } catch (err) {
-        console.error("Failed to display message:", err);
-      }
-    } else if (typeof AppState !== 'undefined' && AppState.transactions && AppState.transactions.length > 0) {
-      // Only update if AppState and data exist
-      updateExpenseChart(AppState.transactions);
-    } else {
-      try {
-        displayNoDataMessage("expenseChart", "No transaction data available");
-      } catch (err) {
-        console.error("Failed to display message:", err);
-      }
+    if (AppState.isChartUpdateInProgress) {
+      console.log("Chart update already in progress, skipping...");
+      return;
     }
-    
-    return expenseChartEnabled;
+
+    AppState.isChartUpdateInProgress = true;
+    console.log("Updating charts with current transaction data");
+
+    // Use a safety wrapper to catch any chart errors
+    const safeUpdateChart = (updateFn, chartName, transactions) => {
+      try {
+        return updateFn(transactions);
+      } catch (error) {
+        console.error(`Error updating ${chartName} chart:`, error);
+
+        // Mark the chart as having errors to disable animations
+        window.chartJsErrorCount = (window.chartJsErrorCount || 0) + 1;
+
+        // Apply patches again to ensure they're active
+        if (typeof applyAdvancedChartPatches === 'function') {
+          applyAdvancedChartPatches();
+        }
+
+        return false;
+      }
+    };
+
+    const transactions = AppState.transactions || [];
+
+    // Check if there's actually data to display
+    if (!transactions.length) {
+      console.log("No transactions available for charts");
+      // Still call update functions but handle empty state in each chart
+    }
+
+    // Update charts with safety wrappers
+    setTimeout(() => {
+      safeUpdateChart(updateTimelineChart, "timeline", transactions);
+
+      setTimeout(() => {
+        safeUpdateChart(updateExpenseChart, "expense", transactions);
+
+        setTimeout(() => {
+          safeUpdateChart(updateIncomeExpenseChart, "income-expense", transactions);
+          AppState.isChartUpdateInProgress = false;
+        }, 50);
+      }, 50);
+    }, 50);
   } catch (error) {
-    console.error("Error in toggleExpenseChart:", error);
-    return expenseChartEnabled;
+    console.error("Error in updateChartsWithCurrentData:", error);
+    AppState.isChartUpdateInProgress = false;
   }
 }
 
 /**
- * Toggle the timeline chart on/off
- * @returns {boolean} New state
+ * Filters transactions based on selected time period
+ * @param {Array} transactions - The transactions to filter
+ * @param {string} period - Time period to filter by (all, year, month, etc)
+ * @returns {Array} Filtered transactions
  */
-export function toggleTimelineChart() {
-  try {
-    timelineChartEnabled = !timelineChartEnabled;
-    console.log(`Timeline chart ${timelineChartEnabled ? 'enabled' : 'disabled'}`);
-    
-    if (!timelineChartEnabled) {
-      cleanupTimelineChart();
-      // Use try-catch around displayNoDataMessage
-      try {
-        displayNoDataMessage("timelineChart", "Timeline chart disabled");
-      } catch (err) {
-        console.error("Failed to display message:", err);
-      }
-    } else if (typeof AppState !== 'undefined' && AppState.transactions && AppState.transactions.length > 0) {
-      // Only update if AppState and data exist
-      updateTimelineChart(AppState.transactions);
-    } else {
-      try {
-        displayNoDataMessage("timelineChart", "No transaction data available");
-      } catch (err) {
-        console.error("Failed to display message:", err);
-      }
+function filterTransactionsByPeriod(transactions, period) {
+  if (period === 'all' || !period) return transactions;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  return transactions.filter(tx => {
+    if (!tx.date) return false;
+
+    const txDate = new Date(tx.date);
+    if (isNaN(txDate.getTime())) return false;
+
+    const txYear = txDate.getFullYear();
+    const txMonth = txDate.getMonth();
+
+    switch (period) {
+      case 'year':
+        return txYear === currentYear;
+      case 'half':
+        return txYear === currentYear &&
+          Math.floor(txMonth / 6) === Math.floor(currentMonth / 6);
+      case 'quarter':
+        return txYear === currentYear &&
+          Math.floor(txMonth / 3) === Math.floor(currentMonth / 3);
+      case 'month':
+        return txYear === currentYear && txMonth === currentMonth;
+      default:
+        return true;
     }
-    
-    return timelineChartEnabled;
-  } catch (error) {
-    console.error("Error in toggleTimelineChart:", error);
-    return timelineChartEnabled;
-  }
+  });
+}
+
+/**
+ * Initializes charts and adds event listeners for toggles
+ */
+export function initializeCharts() {
+  // Attach event listeners to chart period selectors
+  document.addEventListener('DOMContentLoaded', () => {
+    const timelinePeriodSelect = document.getElementById('timelineChartPeriod');
+    const categoryPeriodSelect = document.getElementById('categoryChartPeriod');
+
+    // Add toggle handlers for all three charts
+    const toggleIncomeExpenseBtn = document.getElementById('toggleIncomeExpenseChartBtn');
+    const toggleExpenseChartBtn = document.getElementById('toggleExpenseChartBtn');
+    const toggleTimelineChartBtn = document.getElementById('toggleTimelineChartBtn');
+
+    if (toggleIncomeExpenseBtn) {
+      toggleIncomeExpenseBtn.addEventListener('click', function () {
+        const wrapper = document.getElementById('incomeExpenseChart').closest('.chart-wrapper');
+        if (wrapper) {
+          wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+          this.style.opacity = wrapper.style.display === 'none' ? 0.5 : 1;
+        }
+      });
+    }
+
+    if (toggleExpenseChartBtn) {
+      toggleExpenseChartBtn.addEventListener('click', function () {
+        const wrapper = document.getElementById('expenseChart').closest('.chart-wrapper');
+        if (wrapper) {
+          wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+          this.style.opacity = wrapper.style.display === 'none' ? 0.5 : 1;
+        }
+      });
+    }
+
+    if (toggleTimelineChartBtn) {
+      toggleTimelineChartBtn.addEventListener('click', function () {
+        const wrapper = document.getElementById('timelineChart').closest('.chart-wrapper');
+        if (wrapper) {
+          wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+          this.style.opacity = wrapper.style.display === 'none' ? 0.5 : 1;
+        }
+      });
+    }
+
+    // Period change handlers
+    if (timelinePeriodSelect) {
+      timelinePeriodSelect.addEventListener('change', updateChartsWithCurrentData);
+    }
+
+    if (categoryPeriodSelect) {
+      categoryPeriodSelect.addEventListener('change', updateChartsWithCurrentData);
+    }
+
+    // Update charts initially
+    if (AppState.transactions && AppState.transactions.length > 0) {
+      setTimeout(updateChartsWithCurrentData, 300);
+    }
+  });
+}
+
+/**
+ * Forces an update of all charts
+ */
+export function refreshAllCharts() {
+  updateChartsWithCurrentData(); // FIXED: Changed from updateCharts
 }
 
 /**
  * Clean up all charts
  */
-export function cleanupCharts() {
+export function cleanupAllCharts() {
   cleanupExpenseChart();
   cleanupTimelineChart();
+  if (incomeExpenseChart) {
+    incomeExpenseChart.destroy();
+    incomeExpenseChart = null;
+  }
 }
 
-/**
- * Reset all charts
- */
-export function resetCharts() {
-  cleanupCharts();
-}
-
-// Ensure cleanup on page unload
-window.addEventListener('beforeunload', cleanupCharts);
+export default {
+  initializeCharts,
+  updateChartsWithCurrentData,
+  cleanupAllCharts
+};

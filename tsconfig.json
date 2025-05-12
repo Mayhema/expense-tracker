@@ -11,8 +11,11 @@
     "moduleResolution": "node"
   },
   "include": [
-    "src/**/*", "backend/**/*"
-, "src/fileHandler.js", "src/appState.js"  ],
+    "src/**/*",
+    "backend/**/*",
+    "src/parsers/fileHandler.js",
+    "src/core/appState.js"
+  ],
   "exclude": [
     "node_modules"
   ]

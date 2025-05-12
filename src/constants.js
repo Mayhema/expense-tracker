@@ -1,1 +1,0 @@
-export const HEADERS = ["Date", "Income", "Expenses", "Description", "–"];

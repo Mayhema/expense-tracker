@@ -1,19 +1,32 @@
 {
-    "cSpell.words": [
-        "ausgabe",
-        "descrip",
-        "einkommen",
-        "fecha",
-        "gasto",
-        "ingreso",
-        "nums",
-        "parsererror",
-        "Uncategorized",
-        "день",
-        "זכות",
-        "חובה",
-        "פרטים",
-        "תאור",
-        "תאריך"
-    ]
+  "cSpell.words": [
+    "ausgabe",
+    "descrip",
+    "einkommen",
+    "fecha",
+    "gasto",
+    "ingreso",
+    "nums",
+    "parsererror",
+    "toggleable",
+    "Uncategorized",
+    "день",
+    "זכות",
+    "חובה",
+    "פרטים",
+    "תאור",
+    "תאריך"
+  ],
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.defaultFormatter": null,
+  "editor.rulers": [
+    100
+  ],
+  "javascript.format.enable": true,
+  "javascript.validate.enable": true,
+  "javascript.suggestionActions.enabled": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true
 }

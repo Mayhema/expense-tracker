@@ -1,67 +1,100 @@
 # Expense Tracker
 
-## Overview
-The Expense Tracker project is designed to help users manage their financial transactions by parsing data from bank and credit card transactions. It supports input from both Excel and XML files, allowing for flexible data management.
+A modern, client-side expense tracker that helps you analyze and categorize your financial transactions.
+
+## Features
+
+- **File Import**: Import transaction data from CSV, Excel, XML files with automatic format detection
+- **Format Mapping**: Save and reuse file format mappings for easier imports
+- **Transaction Management**: View, filter, edit, and categorize all your transactions
+- **Currency Support**: Support for multiple currencies in transactions
+- **Categories Management**: Create, edit and manage expense categories with subcategories
+- **Auto-Categorization**: Automatically categorize transactions based on description patterns
+- **Transaction Editing**: Edit transaction details with history tracking and revert capability
+- **Financial Summary**: Get a clear overview of income, expenses and balance
+- **Visual Reports**: Analyze your spending with time-series and pie charts
+
+## Key Features Added
+
+### Modal Preview System
+File upload preview now opens in a modal dialog that adapts its size to the number of columns in the file, making it easier to work with wide files.
+
+### Enhanced Currency Support
+Each file can have its own currency setting, and transactions maintain their original currency information.
+
+### Improved Auto-categorization
+The system now more accurately identifies transaction types based on content analysis and learns from your categorizations.
+
+### Responsive Charts
+All charts are now properly sized and can be toggled on/off for better customization of your dashboard view.
+
+### Optimized Timeline Visualization
+Timeline chart now uses a mixed bar/line format for better visual distinction between income and expenses.
+
+### Improved Date Handling
+The application now properly handles various date formats including Excel serial dates, ISO dates, and localized formats.
 
 ## Project Structure
 ```
-expense-tracker
-├── src
-│   ├── index.ts               # Entry point of the application
-│   ├── parser
-│   │   ├── excelParser.ts     # Parses Excel files
-│   │   └── xmlParser.ts       # Parses XML files
-│   ├── transaction.ts         # Defines the Transaction class
-│   └── types
-│       └── index.ts           # Defines data structures and interfaces
-├── data
-│   ├── transactions.xlsx       # Sample Excel data
-│   └── transactions.xml        # Sample XML data
-├── package.json                # npm configuration
-├── tsconfig.json              # TypeScript configuration
-└── README.md                  # Project documentation
+expense-tracker/
+├── src/
+│   ├── components/       # UI Components
+│   │   ├── charts/       # Chart-related components
+│   │   ├── transactions/ # Transaction-related components
+│   │   └── ui/           # General UI components
+│   ├── core/             # Core app functionality
+│   │   ├── state/        # State management
+│   │   └── services/     # Business logic services
+│   ├── parsers/          # File parsing logic
+│   │   ├── excel.js
+│   │   ├── xml.js
+│   │   └── csv.js
+│   ├── utils/            # Utility functions
+│   │   ├── dates.js
+│   │   ├── validation.js
+│   │   └── formatting.js
+│   ├── constants.js      # App constants
+│   └── index.js          # Entry point
+├── tests/                # Test files
+│   ├── unit/
+│   └── integration/
+├── docs/                 # Documentation
+│   ├── api.md
+│   └── usage.md
+└── README.md             # Project overview
 ```
 
-## Setup Instructions
-1. **Clone the repository:**
-   ```
-   git clone <repository-url>
-   cd expense-tracker
-   ```
+## Getting Started
 
-2. **Install dependencies:**
-   ```
-   npm install
-   ```
+1. Clone the repository
+2. Open index.html in your browser
+3. Upload your transaction files using the Import button
+4. Map the file format if this is a new file type
+5. Start categorizing and analyzing your expenses!
 
-3. **Compile TypeScript files:**
-   ```
-   npm run build
-   ```
+## Browser Support
 
-4. **Run the application:**
-   ```
-   npm start -- <path-to-input-file>
-   ```
-   Replace `<path-to-input-file>` with the path to either the `transactions.xlsx` or `transactions.xml` file in the `data` directory.
+The application works best in modern browsers:
+- Chrome (latest)
+- Firefox (latest)
+- Edge (latest)
+- Safari (latest)
 
-## Usage Examples
-- To parse an Excel file:
-  ```
-  npm start -- data/transactions.xlsx
-  ```
-## JSON.parse(localStorage.getItem('fileFormatMappings'))
-## localStorage.removeItem('fileFormatMappings')
-## backend 
-## npm install
-## npm start
-- To parse an XML file:
-  ```
-  npm start -- data/transactions.xml
-  ```
+## Privacy
+
+All your data is processed locally in your browser. No data is sent to any server.
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
 
 ## License
 This project is licensed under the MIT License.
+
+## Future Enhancements
+
+### Machine Learning for Auto-Categorization
+The current auto-categorization system uses pattern matching based on transaction descriptions. A future enhancement could implement machine learning capabilities to improve categorization accuracy by:
+- Learning from user categorization patterns
+- Recognizing complex relationships between transaction attributes
+- Using embedded ML models that keep all processing local for privacy
+- Supporting incremental learning as more transactions are categorized
