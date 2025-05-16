@@ -183,7 +183,33 @@ export function showPageLoadingOverlay(message = 'Loading...') {
 }
 
 /**
- * Initializes UI components that don't have their own initialization functions
+ * Updates UI elements based on debug mode state
+ * @param {boolean} isDebugMode - Whether debug mode is enabled
+ */
+export function updateDebugModeUI(isDebugMode) {
+  const debugTools = document.querySelectorAll('.debug-tools');
+
+  debugTools.forEach(tool => {
+    tool.style.display = isDebugMode ? 'inline-block' : 'none';
+  });
+
+  // Save the debug mode state
+  localStorage.setItem('debugMode', isDebugMode);
+
+  // Toggle debug class on body
+  document.body.classList.toggle('debug-mode', isDebugMode);
+
+  // Show/hide chart controls based on debug mode
+  const chartControls = document.querySelectorAll('.chart-controls');
+  chartControls.forEach(control => {
+    control.style.display = isDebugMode ? 'inline-block' : 'none';
+  });
+
+  console.log(`Debug mode ${isDebugMode ? 'enabled' : 'disabled'}`);
+}
+
+/**
+ * Initialize UI components
  */
 export function initializeUI() {
   console.log("Initializing UI components...");
@@ -200,8 +226,63 @@ export function initializeUI() {
     document.body.appendChild(container);
   }
 
+  // Toggle debug mode
+  const debugModeToggle = document.getElementById('debugModeToggle');
+  if (debugModeToggle) {
+    // Set initial state
+    const isDebugMode = localStorage.getItem('debugMode') === 'true';
+    debugModeToggle.checked = isDebugMode;
+    updateDebugModeUI(isDebugMode);
+
+    // Add event listener
+    debugModeToggle.addEventListener('change', () => {
+      updateDebugModeUI(debugModeToggle.checked);
+    });
+  }
+
+  // Initialize chart toggle buttons
+  initializeChartToggleButtons();
+
   // Initialize any other UI elements that don't have dedicated init functions
   setupUIEventListeners();
+}
+
+/**
+ * Initialize chart toggle buttons (visible only in debug mode)
+ */
+function initializeChartToggleButtons() {
+  // Income/Expense chart toggle
+  const toggleIncomeExpenseBtn = document.getElementById('toggleIncomeExpenseChartBtn');
+  if (toggleIncomeExpenseBtn) {
+    toggleIncomeExpenseBtn.addEventListener('click', () => {
+      const wrapper = document.querySelector('.chart-wrapper:nth-child(1)');
+      if (wrapper) {
+        wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Expense chart toggle
+  const toggleExpenseChartBtn = document.getElementById('toggleExpenseChartBtn');
+  if (toggleExpenseChartBtn) {
+    toggleExpenseChartBtn.addEventListener('click', () => {
+      const wrapper = document.querySelector('.chart-wrapper:nth-child(2)');
+      if (wrapper) {
+        wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Timeline chart toggle
+  const toggleTimelineChartBtn = document.getElementById('toggleTimelineChartBtn');
+  if (toggleTimelineChartBtn) {
+    toggleTimelineChartBtn.addEventListener('click', () => {
+      const wrapper = document.querySelector('.chart-wrapper:nth-child(3)');
+      if (wrapper) {
+        wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
+      }
+    });
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function (o, m, k, k2) {
+let __createBinding = (Object.create ? (function (o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
+    let desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
         desc = { enumerable: true, get: function () { return m[k]; } };
     }
@@ -10,24 +10,24 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function (o, v) {
+let __setModuleDefault = (Object.create ? (function (o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
 }) : function (o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function (o) {
+let __importStar = (function () {
+    let ownKeys = function (o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            const ar = [];
+            for (const k in o) if (Object.hasOwn(o, k)) ar[ar.length] = k;
             return ar;
         };
         return ownKeys(o);
     };
     return function (mod) {
         if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        const result = {};
+        if (mod != null) for (const k of ownKeys(mod)) if (k !== "default") __createBinding(result, mod, k);
         __setModuleDefault(result, mod);
         return result;
     };
@@ -66,18 +66,7 @@ class XmlParser {
         }
     }
     validate(xmlData) {
-        if (xmlData && xmlData.length > 0) {
-            // Basic check if the XML data starts with the <transactions> tag
-            if (xmlData.trim().startsWith('<transactions>')) {
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-        else {
-            return false; // Return false for empty or null XML data
-        }
+        return xmlData && xmlData.length > 0 ? xmlData.trim().startsWith('<transactions>') : false;
     }
 
     /**
@@ -105,13 +94,11 @@ class XmlParser {
             // Try multiple tag types that might represent rows
             const possibleRowTags = ['transaction', 'row', 'entry', 'record', 'item'];
             let rowElements = null;
-            let tagName = '';
 
             for (const tag of possibleRowTags) {
                 const elements = xmlDoc.getElementsByTagName(tag);
                 if (elements.length > 0) {
                     rowElements = elements;
-                    tagName = tag;
                     break;
                 }
             }
@@ -128,9 +115,8 @@ class XmlParser {
             const result = [fieldNames];
 
             // Add data rows
-            for (let i = 0; i < rowElements.length; i++) {
+            for (const rowElement of rowElements) {
                 const dataRow = [];
-                const rowElement = rowElements[i];
 
                 // For each field in our field names, extract the value
                 for (const field of fieldNames) {
@@ -148,4 +134,10 @@ class XmlParser {
         }
     }
 }
+
+// Replace usage of Object.prototype.hasOwnProperty with Object.hasOwn
+if (Object.hasOwn(obj, key)) {
+    // Property exists
+}
+
 exports.XmlParser = XmlParser;

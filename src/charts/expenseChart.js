@@ -1,4 +1,4 @@
-import { destroyChart, displayNoDataMessage, validateChartData, generateCategoryColors, createSafeChart } from './chartCore.js';
+import { destroyChart, validateChartData, createSafeChart } from './chartCore.js';
 import { AppState } from '../core/appState.js';
 
 let pieChart = null;

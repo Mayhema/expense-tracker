@@ -26,3 +26,17 @@ export const EXCEL_DATE = {
   MIN: 35000,
   MAX: 50000
 };
+
+// Fix the DEFAULT_CATEGORIES definition - it was using an object format when an array was expected
+export const DEFAULT_CATEGORIES = {
+  "Food": "#FF6384",
+  "Housing": "#36A2EB",
+  "Transportation": "#FFCE56",
+  "Entertainment": "#4BC0C0",
+  "Healthcare": "#9966FF",
+  "Shopping": "#FF9F40",
+  "Personal Care": "#8AC249",
+  "Education": "#EA526F",
+  "Utilities": "#7B68EE",
+  "Travel": "#2ECC71"
+};

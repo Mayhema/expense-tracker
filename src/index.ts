@@ -1,6 +1,5 @@
 import ExcelParser from './parser/excelParser';
 import { XmlParser } from './parser/xmlParser';
-import { Transaction } from './transaction';
 import * as fs from 'fs';
 import * as path from 'path';
 

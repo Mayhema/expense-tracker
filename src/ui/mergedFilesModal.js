@@ -9,93 +9,107 @@ import { exportMergedFilesAsCSV } from "../exports/exportManager.js";
  * Shows the merged files modal with all merged files
  */
 export function showMergedFilesModal() {
-  const mergedFiles = AppState.mergedFiles || [];
+  try {
+    if (!AppState || !AppState.mergedFiles) {
+      console.error("AppState is not initialized.");
+      return;
+    }
 
-  const content = document.createElement('div');
-  content.className = 'merged-files-container';
+    if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
+      console.warn("No merged files found in AppState.");
+      return;
+    }
 
-  if (mergedFiles.length === 0) {
-    content.innerHTML = `
-      <div class="empty-state">
-        <p>No merged files yet.</p>
-        <p class="info-text">Upload transaction files to see them listed here.</p>
-      </div>
-    `;
-  } else {
-    content.innerHTML = `
-      <div class="mappings-header">
-        <h3>Merged Files</h3>
-        <button id="exportMergedFilesBtn" class="action-btn">Export to CSV</button>
-      </div>
-      <div class="merged-files-list">
-        <table class="merged-files-table">
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>Rows</th>
-              <th>Date Added</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${mergedFiles.map((file, index) => {
-      const rowCount = file.data ? file.data.length : 0;
-      const fileIcon = getFileIcon(file.fileName);
+    const mergedFiles = AppState.mergedFiles || [];
 
-      // Use file added date if available, or current date if not
-      const addedDate = file.dateAdded ? new Date(file.dateAdded).toLocaleDateString() : 'Unknown';
+    const content = document.createElement('div');
+    content.className = 'merged-files-container';
 
-      return `
-                <tr>
-                  <td>
-                    <div class="file-info">
-                      <span class="file-icon">${fileIcon}</span>
-                      <span class="file-name" title="${file.fileName}">${file.fileName}</span>
-                    </div>
-                  </td>
-                  <td>${rowCount}</td>
-                  <td>${addedDate}</td>
-                  <td>
-                    <button class="remove-file-btn" data-index="${index}" title="Remove this file">🗑️</button>
-                  </td>
-                </tr>
-              `;
-    }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
+    if (mergedFiles.length === 0) {
+      content.innerHTML = `
+        <div class="empty-state">
+          <p>No merged files yet.</p>
+          <p class="info-text">Upload transaction files to see them listed here.</p>
+        </div>
+      `;
+    } else {
+      content.innerHTML = `
+        <div class="mappings-header">
+          <h3>Merged Files</h3>
+          <button id="exportMergedFilesBtn" class="action-btn">Export to CSV</button>
+        </div>
+        <div class="merged-files-list">
+          <table class="merged-files-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Rows</th>
+                <th>Date Added</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${mergedFiles.map((file, index) => {
+        const rowCount = file.data ? file.data.length : 0;
+        const fileIcon = getFileIcon(file.fileName);
 
-  const modal = showModal({
-    title: "Merged Files",
-    content: content,
-    size: "large"
-  });
+        // Use file added date if available, or current date if not
+        const addedDate = file.dateAdded ? new Date(file.dateAdded).toLocaleDateString() : 'Unknown';
 
-  // Add event handlers
-  const exportBtn = content.querySelector('#exportMergedFilesBtn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      exportMergedFilesAsCSV();
+        return `
+                  <tr>
+                    <td>
+                      <div class="file-info">
+                        <span class="file-icon">${fileIcon}</span>
+                        <span class="file-name" title="${file.fileName}">${file.fileName}</span>
+                      </div>
+                    </td>
+                    <td>${rowCount}</td>
+                    <td>${addedDate}</td>
+                    <td>
+                      <button class="remove-file-btn" data-index="${index}" title="Remove this file">🗑️</button>
+                    </td>
+                  </tr>
+                `;
+      }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    const modal = showModal({
+      title: "Merged Files",
+      content: content,
+      size: "large"
     });
-  }
 
-  // Add event handlers to individual delete buttons
-  const removeButtons = content.querySelectorAll('.remove-file-btn');
-  removeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const index = parseInt(button.dataset.index);
-      if (confirm(`Remove "${AppState.mergedFiles[index].fileName}"?\n\nWARNING: All transactions from this file will also be removed from the transaction list.`)) {
-        AppState.mergedFiles.splice(index, 1);
-        saveMergedFiles();
-        updateTransactions();
-        showToast("File and its transactions removed", "success");
-        modal.close();
-        showMergedFilesModal(); // Re-open with updated data
-      }
+    // Add event handlers
+    const exportBtn = content.querySelector('#exportMergedFilesBtn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        exportMergedFilesAsCSV();
+      });
+    }
+
+    // Add event handlers to individual delete buttons
+    const removeButtons = content.querySelectorAll('.remove-file-btn');
+    removeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const index = parseInt(button.dataset.index);
+        if (confirm(`Remove "${AppState.mergedFiles[index].fileName}"?\n\nWARNING: All transactions from this file will also be removed from the transaction list.`)) {
+          AppState.mergedFiles.splice(index, 1);
+          saveMergedFiles();
+          updateTransactions();
+          showToast("File and its transactions removed", "success");
+          modal.close();
+          showMergedFilesModal(); // Re-open with updated data
+        }
+      });
     });
-  });
 
-  return modal;
+    return modal;
+  } catch (error) {
+    console.error("Error showing merged files modal:", error);
+  }
 }

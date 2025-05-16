@@ -2,7 +2,6 @@ import { AppState } from "../core/appState.js";
 import { updateTimelineChart } from "./timelineChart.js";
 import { updateIncomeExpenseChart } from "./incomeExpenseChart.js";
 import { updateExpenseChart } from "./expenseChart.js";
-import { throttle } from "./chartCore.js";
 
 // Store chart update functions for reuse
 const updateFunctions = {
@@ -10,6 +9,95 @@ const updateFunctions = {
   incomeExpense: updateIncomeExpenseChart,
   expense: updateExpenseChart
 };
+
+// Add these variables to track current periods
+let currentTimelinePeriod = 'month';
+let currentCategoryPeriod = 'all';
+
+// Initialize variable before use
+let incomeExpenseChart = null;
+
+/**
+ * Initialize chart period selectors
+ */
+export function initializeChartPeriodSelectors() {
+  const timelinePeriodSelect = document.getElementById('timelineChartPeriod');
+  const categoryPeriodSelect = document.getElementById('categoryChartPeriod');
+
+  if (timelinePeriodSelect) {
+    // Set initial value
+    timelinePeriodSelect.value = currentTimelinePeriod;
+
+    // Add event listener
+    timelinePeriodSelect.addEventListener('change', (e) => {
+      currentTimelinePeriod = e.target.value;
+      updateChartsWithCurrentData();
+    });
+  }
+
+  if (categoryPeriodSelect) {
+    // Set initial value
+    categoryPeriodSelect.value = currentCategoryPeriod;
+
+    // Add event listener
+    categoryPeriodSelect.addEventListener('change', (e) => {
+      currentCategoryPeriod = e.target.value;
+      updateChartsWithCurrentData();
+    });
+  }
+}
+
+/**
+ * Safety wrapper to catch any chart errors
+ */
+function safeUpdateChart(updateFn, chartName, transactions) {
+  try {
+    return updateFn(transactions);
+  } catch (error) {
+    console.error(`Error updating ${chartName} chart:`, error);
+
+    // Mark the chart as having errors to disable animations
+    window.chartJsErrorCount = (window.chartJsErrorCount || 0) + 1;
+
+    // Apply patches again to ensure they're active
+    if (typeof applyAdvancedChartPatches === 'function') {
+      applyAdvancedChartPatches();
+    }
+
+    return false;
+  }
+}
+
+// Helper functions to update individual charts
+function updateTimelineChartSafely(transactions, period) {
+  safeUpdateChart(() => {
+    // Check if the chart element exists before updating
+    const chartElement = document.getElementById("timelineChart");
+    if (!chartElement) {
+      console.warn("Timeline chart element not found");
+      return;
+    }
+
+    // Import and call the update function
+    import("./timelineChart.js").then(module => {
+      if (typeof module.updateTimelineChart === 'function') {
+        module.updateTimelineChart(transactions, period);
+      } else {
+        console.error("updateTimelineChart function not found in module");
+      }
+    }).catch(err => {
+      console.error("Error importing timeline chart module:", err);
+    });
+  }, "timeline");
+}
+
+function updateExpenseChartSafely(transactions) {
+  return safeUpdateChart((tx) => updateExpenseChart(tx), "expense", transactions);
+}
+
+function updateIncomeExpenseChartSafely(transactions) {
+  return safeUpdateChart((tx) => updateIncomeExpenseChart(tx), "income-expense", transactions);
+}
 
 /**
  * Updates all charts with current transaction data
@@ -24,25 +112,6 @@ export function updateChartsWithCurrentData() {
     AppState.isChartUpdateInProgress = true;
     console.log("Updating charts with current transaction data");
 
-    // Use a safety wrapper to catch any chart errors
-    const safeUpdateChart = (updateFn, chartName, transactions) => {
-      try {
-        return updateFn(transactions);
-      } catch (error) {
-        console.error(`Error updating ${chartName} chart:`, error);
-
-        // Mark the chart as having errors to disable animations
-        window.chartJsErrorCount = (window.chartJsErrorCount || 0) + 1;
-
-        // Apply patches again to ensure they're active
-        if (typeof applyAdvancedChartPatches === 'function') {
-          applyAdvancedChartPatches();
-        }
-
-        return false;
-      }
-    };
-
     const transactions = AppState.transactions || [];
 
     // Check if there's actually data to display
@@ -51,15 +120,19 @@ export function updateChartsWithCurrentData() {
       // Still call update functions but handle empty state in each chart
     }
 
-    // Update charts with safety wrappers
-    setTimeout(() => {
-      safeUpdateChart(updateTimelineChart, "timeline", transactions);
+    // Filter transactions by appropriate period for each chart type
+    const timelineTransactions = transactions;
+    const categoryTransactions = filterTransactionsByPeriod(transactions, currentCategoryPeriod);
 
-      setTimeout(() => {
-        safeUpdateChart(updateExpenseChart, "expense", transactions);
+    // Update charts sequentially without excessive nesting
+    setTimeout(function updateTimeline() {
+      updateTimelineChartSafely(timelineTransactions, currentTimelinePeriod);
 
-        setTimeout(() => {
-          safeUpdateChart(updateIncomeExpenseChart, "income-expense", transactions);
+      setTimeout(function updateExpense() {
+        updateExpenseChartSafely(categoryTransactions);
+
+        setTimeout(function updateIncomeExpense() {
+          updateIncomeExpenseChartSafely(categoryTransactions);
           AppState.isChartUpdateInProgress = false;
         }, 50);
       }, 50);
@@ -113,6 +186,15 @@ function filterTransactionsByPeriod(transactions, period) {
  * Initializes charts and adds event listeners for toggles
  */
 export function initializeCharts() {
+  // Call period selector initialization
+  initializeChartPeriodSelectors();
+
+  // Hide debug buttons by default, they're shown only in debug mode
+  const chartControls = document.querySelectorAll('.chart-controls');
+  chartControls.forEach(control => {
+    control.style.display = 'none'; // Hide by default
+  });
+
   // Attach event listeners to chart period selectors
   document.addEventListener('DOMContentLoaded', () => {
     const timelinePeriodSelect = document.getElementById('timelineChartPeriod');
@@ -186,6 +268,15 @@ export function cleanupAllCharts() {
     incomeExpenseChart.destroy();
     incomeExpenseChart = null;
   }
+}
+
+export function updateIncomeVsExpenseChart(transactions) {
+  // ...existing code...
+
+  // Use the initialized variable
+  incomeExpenseChart = createSafeChart("incomeExpenseChart", config);
+
+  // ...existing code...
 }
 
 export default {

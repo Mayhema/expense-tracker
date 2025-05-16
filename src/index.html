@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles/dark-theme.css">
 </head>
 
 <body>
@@ -19,19 +20,20 @@
       <button id="closeSidebarBtn" class="close-btn">&times;</button>
     </div>
     <div class="sidebar-content">
+      <!-- Fix form label associations around line 24 and 31 -->
       <div class="sidebar-item">
-        <span>Dark Mode</span>
-        <label class="switch">
+        <label for="darkModeToggle">Dark Mode</label>
+        <div class="switch">
           <input type="checkbox" id="darkModeToggle">
           <span class="slider round"></span>
-        </label>
+        </div>
       </div>
       <div class="sidebar-item">
-        <span>Debug Mode</span>
-        <label class="switch">
+        <label for="debugModeToggle">Debug Mode</label>
+        <div class="switch">
           <input type="checkbox" id="debugModeToggle">
           <span class="slider round"></span>
-        </label>
+        </div>
       </div>
 
       <hr>
@@ -168,27 +170,27 @@
       <div id="filters" class="filter-container">
         <div class="filter-row">
           <div class="filter-item">
-            <label>Start Date:</label>
+            <label for="filterStartDate">Start Date:</label>
             <input type="date" id="filterStartDate" class="filter-input" />
           </div>
           <div class="filter-item">
-            <label>End Date:</label>
+            <label for="filterEndDate">End Date:</label>
             <input type="date" id="filterEndDate" class="filter-input" />
           </div>
         </div>
         <div class="filter-row">
           <div class="filter-item">
-            <label>Category:</label>
+            <label for="filterCategory">Category:</label>
             <select id="filterCategory" class="filter-input category-select">
               <option value="">All</option>
             </select>
           </div>
           <div class="filter-item">
-            <label>Min Amount:</label>
+            <label for="filterMinAmount">Min Amount:</label>
             <input type="number" id="filterMinAmount" class="filter-input" />
           </div>
           <div class="filter-item">
-            <label>Max Amount:</label>
+            <label for="filterMaxAmount">Max Amount:</label>
             <input type="number" id="filterMaxAmount" class="filter-input" />
           </div>
         </div>
@@ -202,7 +204,21 @@
       </div>
       <div id="categoryList"></div>
       <div class="transactions-table-wrapper">
-        <table id="transactionsTable"></table>
+        <table id="transactionsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Income</th>
+              <th>Expenses</th>
+              <th>Category</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="transactionsBody">
+            <!-- Table content will be generated dynamically -->
+          </tbody>
+        </table>
       </div>
     </section>
   </main>

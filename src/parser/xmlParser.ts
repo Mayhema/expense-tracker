@@ -23,7 +23,7 @@ export class XmlParser {
                     return;
                 }
 
-                if (result && result.transactions && result.transactions.transaction) {
+                if (result?.transactions?.transaction) {
                     transactions = result.transactions.transaction.map((item: XmlTransaction) => ({
                         id: uuidv4(),
                         date: item.date[0],
@@ -51,4 +51,9 @@ export class XmlParser {
             return false; // Return false for empty or null XML data
         }
     }
+}
+
+// Helper function for parsing XML node values
+function getValueFromNode(node: { value?: string }): string {
+    return node?.value?.trim() ?? '';
 }

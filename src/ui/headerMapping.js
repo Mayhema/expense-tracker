@@ -10,23 +10,15 @@ import { HEADERS } from "../core/constants.js";
 export function suggestHeaderMapping(headerText) {
   if (!headerText) return "–";
 
-  // Convert to lowercase for case-insensitive matching
   const text = String(headerText).toLowerCase().trim();
 
-  // Check for date headers
-  if (isDateHeader(text)) return "Date";
+  // Check each type in order of priority
+  if (/date|day|time|תאריך|день/i.test(text)) return "Date";
+  if (/expense|debit|cost|payment|out|חובה|gasto|ausgabe/i.test(text)) return "Expenses";
+  if (/income|credit|deposit|revenue|in|זכות|ingreso|einkommen/i.test(text)) return "Income";
+  if (/desc|note|memo|text|detail|תאור|פרטים|descrip/i.test(text)) return "Description";
 
-  // Check for expense headers
-  if (isExpenseHeader(text)) return "Expenses";
-
-  // Check for income headers
-  if (isIncomeHeader(text)) return "Income";
-
-  // Check for description headers
-  if (isDescriptionHeader(text)) return "Description";
-
-  // Default to placeholder
-  return "–";
+  return "–"; // Default case
 }
 
 /**
@@ -36,48 +28,58 @@ export function suggestHeaderMapping(headerText) {
  * @returns {Array} Suggested header mappings
  */
 export function analyzeHeaders(headers, state) {
-  return headers.map(cell => {
-    // Handle null or undefined cells
-    if (!cell) return "–";
+  return headers.map(cell => processHeaderCell(cell, state));
+}
 
-    // Convert to string
-    const headerText = String(cell).toLowerCase().trim();
+function processHeaderCell(cell, state) {
+  // Process individual header cell logic
+  if (!cell) return "–";
 
-    // Check for date headers with highest priority
-    if (isDateHeader(headerText)) {
-      if (!state.dateColumnFound) {
-        state.dateColumnFound = true;
-        return "Date";
-      } else {
-        // Allow multiple date columns if needed - just don't mark them as found
-        return "Date";
-      }
-    }
+  const headerText = String(cell).toLowerCase().trim();
 
-    // Check for description headers - allow multiple
-    if (isDescriptionHeader(headerText)) {
-      return "Description";
-    }
+  if (isDateHeader(headerText)) {
+    return processDateHeader(headerText, state);
+  }
 
-    // Check for expense headers
-    if (isExpenseHeader(headerText)) {
-      if (!state.expensesColumnFound) {
-        state.expensesColumnFound = true;
-        return "Expenses";
-      }
-    }
+  if (isDescriptionHeader(headerText)) {
+    return "Description";
+  }
 
-    // Check for income headers
-    if (isIncomeHeader(headerText)) {
-      if (!state.incomeColumnFound) {
-        state.incomeColumnFound = true;
-        return "Income";
-      }
-    }
+  if (isExpenseHeader(headerText)) {
+    return processExpenseHeader(headerText, state);
+  }
 
-    // Default to placeholder
-    return "–";
-  });
+  if (isIncomeHeader(headerText)) {
+    return processIncomeHeader(headerText, state);
+  }
+
+  return "–";
+}
+
+function processDateHeader(headerText, state) {
+  if (!state.dateColumnFound) {
+    state.dateColumnFound = true;
+    return "Date";
+  } else {
+    // Allow multiple date columns if needed - just don't mark them as found
+    return "Date";
+  }
+}
+
+function processExpenseHeader(headerText, state) {
+  if (!state.expensesColumnFound) {
+    state.expensesColumnFound = true;
+    return "Expenses";
+  }
+  return "–";
+}
+
+function processIncomeHeader(headerText, state) {
+  if (!state.incomeColumnFound) {
+    state.incomeColumnFound = true;
+    return "Income";
+  }
+  return "–";
 }
 
 /**
@@ -88,72 +90,66 @@ export function analyzeHeaders(headers, state) {
  * @returns {Array} Improved header mappings
  */
 export function analyzeDataContent(initialMapping, data, state) {
-  // Get sample rows
-  const samples = getSampleRows(data);
-
-  // First prioritize finding date columns
-  for (let colIndex = 0; colIndex < initialMapping.length; colIndex++) {
-    // Skip columns already mapped to something other than placeholder
-    if (initialMapping[colIndex] !== "–") continue;
-
-    // Get column values for analysis
-    const columnValues = samples.map(row =>
-      colIndex < row.length ? row[colIndex] : null
-    ).filter(Boolean);
-
-    if (columnValues.length === 0) continue;
-
-    // Check for Excel date numbers specifically (high priority)
-    if (!state.dateColumnFound && isExcelDateColumn(columnValues)) {
-      initialMapping[colIndex] = "Date";
-      state.dateColumnFound = true;
-      console.log(`Column ${colIndex} identified as Excel Date based on content`);
-      continue;
-    }
-
-    // Check for regular date formats
-    if (!state.dateColumnFound && isDateColumn(columnValues)) {
-      initialMapping[colIndex] = "Date";
-      state.dateColumnFound = true;
-      console.log(`Column ${colIndex} identified as Date based on content`);
-    }
-  }
-
-  // Then look for description columns - now with higher priority for text content
-  for (let colIndex = 0; colIndex < initialMapping.length; colIndex++) {
-    if (initialMapping[colIndex] !== "–") continue;
-
-    const columnValues = samples.map(row =>
-      colIndex < row.length ? row[colIndex] : null
-    ).filter(Boolean);
-
-    if (columnValues.length === 0) continue;
-
-    if (!state.descriptionColumnFound && isDescriptionColumn(columnValues)) {
-      initialMapping[colIndex] = "Description";
-      state.descriptionColumnFound = true;
-      console.log(`Column ${colIndex} identified as Description based on text content`);
-    }
-  }
-
-  // Finally process monetary columns
-  for (let colIndex = 0; colIndex < initialMapping.length; colIndex++) {
-    if (initialMapping[colIndex] !== "–") continue;
-
-    const columnValues = samples.map(row =>
-      colIndex < row.length ? row[colIndex] : null
-    ).filter(Boolean);
-
-    if (columnValues.length === 0) continue;
-
-    if (isMonetaryColumn(columnValues)) {
-      const newMapping = classifyMonetaryColumn(columnValues, state);
-      console.log(`Column ${colIndex} identified as ${newMapping} based on monetary values`);
-      initialMapping[colIndex] = newMapping;
-    }
-  }
+  identifyDateColumns(initialMapping, data, state);
+  identifyDescriptionColumns(initialMapping, data, state);
+  identifyMonetaryColumns(initialMapping, data, state);
 
   return initialMapping;
+}
+
+// Helper functions to reduce complexity
+function identifyDateColumns(mapping, data, state) {
+  const samples = getSampleRows(data);
+
+  // Find date columns first
+  for (let i = 0; i < mapping.length; i++) {
+    if (mapping[i] !== "–") continue;
+
+    const values = getColumnValues(samples, i);
+    if (values.length === 0) continue;
+
+    if (!state.dateColumnFound) {
+      if (isExcelDateColumn(values) || isDateColumn(values)) {
+        mapping[i] = "Date";
+        state.dateColumnFound = true;
+        break; // Stop after finding one date column
+      }
+    }
+  }
+}
+
+function identifyDescriptionColumns(mapping, data, state) {
+  const samples = getSampleRows(data);
+
+  if (state.descriptionColumnFound) return;
+
+  for (let i = 0; i < mapping.length; i++) {
+    if (mapping[i] !== "–") continue;
+
+    const values = getColumnValues(samples, i);
+    if (!values.length) continue;
+
+    if (isDescriptionColumn(values)) {
+      mapping[i] = "Description";
+      state.descriptionColumnFound = true;
+      break;
+    }
+  }
+}
+
+function identifyMonetaryColumns(mapping, data, state) {
+  const samples = getSampleRows(data);
+
+  for (let i = 0; i < mapping.length; i++) {
+    if (mapping[i] !== "–") continue;
+
+    const values = getColumnValues(samples, i);
+    if (!values.length) continue;
+
+    if (isMonetaryColumn(values)) {
+      mapping[i] = classifyMonetaryColumn(values, state);
+    }
+  }
 }
 
 /**
@@ -197,32 +193,53 @@ export function suggestMapping(data) {
  * @param {number} index - The index of the column being mapped
  */
 export function updateHeaderMapping(select, index) {
+  // Split into smaller functions
   const newValue = select.value;
-  console.log(`Changing column ${index} mapping to ${newValue}`);
 
-  // Skip further processing if setting to placeholder
   if (newValue === "–") {
-    AppState.currentSuggestedMapping[index] = newValue;
-
-    // Check if we have valid required fields for saving
-    const hasDate = AppState.currentSuggestedMapping.includes("Date");
-    const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
-      AppState.currentSuggestedMapping.includes("Expenses");
-
-    // Enable/disable save button
-    const saveButton = document.getElementById("saveHeadersBtn");
-    if (saveButton) {
-      saveButton.disabled = !(hasDate && hasAmount);
-      saveButton.title = hasDate && hasAmount ?
-        "Save this mapping" :
-        "You need at least Date and either Income or Expenses columns";
-    }
+    handlePlaceholderSelection(index);
     return;
   }
 
-  // Check for duplicates on ALL fields (including Description)
+  if (isDuplicateMapping(newValue, index)) {
+    handleDuplicateMapping(newValue, index);
+  }
+
+  updateCurrentMapping(index, newValue);
+  updateSaveButtonState();
+  checkForDuplicateHeaders();
+}
+
+// Helper functions to break down complexity
+function handlePlaceholderSelection(index) {
+  AppState.currentSuggestedMapping[index] = "–";
+
+  // Check if we have valid required fields for saving
+  const hasDate = AppState.currentSuggestedMapping.includes("Date");
+  const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
+    AppState.currentSuggestedMapping.includes("Expenses");
+
+  // Enable/disable save button
+  const saveButton = document.getElementById("saveHeadersBtn");
+  if (saveButton) {
+    saveButton.disabled = !(hasDate && hasAmount);
+    saveButton.title = hasDate && hasAmount ?
+      "Save this mapping" :
+      "You need at least Date and either Income or Expenses columns";
+  }
+}
+
+function isDuplicateMapping(value, index) {
+  // Check if mapping already exists elsewhere
+  return AppState.currentSuggestedMapping.findIndex(
+    (val, i) => i !== index && val === value
+  ) !== -1;
+}
+
+function handleDuplicateMapping(value, index) {
+  // Handle duplicate mapping resolution
   const existingIndex = AppState.currentSuggestedMapping.findIndex(
-    (value, i) => i !== index && value === newValue
+    (val, i) => i !== index && val === value
   );
 
   // If this header type already exists elsewhere, reset the other one
@@ -243,12 +260,16 @@ export function updateHeaderMapping(select, index) {
     // Update the mapping
     AppState.currentSuggestedMapping[existingIndex] = "–";
     console.log(`Reset duplicate mapping at column ${existingIndex} to –`);
-    showToast(`Only one column can be mapped as "${newValue}". Previous selection reset.`, "info");
+    showToast(`Only one column can be mapped as "${value}". Previous selection reset.`, "info");
   }
+}
 
+function updateCurrentMapping(index, value) {
   // Update the current mapping
-  AppState.currentSuggestedMapping[index] = newValue;
+  AppState.currentSuggestedMapping[index] = value;
+}
 
+function updateSaveButtonState() {
   // Check if we have valid required fields for saving
   const hasDate = AppState.currentSuggestedMapping.includes("Date");
   const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
@@ -262,9 +283,6 @@ export function updateHeaderMapping(select, index) {
       "Save this mapping" :
       "You need at least Date and either Income or Expenses columns";
   }
-
-  // Check for duplicate headers immediately
-  checkForDuplicateHeaders();
 }
 
 /**
@@ -304,6 +322,8 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
   }
 
   const headerRow = data[headerRowIndex];
+
+  // Always use the selected data row even if it's the same as header row
   const dataRow = data[dataRowIndex];
 
   if (!headerRow || !dataRow) {
@@ -320,6 +340,8 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
     // Generate a new mapping suggestion
     AppState.currentSuggestedMapping = suggestMapping(data);
   }
+
+  // Removed XML same row message - no longer showing this message
 
   // Build HTML for the table
   let html = '<table class="preview-table" style="width: 100%; margin-top: 20px;">';
@@ -369,7 +391,7 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
 
   html += '</tr>';
 
-  // Sample data row
+  // Sample data row - always use the chosen data row
   html += '<tr><td>Sample</td>';
 
   dataRow.forEach(cell => {
@@ -386,11 +408,7 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
 
       <p class="file-format-note" style="font-size:0.9em; color:#666;">
         <strong>Note for ${fileExt.toUpperCase()} files:</strong>
-        ${fileExt === 'xml' ?
-      'XML files may use the same row index for both header and data if each row contains field names.' :
-      fileExt === 'xlsx' || fileExt === 'xls' ?
-        'Excel files typically have headers in row 1 and data starting from row 2.' :
-        'Make sure header row contains column names and data row contains actual transaction data.'}
+        ${getFileFormatNote(fileExt)}
       </p>
     </div>
   `;
@@ -533,6 +551,24 @@ function getSampleRows(data) {
 }
 
 /**
+ * Helper function to extract column values from sample rows
+ * @param {Array<Array>} samples - Sample rows of data
+ * @param {number} colIndex - Column index to extract
+ * @returns {Array} Values from the specified column
+ */
+function getColumnValues(samples, colIndex) {
+  if (!samples || !Array.isArray(samples)) return [];
+
+  const values = [];
+  for (const row of samples) {
+    if (Array.isArray(row) && colIndex < row.length && row[colIndex] !== undefined) {
+      values.push(row[colIndex]);
+    }
+  }
+  return values;
+}
+
+/**
  * Check if a column contains date values including Excel date numbers
  */
 function isDateColumn(values) {
@@ -648,7 +684,7 @@ function isDescriptionColumn(values) {
     if (wordCount > 1) return true;
 
     // 2. Check for text with letters (not just numbers)
-    const hasLetters = /[a-zA-Z]/i.test(str);
+    const hasLetters = /[a-z]/i.test(str);
     const hasSpecialChars = /[^\w\s]/i.test(str);
     const isLongString = str.length > 6;
 
@@ -662,3 +698,23 @@ function isDescriptionColumn(values) {
   // If most values are text-like, it's likely a description column
   return textValues.length > values.length * 0.4;
 }
+
+// Replaced nested ternary with clear function
+function getFileFormatNote(fileExt) {
+  if (fileExt === 'xml') {
+    return 'XML files may use the same row index for both header and data if each row contains field names.';
+  } else if (fileExt === 'xlsx' || fileExt === 'xls') {
+    return 'Excel files typically have headers in row 1 and data starting from row 2.';
+  } else {
+    return 'Make sure header row contains column names and data row contains actual transaction data.';
+  }
+}
+
+// Fix character class duplicates in regex around line 669
+// Change:
+// const regex = /[a-zA-Z0-9a-zA-Z]/;
+// To:
+const regex = /[a-zA-Z0-9]/; // No duplicate character ranges
+
+// Fix other regex with similar issues
+const currencyRegex = /[$€£¥₪]/ // No duplicates

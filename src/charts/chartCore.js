@@ -1,4 +1,8 @@
 import { AppState } from "../core/appState.js";
+import { DEFAULT_CATEGORIES } from "../core/constants.js";
+
+// Store chart instances for proper cleanup
+const chartInstances = {};
 
 // Add this safety check to the beginning of the file
 
@@ -359,6 +363,26 @@ setTimeout(() => {
  * @returns {Chart|null} The Chart instance or null if error
  */
 export function createSafeChart(canvasId, config) {
+  // Apply patches first
+  if (typeof Chart !== 'undefined') {
+    applyRobustPatches();
+  }
+
+  // Modify config to be safer
+  const safeConfig = { ...config };
+
+  // Disable animations
+  safeConfig.options = safeConfig.options || {};
+  safeConfig.options.animation = false;
+  safeConfig.options.animations = { colors: false, x: false };
+
+  // Disable tooltips (main source of _positionChanged errors)
+  safeConfig.options.plugins = safeConfig.options.plugins || {};
+  safeConfig.options.plugins.tooltip = {
+    enabled: false
+  };
+
+  // Use safe wrapper for actual chart creation
   try {
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
@@ -442,20 +466,21 @@ export function createSafeChart(canvasId, config) {
 
 // Update the destroyChart function to be more robust
 export function destroyChart(chart) {
-  if (!chart) return null;
+  if (!chart) return false;
 
   try {
     // Check if the chart still exists and has a destroy method
     if (typeof chart.destroy === 'function') {
       chart.destroy();
+      return true;
     } else {
       console.warn("Chart instance lacks destroy method");
+      return false;
     }
   } catch (error) {
     console.error("Error destroying chart:", error);
+    return false;
   }
-
-  return null;
 }
 
 /**
@@ -521,59 +546,246 @@ export function validateChartData(transactions) {
     if (!tx.date) return false;
 
     // Check if the date is valid
-    try {
-      const date = new Date(tx.date);
-      if (isNaN(date.getTime())) {
-        return false;
-      }
-    } catch (e) {
+    const date = new Date(tx.date);
+    if (isNaN(date.getTime())) {
       return false;
     }
 
-    // Need either income or expenses
-    if ((!tx.income || isNaN(parseFloat(tx.income))) &&
-      (!tx.expenses || isNaN(parseFloat(tx.expenses)))) {
-      return false;
-    }
-
-    return true;
+    // Need either income or expenses - single return statement
+    return (tx.income && !isNaN(parseFloat(tx.income))) ||
+      (tx.expenses && !isNaN(parseFloat(tx.expenses)));
   });
 }
 
 /**
- * Generates consistent colors for categories
+ * Gets chart colors for categories
+ * @returns {Object} Map of category names to colors
  */
-export function generateCategoryColors(categories) {
-  const colorMap = {
-    "Food": "#FF6384",
-    "Transport": "#36A2EB",
-    "Housing": "#FFCE56",
-    "Utilities": "#4BC0C0",
-    "Entertainment": "#9966FF",
-    "Healthcare": "#FF9F40",
-    "Shopping": "#8AC249",
-    "Travel": "#EA526F",
-    "Education": "#7B68EE",
-    "Uncategorized": "#C9CBCF"
-  };
+export function getCategoryColors() {
+  // Use the centralized category definitions from constants.js
+  return DEFAULT_CATEGORIES;
+}
 
-  return categories.map(category => {
-    if (colorMap[category]) {
-      return colorMap[category];
+/**
+ * Creates a consistent color palette for charts
+ * @returns {Array} Array of colors for charts
+ */
+export function getChartColorPalette() {
+  // Extract just the color values from the category definitions
+  return Object.values(DEFAULT_CATEGORIES).map(val =>
+    typeof val === 'string' ? val : val.color
+  );
+}
+
+/**
+ * Assigns colors to datasets for consistency across charts
+ * @param {Array} datasets - Chart datasets
+ * @returns {Array} Datasets with assigned colors
+ */
+export function assignColorsToDatasets(datasets) {
+  const categoryColors = DEFAULT_CATEGORIES;
+
+  return datasets.map(dataset => {
+    // Try to match dataset label to a category name
+    const categoryName = dataset.label;
+    const color = categoryColors[categoryName] ||
+                 (typeof categoryColors[categoryName] === 'object' ?
+                  categoryColors[categoryName].color : null);
+
+    if (color) {
+      dataset.backgroundColor = color;
+      dataset.borderColor = color;
     }
-
-    if (AppState.categories && AppState.categories[category]) {
-      return AppState.categories[category];
-    }
-
-    // Generate a stable color based on the category name
-    let hash = 0;
-    for (let i = 0; i < category.length; i++) {
-      hash = ((hash << 5) - hash) + category.charCodeAt(i);
-      hash = hash & hash;
-    }
-
-    // Convert to hex color
-    return `#${Math.abs(hash).toString(16).substring(0, 6).padStart(6, '0')}`;
+    return dataset;
   });
 }
+
+// Provides a safe custom defaults object for Chart.js
+// that won't attempt to modify read-only properties
+export function getSafeChartDefaults() {
+  return {
+    maintainAspectRatio: false,
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        padding: 10
+      }
+    },
+    elements: {
+      point: {
+        radius: 3
+      },
+      line: {
+        tension: 0.3
+      }
+    }
+  };
+}
+
+/**
+ * Applies robust patches to Chart.js safely without modifying read-only properties
+ */
+function applyRobustPatches() {
+  // Do not attempt to modify Chart.defaults directly
+  console.log("Applying robust Chart.js patches");
+
+  try {
+    // Safe approach: Create a helper function that will be used
+    // when creating new charts instead of trying to modify global defaults
+    window.getChartConfig = function(type, data, customOptions = {}) {
+      const baseConfig = getSafeChartDefaults();
+
+      // Merge custom options with our safe defaults
+      const config = {
+        type: type,
+        data: data,
+        options: { ...baseConfig, ...customOptions }
+      };
+
+      return config;
+    };
+
+    console.log("Added safe Chart.js configuration helper");
+  } catch (error) {
+    // This is not critical, so just log the error and continue
+    console.warn("Could not create Chart.js helpers:", error);
+  }
+
+  // Add our own theme manager helper for charts
+  try {
+    window.applyChartTheme = function(chart, isDarkMode) {
+      if (!chart || !chart.options) return;
+
+      // Get the canvas context and manipulate styles directly
+      const ctx = chart.ctx;
+      if (ctx) {
+        ctx.font = '12px Arial, sans-serif';
+      }
+
+      // Set colors based on theme without modifying Chart.defaults
+      if (isDarkMode) {
+        if (chart.options.scales && chart.options.scales.x) {
+          chart.options.scales.x.grid = chart.options.scales.x.grid || {};
+          chart.options.scales.x.grid.color = 'rgba(255, 255, 255, 0.1)';
+          chart.options.scales.x.ticks = chart.options.scales.x.ticks || {};
+          chart.options.scales.x.ticks.color = '#aaa';
+        }
+
+        if (chart.options.scales && chart.options.scales.y) {
+          chart.options.scales.y.grid = chart.options.scales.y.grid || {};
+          chart.options.scales.y.grid.color = 'rgba(255, 255, 255, 0.1)';
+          chart.options.scales.y.ticks = chart.options.scales.y.ticks || {};
+          chart.options.scales.y.ticks.color = '#aaa';
+        }
+      }
+
+      // Update the chart
+      chart.update();
+    };
+
+    console.log("Added Chart.js theme helper");
+  } catch (error) {
+    console.warn("Could not create Chart.js theme helper:", error);
+  }
+
+  console.log("Robust patches complete");
+}
+
+// Call our enhancement function after Chart.js is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof Chart !== 'undefined') {
+    applyRobustPatches();
+    applyChartCompatibilityPatches();
+  } else {
+    console.warn('Chart.js not available during DOMContentLoaded');
+    // Try again later
+    setTimeout(() => {
+      if (typeof Chart !== 'undefined') {
+        applyRobustPatches();
+        applyChartCompatibilityPatches();
+      } else {
+        console.error('Chart.js still not available after timeout');
+      }
+    }, 1000);
+  }
+});
+
+// Add this specific fix for the hitRadius issue
+if (typeof Chart !== 'undefined' && Chart.Interaction && Chart.Interaction.modes) {
+  // Safe wrapper for all interaction modes, especially 'nearest'
+  const originalNearest = Chart.Interaction.modes.nearest;
+  Chart.Interaction.modes.nearest = function (chart, e, options, useFinalPosition) {
+    try {
+      // Make sure to check if each point has a hitRadius property
+      if (chart && chart.getElementsAtEventForMode) {
+        const elements = chart.getVisibleDatasetElements();
+        if (elements && elements.length > 0) {
+          elements.forEach(element => {
+            // Fix for hitRadius undefined error
+            if (element && element.options && element.options.hitRadius === undefined) {
+              element.options.hitRadius = 1;
+            }
+          });
+        }
+      }
+      return originalNearest.call(this, chart, e, options, useFinalPosition);
+    } catch (err) {
+      console.warn('Caught error in Chart.js interaction mode "nearest":', err);
+      return [];
+    }
+  };
+
+  // Fix the _positionChanged error
+  if (Chart.Interaction) {
+    const originalPositionChanged = Chart.Interaction._positionChanged;
+    if (originalPositionChanged) {
+      Chart.Interaction._positionChanged = function (e, position, lastPosition) {
+        try {
+          if (!lastPosition) return false;
+          return originalPositionChanged.call(this, e, position, lastPosition);
+        } catch (err) {
+          console.warn('Caught error in Chart.js _positionChanged:', err);
+          return false;
+        }
+      };
+    }
+  }
+}
+
+// Refactor function at line 467
+function getChartType(data) {
+  if (data.length > 100) return "line";
+  if (data.length > 50) return "bar";
+  return "pie";
+}
+
+/**
+ * Applies compatibility patches for Chart.js
+ */
+function applyChartCompatibilityPatches() {
+  console.log("Applying Chart.js compatibility patches...");
+
+  try {
+    // Example compatibility patch: Ensure proper handling of older Chart.js versions
+    if (Chart && Chart.defaults) {
+      if (!Chart.defaults.plugins) {
+        Chart.defaults.plugins = {};
+      }
+
+      // Add default configurations if missing
+      Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || { display: true };
+      Chart.defaults.plugins.tooltip = Chart.defaults.plugins.tooltip || { enabled: true };
+    }
+
+    console.log("Chart.js compatibility patches applied successfully.");
+  } catch (error) {
+    console.error("Error applying Chart.js compatibility patches:", error);
+  }
+}
+
+// Call the function to ensure compatibility
+applyChartCompatibilityPatches();

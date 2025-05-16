@@ -2,7 +2,7 @@
  * Utility functions for working with categories
  */
 import { AppState } from "../core/appState.js";
-import { STORAGE_KEYS } from "../core/constants.js";
+import { DEFAULT_CATEGORIES } from '../core/constants.js';
 
 /**
  * Gets a color for a category
@@ -11,23 +11,24 @@ import { STORAGE_KEYS } from "../core/constants.js";
  * @returns {string} The color hex code
  */
 export function getCategoryColor(categoryName, subcategoryName = null) {
-  if (!categoryName || !AppState.categories[categoryName]) {
-    return "#CCCCCC"; // Default gray
-  }
+  if (!categoryName) return '#cccccc';
 
-  const category = AppState.categories[categoryName];
+  // Use the centralized DEFAULT_CATEGORIES if AppState isn't available
+  const categories = window.AppState?.categories || DEFAULT_CATEGORIES;
+
+  const categoryValue = categories[categoryName];
+  if (!categoryValue) return '#cccccc';
 
   // Handle subcategory if provided
   if (subcategoryName &&
-    typeof category === 'object' &&
-    category.subcategories &&
-    category.subcategories[subcategoryName]) {
-    return category.subcategories[subcategoryName];
+    typeof categoryValue === 'object' &&
+    categoryValue.subcategories &&
+    categoryValue.subcategories[subcategoryName]) {
+    return categoryValue.subcategories[subcategoryName];
   }
 
   // Return main category color
-  return typeof category === 'string' ? category :
-    (category.color || "#CCCCCC");
+  return typeof categoryValue === 'string' ? categoryValue : categoryValue.color || '#cccccc';
 }
 
 /**
@@ -35,17 +36,7 @@ export function getCategoryColor(categoryName, subcategoryName = null) {
  * @returns {Object} Default category object
  */
 export function getDefaultCategories() {
-  return {
-    "Food": "#FF6384",
-    "Transport": "#36A2EB",
-    "Housing": "#FFCE56",
-    "Utilities": "#4BC0C0",
-    "Entertainment": "#9966FF",
-    "Healthcare": "#FF9F40",
-    "Shopping": "#8AC249",
-    "Travel": "#EA526F",
-    "Other": "#C9CBCF"
-  };
+  return DEFAULT_CATEGORIES;
 }
 
 /**

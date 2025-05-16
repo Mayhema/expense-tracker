@@ -1,9 +1,8 @@
-// Import core modules
-import { AppState, loadMergedFiles, ensureDefaultCategories } from "./core/appState.js";
+// Remove unused imports
 import { initializeUI } from "./ui/uiManager.js";
 import { initializeFileHandlers } from "./core/fileHandlers.js";
 import { initializeCategories } from "./ui/categoryManager.js";
-import { initializeSidebar, toggleDarkMode } from "./ui/sidebarManager.js"; // Fixed import
+import { initializeSidebar } from "./ui/sidebarManager.js"; // Removed toggleDarkMode
 import { initializeCharts } from "./charts/chartManager.js";
 import { initCategoryMapping } from "./ui/categoryMapping.js";
 import { attachDebugFunctions } from "./utils/debug.js";
@@ -13,57 +12,116 @@ import { initializeEventListeners } from "./core/eventHandlers.js";
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Initializing Expense Tracker...");
 
-  // Load data and ensure defaults
-  loadMergedFiles();
-  ensureDefaultCategories();
+  try {
+    // Load data and ensure defaults - with proper error handling
+    import("./core/appState.js").then(module => {
+      // Initialize AppState first
+      module.loadMergedFiles();
+      module.ensureDefaultCategories();
 
-  // Initialize UI components
-  initializeUI();
-  initializeSidebar();
+      // Initialize UI components after AppState is ready
+      initializeUI();
+      initializeSidebar(); // Moved here to ensure AppState is initialized
 
-  // Initialize core functionality
-  initializeFileHandlers();
-  initializeCategories();
-  initCategoryMapping();
-  initializeCharts();
+      // Initialize core functionality
+      initializeFileHandlers();
+      initializeCategories();
+      initCategoryMapping();
+      initializeCharts();
 
-  // Initialize event handlers
-  initializeEventListeners();
+      // Initialize event handlers
+      initializeEventListeners();
 
-  // Attach debug functions
-  attachDebugFunctions();
+      // Attach debug functions
+      attachDebugFunctions();
 
-  // Set initial theme
-  if (localStorage.getItem("darkMode") === "true") {
-    document.body.classList.add("dark-mode");
+      // Set initial theme
+      const isDarkMode = localStorage.getItem("darkMode") === "true";
+      document.body.classList.toggle("dark-mode", isDarkMode);
+
+      // Set debug mode if enabled
+      const isDebugMode = localStorage.getItem("debugMode") === "true";
+      document.body.classList.toggle("debug-mode", isDebugMode);
+
+      // Load and display transaction data from merged files - with safety delay
+      setTimeout(loadTransactionsAndCharts, 100);
+    }).catch(error => {
+      console.error("Error initializing app state:", error);
+    });
+  } catch (error) {
+    console.error("Error during initialization:", error);
   }
 
-  // Set debug mode if enabled
-  if (localStorage.getItem("debugMode") === "true") {
-    document.body.classList.add("debug-mode");
+  console.log("Expense Tracker initialization sequence complete");
+
+  // Enhanced theme initialization
+  initializeTheme();
+});
+
+/**
+ * Initialize theme with improved compatibility
+ */
+function initializeTheme() {
+  // Get stored preference
+  const isDarkMode = localStorage.getItem("darkMode") === "true";
+
+  // Apply to body class
+  document.body.classList.toggle("dark-mode", isDarkMode);
+
+  // Immediately update meta theme color
+  updateMetaThemeColor(isDarkMode);
+
+  // Fix for chart themeing
+  if (isDarkMode && window.Chart && window.Chart.defaults) {
+    console.log("Applying dark theme to charts");
+    window.Chart.defaults.color = "#e0e0e0";
+    window.Chart.defaults.borderColor = "#444444";
   }
 
-  // Load and display transaction data from merged files
-  import("./ui/transactionManager.js").then(module => {
-    if (typeof module.updateTransactions === 'function') {
-      setTimeout(() => {
+  console.log(`Theme initialized: ${isDarkMode ? "dark" : "light"} mode`);
+}
+
+/**
+ * Updates the meta theme-color for mobile devices
+ */
+function updateMetaThemeColor(isDark) {
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = isDark ? "#121212" : "#ffffff";
+}
+
+// Helper functions to reduce nesting depth
+function updateCharts() {
+  import("./charts/chartManager.js")
+    .then((chartModule) => {
+      if (typeof chartModule.updateChartsWithCurrentData === "function") {
+        chartModule.updateChartsWithCurrentData();
+      }
+    })
+    .catch((error) => {
+      console.error("Error updating charts:", error);
+    });
+}
+
+function loadTransactionsAndCharts() {
+  import("./ui/transactionManager.js")
+    .then((module) => {
+      if (typeof module.updateTransactions === "function") {
         module.updateTransactions();
 
         // Update charts after transactions are loaded
-        import("./charts/chartManager.js").then(chartModule => {
-          if (typeof chartModule.updateChartsWithCurrentData === 'function') {
-            setTimeout(chartModule.updateChartsWithCurrentData, 300);
-          }
-        });
-      }, 100);
-    }
-  }).catch(error => {
-    console.error("Error loading transaction manager:", error);
-  });
+        setTimeout(updateCharts, 300);
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading transaction manager:", error);
+    });
+}
 
-  console.log("Expense Tracker initialized successfully");
-});
-
-// Export essential functions that need to be globally accessible
+// Export essential functions that need to be globally accessible - KEEP ONLY THESE EXPORTS
 export { addMergedFile } from "./core/fileManager.js";
 export { renderMergedFiles } from "./ui/fileListUI.js";

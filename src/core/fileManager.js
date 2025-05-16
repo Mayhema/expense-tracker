@@ -1,10 +1,9 @@
-import { AppState, saveMergedFiles } from "./appState.js";
+import { AppState, saveMergedFiles } from "../core/appState.js";
 import { showToast } from "../ui/uiManager.js";
 import { updateChartsWithCurrentData } from "../charts/chartManager.js"; // Fixed import
 import { updateTransactions } from "../ui/transactionManager.js";
 import { renderMergedFiles } from "../ui/fileListUI.js";
 import { renderMappingList } from "../mappings/mappingsManager.js";
-import { autoCategorizeTransactions } from "../ui/categoryMapping.js";
 
 /**
  * Adds a file to the merged files list

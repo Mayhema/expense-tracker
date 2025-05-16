@@ -1,7 +1,6 @@
 import { AppState } from "../core/appState.js";
-import { renderMappingList } from "../mappings/mappingsManager.js";
-import { renderMergedFiles } from "../main.js";
-import { renderTransactions } from "../ui/transactionManager.js";
+import { DEFAULT_CATEGORIES } from "../core/constants.js";
+// FIXED: Removed unused imports
 import { showToast } from "../ui/uiManager.js";
 import { showModal } from "../ui/modalManager.js";
 
@@ -294,11 +293,9 @@ function resetApplication() {
     // Reset AppState
     AppState.mergedFiles = [];
     AppState.transactions = [];
-    AppState.categories = {
-      Food: "#FF6384",
-      Transport: "#36A2EB",
-      Housing: "#FFCE56"
-    };
+
+    // Use DEFAULT_CATEGORIES directly - no need to import again
+    AppState.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
 
     // Reload the page
     showToast("Application reset. Reloading...", "info");

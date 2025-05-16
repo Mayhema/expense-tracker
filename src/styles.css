@@ -1,13 +1,12 @@
 /* Add these styles for colored dropdowns */
 .category-select {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 3px 6px;
-  width: 100%;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 4px;
   padding: 4px 8px;
+  width: 100%;
   appearance: auto;
+  background-color: inherit;
+  color: inherit;
 }
 
 .category-select option {
@@ -21,18 +20,10 @@
 }
 
 /* Style selected options in the dropdown */
-select.category-select {
-  background-color: inherit;
-  color: inherit;
-}
-
 /* Style for edited rows */
 .transaction-row.edited {
   background-color: #fffbea !important;
   position: relative;
-}
-
-.transaction-row.edited td {
   font-style: italic;
 }
 
@@ -60,10 +51,9 @@ select.category-select {
   color: #c00;
 }
 
-/* Edit button style */
+/* Consolidated styles for .edit-button */
 .edit-button {
-  display: inline-block;
-  /* Changed from none */
+  display: none;
   background: none;
   border: none;
   color: #666;
@@ -72,8 +62,13 @@ select.category-select {
   padding: 0 5px;
 }
 
+/* This selector stays as it modifies .edit-button */
+.debug-mode .edit-button {
+  display: inline-block;
+}
+
 .edit-button:hover {
-  color: #0066cc;
+  color: #c00;
 }
 
 /* Category mapping styles */
@@ -81,6 +76,10 @@ select.category-select {
   margin-top: 20px;
   border-top: 1px solid #eee;
   padding-top: 15px;
+}
+
+.dark-mode .category-mapping-container {
+  border-top: 1px solid #444;
 }
 
 .small-btn {
@@ -144,10 +143,8 @@ select.category-select {
   cursor: pointer;
 }
 
-.close:hover,
-.close:focus {
-  color: black;
-  text-decoration: none;
+.close:hover {
+  color: #000;
 }
 
 /* Add these styles for the category edit interface */
@@ -189,16 +186,7 @@ select.category-select {
 }
 
 .dark-mode .close {
-  color: #ccc;
-}
-
-.dark-mode .close:hover,
-.dark-mode .close:focus {
-  color: #fff;
-}
-
-.dark-mode .category-edit-row {
-  background-color: #444;
+  color: #aaa;
 }
 
 /* Fix preview table overflow */
@@ -208,11 +196,12 @@ select.category-select {
   overflow-x: auto;
   display: block;
   max-height: 400px;
-}
-
-.preview-table table {
   min-width: 100%;
   border-collapse: collapse;
+}
+
+.dark-mode .category-edit-row {
+  background-color: #444;
 }
 
 .preview-table th,
@@ -239,26 +228,12 @@ select.category-select {
   white-space: nowrap;
 }
 
-/* Enhanced indicator styles for edited transactions */
-.transaction-row.edited {
-  position: relative;
-}
-
-.transaction-row.edited::before {
-  content: "✎";
-  position: absolute;
-  left: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: #ff8800;
-}
-
 /* Category cell styling with colors */
 .category-cell {
   transition: background-color 0.3s;
   display: flex;
   align-items: center;
+  padding: 0 !important;
 }
 
 /* Improved edit mode styling */
@@ -280,11 +255,6 @@ select.category-select {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-}
-
-.save-button {
-  background: #4CAF50;
-  color: white;
 }
 
 .cancel-button {
@@ -309,25 +279,6 @@ select.category-select {
   position: relative;
 }
 
-.edited-cell::after {
-  content: "✎";
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  font-size: 10px;
-  color: #ff8800;
-  pointer-events: none;
-}
-
-/* Selection style for category filters */
-.category-btn.inactive {
-  opacity: 0.5;
-}
-
-.category-btn.active {
-  opacity: 1;
-}
-
 /* Debug and developer tools */
 .debug-tools {
   display: none;
@@ -335,14 +286,6 @@ select.category-select {
 
 .debug-mode .debug-tools {
   display: inline-block;
-}
-
-.debug-mode .edit-button {
-  display: inline-block;
-}
-
-.edit-button {
-  display: none;
 }
 
 .debug-mode-toggle {
@@ -363,19 +306,14 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-.dark-mode {
-  background: #121212;
-  color: #e0e0e0;
+.dark-mode th {
+  background: #333;
+  color: #fff;
 }
 
 .dark-mode .section {
   background: #1e1e1e;
   color: #eee;
-}
-
-.dark-mode th {
-  background: #333;
-  color: #fff;
 }
 
 .container {
@@ -681,10 +619,6 @@ th {
   z-index: 1;
 }
 
-.dark-mode th {
-  background-color: #333;
-}
-
 .transactions-table-wrapper {
   max-height: 500px;
   overflow-y: auto;
@@ -701,22 +635,7 @@ th {
   overflow-y: auto;
 }
 
-.preview-table {
-  min-width: 100%;
-  border-collapse: collapse;
-}
-
-.preview-table th,
-.preview-table td {
-  min-width: 100px;
-  max-width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 8px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
+/* Preview table styling is already defined above */
 
 /* Category styling */
 #categoryList {
@@ -733,26 +652,6 @@ th {
   color: #fff;
   cursor: pointer;
   transition: opacity 0.2s;
-}
-
-.category-btn.active {
-  opacity: 1;
-}
-
-.category-btn.inactive {
-  opacity: 0.5;
-}
-
-/* Category dropdown styling */
-.category-select {
-  width: 100%;
-  padding: 5px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
-
-.category-select option {
-  padding: 5px;
 }
 
 /* Filter styles */
@@ -845,202 +744,130 @@ th {
   margin-top: 0;
 }
 
-/* Add styling for edited transactions */
-.transaction-row.edited {
-  background-color: #fff8e1;
-  position: relative;
-}
+/* Add styling for edited transactions - using styles defined earlier */
 
 .dark-mode .transaction-row.edited {
   background-color: #3a3527;
-}
 
-.edited-cell {
-  position: relative;
-}
+  /* These styles are already defined above */
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+  }
 
-.edited-cell::after {
-  content: "✎";
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  font-size: 10px;
-  color: #ff8800;
-}
+  .modal-container {
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    position: relative;
+  }
 
-/* Category cell styling */
-.category-cell {
-  padding: 0 !important;
-}
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+  }
 
-.category-wrapper {
-  padding: 8px;
-  width: 100%;
-  box-sizing: border-box;
-}
+  .dark-mode .modal-header {
+    border-bottom: 1px solid #444;
+  }
 
-/* Debug mode styling */
-.debug-tools {
-  display: none;
-}
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #777;
+  }
 
-.debug-mode .debug-tools {
-  display: inline-block;
-}
+  .dark-mode .modal-close {
+    color: #aaa;
+  }
 
-/* Modal styling */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
+  .modal-body {
+    margin-bottom: 20px;
+  }
 
-.modal-container {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 20px;
-  position: relative;
-}
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+  }
 
-.dark-mode .modal-container {
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-}
+  .dark-mode .modal-footer {
+    border-top: 1px solid #444;
+  }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
+  /* Category editor styling */
+  .category-edit-row {
+    display: flex;
+    align-items: center;
+    background-color: #f8f8f8;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
 
-.dark-mode .modal-header {
-  border-bottom: 1px solid #444;
-}
+  .dark-mode .category-edit-row {
+    background-color: #333;
+  }
 
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #777;
-}
+  .category-edit-row input[type="color"] {
+    width: 40px;
 
-.dark-mode .modal-close {
-  color: #aaa;
-}
+    /* Category editor styling - additional properties */
+    .category-edit-row {
+      background-color: #f8f8f8;
+      padding: 8px;
+    }
 
-.modal-body {
-  margin-bottom: 20px;
-}
+    .dark-mode .category-edit-row {
+      background-color: #333;
+    }
+  }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-}
+  .dark-mode .category-edit-row input[type="text"] {
+    background-color: #2a2a2a;
+    color: #fff;
+    border-color: #555;
+  }
 
-.dark-mode .modal-footer {
-  border-top: 1px solid #444;
-}
+  .category-edit-row button {
+    background: none;
+    border: none;
+    padding: 5px 8px;
+  }
 
-/* Category editor styling */
-.category-edit-row {
-  display: flex;
-  align-items: center;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  padding: 8px;
-  margin-bottom: 8px;
-}
+  /* Add category form styling */
+  .add-category-form {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
 
-.dark-mode .category-edit-row {
-  background-color: #333;
-}
+  .dark-mode .add-category-form {
+    border-bottom: 1px solid #444;
+  }
 
-.category-edit-row input[type="color"] {
-  width: 40px;
-  height: 30px;
-  border: none;
-  border-radius: 4px;
-  margin-right: 10px;
-  padding: 0;
-}
+  .add-category-form input[type="text"] {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+  }
 
-.category-edit-row input[type="text"] {
-  flex: 1;
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-right: 10px;
-}
-
-.dark-mode .category-edit-row input[type="text"] {
-  background-color: #2a2a2a;
-  color: #fff;
-  border-color: #555;
-}
-
-.category-edit-row button {
-  background: none;
-  border: none;
-  padding: 5px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-left: 5px;
-}
-
-.category-edit-row .delete-btn {
-  color: #cc0000;
-}
-
-.category-edit-row .mappings-btn {
-  color: #2196F3;
-}
-
-/* Add category form styling */
-.add-category-form {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
-}
-
-.dark-mode .add-category-form {
-  border-bottom: 1px solid #444;
-}
-
-.add-category-form input[type="text"] {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-right: 10px;
-}
-
-.dark-mode .add-category-form input[type="text"] {
-  background-color: #2a2a2a;
-  color: #fff;
-  border-color: #555;
-}
-
-.add-category-form input[type="color"] {
+  /* Add category form styling - additional properties */
   width: 50px;
   height: 36px;
   border: none;
@@ -1065,14 +892,6 @@ th {
   padding-top: 15px;
 }
 
-.dark-mode .category-mapping-container {
-  border-top: 1px solid #444;
-}
-
-.category-mapping-group {
-  margin-bottom: 15px;
-}
-
 .category-header {
   padding: 8px;
   border-radius: 4px;
@@ -1093,111 +912,80 @@ th {
   background-color: #fff;
   border-radius: 8px;
   padding: 15px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  height: 250px;
-  position: relative;
-  overflow: hidden;
-}
 
-.dark-mode .chart-wrapper {
-  background-color: #2a2a2a;
-}
+  /* Category mapping styling - already defined above */
+  .dark-mode .chart-wrapper {
+    background-color: #2a2a2a;
+  }
 
-.chart-controls {
-  display: flex;
-  gap: 5px;
-}
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .category-header {
+      padding: 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .container {
+    /* Charts section styling */
+    .charts-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .chart-wrapper {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      height: 250px;
+      position: relative;
+      overflow: hidden;
+      flex: 1;
+      min-height: 400px;
+    }
+
+    .dark-mode .chart-wrapper {
+      background-color: #2a2a2a;
+    }
+  }
+
+  /* Charts section styling */
+  .charts-container {
+    display: flex;
     flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
   }
 
-  .left-panel,
-  .right-panel {
-    width: 100%;
-    padding: 0;
+  .chart-wrapper {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 15px;
+
+    /* Subcategory styles */
+    .subcategory-btn {
+      margin-left: 15px;
+      font-size: 0.9em;
+    }
+
+    /* Category header styling already defined above */
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  .filter-row {
-    flex-direction: column;
-    gap: 5px;
+  .dark-mode .category-section-header {
+    background-color: #333;
   }
 
-  .filter-item {
-    width: 100%;
-  }
-}
-
-/* Subcategory styles */
-.subcategory-btn {
-  margin-left: 15px;
-  font-size: 0.9em;
-  position: relative;
-}
-
-.subcategory-indicator {
-  display: inline-block;
-  padding: 2px 5px;
-  border-radius: 3px;
-  font-size: 0.8em;
-  margin-left: 5px;
-}
-
-.subcategory-text {
-  font-size: 0.8em;
-  margin-left: 5px;
-  color: #888;
-}
-
-/* Category section styling */
-.category-section {
-  margin-bottom: 10px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.dark-mode .category-section {
-  border-color: #444;
-}
-
-.category-section-header {
-  padding: 10px;
-  background-color: #f9f9f9;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dark-mode .category-section-header {
-  background-color: #333;
-}
-
-.category-section-header:hover {
-  background-color: #f0f0f0;
-}
-
-.dark-mode .category-section-header:hover {
-  background-color: #3a3a3a;
-}
-
-.category-section-content {
-  padding: 10px;
-}
-
-.toggle-icon {
-  font-size: 0.8em;
-}
-
-/* Subcategory form styling */
-.subcategory-form {
-  margin: 5px 0 5px 20px;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  /* Charts section styling already defined above */
 }
 
 .dark-mode .subcategory-form {
@@ -1230,7 +1018,6 @@ th {
   color: #4CAF50;
   cursor: pointer;
   font-size: 14px;
-  padding: 5px;
 }
 
 /* Enhanced category modal layout */
@@ -1324,7 +1111,6 @@ th {
   padding: 15px;
   background-color: #f5f5f5;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .dark-mode .summary-row {
@@ -1332,33 +1118,8 @@ th {
 }
 
 .summary-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.summary-label {
-  font-size: 0.9em;
-  color: #666;
-  margin-bottom: 5px;
-}
-
-.dark-mode .summary-label {
-  color: #aaa;
-}
-
-.summary-value {
-  font-size: 1.4em;
-  font-weight: bold;
-}
-
-.income-value {
-  color: #4CAF50;
-}
-
-.expense-value {
-  color: #F44336;
+  flex: 1;
+  text-align: center;
 }
 
 .positive-balance {

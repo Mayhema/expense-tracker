@@ -3,7 +3,6 @@
 // Update imports
 import { AppState } from "../core/appState.js";
 import { showToast } from "../ui/uiManager.js";
-import { HEADERS } from "../core/constants.js";
 
 // Update the export functionality
 

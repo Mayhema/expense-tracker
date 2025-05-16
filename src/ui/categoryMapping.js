@@ -1,12 +1,34 @@
 import { AppState } from "../core/appState.js";
 import { showToast } from "./uiManager.js";
-import { renderTransactions } from "./transactionManager.js";
+import { renderTransactions } from "./transactionManager.js"; // Ensure this matches the export
 import { getContrastColor } from "../utils/utils.js";
 
+// Change mutable export to const with getter/setter
 const CATEGORY_MAPPINGS_KEY = "categoryMappings";
+// Instead of: export let descriptionCategoryMap = {};
+let _descriptionCategoryMap = {};
+export const descriptionCategoryMap = {
+  get map() { return _descriptionCategoryMap; },
+  set map(value) { _descriptionCategoryMap = value; }
+};
 
-// Export this variable so it can be imported elsewhere
-export let descriptionCategoryMap = {};
+// Define utility functions only once at the beginning of the file
+function normalizeDescription(description) {
+  if (!description) return "";
+  return description.trim().toLowerCase();
+}
+
+function containsHebrew(text) {
+  return /[\u0590-\u05FF]/.test(text);
+}
+
+function normalizeHebrewText(text) {
+  return text.replace(/[^\u0590-\u05FF\s]/g, "").trim();
+}
+
+function normalizeLatinText(text) {
+  return text.replace(/[^a-zA-Z0-9\s]/g, "").trim();
+}
 
 export function initCategoryMapping() {
   loadCategoryMappings();
@@ -16,16 +38,16 @@ export function loadCategoryMappings() {
   try {
     const savedMappings = localStorage.getItem(CATEGORY_MAPPINGS_KEY);
     if (savedMappings) {
-      descriptionCategoryMap = JSON.parse(savedMappings);
+      _descriptionCategoryMap = JSON.parse(savedMappings);
     }
   } catch (err) {
     console.error("Error loading category mappings:", err);
-    descriptionCategoryMap = {};
+    _descriptionCategoryMap = {};
   }
 }
 
 export function saveCategoryMappings() {
-  localStorage.setItem(CATEGORY_MAPPINGS_KEY, JSON.stringify(descriptionCategoryMap));
+  localStorage.setItem(CATEGORY_MAPPINGS_KEY, JSON.stringify(_descriptionCategoryMap));
 }
 
 export function addToCategoryMapping(description, category, subcategory = null) {
@@ -34,8 +56,8 @@ export function addToCategoryMapping(description, category, subcategory = null) 
   const normalizedDesc = normalizeDescription(description);
   const categoryKey = subcategory ? `${category}:${subcategory}` : category;
 
-  if (!descriptionCategoryMap[normalizedDesc]) {
-    descriptionCategoryMap[normalizedDesc] = categoryKey;
+  if (!_descriptionCategoryMap[normalizedDesc]) {
+    _descriptionCategoryMap[normalizedDesc] = categoryKey;
     saveCategoryMappings();
   }
 }
@@ -51,8 +73,8 @@ export function removeFromCategoryMapping(description) {
   const normalizedDesc = normalizeDescription(description);
 
   // Check if this description exists in the mappings
-  if (descriptionCategoryMap[normalizedDesc]) {
-    delete descriptionCategoryMap[normalizedDesc];
+  if (_descriptionCategoryMap[normalizedDesc]) {
+    delete _descriptionCategoryMap[normalizedDesc];
     saveCategoryMappings();
     return true;
   }
@@ -61,13 +83,23 @@ export function removeFromCategoryMapping(description) {
 }
 
 export function getCategoryForDescription(description) {
+  // Break this into smaller functions
   if (!description) return null;
 
   const normalizedDesc = normalizeDescription(description);
 
-  // First try exact match
-  if (descriptionCategoryMap[normalizedDesc]) {
-    const categoryKey = descriptionCategoryMap[normalizedDesc];
+  // Extract exact match check to a separate function
+  const exactMatch = findExactCategoryMatch(normalizedDesc);
+  if (exactMatch) return exactMatch;
+
+  // Extract partial match logic to a separate function
+  return findPartialCategoryMatch(normalizedDesc);
+}
+
+// Helper functions to reduce complexity
+function findExactCategoryMatch(normalizedDesc) {
+  if (_descriptionCategoryMap[normalizedDesc]) {
+    const categoryKey = _descriptionCategoryMap[normalizedDesc];
 
     // Check if it includes a subcategory
     if (categoryKey.includes(':')) {
@@ -78,10 +110,14 @@ export function getCategoryForDescription(description) {
     return { category: categoryKey };
   }
 
+  return null;
+}
+
+function findPartialCategoryMatch(normalizedDesc) {
   // Then try partial matches - more careful with Hebrew text
   const isHebrew = /[\u0590-\u05FF]/.test(normalizedDesc);
 
-  for (const [key, category] of Object.entries(descriptionCategoryMap)) {
+  for (const [key, category] of Object.entries(_descriptionCategoryMap)) {
     const keyIsHebrew = /[\u0590-\u05FF]/.test(key);
 
     // Only match Hebrew with Hebrew and Latin with Latin
@@ -93,11 +129,9 @@ export function getCategoryForDescription(description) {
           key.includes(normalizedDesc)) {
           return category;
         }
-      } else {
+      } else if (normalizedDesc.includes(key) || key.includes(normalizedDesc)) {
         // For non-Hebrew, standard matching behavior
-        if (normalizedDesc.includes(key) || key.includes(normalizedDesc)) {
-          return category;
-        }
+        return category;
       }
     }
   }
@@ -105,38 +139,10 @@ export function getCategoryForDescription(description) {
   return null;
 }
 
-function normalizeDescription(description) {
-  if (!description) return '';
-
-  // First check if the string is primarily Hebrew
-  const hebrewPattern = /[\u0590-\u05FF]/;
-  const isPrimarilyHebrew = hebrewPattern.test(description);
-
-  let normalized = description.toLowerCase().trim();
-
-  // Apply different normalization rules for Hebrew vs other texts
-  if (isPrimarilyHebrew) {
-    // For Hebrew, just remove some punctuation but maintain the original characters
-    normalized = normalized.replace(/[^\u0590-\u05FF\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
-  } else {
-    // Standard normalization for Latin text
-    normalized = normalized
-      .replace(/^payment to |^purchase from |^txn\*|^pos |^pymt to |^txn |^transact /i, '')
-      .replace(/\s*-\s*ref\s*:.*$/i, '')
-      .replace(/\s*-\s*auth\s*:.*$/i, '')
-      .replace(/\s*\d{1,2}\/\d{1,2}(\/\d{2,4})?$/i, '')
-      .replace(/[^\w\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  return normalized;
-}
-
 export function getDescriptionsForCategory(category) {
   if (!category) return [];
 
-  return Object.entries(descriptionCategoryMap)
+  return Object.entries(_descriptionCategoryMap)
     .filter(([_, cat]) => cat === category)
     .map(([desc, _]) => desc);
 }
@@ -145,9 +151,9 @@ export function updateCategoryNameInMappings(oldName, newName) {
   if (!oldName || !newName) return;
 
   let updated = false;
-  for (const [desc, category] of Object.entries(descriptionCategoryMap)) {
+  for (const [desc, category] of Object.entries(_descriptionCategoryMap)) {
     if (category === oldName) {
-      descriptionCategoryMap[desc] = newName;
+      _descriptionCategoryMap[desc] = newName;
       updated = true;
     }
   }
@@ -155,6 +161,40 @@ export function updateCategoryNameInMappings(oldName, newName) {
   if (updated) {
     saveCategoryMappings();
   }
+}
+
+// Helper function to apply category to a transaction
+function applyCategory(tx, categoryInfo) {
+  let needsUpdate = false;
+
+  if (categoryInfo.category && tx.category !== categoryInfo.category) {
+    tx.category = categoryInfo.category;
+    needsUpdate = true;
+  }
+
+  if (categoryInfo.subcategory) {
+    if (tx.subcategory !== categoryInfo.subcategory) {
+      tx.subcategory = categoryInfo.subcategory;
+      needsUpdate = true;
+    }
+  } else if (tx.subcategory) {
+    delete tx.subcategory;
+    needsUpdate = true;
+  }
+
+  if (needsUpdate) {
+    tx.autoCategorized = true;
+    return true;
+  }
+  return false;
+}
+
+// Helper function to remove category from a transaction
+function removeCategory(tx) {
+  tx.category = null;
+  if (tx.subcategory) delete tx.subcategory;
+  delete tx.autoCategorized;
+  return true;
 }
 
 export function autoCategorizeTransactions(transactions) {
@@ -168,36 +208,12 @@ export function autoCategorizeTransactions(transactions) {
 
     const categoryInfo = getCategoryForDescription(tx.description);
 
-    // If we have a mapping for this description, apply it
     if (categoryInfo) {
-      let needsUpdate = false;
-
-      if (categoryInfo.category && tx.category !== categoryInfo.category) {
-        tx.category = categoryInfo.category;
-        needsUpdate = true;
-      }
-
-      if (categoryInfo.subcategory) {
-        if (tx.subcategory !== categoryInfo.subcategory) {
-          tx.subcategory = categoryInfo.subcategory;
-          needsUpdate = true;
-        }
-      } else if (tx.subcategory) {
-        delete tx.subcategory;
-        needsUpdate = true;
-      }
-
-      if (needsUpdate) {
-        tx.autoCategorized = true;
+      if (applyCategory(tx, categoryInfo)) {
         count++;
       }
-    }
-    // If we previously auto-categorized this transaction but the mapping is gone,
-    // remove the category
-    else if (tx.autoCategorized && tx.category) {
-      tx.category = null;
-      if (tx.subcategory) delete tx.subcategory;
-      delete tx.autoCategorized;
+    } else if (tx.autoCategorized && tx.category) {
+      removeCategory(tx);
       removedCount++;
     }
   });
@@ -207,6 +223,144 @@ export function autoCategorizeTransactions(transactions) {
   }
 
   return { added: count, removed: removedCount };
+}
+
+/**
+ * Groups mappings by category and filters by selected categories if provided
+ * @param {Array} selectedCategories - Categories to filter by
+ * @returns {Object} Categorized mappings
+ */
+function getCategorizedMappings(selectedCategories) {
+  const showAllCategories = !selectedCategories || selectedCategories.length === 0;
+  const categorizedMappings = {};
+
+  for (const [desc, categoryKey] of Object.entries(_descriptionCategoryMap)) {
+    let category = categoryKey;
+    if (categoryKey.includes(':')) {
+      category = categoryKey.split(':')[0];
+    }
+
+    if (!showAllCategories && !selectedCategories.includes(category)) {
+      continue;
+    }
+
+    if (!categorizedMappings[categoryKey]) {
+      categorizedMappings[categoryKey] = [];
+    }
+    categorizedMappings[categoryKey].push(desc);
+  }
+
+  return { categorizedMappings, showAllCategories };
+}
+
+/**
+ * Generates HTML for empty mappings message
+ * @param {boolean} showAllCategories - Whether all categories are being shown
+ * @returns {string} HTML message
+ */
+function generateEmptyMappingsHTML(showAllCategories) {
+  let html = '<p>No category mappings found';
+  if (!showAllCategories) {
+    html += ' for the selected categories';
+  }
+  html += '.</p>';
+  return html;
+}
+
+/**
+ * Gets appropriate color for category or subcategory
+ * @param {string} category - Category name
+ * @param {string} subcategory - Subcategory name
+ * @returns {string} Color hex code
+ */
+function getCategoryColor(category, subcategory) {
+  let color = '#cccccc';
+
+  if (!AppState.categories[category]) {
+    return color;
+  }
+
+  if (typeof AppState.categories[category] === 'string') {
+    return AppState.categories[category];
+  }
+
+  if (AppState.categories[category].color) {
+    color = AppState.categories[category].color;
+
+    if (subcategory &&
+      AppState.categories[category].subcategories &&
+      AppState.categories[category].subcategories[subcategory]) {
+      return AppState.categories[category].subcategories[subcategory];
+    }
+  }
+
+  return color;
+}
+
+/**
+ * Generates HTML for a single category mapping group
+ * @param {string} categoryKey - Category key
+ * @param {Array} descriptions - Description list
+ * @returns {string} HTML for category group
+ */
+function generateCategoryGroupHTML(categoryKey, descriptions) {
+  let category = categoryKey;
+  let subcategory = null;
+
+  if (categoryKey.includes(':')) {
+    [category, subcategory] = categoryKey.split(':');
+  }
+
+  const color = getCategoryColor(category, subcategory);
+
+  const titleText = subcategory ? `${category}: ${subcategory}` : category;
+  const sectionId = `mapping-${categoryKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+  return `
+    <div class="category-mapping-group" style="margin-bottom: 15px;">
+      <div class="category-header" onclick="toggleMappingSection('${sectionId}')"
+           style="background-color: ${color}; color: ${getContrastColor(color)};
+                  padding: 8px; border-radius: 4px; cursor: pointer; display: flex;
+                  justify-content: space-between; align-items: center;">
+        <div>
+          <strong>${titleText}</strong> (${descriptions.length} patterns)
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <ul id="${sectionId}" class="mapping-list" style="list-style-type: none; padding-left: 10px; margin-top: 5px;">
+        ${descriptions.map(desc => `
+          <li style="margin: 3px 0; display: flex; justify-content: space-between;">
+            <span>${desc}</span>
+            <button class="small-btn" onclick="window.removeDescriptionMapping('${desc.replace(/'/g, "\\'")}', '${categoryKey.replace(/'/g, "\\'")}')" title="Remove this mapping">❌</button>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+/**
+ * Sets up toggle functionality for collapsible sections
+ */
+function setupToggleFunctionality() {
+  window.toggleMappingSection = function (sectionId) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    const isVisible = section.style.display !== 'none';
+    section.style.display = isVisible ? 'none' : 'block';
+
+    const header = section.previousElementSibling;
+    if (header) {
+      const icon = header.querySelector('.toggle-icon');
+      if (icon) icon.textContent = isVisible ? '►' : '▼';
+    }
+  };
+
+  // Initialize all sections as expanded
+  document.querySelectorAll('.mapping-list').forEach(section => {
+    section.style.display = 'block';
+  });
 }
 
 /**
@@ -222,101 +376,18 @@ export function renderCategoryMappingUI(selectedCategories = null) {
 
   let html = '<h3>Description to Category Mappings</h3>';
 
-  // Check if we need to filter mappings by selected categories
-  const showAllCategories = !selectedCategories || selectedCategories.length === 0;
-
-  const categorizedMappings = {};
-
-  // Group mappings by category
-  for (const [desc, categoryKey] of Object.entries(descriptionCategoryMap)) {
-    // Handle both simple categories and category:subcategory format
-    let category = categoryKey;
-    if (categoryKey.includes(':')) {
-      category = categoryKey.split(':')[0];
-    }
-
-    // Skip if filtering by selected categories
-    if (!showAllCategories && !selectedCategories.includes(category)) {
-      continue;
-    }
-
-    if (!categorizedMappings[categoryKey]) {
-      categorizedMappings[categoryKey] = [];
-    }
-    categorizedMappings[categoryKey].push(desc);
-  }
+  const { categorizedMappings, showAllCategories } = getCategorizedMappings(selectedCategories);
 
   // Check if we have any mappings to show
   if (Object.keys(categorizedMappings).length === 0) {
-    html += '<p>No category mappings found';
-
-    if (!showAllCategories) {
-      html += ' for the selected categories';
-    }
-
-    html += '.</p>';
+    html += generateEmptyMappingsHTML(showAllCategories);
     container.innerHTML = html;
     return;
   }
 
   // Render category mapping groups
   for (const [categoryKey, descriptions] of Object.entries(categorizedMappings)) {
-    // Handle both simple categories and category:subcategory format
-    let category = categoryKey;
-    let subcategory = null;
-
-    if (categoryKey.includes(':')) {
-      [category, subcategory] = categoryKey.split(':');
-    }
-
-    // Get appropriate color
-    let color = '#cccccc';
-
-    if (AppState.categories[category]) {
-      if (typeof AppState.categories[category] === 'string') {
-        color = AppState.categories[category];
-      } else if (AppState.categories[category].color) {
-        color = AppState.categories[category].color;
-
-        // Use subcategory color if available
-        if (subcategory &&
-          AppState.categories[category].subcategories &&
-          AppState.categories[category].subcategories[subcategory]) {
-          color = AppState.categories[category].subcategories[subcategory];
-        }
-      }
-    }
-
-    // Create section title with category name and subcategory if applicable
-    let titleText = category;
-    if (subcategory) {
-      titleText += `: ${subcategory}`;
-    }
-
-    // Create collapsible section for each category
-    const sectionId = `mapping-${categoryKey.replace(/[^a-zA-Z0-9]/g, '-')}`;
-
-    html += `
-      <div class="category-mapping-group" style="margin-bottom: 15px;">
-        <div class="category-header" onclick="toggleMappingSection('${sectionId}')"
-             style="background-color: ${color}; color: ${getContrastColor(color)};
-                    padding: 8px; border-radius: 4px; cursor: pointer; display: flex;
-                    justify-content: space-between; align-items: center;">
-          <div>
-            <strong>${titleText}</strong> (${descriptions.length} patterns)
-          </div>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <ul id="${sectionId}" class="mapping-list" style="list-style-type: none; padding-left: 10px; margin-top: 5px;">
-          ${descriptions.map(desc => `
-            <li style="margin: 3px 0; display: flex; justify-content: space-between;">
-              <span>${desc}</span>
-              <button class="small-btn" onclick="window.removeDescriptionMapping('${desc.replace(/'/g, "\\'")}', '${categoryKey.replace(/'/g, "\\'")}')" title="Remove this mapping">❌</button>
-            </li>
-          `).join('')}
-        </ul>
-      </div>
-    `;
+    html += generateCategoryGroupHTML(categoryKey, descriptions);
   }
 
   html += `
@@ -328,27 +399,7 @@ export function renderCategoryMappingUI(selectedCategories = null) {
   `;
 
   container.innerHTML = html;
-
-  // Initialize sections toggle functionality
-  window.toggleMappingSection = function (sectionId) {
-    const section = document.getElementById(sectionId);
-    if (!section) return;
-
-    const isVisible = section.style.display !== 'none';
-    section.style.display = isVisible ? 'none' : 'block';
-
-    // Update the toggle icon
-    const header = section.previousElementSibling;
-    if (header) {
-      const icon = header.querySelector('.toggle-icon');
-      if (icon) icon.textContent = isVisible ? '►' : '▼';
-    }
-  };
-
-  // Initialize all sections as expanded
-  document.querySelectorAll('.mapping-list').forEach(section => {
-    section.style.display = 'block';
-  });
+  setupToggleFunctionality();
 }
 
 window.removeDescriptionMapping = function (description, category) {
@@ -378,15 +429,130 @@ window.autoCategorizeAll = function () {
   }
 };
 
+// Add subcategory mapping functions
+
+/**
+ * Updates subcategory name in all category mappings
+ * @param {string} categoryName - Parent category name
+ * @param {string} oldSubName - Old subcategory name
+ * @param {string} newSubName - New subcategory name
+ */
+export function updateSubcategoryNameInMappings(categoryName, oldSubName, newSubName) {
+  if (!categoryName || !oldSubName || !newSubName) return;
+
+  // Full key with category and subcategory
+  const oldKey = `${categoryName}:${oldSubName}`;
+  const newKey = `${categoryName}:${newSubName}`;
+
+  let updated = false;
+
+  for (const [desc, category] of Object.entries(_descriptionCategoryMap)) {
+    if (category === oldKey) {
+      _descriptionCategoryMap[desc] = newKey;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    saveCategoryMappings();
+  }
+}
+
+/**
+ * Removes subcategory from all mappings
+ * @param {string} categoryName - Parent category name
+ * @param {string} subcategoryName - Subcategory to remove
+ */
+export function removeSubcategoryFromMappings(categoryName, subcategoryName) {
+  if (!categoryName || !subcategoryName) return;
+
+  // Full key with category and subcategory
+  const fullKey = `${categoryName}:${subcategoryName}`;
+
+  let updated = false;
+
+  for (const [desc, category] of Object.entries(_descriptionCategoryMap)) {
+    if (category === fullKey) {
+      // Change back to just the main category
+      _descriptionCategoryMap[desc] = categoryName;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    saveCategoryMappings();
+  }
+}
+
+/**
+ * Gets descriptions mapped to a specific subcategory
+ * @param {string} categoryName - Parent category name
+ * @param {string} subcategoryName - Subcategory name
+ * @returns {Array} List of descriptions
+ */
+export function getDescriptionsForSubcategory(categoryName, subcategoryName) {
+  if (!categoryName || !subcategoryName) return [];
+
+  const fullKey = `${categoryName}:${subcategoryName}`;
+
+  return Object.entries(_descriptionCategoryMap)
+    .filter(([_, cat]) => cat === fullKey)
+    .map(([desc, _]) => desc);
+}
+
+/**
+ * Toggles the visibility of a category mapping section
+ * @param {string} categoryId - The ID of the category section to toggle
+ */
+function toggleCategorySection(categoryId) {
+  const contentDiv = document.getElementById(`category-content-${categoryId}`);
+  const arrowIcon = document.querySelector(`#category-header-${categoryId} .toggle-arrow`);
+
+  if (!contentDiv || !arrowIcon) return;
+
+  // Define the condition variable that was missing
+  const condition = contentDiv.style.display !== 'none';
+
+  // Toggle content visibility based on the condition
+  contentDiv.style.display = condition ? 'none' : 'block';
+
+  // Update arrow icon based on the same condition
+  arrowIcon.textContent = condition ? '▶' : '▼';
+
+  // Save state to localStorage
+  try {
+    const collapsedSections = JSON.parse(localStorage.getItem('collapsedSections') || '{}');
+    collapsedSections[categoryId] = condition;
+    localStorage.setItem('collapsedSections', JSON.stringify(collapsedSections));
+  } catch (err) {
+    console.error('Error saving section state:', err);
+  }
+}
+// Refactor function at line 174
+function categorizeDescriptions(descriptions) {
+  return descriptions.reduce((map, desc) => {
+    const category = getCategoryForDescription(desc);
+    if (category) {
+      map[desc] = category;
+    }
+    return map;
+  }, {});
+}
+
+// Refactor function at line 224
+function processCategoryMappings(mappings) {
+  const processedMappings = {};
+
+  Object.entries(mappings).forEach(([key, value]) => {
+    if (isValidMapping(key, value)) {
+      processedMappings[key] = value;
+    }
+  });
+
+  return processedMappings;
+}
+
 export default {
-  initCategoryMapping,
-  addToCategoryMapping,
-  removeFromCategoryMapping,
-  getCategoryForDescription,
-  autoCategorizeTransactions,
-  updateCategoryNameInMappings,
-  renderCategoryMappingUI,
-  getDescriptionsForCategory,
   // Add descriptionCategoryMap to the default export
   descriptionCategoryMap
 };

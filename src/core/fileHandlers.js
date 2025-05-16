@@ -1,5 +1,4 @@
 import { onFileUpload, createNewFileInput } from "../ui/fileUpload.js";
-import { showFileUploadModal } from "../ui/fileUploadModal.js";
 import { initializeDragAndDrop } from "../ui/dragAndDrop.js";
 
 /**
@@ -7,7 +6,7 @@ import { initializeDragAndDrop } from "../ui/dragAndDrop.js";
  */
 export function initializeFileHandlers() {
   // Ensure we have a fresh file input element
-  const fileInput = createNewFileInput();
+  // const fileInput = createNewFileInput();
 
   // Add click handler to the upload button
   const fileUploadBtn = document.getElementById("fileUploadBtn");

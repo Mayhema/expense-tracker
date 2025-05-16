@@ -1,5 +1,5 @@
-import { AppState, saveCategories } from "../../core/appState.js";
-import { showCategoryManagerModal } from "../categoryManager.js";
+import { AppState } from "../../core/appState.js";
+// Remove this unused import: import { showCategoryManagerModal } from "../categoryManager.js";
 import { showToast } from "../uiManager.js";
 import { showModal } from "../modalManager.js";
 import { getContrastColor } from "../../utils/utils.js";
@@ -103,7 +103,7 @@ function openEditCategoriesModal() {
     </div>
   `;
 
-  const modal = showModal({
+  showModal({
     title: "Category Management",
     content: modalContent,
     size: "large"
@@ -151,6 +151,8 @@ function openEditCategoriesModal() {
  * Renders the list of categories in the modal
  */
 function renderCategoryList() {
+  if (!AppState.categories) return;
+
   const container = document.querySelector('.categories-container');
   if (!container) return;
 
@@ -548,3 +550,295 @@ window.deleteSubcategoryItem = deleteSubcategoryItem;
 window.showCategoryMappings = showCategoryMappings;
 window.showAddCategoryModal = showAddCategoryModal;
 window.openEditCategoriesModal = openEditCategoriesModal;
+
+/**
+ * Shows the category selection modal for a transaction
+ * @param {object} transaction - The transaction to categorize
+ * @param {function} onSelect - Callback when a category is selected
+ */
+export function showCategoryModal(transaction, onSelect) {
+  // Handle case where we don't have a valid transaction
+  if (!transaction) {
+    showToast("Cannot categorize: Invalid transaction", "error");
+    return;
+  }
+
+  const modalContent = document.createElement("div");
+  modalContent.className = "category-selector-modal";
+
+  // Add transaction info at the top
+  modalContent.innerHTML = `
+    <div class="transaction-summary" style="margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+      <p><strong>Description:</strong> ${transaction.description || "No description"}</p>
+      <p><strong>Amount:</strong> ${transaction.income ? "+" + transaction.income : "-" + transaction.expenses}</p>
+      <p><strong>Date:</strong> ${transaction.date || "No date"}</p>
+    </div>
+
+    <h3>Select Category</h3>
+    <div class="category-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+      ${buildCategoryButtons(transaction.category)}
+    </div>
+
+    <div id="subcategorySection" style="margin-top: 20px; display: none;">
+      <h3>Select Subcategory</h3>
+      <div id="subcategoryGrid" class="subcategory-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 20px; text-align: right;">
+      <button id="categoryCancelBtn" class="button">Cancel</button>
+    </div>
+  `;
+
+  // Show the modal
+  const modal = showModal({
+    title: "Categorize Transaction",
+    content: modalContent,
+    size: "large" // Changed from xlarge to fix spelling warning
+  });
+
+  // Add event listeners for category buttons
+  modalContent.querySelectorAll(".category-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const categoryName = btn.getAttribute("data-category");
+
+      // Update UI to show selection
+      modalContent.querySelectorAll(".category-btn").forEach(b => {
+        b.classList.remove("selected");
+      });
+      btn.classList.add("selected");
+
+      // Check if this category has subcategories
+      const category = AppState.categories[categoryName];
+      if (typeof category === "object" && category.subcategories &&
+        Object.keys(category.subcategories).length > 0) {
+        // Show subcategories
+        const subcategorySection = modalContent.querySelector("#subcategorySection");
+        const subcategoryGrid = modalContent.querySelector("#subcategoryGrid");
+
+        if (subcategorySection && subcategoryGrid) {
+          subcategorySection.style.display = "block";
+          subcategoryGrid.innerHTML = buildSubcategoryButtons(categoryName, category, transaction.subcategory);
+
+          // Add event listeners for subcategory buttons
+          subcategoryGrid.querySelectorAll(".subcategory-btn").forEach(subBtn => {
+            subBtn.addEventListener("click", () => {
+              const subcategoryName = subBtn.getAttribute("data-subcategory");
+
+              // Update UI to show selection
+              subcategoryGrid.querySelectorAll(".subcategory-btn").forEach(sb => {
+                sb.classList.remove("selected");
+              });
+              subBtn.classList.add("selected");
+
+              // Call onSelect with both category and subcategory
+              if (typeof onSelect === "function") {
+                onSelect(categoryName, subcategoryName);
+                modal.close();
+              }
+            });
+          });
+
+          // Add a "None" button for subcategories
+          const noneBtn = subcategoryGrid.querySelector(".subcategory-none-btn");
+          if (noneBtn) {
+            noneBtn.addEventListener("click", () => {
+              // Call onSelect with just the category
+              if (typeof onSelect === "function") {
+                onSelect(categoryName, null);
+                modal.close();
+              }
+            });
+          }
+        }
+      } else if (condition2) { // Use else if instead of else { if
+        // No subcategories, just call onSelect with the category
+        if (typeof onSelect === "function") {
+          onSelect(categoryName, null);
+          modal.close();
+        }
+      }
+    });
+  });
+
+  // Add event listener for cancel button
+  modalContent.querySelector("#categoryCancelBtn").addEventListener("click", () => {
+    modal.close();
+  });
+
+  return modal;
+}
+
+/**
+ * Build the HTML for category buttons
+ */
+function buildCategoryButtons(selectedCategory) {
+  const categories = AppState.categories || {};
+
+  if (Object.keys(categories).length === 0) {
+    return '<p>No categories found. Please create categories first.</p>';
+  }
+
+  // Add a "None" option at the beginning
+  let html = `
+    <button class="category-btn ${!selectedCategory ? 'selected' : ''}"
+            data-category=""
+            style="background-color: #cccccc; color: #000000;">
+      None
+    </button>
+  `;
+
+  // Sort categories alphabetically
+  const sortedCategories = Object.keys(categories).sort();
+
+  sortedCategories.forEach(categoryName => {
+    const category = categories[categoryName];
+    const color = typeof category === "object" ? category.color : category;
+    const textColor = getContrastColor(color);
+    const isSelected = categoryName === selectedCategory;
+
+    html += `
+      <button class="category-btn ${isSelected ? 'selected' : ''}"
+              data-category="${categoryName}"
+              style="background-color: ${color}; color: ${textColor};">
+        ${categoryName}
+      </button>
+    `;
+  });
+
+  return html;
+}
+
+/**
+ * Build the HTML for subcategory buttons
+ */
+function buildSubcategoryButtons(parentName, parentCategory, selectedSubcategory) {
+  if (!parentCategory.subcategories || Object.keys(parentCategory.subcategories).length === 0) {
+    return '<p>No subcategories found for this category.</p>';
+  }
+
+  // Add a "None" option at the beginning
+  let html = `
+    <button class="subcategory-btn subcategory-none-btn ${!selectedSubcategory ? 'selected' : ''}"
+            data-subcategory=""
+            style="background-color: ${parentCategory.color}; color: ${getContrastColor(parentCategory.color)};">
+      No Subcategory
+    </button>
+  `;
+
+  // Sort subcategories alphabetically
+  const sortedSubcategories = Object.keys(parentCategory.subcategories).sort();
+
+  sortedSubcategories.forEach(subName => {
+    const subColor = parentCategory.subcategories[subName];
+    const textColor = getContrastColor(subColor);
+    const isSelected = subName === selectedSubcategory;
+
+    html += `
+      <button class="subcategory-btn ${isSelected ? 'selected' : ''}"
+              data-subcategory="${subName}"
+              style="background-color: ${subColor}; color: ${textColor};">
+        ${subName}
+      </button>
+    `;
+  });
+
+  return html;
+}
+
+/**
+ * Show a modal to edit or create a category
+ */
+export function showCategoryEditModal(existingCategory = null) {
+  const isEdit = !!existingCategory;
+  const title = isEdit ? "Edit Category" : "Add Category";
+
+  // Get current values if editing
+  let currentName = '';
+  let currentColor = '#4CAF50';
+
+  if (isEdit) {
+    currentName = existingCategory;
+    const categoryValue = AppState.categories[existingCategory];
+    currentColor = typeof categoryValue === 'object' ? categoryValue.color : categoryValue;
+  }
+
+  // Create modal content
+  const modalContent = document.createElement("div");
+  modalContent.innerHTML = `
+    <div class="category-edit-form">
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label for="categoryNameInput">Category Name:</label>
+        <input type="text" id="categoryNameInput" value="${currentName}"
+               style="width: 100%; padding: 8px; margin-top: 5px;">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label for="categoryColorInput">Category Color:</label>
+        <input type="color" id="categoryColorInput" value="${currentColor}"
+               style="width: 100%; height: 40px; margin-top: 5px;">
+      </div>
+
+      <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="cancelCategoryEditBtn" class="button">Cancel</button>
+        <button id="saveCategoryEditBtn" class="button primary-btn">Save</button>
+      </div>
+    </div>
+  `;
+
+  // Show the modal
+  const modal = showModal({
+    title: title,
+    content: modalContent,
+    size: "small"
+  });
+
+  // Add event listeners
+  modalContent.querySelector("#cancelCategoryEditBtn").addEventListener("click", () => {
+    modal.close();
+  });
+
+  modalContent.querySelector("#saveCategoryEditBtn").addEventListener("click", () => {
+    const nameInput = modalContent.querySelector("#categoryNameInput");
+    const colorInput = modalContent.querySelector("#categoryColorInput");
+
+    if (!nameInput || !colorInput) return;
+
+    const name = nameInput.value.trim();
+    const color = colorInput.value;
+
+    if (!name) {
+      showToast("Category name cannot be empty", "error");
+      return;
+    }
+
+    // If editing an existing category
+    if (isEdit) {
+      // Import the updateCategory function
+      import("../categoryManager.js").then(module => {
+        if (module.updateCategory(existingCategory, name, color)) {
+          modal.close();
+          // Trigger re-render if needed
+          const event = new CustomEvent('categoryUpdated', {
+            detail: { oldName: existingCategory, newName: name }
+          });
+          document.dispatchEvent(event);
+        }
+      });
+    } else {
+      // Creating a new category
+      import("../categoryManager.js").then(module => {
+        if (module.addCategory(name, color)) {
+          modal.close();
+          // Trigger re-render if needed
+          const event = new CustomEvent('categoryAdded', {
+            detail: { name: name }
+          });
+          document.dispatchEvent(event);
+        }
+      });
+    }
+  });
+
+  return modal;
+}

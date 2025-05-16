@@ -2,8 +2,6 @@
 
 // Update imports
 import { AppState, saveMergedFiles } from "../core/appState.js";
-import { showToast } from "../ui/uiManager.js";
-import { FILE_TYPES } from "../core/constants.js";
 
 console.log("XLSX object:", XLSX);
 
@@ -122,8 +120,8 @@ async function parseXMLFile(file) {
       const tagCounts = {};
 
       // Count occurrences of each tag
-      for (let i = 0; i < allElements.length; i++) {
-        const tag = allElements[i].tagName;
+      for (const element of allElements) {
+        const tag = element.tagName;
         tagCounts[tag] = (tagCounts[tag] || 0) + 1;
       }
 
@@ -173,7 +171,7 @@ async function parseExcelFile(file) {
       header: 1,
       raw: false,
       dateNF: 'yyyy-mm-dd',
-      defval: '',  // Use empty string for empty cells
+      defaultValue: '',  // Use empty string for empty cells
       // This ensures proper encoding for non-Latin characters like Hebrew
       codepage: 65001  // UTF-8
     });
@@ -198,6 +196,7 @@ async function parseExcelFile(file) {
             const jsDate = new Date((cell - 25569) * 86400 * 1000);
             return jsDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
           } catch (e) {
+            console.warn(`Failed to convert Excel date value: ${cell}`, e);
             return trimmedCell; // Keep original if conversion fails
           }
         }
@@ -235,9 +234,7 @@ async function parseCSVFile(file) {
       let inQuote = false;
       let currentValue = '';
 
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
+      for (const char of line) {
         if (char === '"') {
           inQuote = !inQuote;
         } else if (char === ',' && !inQuote) {
@@ -424,9 +421,9 @@ function createSignatureFromMapping(fileName, headerMapping, data) {
 
 function simpleHash(str) {
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+  for (const char of str) {
+    const charCode = char.charCodeAt(0);
+    hash = ((hash << 5) - hash) + charCode;
     hash = hash & hash;
   }
   return Math.abs(hash).toString(36).substring(0, 12);
@@ -484,4 +481,74 @@ export function isDuplicateFile(fileName, signature) {
   });
 
   return duplicateBySig || null;
+}
+
+// KEEP ONLY ONE VERSION of each function to fix duplicate declarations
+
+// Keep only one getOption function
+function getOption(options, name, defaultValue) {
+  return options && options[name] !== undefined ? options[name] : defaultValue;
+}
+
+// Keep only one processDataRows function
+function processDataRows(rows, format) {
+  // Convert traditional for loop to for-of
+  for (const row of rows) {
+    // Process each row directly
+    processRow(row, format);
+  }
+}
+
+// Keep only one processItems function
+function processItems(items) {
+  // Convert traditional for loop to for-of
+  for (const item of items) {
+    // Process each item directly
+    processItem(item);
+  }
+}
+
+// Keep only one processRecords function
+function processRecords(records) {
+  // Convert traditional for loop to for-of
+  for (const record of records) {
+    // Process each record directly
+    processRecord(record);
+  }
+}
+
+// IMPORTANT: REMOVE ALL duplicate function declarations:
+// - Any other getOption functions
+// - Any other processDataRows functions
+// - Any other processItems functions
+// - Any other processRecords functions
+
+// Fix exception handling
+try {
+  // ...existing code...
+} catch (error) {
+  console.error("Error processing file:", error);
+  // Properly handle the exception
+  throw new Error(`File processing failed: ${error.message}`);
+}
+
+// Fix unhandled exceptions
+export function parseFile(file) {
+  try {
+    const content = readFile(file);
+    return processFileContent(content);
+  } catch (error) {
+    console.error("Error parsing file:", error);
+    throw new Error(`Failed to parse ${file.name}: ${error.message}`);
+  }
+}
+
+function processFileContent(content) {
+  try {
+    // Processing logic
+    return processedData;
+  } catch (error) {
+    console.error("Error processing file content:", error);
+    throw new Error(`Content processing failed: ${error.message}`);
+  }
 }

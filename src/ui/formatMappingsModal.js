@@ -1,4 +1,3 @@
-import { AppState } from "../core/appState.js";
 import { deleteFormatMapping, renderMappingList } from "../mappings/mappingsManager.js";
 import { showModal } from "./modalManager.js";
 import { showToast } from "./uiManager.js";

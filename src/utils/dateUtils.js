@@ -38,7 +38,7 @@ export function parseDateString(dateStr) {
 
     if (match) {
       // Convert from DD/MM/YYYY to YYYY-MM-DD for Date constructor
-      const [_, day, month, year] = match;
+      const [, day, month, year] = match;
       return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
     }
 

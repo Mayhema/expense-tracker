@@ -1,6 +1,3 @@
-import { showToast } from "../ui/uiManager.js";
-import { AppState } from "../core/appState.js";
-
 /**
  * Validation and defensive programming helpers
  */
@@ -21,7 +18,7 @@ export function safeGet(obj, path, defaultValue = null) {
   let result = obj;
 
   for (const key of keys) {
-    if (result === null || result === undefined || !Object.prototype.hasOwnProperty.call(result, key)) {
+    if (result === null || result === undefined || !Object.hasOwn(result, key)) {
       return defaultValue;
     }
     result = result[key];
@@ -59,7 +56,7 @@ export function validateTransaction(tx) {
     errors.push('Missing date');
     valid = false;
   } else {
-    // Verify date is parseable
+    // Verify date is parsable
     try {
       const date = new Date(tx.date);
       if (isNaN(date.getTime())) {
@@ -67,7 +64,7 @@ export function validateTransaction(tx) {
         valid = false;
       }
     } catch (e) {
-      errors.push('Invalid date');
+      errors.push(`Invalid date: ${e.message}`);
       valid = false;
     }
   }
@@ -120,70 +117,63 @@ export function addValidatedListener(selector, event, validationFn, callback) {
 }
 
 /**
- * Validates row indices for header and data rows
- * @param {Array<Array>} data - The data array to validate against
- * @param {string} headerRowInputId - Optional ID for header row input
- * @param {string} dataRowInputId - Optional ID for data row input
- * @returns {boolean} True if validation passed
+ * Validates that row indices are within bounds
+ * @param {Array<Array>} data - The file data
+ * @param {string} headerRowInputId - ID of header row input element
+ * @param {string} dataRowInputId - ID of data row input element
+ * @returns {boolean} True if indices are valid
  */
 export function validateRowIndices(data, headerRowInputId = "headerRowInput", dataRowInputId = "dataRowInput") {
-  if (!data || !Array.isArray(data)) {
-    console.error("Invalid data array for validation");
-    return false;
-  }
-
-  // Get header and data row inputs
-  const headerRowInput = document.getElementById(headerRowInputId);
-  const dataRowInput = document.getElementById(dataRowInputId);
-
-  // Safety check for null elements
-  if (!headerRowInput || !dataRowInput) {
-    console.warn(`Row input elements not found: headerRowInput=${!!headerRowInput}, dataRowInput=${!!dataRowInput}`);
-    return false;
-  }
-
   try {
-    // Convert to numbers (1-based to 0-based index)
-    const headerRowValue = headerRowInput.value ? parseInt(headerRowInput.value, 10) : null;
-    const dataRowValue = dataRowInput.value ? parseInt(dataRowInput.value, 10) : null;
+    if (!data || data.length === 0) return false;
 
-    const headerRowIndex = headerRowValue ? headerRowValue - 1 : null;
-    const dataRowIndex = dataRowValue ? dataRowValue - 1 : null;
+    const headerRowInput = document.getElementById(headerRowInputId);
+    const dataRowInput = document.getElementById(dataRowInputId);
+
+    if (!headerRowInput || !dataRowInput) return false;
+
+    const headerRowIndex = parseInt(headerRowInput.value, 10);
+    const dataRowIndex = parseInt(dataRowInput.value, 10);
 
     // Check if values are valid numbers
     if (isNaN(headerRowIndex) || isNaN(dataRowIndex)) {
-      showFieldError(headerRowInput, "Please enter valid row numbers");
-      showFieldError(dataRowInput, "Please enter valid row numbers");
+      showValidationError("Row indices must be numbers");
       return false;
     }
 
-    // Check if indices are within bounds
-    if (headerRowIndex < 0 || headerRowIndex >= data.length) {
-      showFieldError(headerRowInput, `Row must be between 1 and ${data.length}`);
+    // Make sure indices are within bounds
+    if (headerRowIndex < 1 || headerRowIndex > data.length) {
+      showValidationError(`Header row must be between 1 and ${data.length}`);
       return false;
     }
 
-    if (dataRowIndex < 0 || dataRowIndex >= data.length) {
-      showFieldError(dataRowInput, `Row must be between 1 and ${data.length}`);
+    if (dataRowIndex < 1 || dataRowIndex > data.length) {
+      showValidationError(`Data row must be between 1 and ${data.length}`);
       return false;
     }
 
-    // Check if header row comes before data row
-    if (headerRowIndex >= dataRowIndex) {
-      showFieldError(headerRowInput, "Header row must come before data row");
-      showFieldError(dataRowInput, "Data row must come after header row");
-      return false;
-    }
-
-    // Clear any previous errors
-    clearFieldError(headerRowInput);
-    clearFieldError(dataRowInput);
+    // Allow same row for XML files or when needed - remove restriction that headerRowIndex != dataRowIndex
+    // This allows header and data to be the same row for XML files
 
     return true;
   } catch (error) {
     console.error("Error validating row indices:", error);
     return false;
   }
+}
+
+function showValidationError(message) {
+  console.warn("Validation error:", message);
+
+  // Import showToast dynamically to avoid circular dependencies
+  import("../ui/uiManager.js").then(module => {
+    if (typeof module.showToast === 'function') {
+      module.showToast(message, "warning");
+    }
+  }).catch(() => {
+    // Fallback if import fails
+    alert(message);
+  });
 }
 
 /**
@@ -208,4 +198,39 @@ function clearFieldError(inputElement) {
 
   inputElement.setCustomValidity("");
   inputElement.classList.remove("error");
+}
+
+/**
+ * Validates an object against required fields
+ * @param {Object} obj - The object to validate
+ * @param {Array} requiredFields - Array of required field names
+ * @returns {boolean} True if validation passed
+ */
+export function validateObject(obj, requiredFields) {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+
+  for (const field of requiredFields) {
+    if (!Object.hasOwn(obj, field)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Fix exception handling
+export function validateData(data) {
+  try {
+    if (!data) {
+      return { valid: false, error: "No data provided" };
+    }
+
+    // More validation logic here
+    return { valid: true, data };
+  } catch (error) {
+    console.error("Validation error:", error);
+    return { valid: false, error: `Validation failed: ${error.message}` };
+  }
 }

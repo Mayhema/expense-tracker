@@ -1,44 +1,25 @@
 // Directory: /src/core/appState.js
 
-// Update imports
-import { getMappingBySignature } from '../mappings/mappingsManager.js';
+import { DEFAULT_CATEGORIES } from "./constants.js";
 
-// Define default categories
-const DEFAULT_CATEGORIES = {
-  "Food": "#FF6384",
-  "Housing": "#36A2EB",
-  "Transportation": "#FFCE56",
-  "Entertainment": "#4BC0C0",
-  "Healthcare": "#9966FF",
-  "Shopping": "#FF9F40",
-  "Personal Care": "#8AC249",
-  "Education": "#EA526F",
-  "Utilities": "#7B68EE",
-  "Travel": "#2ECC71"
-};
-
-// Update AppState to include all global state
-
+// Define AppState first, before any functions reference it
 export const AppState = {
-  categories: JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES,
-  mergedFiles: JSON.parse(localStorage.getItem("mergedFiles")) || [],
+  categories: {},
+  mergedFiles: [],
   transactions: [],
-  originalTransactions: [], // Add this line
+  originalTransactions: [],
   currentCategoryFilters: [],
-
-  // File processing state - moved from main.js
   currentFileData: null,
   currentFileName: null,
   currentFileSignature: null,
   currentSuggestedMapping: null,
-
-  // UI state
-  isDarkMode: localStorage.getItem("darkMode") === "true" || false,
-
-  // Application flags
+  isDarkMode: false,
   isChartUpdateInProgress: false,
   savePromptShown: false,
 };
+
+// Update imports - make sure this comes after AppState definition
+import { getMappingBySignature } from '../mappings/mappingsManager.js';
 
 export function saveCategories() {
   localStorage.setItem("expenseCategories", JSON.stringify(AppState.categories));
@@ -62,8 +43,6 @@ export function resetFileState() {
   AppState.currentFileSignature = null;
   AppState.currentSuggestedMapping = null;
 }
-
-// Update the loadMergedFiles function
 
 export function loadMergedFiles() {
   try {
@@ -127,12 +106,25 @@ export function loadMergedFiles() {
  * Ensures default categories are loaded
  */
 export function ensureDefaultCategories() {
-  if (!AppState.categories || Object.keys(AppState.categories).length === 0) {
-    AppState.categories = DEFAULT_CATEGORIES;
-    saveCategories();
-    console.log("Loaded default categories");
+  if (!AppState.categories) {
+    AppState.categories = {};
   }
+
+  // Use Object.entries to iterate over the DEFAULT_CATEGORIES object
+  Object.entries(DEFAULT_CATEGORIES).forEach(([categoryName, colorValue]) => {
+    if (!AppState.categories[categoryName]) {
+      AppState.categories[categoryName] = colorValue;
+    }
+  });
+
+  // Save categories to ensure persistence
+  saveCategories();
+  console.log("Ensured default categories are loaded");
 }
+
+// Initialize the AppState values from localStorage after definition
+AppState.isDarkMode = localStorage.getItem("darkMode") === "true" || false;
+AppState.categories = JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES;
 
 // Call this right away to ensure categories are always available
 ensureDefaultCategories();

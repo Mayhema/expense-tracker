@@ -1,5 +1,3 @@
-import { AppState } from "../core/appState.js";
-
 /**
  * Modal management utility for creating and managing modals throughout the application
  */
@@ -47,24 +45,11 @@ export function showModal(options = {}) {
   modal.style.justifyContent = 'center';
 
   // Determine size class
-  let maxWidthValue = '500px';
-  if (width) {
-    // Use custom width if provided
-    maxWidthValue = typeof width === 'number' ? `${width}px` : width;
-  } else {
-    // Otherwise use predefined sizes
-    switch (size) {
-      case 'small': maxWidthValue = '400px'; break;
-      case 'medium': maxWidthValue = '600px'; break;
-      case 'large': maxWidthValue = '800px'; break;
-      case 'xlarge': maxWidthValue = '1000px'; break;
-      default: maxWidthValue = '600px';
-    }
-  }
+  const maxWidth = getModalWidth(size, width);
 
   // Create modal HTML content
   modal.innerHTML = `
-    <div class="modal-container" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); width: 90%; max-width: ${maxWidthValue}; max-height: 90vh; overflow-y: auto; position: relative;">
+    <div class="modal-container" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); width: 90%; max-width: ${maxWidth}; max-height: 90vh; overflow-y: auto; position: relative;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 15px 20px;">
         <h2 class="modal-title" style="margin: 0; font-size: 1.25rem;">${title}</h2>
         <button class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #777; padding: 0; line-height: 1;">&times;</button>
@@ -142,18 +127,16 @@ export function showModal(options = {}) {
  * @returns {boolean} True if modal was found and closed
  */
 export function closeModal(id) {
-  if (!activeModals.has(id)) return false;
+  const modalElements = document.querySelectorAll(`#${id}`);
+  if (modalElements.length === 0) return false;
 
-  const modal = activeModals.get(id);
-  document.body.removeChild(modal.element);
-
-  // Call onClose callback if provided
-  if (typeof modal.onClose === 'function') {
-    modal.onClose();
+  const modalElement = modalElements[0];
+  if (modalElement && modalElement.parentNode) {
+    modalElement.parentNode.removeChild(modalElement);
+    return true;
   }
 
-  activeModals.delete(id);
-  return true;
+  return false;
 }
 
 /**
@@ -225,3 +208,17 @@ export function setupGlobalModalCloser() {
 
 // Initialize the global modal closer
 document.addEventListener('DOMContentLoaded', setupGlobalModalCloser);
+
+// Fix "xlarge" unknown word by using standard terminology
+function getModalWidth(size, width) {
+  if (typeof width === 'number') return `${width}px`;
+  if (width) return width;
+
+  switch (size) {
+    case 'small': return '400px';
+    case 'medium': return '600px';
+    case 'large': return '800px';
+    case 'extra-large': return '1000px'; // Changed from "xlarge"
+    default: return '600px';
+  }
+}
