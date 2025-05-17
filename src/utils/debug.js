@@ -241,65 +241,116 @@ export function debugSignatures() {
  * Make sure debug functions are attached to window
  */
 export function attachDebugFunctions() {
+  // Only attach debug functions once
+  if (window.debugFunctionsAttached) return;
+
   // Ensure these functions are available globally
   window.inspectTransactionData = inspectTransactionData;
   window.debugMergedFiles = debugMergedFiles;
   window.debugSignatures = debugSignatures;
   window.resetApplication = resetApplication;
 
-  console.log("Debug functions attached to window", {
-    inspectTransactionData: Boolean(window.inspectTransactionData),
-    debugMergedFiles: Boolean(window.debugMergedFiles),
-    debugSignatures: Boolean(window.debugSignatures)
-  });
+  // Use less verbose logging in production - FIXED: removed process.env reference
+  if (isProduction()) {
+    console.log("Debug functions attached to window");
+  } else {
+    console.log("Debug functions attached to window", {
+      inspectTransactionData: Boolean(window.inspectTransactionData),
+      debugMergedFiles: Boolean(window.debugMergedFiles),
+      debugSignatures: Boolean(window.debugSignatures)
+    });
+  }
 
-  // Add event listeners to debug buttons
-  document.addEventListener('DOMContentLoaded', () => {
-    // Debug files button
-    const debugFilesBtn = document.getElementById('debugFilesBtn');
-    if (debugFilesBtn) {
-      debugFilesBtn.addEventListener('click', debugMergedFiles);
-    }
+  window.debugFunctionsAttached = true;
 
-    // Debug signatures button
-    const debugSignaturesBtn = document.getElementById('debugSignaturesBtn');
-    if (debugSignaturesBtn) {
-      debugSignaturesBtn.addEventListener('click', debugSignatures);
-    }
+  // Add event listeners to debug buttons if DOM is ready, otherwise wait
+  if (document.readyState === "loading") {
+    document.addEventListener('DOMContentLoaded', attachDebugButtonListeners);
+  } else {
+    attachDebugButtonListeners();
+  }
+}
 
-    // Debug transactions button
-    const debugTransactionBtn = document.getElementById('debugTransactionBtn');
-    if (debugTransactionBtn) {
-      debugTransactionBtn.addEventListener('click', inspectTransactionData);
-    }
+function attachDebugButtonListeners() {
+  // Only attach once
+  if (window.debugButtonsAttached) return;
 
+  // Debug files button
+  const debugFilesBtn = document.getElementById('debugFilesBtn');
+  if (debugFilesBtn) {
+    debugFilesBtn.addEventListener('click', debugMergedFiles);
+  }
+
+  // Debug signatures button
+  const debugSignaturesBtn = document.getElementById('debugSignaturesBtn');
+  if (debugSignaturesBtn) {
+    debugSignaturesBtn.addEventListener('click', debugSignatures);
+  }
+
+  // Debug transactions button
+  const debugTransactionBtn = document.getElementById('debugTransactionBtn');
+  if (debugTransactionBtn) {
+    debugTransactionBtn.addEventListener('click', inspectTransactionData);
+  }
+
+  // Reset application button
+  const resetAppBtn = document.getElementById('resetAppBtn');
+  if (resetAppBtn) {
+    resetAppBtn.addEventListener('click', resetApplication);
+  }
+
+  window.debugButtonsAttached = true;
+
+  // Use less verbose logging
+  if (!isProduction()) {
     console.log("Debug button listeners attached");
-  });
+  }
+}
+
+// Helper function to detect production mode - FIXED: removed process.env reference
+function isProduction() {
+  // Browser-safe environment detection (no process.env)
+  return location.hostname !== 'localhost' &&
+    location.hostname !== '127.0.0.1' &&
+    !location.hostname.includes('.local');
 }
 
 /**
  * Reset application function
  */
 function resetApplication() {
+  console.log("Reset application triggered");
+
   // Show confirmation dialog
   if (confirm("Reset the entire application? This will delete ALL your data and cannot be undone.")) {
-    // Clear localStorage
-    localStorage.removeItem("mergedFiles");
-    localStorage.removeItem("fileFormatMappings");
-    localStorage.removeItem("expenseCategories");
-    localStorage.removeItem("transactions");
-    localStorage.removeItem("categoryMappings");
+    try {
+      // Clear localStorage
+      localStorage.removeItem("mergedFiles");
+      localStorage.removeItem("fileFormatMappings");
+      localStorage.removeItem("expenseCategories");
+      localStorage.removeItem("transactions");
+      localStorage.removeItem("categoryMappings");
 
-    // Reset AppState
-    AppState.mergedFiles = [];
-    AppState.transactions = [];
+      // Reset AppState
+      if (AppState) {
+        AppState.mergedFiles = [];
+        AppState.transactions = [];
+        AppState.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+      }
 
-    // Use DEFAULT_CATEGORIES directly - no need to import again
-    AppState.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+      // Provide visual feedback
+      showToast("Application reset. Reloading...", "info");
 
-    // Reload the page
-    showToast("Application reset. Reloading...", "info");
-    setTimeout(() => location.reload(), 1500);
+      // Actually reload the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      console.error("Error during application reset:", err);
+      showToast("Error resetting application: " + err.message, "error");
+    }
+  } else {
+    console.log("Application reset cancelled by user");
   }
 }
 

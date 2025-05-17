@@ -8,9 +8,19 @@ import { initCategoryMapping } from "./ui/categoryMapping.js";
 import { attachDebugFunctions } from "./utils/debug.js";
 import { initializeEventListeners } from "./core/eventHandlers.js";
 
+// Track if app has been initialized
+let appInitialized = false;
+
 // Entry point - Main application initialization
 document.addEventListener("DOMContentLoaded", () => {
+  // Prevent multiple initializations
+  if (appInitialized) {
+    console.log("App already initialized, skipping");
+    return;
+  }
+
   console.log("Initializing Expense Tracker...");
+  appInitialized = true;
 
   try {
     // Load data and ensure defaults - with proper error handling

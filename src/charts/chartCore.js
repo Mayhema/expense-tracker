@@ -251,97 +251,163 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Enhanced Chart.js patching to fix animation and event handling errors
+ * Adds theme helper for charts
  */
-function applyAdvancedChartPatches() {
-  if (typeof Chart === 'undefined') {
-    console.error('Chart.js not loaded - cannot apply patches');
-    return;
-  }
+function addChartThemeHelper() {
+  window.updateChartTheme = function (chart, isDarkMode) {
+    if (!chart || !chart.options) return;
 
-  console.log('Applying advanced Chart.js patches');
+    // Update chart theme based on dark mode
+    const textColor = isDarkMode ? '#e0e0e0' : '#666666';
+    const gridColor = isDarkMode ? '#444444' : '#dddddd';
+
+    // Update colors
+    if (chart.options) {
+      // Update title
+      if (chart.options.plugins && chart.options.plugins.title) {
+        chart.options.plugins.title.color = textColor;
+      }
+
+      // Update legend
+      if (chart.options.plugins && chart.options.plugins.legend) {
+        chart.options.plugins.legend.labels = chart.options.plugins.legend.labels || {};
+        chart.options.plugins.legend.labels.color = textColor;
+      }
+
+      // Update scales
+      if (chart.options.scales) {
+        const scales = chart.options.scales;
+
+        if (scales.x) {
+          scales.x.grid = scales.x.grid || {};
+          scales.x.grid.color = gridColor;
+          scales.x.ticks = scales.x.ticks || {};
+          scales.x.ticks.color = textColor;
+        }
+
+        if (scales.y) {
+          scales.y.grid = scales.y.grid || {};
+          scales.y.grid.color = gridColor;
+          scales.y.ticks = scales.y.ticks || {};
+          scales.y.ticks.color = textColor;
+        }
+      }
+
+      // Update chart
+      chart.update('none'); // Update without animation
+    }
+  };
+
+  console.log("Added Chart.js theme helper");
+}
+
+/**
+ * Creates a global plugin to fix Chart.js tooltip issues
+ */
+function createTooltipFixPlugin() {
+  // Create a safer version of the tooltip handler
+  const tooltipSafetyPlugin = {
+    id: 'tooltipSafety',
+    beforeEvent: function (chart, args) {
+      // Make sure tooltip has _active array
+      if (chart.tooltip && !chart.tooltip._active) {
+        chart.tooltip._active = [];
+      }
+      return true;
+    },
+    afterEvent: function (chart, args) {
+      try {
+        // Make chart.tooltip._positionChanged safer
+        if (chart.tooltip && typeof chart.tooltip._positionChanged === 'function') {
+          const originalPositionChanged = chart.tooltip._positionChanged;
+
+          // Only patch once
+          if (!chart.tooltip._safePositionPatchApplied) {
+            chart.tooltip._positionChanged = function () {
+              try {
+                // First check if we have active elements
+                if (!this._active || this._active.length === 0) {
+                  return false;
+                }
+                return originalPositionChanged.apply(this, arguments);
+              } catch (err) {
+                console.warn('Error in tooltip position calculation:', err);
+                return false;
+              }
+            };
+            chart.tooltip._safePositionPatchApplied = true;
+          }
+        }
+
+        // Make handleEvent safer too
+        if (chart.tooltip && typeof chart.tooltip.handleEvent === 'function') {
+          const originalHandleEvent = chart.tooltip.handleEvent;
+
+          if (!chart.tooltip._safeHandleEventPatchApplied) {
+            chart.tooltip.handleEvent = function (e) {
+              try {
+                if (!this._active) {
+                  this._active = [];
+                }
+                return originalHandleEvent.apply(this, arguments);
+              } catch (err) {
+                console.warn('Error in tooltip event handler:', err);
+                return false;
+              }
+            };
+            chart.tooltip._safeHandleEventPatchApplied = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Error while applying tooltip patches:', err);
+      }
+      return true;
+    }
+  };
+
+  // Register the plugin if Chart is available
+  if (window.Chart && typeof window.Chart.register === 'function') {
+    window.Chart.register(tooltipSafetyPlugin);
+  }
+}
+
+/**
+ * Apply advanced patches for specific Chart.js bugs
+ */
+export function applyAdvancedChartPatches() {
+  console.log("Applying advanced Chart.js patches");
 
   try {
-    // Patch 1: Fix _positionChanged error with bound functions
-    if (Chart.Interaction) {
-      // Explicitly bind methods to prevent 'call' on undefined errors
-      const originalHandleEvent = Chart.Interaction.handleEvent;
-      Chart.Interaction.handleEvent = function () {
-        try {
-          return originalHandleEvent.apply(Chart.Interaction, arguments);
-        } catch (err) {
-          console.warn('Suppressed Chart.js handleEvent error:', err);
-          return false;
-        }
-      };
+    if (!window.Chart) {
+      console.warn("Chart.js not found, skipping advanced patches");
+      return;
+    }
 
-      // Patch problematic _positionChanged method specifically
-      if (typeof Chart.Interaction._positionChanged === 'function') {
-        const originalPositionChanged = Chart.Interaction._positionChanged;
-        Chart.Interaction._positionChanged = function () {
-          try {
-            // Use safe call with explicit this binding
-            return originalPositionChanged.apply(Chart.Interaction, arguments);
-          } catch (err) {
-            console.warn('Suppressed Chart.js _positionChanged error:', err);
-            return false;
+    // Create tooltip fix plugin
+    createTooltipFixPlugin();
+
+    // Disable tooltips completely if repeated errors occur
+    window.chartErrorCount = window.chartErrorCount || 0;
+
+    // Create global error handler for chart errors
+    window.addEventListener('error', function (e) {
+      if (e.error && e.message && e.message.includes('_positionChanged')) {
+        window.chartErrorCount++;
+        console.warn(`Chart error detected (#${window.chartErrorCount})`);
+
+        // If too many errors, disable tooltips as a last resort
+        if (window.chartErrorCount > 5 && window.Chart && window.Chart.defaults) {
+          console.warn("Too many chart errors, disabling tooltips");
+          if (window.Chart.defaults.plugins && window.Chart.defaults.plugins.tooltip) {
+            window.Chart.defaults.plugins.tooltip.enabled = false;
           }
-        };
+        }
       }
-    }
+    });
 
-    // Patch 2: Fix animation callbacks
-    if (Chart.defaults && Chart.defaults.animation) {
-      // Disable problematic animation callbacks
-      const safeDefaults = {
-        duration: 100, // Shorter duration
-        easing: 'linear',
-        onProgress: null, // Remove callback
-        onComplete: null  // Remove callback
-      };
-      Chart.defaults.animation = { ...Chart.defaults.animation, ...safeDefaults };
-    }
-
-    // Patch 3: Fix requestAnimationFrame loop errors
-    if (Chart.animator) {
-      // Make animator's _refresh method safer
-      const originalRefresh = Chart.animator._refresh;
-      Chart.animator._refresh = function () {
-        try {
-          return originalRefresh.apply(this, arguments);
-        } catch (err) {
-          console.warn('Suppressed Chart.js animator error:', err);
-          // Cancel animation frame to prevent infinite error loop
-          if (this._request) {
-            cancelAnimationFrame(this._request);
-            this._request = null;
-          }
-          return false;
-        }
-      };
-    }
-
-    // Patch 4: Fix tick errors
-    if (Chart.Animator && Chart.Animator.prototype) {
-      const originalTick = Chart.Animator.prototype.tick;
-      Chart.Animator.prototype.tick = function (time) {
-        try {
-          // Validate that this._fn is a function before calling it
-          if (typeof this._fn !== 'function') {
-            console.warn('Chart.js animator missing function, fixing...');
-            this._fn = () => { }; // Provide empty function
-          }
-          return originalTick.call(this, time);
-        } catch (err) {
-          console.warn('Suppressed Chart.js tick error:', err);
-          return false;
-        }
-      };
-    }
-
-    console.log('Chart.js patches applied successfully');
-  } catch (err) {
-    console.error('Error applying Chart.js patches:', err);
+    console.log("Chart.js patches applied successfully");
+  } catch (error) {
+    console.error("Error applying advanced Chart.js patches:", error);
   }
 }
 
@@ -720,7 +786,7 @@ if (typeof Chart !== 'undefined' && Chart.Interaction && Chart.Interaction.modes
   Chart.Interaction.modes.nearest = function (chart, e, options, useFinalPosition) {
     try {
       // Make sure to check if each point has a hitRadius property
-      if (chart && chart.getElementsAtEventForMode) {
+      if (chart && chart.getVisibleDatasetElements) {
         const elements = chart.getVisibleDatasetElements();
         if (elements && elements.length > 0) {
           elements.forEach(element => {
@@ -763,9 +829,20 @@ function getChartType(data) {
 }
 
 /**
+ * Flag to prevent duplicate initialization
+ */
+let chartsPatched = false;
+
+/**
  * Apply patches to Chart.js to make it more robust
  */
 export function applyRobustChartPatches() {
+  // Prevent duplicate patching
+  if (chartsPatched) {
+    console.log("Chart patches already applied, skipping");
+    return;
+  }
+
   console.log("Applying robust Chart.js patches");
 
   try {
@@ -775,18 +852,63 @@ export function applyRobustChartPatches() {
       return;
     }
 
-    // Create safe interaction mode wrappers
+    // FIXED: Added missing patchInteractionModes function
     patchInteractionModes();
 
     // Add safe chart creation helper
     addSafeChartCreationHelper();
 
-    // Add theme and accessibility helpers
+    // Add theme helper for charts
     addChartThemeHelper();
+
+    // Mark as patched
+    chartsPatched = true;
 
     console.log("Robust patches complete");
   } catch (error) {
     console.error("Error applying Chart.js patches:", error);
+  }
+}
+
+/**
+ * ADDED: Missing function to patch Chart.js interaction modes
+ */
+function patchInteractionModes() {
+  // Skip if Chart.Interaction is not available
+  if (!window.Chart || !window.Chart.Interaction || !window.Chart.Interaction.modes) {
+    console.warn("Chart.Interaction.modes not found, skipping interaction patches");
+    return;
+  }
+
+  // Backup original modes first
+  const originalModes = {};
+  for (const mode in window.Chart.Interaction.modes) {
+    originalModes[mode] = window.Chart.Interaction.modes[mode];
+  }
+
+  // Store the original modes for potential restoration
+  window.Chart._originalInteractionModes = originalModes;
+
+  // Create safer versions of all interaction modes
+  for (const mode in window.Chart.Interaction.modes) {
+    const originalMode = window.Chart.Interaction.modes[mode];
+
+    // Replace with safe version
+    window.Chart.Interaction.modes[mode] = function (chart, e, options, useFinalPosition) {
+      try {
+        // Skip processing if the chart instance is invalid
+        if (!chart || typeof chart !== 'object') {
+          console.warn(`Invalid chart instance in interaction mode '${mode}'`);
+          return [];
+        }
+
+        // Safe call to original mode with appropriate fallbacks
+        return originalMode.call(this, chart, e, options, useFinalPosition) || [];
+      } catch (error) {
+        console.warn(`Caught error in Chart.js interaction mode "${mode}":`, error);
+        return []; // Return empty array as safe fallback
+      }
+    };
   }
 }
 
@@ -804,9 +926,11 @@ function addSafeChartCreationHelper() {
       }
 
       // Check for existing chart instance and destroy it
-      const existingChart = Chart.getChart(canvas);
-      if (existingChart) {
-        existingChart.destroy();
+      if (window.Chart && window.Chart.getChart) {
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+          existingChart.destroy();
+        }
       }
 
       // Create new chart with error handling
@@ -816,31 +940,56 @@ function addSafeChartCreationHelper() {
       return null;
     }
   };
+
+  console.log("Added safe Chart.js configuration helper");
 }
 
 /**
- * Applies compatibility patches for Chart.js
+ * Applies compatibility patches for different Chart.js versions
  */
 function applyChartCompatibilityPatches() {
-  console.log("Applying Chart.js compatibility patches...");
+  console.log("Applying Chart.js compatibility patches");
 
   try {
-    // Example compatibility patch: Ensure proper handling of older Chart.js versions
-    if (Chart && Chart.defaults) {
-      if (!Chart.defaults.plugins) {
-        Chart.defaults.plugins = {};
-      }
-
-      // Add default configurations if missing
-      Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || { display: true };
-      Chart.defaults.plugins.tooltip = Chart.defaults.plugins.tooltip || { enabled: true };
+    if (!window.Chart) {
+      console.warn("Chart.js not found, skipping compatibility patches");
+      return;
     }
 
-    console.log("Chart.js compatibility patches applied successfully.");
+    // Fix for compatibility between Chart.js v2 and v3
+    if (!Chart.defaults.global && Chart.defaults.elements) {
+      // This is Chart.js v3+, add a compatibility layer for v2 code
+      Chart.defaults.global = {
+        defaultColor: Chart.defaults.color,
+        defaultFontColor: Chart.defaults.color,
+        defaultFontFamily: Chart.defaults.font?.family,
+        defaultFontSize: Chart.defaults.font?.size,
+        defaultFontStyle: Chart.defaults.font?.style,
+      };
+
+      console.log("Added Chart.js v2 compatibility layer for v3");
+    }
+    else if (Chart.defaults.global && !Chart.defaults.elements) {
+      // This is Chart.js v2, add a compatibility layer for v3 code
+      Chart.defaults.color = Chart.defaults.global.defaultColor;
+      Chart.defaults.font = {
+        family: Chart.defaults.global.defaultFontFamily,
+        size: Chart.defaults.global.defaultFontSize,
+        style: Chart.defaults.global.defaultFontStyle
+      };
+
+      console.log("Added Chart.js v3 compatibility layer for v2");
+    }
+
+    console.log("Chart.js compatibility patches applied");
   } catch (error) {
     console.error("Error applying Chart.js compatibility patches:", error);
   }
 }
 
-// Call the function to ensure compatibility
-applyChartCompatibilityPatches();
+// Call all patch functions on load
+document.addEventListener('DOMContentLoaded', () => {
+  applyRobustChartPatches();
+  applyAdvancedChartPatches();
+  applyChartCompatibilityPatches(); // This was the missing function
+});

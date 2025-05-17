@@ -76,7 +76,7 @@ function setupDarkModeToggle() {
   darkModeToggle.onclick = null;
 
   // Use a simple click handler instead of change event
-  darkModeToggle.onclick = function() {
+  darkModeToggle.onclick = function () {
     const newState = this.checked;
     console.log(`Dark mode toggle clicked, new state: ${newState}`);
     document.body.classList.toggle("dark-mode", newState);
@@ -104,20 +104,37 @@ function setupDebugModeToggle() {
   const isDebugMode = localStorage.getItem("debugMode") === "true";
   debugModeToggle.checked = isDebugMode;
   document.body.classList.toggle("debug-mode", isDebugMode);
+  updateDebugElementsVisibility(isDebugMode);
 
   // Clean up any existing event handlers
   debugModeToggle.onclick = null;
 
   // Use a simple click handler
-  debugModeToggle.onclick = function() {
+  debugModeToggle.onclick = function () {
     const newState = this.checked;
     console.log(`Debug mode toggle clicked, new state: ${newState}`);
     document.body.classList.toggle("debug-mode", newState);
     localStorage.setItem("debugMode", newState);
+    updateDebugElementsVisibility(newState);
     showToast(`Debug mode ${newState ? "enabled" : "disabled"}`, "info");
   };
 
   console.log("Debug mode toggle setup complete");
+}
+
+/**
+ * Updates visibility of debug-only elements
+ * @param {boolean} isDebugMode - Whether debug mode is enabled
+ */
+function updateDebugElementsVisibility(isDebugMode) {
+  document.querySelectorAll('.debug-only').forEach(element => {
+    element.style.display = isDebugMode ? 'block' : 'none';
+  });
+
+  // Also update any elements with the debug-tools class
+  document.querySelectorAll('.debug-tools').forEach(element => {
+    element.style.display = isDebugMode ? 'block' : 'none';
+  });
 }
 
 /**

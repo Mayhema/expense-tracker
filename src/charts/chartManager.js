@@ -130,6 +130,7 @@ function updateIncomeExpenseChartSafely(transactions) {
  */
 export function updateChartsWithCurrentData() {
   try {
+    // Prevent multiple simultaneous chart updates
     if (AppState.isChartUpdateInProgress) {
       console.log("Chart update already in progress, skipping...");
       return;
@@ -138,15 +139,23 @@ export function updateChartsWithCurrentData() {
     AppState.isChartUpdateInProgress = true;
     console.log("Updating charts with current transaction data");
 
+    // Get current transactions
+    const transactions = AppState.transactions || [];
+
+    // Check if there's data to display - IMPROVED LOGGING
+    if (!transactions.length) {
+      console.log("No transactions available - charts will display empty state");
+    }
+
     // Use longer delays between chart updates to avoid conflicts
     setTimeout(function updateTimeline() {
-      updateTimelineChartSafely(AppState.transactions, currentTimelinePeriod);
+      updateTimelineChartSafely(transactions, currentTimelinePeriod);
 
       setTimeout(function updateExpense() {
-        updateExpenseChartSafely(AppState.transactions);
+        updateExpenseChartSafely(transactions);
 
         setTimeout(function updateIncomeExpense() {
-          updateIncomeExpenseChartSafely(AppState.transactions);
+          updateIncomeExpenseChartSafely(transactions);
           AppState.isChartUpdateInProgress = false;
         }, 200); // Increased delay
       }, 200); // Increased delay

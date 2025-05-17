@@ -102,36 +102,71 @@ export function loadMergedFiles() {
   }
 }
 
+// Flag to track if normalization has already run
+let categoriesNormalized = false;
+
+// Helper function to detect production mode
+function isProductionEnvironment() {
+  return typeof process !== 'undefined' &&
+    process.env &&
+    process.env.NODE_ENV === 'production';
+}
+
 /**
  * Normalizes category names to fix duplicates like Transport/Transportation
  * @returns {Object} Normalized categories
  */
 function normalizeCategories() {
-  const normalized = {};
+  // Skip verbose logging in production
+  const verboseLogging = !isProductionEnvironment();
+
+  // Skip if already normalized
+  if (categoriesNormalized) {
+    logIfVerbose("Categories already normalized, skipping", verboseLogging);
+    return { ...AppState.categories };
+  }
+
   const currentCategories = { ...AppState.categories };
+  logIfVerbose("Normalizing categories. Current categories: " +
+    Object.keys(currentCategories).sort(), verboseLogging);
 
-  console.log("Normalizing categories. Current categories:", Object.keys(currentCategories).sort());
+  // Handle specific category normalizations
+  normalizeTransportCategories(currentCategories, verboseLogging);
+  normalizeGroceriesCategories(currentCategories, verboseLogging);
 
-  // First handle Transport/Transportation duplication
-  if (currentCategories["Transport"] && currentCategories["Transportation"]) {
-    console.log("Found duplicate Transport/Transportation categories");
-    // Keep Transportation and remove Transport
-    delete currentCategories["Transport"];
-  } else if (currentCategories["Transport"] && !currentCategories["Transportation"]) {
-    // Rename Transport to Transportation
-    currentCategories["Transportation"] = currentCategories["Transport"];
-    delete currentCategories["Transport"];
-    console.log("Renamed Transport to Transportation");
+  // Create final normalized object with all categories
+  const normalized = createNormalizedCategories(currentCategories);
+
+  logIfVerbose("After normalization - categories: " +
+    Object.keys(normalized).sort(), verboseLogging);
+
+  categoriesNormalized = true;
+  return normalized;
+}
+
+function normalizeTransportCategories(categories, verboseLogging) {
+  if (categories["Transport"] && categories["Transportation"]) {
+    logIfVerbose("Found duplicate Transport/Transportation categories", verboseLogging);
+    delete categories["Transport"];
+  } else if (categories["Transport"] && !categories["Transportation"]) {
+    categories["Transportation"] = categories["Transport"];
+    delete categories["Transport"];
+    logIfVerbose("Renamed Transport to Transportation", verboseLogging);
   }
+}
 
-  // Handle Groceries as potential duplicate or subcategory
-  if (currentCategories["Groceries"] && currentCategories["Food"]) {
-    console.log("Found both Groceries and Food categories");
-    delete currentCategories["Groceries"];
-    console.log("Removed Groceries (should be a subcategory of Food)");
+function normalizeGroceriesCategories(categories, verboseLogging) {
+  if (categories["Groceries"] && categories["Food"]) {
+    logIfVerbose("Found both Groceries and Food categories", verboseLogging);
+    delete categories["Groceries"];
+    logIfVerbose("Removed Groceries (should be a subcategory of Food)", verboseLogging);
   }
+}
 
-  // Copy all remaining categories
+function createNormalizedCategories(currentCategories) {
+  const normalized = {};
+
+  // Copy all categories
   Object.keys(currentCategories).forEach(name => {
     normalized[name] = currentCategories[name];
   });
@@ -143,8 +178,13 @@ function normalizeCategories() {
     }
   });
 
-  console.log("After normalization - categories:", Object.keys(normalized).sort());
   return normalized;
+}
+
+function logIfVerbose(message, verboseLogging) {
+  if (verboseLogging) {
+    console.log(message);
+  }
 }
 
 /**
@@ -163,10 +203,15 @@ export function ensureDefaultCategories() {
   console.log("Ensured default categories are loaded:", Object.keys(AppState.categories).sort());
 }
 
-// Initialize the AppState values from localStorage after definition
-AppState.isDarkMode = localStorage.getItem("darkMode") === "true" || false;
-AppState.categories = JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES;
+// Initialize the AppState once
+(function initializeAppState() {
+  // Load from localStorage
+  AppState.isDarkMode = localStorage.getItem("darkMode") === "true" || false;
+  AppState.categories = JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES;
 
-// Call normalization right away to ensure categories are properly set up
-AppState.categories = normalizeCategories();
-ensureDefaultCategories();
+  // Normalize only once during initialization
+  if (!categoriesNormalized) {
+    AppState.categories = normalizeCategories();
+    ensureDefaultCategories();
+  }
+})();

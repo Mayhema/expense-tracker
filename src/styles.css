@@ -1129,3 +1129,17 @@ th {
 .negative-balance {
   color: #F44336;
 }
+
+/* Debug-only elements */
+.debug-only {
+  display: none;
+}
+
+.debug-mode .debug-only {
+  display: block;
+}
+
+/* For inline debug elements */
+.debug-mode .debug-only-inline {
+  display: inline-block;
+}

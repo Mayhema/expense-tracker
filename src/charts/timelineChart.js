@@ -26,22 +26,14 @@ export function updateTimelineChart(transactions, periodOption = 'month') {
       }
     }
 
-    // Check if Canvas is already used by another Chart.js instance
-    try {
-      if (Chart.getChart(ctx)) {
-        Chart.getChart(ctx).destroy();
-        console.log("Destroyed existing chart on canvas");
-      }
-    } catch (err) {
-      console.warn("Error checking for existing chart:", err);
-    }
-
     // Create data for the chart
     const { labels, incomeData, expensesData } = prepareTimelineData(transactions, periodOption);
 
-    // Check if we have valid data
+    // Check if we have valid data - IMPROVED EMPTY STATE HANDLING
     if (!labels || labels.length === 0) {
-      console.warn("No valid timeline data to display");
+      console.log("No valid timeline data to display - showing empty state");
+      // Instead of returning early, show an empty state chart
+      showEmptyStateChart(ctx);
       return;
     }
 
@@ -135,6 +127,90 @@ export function updateTimelineChart(transactions, periodOption = 'month') {
     console.log("Timeline chart created successfully");
   } catch (error) {
     console.error("Error creating timeline chart:", error);
+  }
+}
+
+/**
+ * Shows an empty state chart when no data is available
+ * @param {HTMLCanvasElement} ctx - The canvas context
+ */
+function showEmptyStateChart(ctx) {
+  try {
+    // Create a placeholder chart with a message
+    window.timelineChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['No Data'],
+        datasets: [
+          {
+            label: 'Income',
+            data: [0],
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Expenses',
+            data: [0],
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'No transaction data available',
+            padding: {
+              top: 10,
+              bottom: 30
+            }
+          },
+          subtitle: {
+            display: true,
+            text: 'Upload transaction files to see your financial timeline',
+            padding: {
+              bottom: 10
+            }
+          },
+          tooltip: {
+            enabled: true // Keep tooltips enabled
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              // FIX: Use a safer formatter to avoid the RangeError
+              callback: function (value) {
+                return value.toString();
+              },
+              display: false
+            },
+            grid: {
+              display: false
+            }
+          },
+          x: {
+            ticks: {
+              display: false
+            },
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+    console.log("Empty state chart displayed");
+  } catch (error) {
+    console.error("Error creating empty state chart:", error);
+    // If even the empty state fails, clear any references
+    window.timelineChart = null;
   }
 }
 
@@ -490,7 +566,8 @@ function prepareTimelineData(transactions, periodOption = 'month') {
   };
 
   if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
-    console.warn("No valid transaction data for timeline");
+    // Use info level logging instead of warning for expected empty state
+    console.log("No valid transaction data for timeline");
     return result;
   }
 
