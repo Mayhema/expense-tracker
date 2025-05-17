@@ -103,28 +103,70 @@ export function loadMergedFiles() {
 }
 
 /**
- * Ensures default categories are loaded
+ * Normalizes category names to fix duplicates like Transport/Transportation
+ * @returns {Object} Normalized categories
+ */
+function normalizeCategories() {
+  const normalized = {};
+  const currentCategories = { ...AppState.categories };
+
+  console.log("Normalizing categories. Current categories:", Object.keys(currentCategories).sort());
+
+  // First handle Transport/Transportation duplication
+  if (currentCategories["Transport"] && currentCategories["Transportation"]) {
+    console.log("Found duplicate Transport/Transportation categories");
+    // Keep Transportation and remove Transport
+    delete currentCategories["Transport"];
+  } else if (currentCategories["Transport"] && !currentCategories["Transportation"]) {
+    // Rename Transport to Transportation
+    currentCategories["Transportation"] = currentCategories["Transport"];
+    delete currentCategories["Transport"];
+    console.log("Renamed Transport to Transportation");
+  }
+
+  // Handle Groceries as potential duplicate or subcategory
+  if (currentCategories["Groceries"] && currentCategories["Food"]) {
+    console.log("Found both Groceries and Food categories");
+    delete currentCategories["Groceries"];
+    console.log("Removed Groceries (should be a subcategory of Food)");
+  }
+
+  // Copy all remaining categories
+  Object.keys(currentCategories).forEach(name => {
+    normalized[name] = currentCategories[name];
+  });
+
+  // Ensure all default categories are present
+  Object.keys(DEFAULT_CATEGORIES).forEach(name => {
+    if (!normalized[name]) {
+      normalized[name] = DEFAULT_CATEGORIES[name];
+    }
+  });
+
+  console.log("After normalization - categories:", Object.keys(normalized).sort());
+  return normalized;
+}
+
+/**
+ * Ensures default categories are loaded and normalized
  */
 export function ensureDefaultCategories() {
   if (!AppState.categories) {
     AppState.categories = {};
   }
 
-  // Use Object.entries to iterate over the DEFAULT_CATEGORIES object
-  Object.entries(DEFAULT_CATEGORIES).forEach(([categoryName, colorValue]) => {
-    if (!AppState.categories[categoryName]) {
-      AppState.categories[categoryName] = colorValue;
-    }
-  });
+  // Fix any duplicate categories like "Transport"/"Transportation"
+  AppState.categories = normalizeCategories();
 
-  // Save categories to ensure persistence
+  // Save the normalized categories
   saveCategories();
-  console.log("Ensured default categories are loaded");
+  console.log("Ensured default categories are loaded:", Object.keys(AppState.categories).sort());
 }
 
 // Initialize the AppState values from localStorage after definition
 AppState.isDarkMode = localStorage.getItem("darkMode") === "true" || false;
 AppState.categories = JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES;
 
-// Call this right away to ensure categories are always available
+// Call normalization right away to ensure categories are properly set up
+AppState.categories = normalizeCategories();
 ensureDefaultCategories();

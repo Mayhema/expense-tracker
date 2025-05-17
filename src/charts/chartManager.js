@@ -74,16 +74,42 @@ function updateTimelineChartSafely(transactions, period) {
     // Check if the chart element exists before updating
     const chartElement = document.getElementById("timelineChart");
     if (!chartElement) {
-      console.warn("Timeline chart element not found");
+      console.warn("Timeline chart element not found, skipping update");
       return;
+    }
+
+    // Try to destroy any existing chart instances on this canvas
+    try {
+      if (window.Chart && window.Chart.getChart) {
+        const existingChart = window.Chart.getChart(chartElement);
+        if (existingChart && typeof existingChart.destroy === 'function') {
+          existingChart.destroy();
+          console.log("Destroyed existing chart on timeline canvas");
+        }
+      }
+    } catch (err) {
+      console.warn("Error cleaning up existing chart:", err);
     }
 
     // Import and call the update function
     import("./timelineChart.js").then(module => {
       if (typeof module.updateTimelineChart === 'function') {
-        module.updateTimelineChart(transactions, period);
-      } else {
-        console.error("updateTimelineChart function not found in module");
+        try {
+          module.updateTimelineChart(transactions, period);
+        } catch (err) {
+          console.error("Error in updateTimelineChart:", err);
+
+          // Implement recovery - delay and retry once
+          setTimeout(() => {
+            try {
+              // Clear the window reference first
+              window.timelineChart = null;
+              module.updateTimelineChart(transactions, period);
+            } catch (retryErr) {
+              console.error("Chart recovery failed:", retryErr);
+            }
+          }, 300);
+        }
       }
     }).catch(err => {
       console.error("Error importing timeline chart module:", err);
@@ -112,31 +138,19 @@ export function updateChartsWithCurrentData() {
     AppState.isChartUpdateInProgress = true;
     console.log("Updating charts with current transaction data");
 
-    const transactions = AppState.transactions || [];
-
-    // Check if there's actually data to display
-    if (!transactions.length) {
-      console.log("No transactions available for charts");
-      // Still call update functions but handle empty state in each chart
-    }
-
-    // Filter transactions by appropriate period for each chart type
-    const timelineTransactions = transactions;
-    const categoryTransactions = filterTransactionsByPeriod(transactions, currentCategoryPeriod);
-
-    // Update charts sequentially without excessive nesting
+    // Use longer delays between chart updates to avoid conflicts
     setTimeout(function updateTimeline() {
-      updateTimelineChartSafely(timelineTransactions, currentTimelinePeriod);
+      updateTimelineChartSafely(AppState.transactions, currentTimelinePeriod);
 
       setTimeout(function updateExpense() {
-        updateExpenseChartSafely(categoryTransactions);
+        updateExpenseChartSafely(AppState.transactions);
 
         setTimeout(function updateIncomeExpense() {
-          updateIncomeExpenseChartSafely(categoryTransactions);
+          updateIncomeExpenseChartSafely(AppState.transactions);
           AppState.isChartUpdateInProgress = false;
-        }, 50);
-      }, 50);
-    }, 50);
+        }, 200); // Increased delay
+      }, 200); // Increased delay
+    }, 100);
   } catch (error) {
     console.error("Error in updateChartsWithCurrentData:", error);
     AppState.isChartUpdateInProgress = false;

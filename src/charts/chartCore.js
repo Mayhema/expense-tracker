@@ -1,4 +1,3 @@
-import { AppState } from "../core/appState.js";
 import { DEFAULT_CATEGORIES } from "../core/constants.js";
 
 // Store chart instances for proper cleanup
@@ -589,8 +588,8 @@ export function assignColorsToDatasets(datasets) {
     // Try to match dataset label to a category name
     const categoryName = dataset.label;
     const color = categoryColors[categoryName] ||
-                 (typeof categoryColors[categoryName] === 'object' ?
-                  categoryColors[categoryName].color : null);
+      (typeof categoryColors[categoryName] === 'object' ?
+        categoryColors[categoryName].color : null);
 
     if (color) {
       dataset.backgroundColor = color;
@@ -636,7 +635,7 @@ function applyRobustPatches() {
   try {
     // Safe approach: Create a helper function that will be used
     // when creating new charts instead of trying to modify global defaults
-    window.getChartConfig = function(type, data, customOptions = {}) {
+    window.getChartConfig = function (type, data, customOptions = {}) {
       const baseConfig = getSafeChartDefaults();
 
       // Merge custom options with our safe defaults
@@ -657,7 +656,7 @@ function applyRobustPatches() {
 
   // Add our own theme manager helper for charts
   try {
-    window.applyChartTheme = function(chart, isDarkMode) {
+    window.applyChartTheme = function (chart, isDarkMode) {
       if (!chart || !chart.options) return;
 
       // Get the canvas context and manipulate styles directly
@@ -761,6 +760,62 @@ function getChartType(data) {
   if (data.length > 100) return "line";
   if (data.length > 50) return "bar";
   return "pie";
+}
+
+/**
+ * Apply patches to Chart.js to make it more robust
+ */
+export function applyRobustChartPatches() {
+  console.log("Applying robust Chart.js patches");
+
+  try {
+    // Only apply if Chart.js is available
+    if (!window.Chart) {
+      console.warn("Chart.js not found, skipping patches");
+      return;
+    }
+
+    // Create safe interaction mode wrappers
+    patchInteractionModes();
+
+    // Add safe chart creation helper
+    addSafeChartCreationHelper();
+
+    // Add theme and accessibility helpers
+    addChartThemeHelper();
+
+    console.log("Robust patches complete");
+  } catch (error) {
+    console.error("Error applying Chart.js patches:", error);
+  }
+}
+
+/**
+ * Adds helper for creating charts safely
+ */
+function addSafeChartCreationHelper() {
+  // Add a safer helper for creating charts
+  window.createSafeChart = function (canvasId, config) {
+    try {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) {
+        console.warn(`Canvas ${canvasId} not found`);
+        return null;
+      }
+
+      // Check for existing chart instance and destroy it
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        existingChart.destroy();
+      }
+
+      // Create new chart with error handling
+      return new Chart(canvas, config);
+    } catch (error) {
+      console.error(`Error creating chart for ${canvasId}:`, error);
+      return null;
+    }
+  };
 }
 
 /**
