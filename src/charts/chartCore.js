@@ -472,331 +472,121 @@ function prepareChartConfig(config, canvasId) {
 }
 
 /**
- * Creates a chart with error handling and theme support
- * @param {string} canvasId - Canvas element ID
- * @param {object} config - Chart configuration
- * @returns {Chart|null} Chart instance or null if creation failed
+ * Safely creates a chart with fallback and error handling
+ * @param {HTMLElement} ctx - Canvas element
+ * @param {Object} config - Chart.js configuration
+ * @returns {Object|null} - Chart instance or null if failed
  */
-export function createSafeChart(canvasId, config) {
-  // Initialize if needed
-  if (!STATE.initialized) {
-    initializeChartCore();
+export function createSafeChart(ctx, config) {
+  if (!ctx) {
+    console.error('Chart context not found');
+    return null;
   }
 
   try {
-    // Check for Chart.js library
-    if (!window.Chart) {
-      log(`Cannot create chart: Chart.js library not available`, LOG_LEVEL.ERROR);
-      return null;
-    }
-
-    // Get the canvas element
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) {
-      log(`Canvas with ID "${canvasId}" not found`, LOG_LEVEL.ERROR);
-      return null;
-    }
-
-    // Ensure the canvas has proper dimensions
-    if (!canvas.style.height) {
-      canvas.style.height = '300px';
-    }
-
-    // Create a completely new deep-copied config to avoid reference issues
-    const safeConfig = JSON.parse(JSON.stringify(config));
-
-    // CRITICAL FIX: Ensure all required layout objects are defined
-    // This prevents "Cannot read properties of undefined (reading 'top')" errors
-    if (!safeConfig.options) safeConfig.options = {};
-
-    // Fix layout structure - the most common source of 'top' errors
-    if (!safeConfig.options.layout) {
-      safeConfig.options.layout = {
-        padding: {
-          top: 20,
-          right: 20,
-          bottom: 20,
-          left: 20
+    // Add empty state styling to all charts
+    const defaultConfig = {
+      options: {
+        plugins: {
+          // Remove "No data" text by default
+          title: {
+            display: false
+          }
         }
-      };
-    } else if (!safeConfig.options.layout.padding) {
-      safeConfig.options.layout.padding = {
-        top: 20,
-        right: 20,
-        bottom: 20,
-        left: 20
-      };
-    } else if (typeof safeConfig.options.layout.padding === 'number') {
-      // If padding is a single number, convert to object with all directions
-      const padding = safeConfig.options.layout.padding;
-      safeConfig.options.layout.padding = {
-        top: padding,
-        right: padding,
-        bottom: padding,
-        left: padding
-      };
-    } else {
-      // Ensure all padding directions exist
-      const padding = safeConfig.options.layout.padding;
-      if (padding.top === undefined) padding.top = 20;
-      if (padding.right === undefined) padding.right = 20;
-      if (padding.bottom === undefined) padding.bottom = 20;
-      if (padding.left === undefined) padding.left = 20;
-    }
-
-    // Fix plugins structure
-    if (!safeConfig.options.plugins) safeConfig.options.plugins = {};
-
-    // CRITICAL FIX: Disable tooltips for charts with no data
-    const hasData = safeConfig.data &&
-      safeConfig.data.datasets &&
-      safeConfig.data.datasets.some(ds => ds.data && ds.data.length > 0 &&
-        ds.data.some(val => val !== 0 && val !== null));
-
-    if (!hasData) {
-      // Disable tooltips completely for empty state charts
-      safeConfig.options.plugins.tooltip = { enabled: false };
-    } else if (!safeConfig.options.plugins.tooltip) {
-      // Ensure tooltip configuration exists for charts with data
-      safeConfig.options.plugins.tooltip = {
-        enabled: true,
-        mode: 'nearest',
-        intersect: true
-      };
-    }
-
-    // Global tooltip safety plugin - prevents 'call' errors by ensuring tooltip objects exist
-    const tooltipSafetyPlugin = {
-      id: `tooltip-safety-${canvasId}`,
-      beforeEvent: function (chart, args, options) {
-        // Ensure tooltip and chart objects are properly initialized
-        if (!chart.tooltip) chart.tooltip = { _active: [] };
-        if (!chart.tooltip._active) chart.tooltip._active = [];
-        return true;
       }
     };
 
-    // Add our plugin
-    if (!safeConfig.plugins) safeConfig.plugins = [];
-    safeConfig.plugins.push(tooltipSafetyPlugin);
-
-    // Destroy any existing chart on this canvas
-    destroyChart(canvasId);
-
-    // Create new chart
-    const chart = new Chart(canvas, safeConfig);
-
-    // Apply current theme
-    if (STATE.darkMode && typeof window.updateChartTheme === 'function') {
-      window.updateChartTheme(chart, true);
-    }
-
-    return chart;
-  } catch (error) {
-    log(`Error creating chart on "${canvasId}": ${error.message}`, LOG_LEVEL.ERROR);
-
-    // Display a fallback message on the canvas
-    try {
-      const canvas = document.getElementById(canvasId);
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width || 300, canvas.height || 150);
-          ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
-          ctx.fillRect(0, 0, canvas.width || 300, canvas.height || 150);
-          ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
-          ctx.textAlign = 'center';
-          ctx.font = '14px Arial';
-          ctx.fillText('Error creating chart', (canvas.width || 300) / 2, (canvas.height || 150) / 2);
+    // Merge configs (simple shallow merge)
+    const mergedConfig = {
+      ...defaultConfig,
+      ...config,
+      options: {
+        ...(defaultConfig.options || {}),
+        ...(config.options || {}),
+        plugins: {
+          ...(defaultConfig.options?.plugins || {}),
+          ...(config.options?.plugins || {})
         }
       }
-    } catch (fallbackError) {
-      log(`Error creating fallback rendering: ${fallbackError.message}`, LOG_LEVEL.ERROR);
-      console.error(fallbackError); // Log full error object for debugging
-    }
+    };
 
+    return new Chart(ctx, mergedConfig);
+  } catch (err) {
+    console.error('Error creating chart:', err);
     return null;
   }
 }
 
 /**
- * EXPORTED: Safely destroy a chart
- * @param {Chart|string} chartOrId - Chart instance or canvas ID
+ * Safely destroys a chart instance if it exists
+ * @param {Object|null} chart - Chart instance to destroy
  */
-export function destroyChart(chartOrId) {
-  try {
-    let chart = chartOrId;
-
-    // If a string ID was provided, get the chart instance
-    if (typeof chartOrId === 'string') {
-      const canvas = document.getElementById(chartOrId);
-      if (!canvas) return;
-
-      // Try Chart.js v3 approach first
-      if (window.Chart && typeof Chart.getChart === 'function') {
-        chart = Chart.getChart(canvas);
-      }
-      // Fall back to v2 approach if needed
-      else if (canvas.__chartjs__) {
-        chart = canvas.__chartjs__.instance;
-      }
-    }
-
-    // Destroy the chart if we found it
-    if (chart && typeof chart.destroy === 'function') {
+export function destroyChart(chart) {
+  if (chart) {
+    try {
       chart.destroy();
+    } catch (err) {
+      console.error('Error destroying chart:', err);
     }
-  } catch (error) {
-    log(`Error destroying chart: ${error.message}`, LOG_LEVEL.ERROR);
   }
+  return null;
 }
 
 /**
- * EXPORTED: Display a message on a canvas when no data is available
- * @param {string|HTMLElement} canvas - Canvas ID or element
- * @param {string} message - Message to display
- * @param {object} options - Display options
+ * Displays a "no data" message on a chart
+ * @param {string} chartId - The ID of the chart canvas element
+ * @param {string} message - The message to display
  */
-export function displayNoDataMessage(canvas, message = "No data available", options = {}) {
-  try {
-    // Get canvas element if string ID was provided
-    const canvasElement = typeof canvas === 'string' ? document.getElementById(canvas) : canvas;
+export function displayNoDataMessage(chartId, message = "No data available") {
+  const canvas = document.getElementById(chartId);
+  if (!canvas) return;
 
-    if (!canvasElement) {
-      log(`Canvas not found for no-data message: ${canvas}`, LOG_LEVEL.ERROR);
-      return;
-    }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-    // First destroy any existing chart
-    destroyChart(typeof canvas === 'string' ? canvas : canvasElement);
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Default options
-    const defaultOptions = {
-      fontFamily: "'Arial', sans-serif",
-      fontSize: 14,
-      fontColor: STATE.darkMode ? '#e0e0e0' : '#666666',
-      backgroundColor: STATE.darkMode ? '#333333' : '#f9f9f9',
-      verticalPosition: 'center'
-    };
+  // Set up text style
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
-    const settings = { ...defaultOptions, ...options };
+  // Use appropriate color based on dark mode
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  ctx.fillStyle = isDarkMode ? '#888888' : '#999999';
 
-    // Get 2D context and dimensions
-    const ctx = canvasElement.getContext('2d');
-    const width = canvasElement.width;
-    const height = canvasElement.height;
-
-    // Clear canvas and set background
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = settings.backgroundColor;
-    ctx.fillRect(0, 0, width, height);
-
-    // Draw message text
-    ctx.fillStyle = settings.fontColor;
-    ctx.font = `${settings.fontSize}px ${settings.fontFamily}`;
-    ctx.textAlign = 'center';
-
-    // Calculate vertical position
-    let yPosition;
-    switch (settings.verticalPosition) {
-      case 'top':
-        yPosition = settings.fontSize + 20;
-        break;
-      case 'bottom':
-        yPosition = height - 20;
-        break;
-      case 'center':
-      default:
-        yPosition = height / 2;
-    }
-
-    // Draw the text
-    ctx.fillText(message, width / 2, yPosition);
-  } catch (error) {
-    log(`Error displaying no-data message: ${error.message}`, LOG_LEVEL.ERROR);
-  }
+  // Draw text in center of canvas
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }
 
 /**
- * EXPORTED: Update chart theme colors
- * @param {Chart} chart - Chart instance to update
- * @param {boolean} isDarkMode - Whether to use dark mode theme
- */
-export function updateChartTheme(chart, isDarkMode) {
-  try {
-    // Just call the global function if it exists
-    if (typeof window.updateChartTheme === 'function') {
-      window.updateChartTheme(chart, isDarkMode);
-    }
-  } catch (error) {
-    log(`Error in updateChartTheme: ${error.message}`, LOG_LEVEL.ERROR);
-  }
-}
-
-/**
- * Validates data for chart rendering to prevent errors
- * @param {Object} data - The chart data object to validate
- * @returns {Object} Validated and sanitized data
+ * Validates chart data to ensure it can be safely displayed
+ * @param {Object} data - The chart data to validate
+ * @returns {boolean} - Whether the data is valid for charting
  */
 export function validateChartData(data) {
-  if (!data) {
-    return {
-      labels: [],
-      datasets: []
-    };
+  if (!data) return false;
+
+  // Check for required properties
+  if (!data.labels || !Array.isArray(data.labels)) return false;
+
+  // Check for datasets
+  if (!data.datasets || !Array.isArray(data.datasets)) return false;
+
+  // Ensure at least one dataset exists
+  if (data.datasets.length === 0) return false;
+
+  // Validate each dataset
+  for (const dataset of data.datasets) {
+    if (!dataset || !Array.isArray(dataset.data)) return false;
+
+    // Make sure data values are valid numbers or null/undefined
+    const hasInvalidData = dataset.data.some(value =>
+      value !== null && value !== undefined && isNaN(parseFloat(value))
+    );
+    if (hasInvalidData) return false;
   }
 
-  try {
-    // Ensure we have labels
-    if (!data.labels || !Array.isArray(data.labels)) {
-      data.labels = [];
-    }
-
-    // Ensure we have datasets
-    if (!data.datasets || !Array.isArray(data.datasets)) {
-      data.datasets = [];
-    }
-
-    // Validate each dataset
-    data.datasets = data.datasets.map(dataset => {
-      // Ensure dataset has data property
-      if (!dataset.data || !Array.isArray(dataset.data)) {
-        dataset.data = [];
-      }
-
-      // Ensure all data values are numbers (nulls are acceptable for gaps)
-      dataset.data = dataset.data.map(value => {
-        if (value === null || value === undefined) {
-          return null; // Keep nulls for gaps in data
-        }
-
-        const num = parseFloat(value);
-        return isNaN(num) ? 0 : num; // Convert to number or 0
-      });
-
-      return dataset;
-    });
-
-    return data;
-  } catch (error) {
-    console.error("Error validating chart data:", error);
-    return {
-      labels: [],
-      datasets: []
-    };
-  }
+  return true;
 }
-
-// Run initialization once when this module loads
-initializeChartCore();
-
-// Export simple, clean API
-export default {
-  initialize: initializeChartCore,
-  create: createSafeChart,
-  destroy: destroyChart,
-  updateTheme: (isDarkMode) => {
-    STATE.darkMode = isDarkMode;
-    updateAllChartInstances(isDarkMode);
-  }
-};

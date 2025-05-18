@@ -668,7 +668,8 @@ th {
   text-align: center;
   white-space: nowrap;
   display: inline-block;
-  margin: 4px; /* Keep only one margin property */
+  margin: 4px;
+  /* Keep only one margin property */
 }
 
 .category-btn.active {
@@ -935,7 +936,25 @@ th {
   display: inline-block;
 }
 
-/* Category select and subcategory select styling */
+/* Fix category cell styling */
+.category-cell {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  padding: 0 !important;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.category-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+}
+
 .category-select,
 .subcategory-select {
   width: 100% !important;
@@ -949,117 +968,9 @@ th {
   font-size: 13px;
 }
 
-/* Stable width for subcategory dropdown */
-.subcategory-select {
-  margin-top: 3px;
-}
-
-.subcategory-select:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.dark-mode .subcategory-select:disabled {
-  background-color: #333;
-  color: #777;
-}
-
-.dark-mode .category-select,
-.dark-mode .subcategory-select {
-  border-color: #555;
-  background-color: #333;
-  color: #fff;
-}
-
-/* Subcategory form styling */
-.dark-mode .subcategory-form {
-  background: #333;
-}
-
-.add-subcategory-form {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.subcategory-edit-row {
-  margin-left: 20px;
-  margin-top: 5px;
-  display: flex;
-  align-items: center;
-  padding: 5px;
-  background-color: rgba(249, 249, 249, 0.5);
-  border-radius: 4px;
-}
-
-.dark-mode .subcategory-edit-row {
-  background-color: rgba(68, 68, 68, 0.5);
-}
-
-.add-sub-btn {
-  background: none;
-  border: none;
-  color: #4CAF50;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-/* Enhanced category modal layout */
-.category-modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.auto-categorize-container {
-  text-align: center;
-  margin-bottom: 10px;
-  padding: 10px;
-  background-color: #f0f8ff;
-  border-radius: 4px;
-}
-
-.dark-mode .auto-categorize-container {
-  background-color: #1a2a3a;
-}
-
-.primary-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.primary-btn:hover {
-  background-color: #388E3C;
-}
-
-/* Pie chart row styling */
-.pie-charts-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-  min-height: 400px;
-}
-
-/* Form element styling for categories */
-.add-category-form button {
-  padding: 8px 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.add-category-form input[type="color"] {
-  width: 50px;
-  height: 36px;
-  border: none;
-  border-radius: 4px;
-  margin-right: 10px;
-  padding: 0;
+/* Make sure edit buttons are visible in debug mode */
+.debug-mode .edit-button {
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }

@@ -105,6 +105,40 @@ export function updateIncomeExpenseChart(transactions) {
 }
 
 /**
+ * Shows empty state for income/expense chart with improved aesthetics
+ */
+function showEmptyStateChart() {
+  const ctx = document.getElementById("incomeExpenseChart");
+  if (!ctx) return;
+
+  // Use createSafeChart to create a blank chart without any "No data" text
+  if (window.incomeExpenseChart) {
+    window.incomeExpenseChart.destroy();
+  }
+
+  window.incomeExpenseChart = createSafeChart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: []
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        // Remove the "No data" text entirely
+        title: { display: false }
+      }
+    }
+  });
+}
+
+/**
  * Cleans up the income vs expense chart
  */
 export function cleanupIncomeExpenseChart() {

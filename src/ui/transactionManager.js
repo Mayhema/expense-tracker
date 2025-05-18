@@ -183,11 +183,8 @@ function createCategoryDropdown(rowIndex, selectedCategory, selectedSubcategory)
     categories[selectedCategory].subcategories &&
     Object.keys(categories[selectedCategory].subcategories).length > 0;
 
-  // Create the subcategory dropdown with proper disabled state
-  const subcategoryDropdown = createSubcategoryDropdown(rowIndex, selectedCategory, selectedSubcategory);
-
-  // Return complete category UI with both dropdowns in a container with fixed width to prevent shifting
-  return `<div class="category-container" style="width: 100%; display: flex; flex-direction: column;">
+  // Fixed container width to prevent shifting columns
+  return `<div class="category-container" style="width: 100%;">
     <select
       onchange="window.changeTxCategory(${rowIndex}, this.value)"
       class="category-select"
@@ -197,41 +194,29 @@ function createCategoryDropdown(rowIndex, selectedCategory, selectedSubcategory)
       ${selectedColorStyle}
       style="width: 100%; min-width: 100%; box-sizing: border-box;"
     >${options}</select>
-    ${subcategoryDropdown}
+    ${hasSubcategories ? createSubcategoryDropdown(rowIndex, selectedCategory, selectedSubcategory) :
+      `<select class="subcategory-select" disabled style="width:100%; opacity:0.6; margin-top:3px; cursor:not-allowed;">
+        <option value="">No subcategories</option>
+      </select>`}
   </div>`;
 }
 
 // Fix the subcategory dropdown function to handle disabled state
 function createSubcategoryDropdown(rowIndex, mainCategory, selectedSubcategory) {
   const categories = AppState.categories || {};
-  const hasCategory = !!mainCategory;
 
-  const hasSubcategories = hasCategory &&
-    categories[mainCategory] &&
-    typeof categories[mainCategory] === 'object' &&
-    categories[mainCategory].subcategories &&
-    Object.keys(categories[mainCategory].subcategories).length > 0;
-
-  // Base styles with conditional disabled state
-  const baseStyles = `
-    width: 100%;
-    min-width: 100%;
-    margin-top: 3px;
-    box-sizing: border-box;
-    ${!hasCategory || !hasSubcategories ? 'opacity: 0.6; cursor: not-allowed;' : ''}
-  `;
-
-  // If no category is selected or the category has no subcategories, show disabled dropdown
-  if (!hasCategory || !hasSubcategories) {
+  if (!mainCategory ||
+    !categories[mainCategory] ||
+    typeof categories[mainCategory] !== 'object' ||
+    !categories[mainCategory].subcategories ||
+    Object.keys(categories[mainCategory].subcategories).length === 0) {
     return `<select
       class="subcategory-select"
-      data-index="${rowIndex}"
       disabled
-      style="${baseStyles}"
+      style="width: 100%; opacity: 0.6; margin-top: 3px; cursor: not-allowed;"
     ><option value="">No subcategories</option></select>`;
   }
 
-  // If we get here, we have a category with subcategories
   const subcategories = categories[mainCategory].subcategories;
   let options = '<option value="">None</option>';
 
@@ -261,7 +246,7 @@ function createSubcategoryDropdown(rowIndex, mainCategory, selectedSubcategory) 
     class="subcategory-select"
     data-index="${rowIndex}"
     ${selectedColorStyle}
-    style="${baseStyles}"
+    style="width: 100%; margin-top: 3px; box-sizing: border-box;"
   >${options}</select>`;
 }
 
@@ -819,7 +804,117 @@ window.changeTxSubcategory = function (index, subcategory) {
 };
 
 window.editTransaction = function (index) {
-  // ...existing code for editing transactions...
+  const tx = AppState.transactions[index];
+  if (!tx) return;
+
+  const modalContent = document.createElement('div');
+  modalContent.innerHTML = `
+    <div class="transaction-edit-container">
+      <div class="form-row">
+        <label>Date:</label>
+        <input type="date" id="editTxDate" value="${tx.date || ''}" class="form-control">
+      </div>
+      <div class="form-row">
+        <label>Description:</label>
+        <input type="text" id="editTxDescription" value="${tx.description || ''}" class="form-control">
+      </div>
+      <div class="form-row">
+        <label>Income:</label>
+        <input type="number" step="0.01" id="editTxIncome" value="${tx.income || ''}" class="form-control">
+      </div>
+      <div class="form-row">
+        <label>Expenses:</label>
+        <input type="number" step="0.01" id="editTxExpenses" value="${tx.expenses || ''}" class="form-control">
+      </div>
+      <div class="form-row buttons-container" style="margin-top: 20px; text-align: right;">
+        <button id="cancelEditTxBtn" class="btn btn-secondary">Cancel</button>
+        <button id="saveEditTxBtn" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  `;
+
+  // Add some styles for the form
+  const style = document.createElement('style');
+  style.textContent = `
+    .transaction-edit-container .form-row {
+      margin-bottom: 15px;
+    }
+    .transaction-edit-container label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    .transaction-edit-container .form-control {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .transaction-edit-container .buttons-container {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .transaction-edit-container .btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .transaction-edit-container .btn-primary {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .transaction-edit-container .btn-secondary {
+      background-color: #f0f0f0;
+      border: 1px solid #ddd;
+    }
+  `;
+  document.head.appendChild(style);
+
+  import("./modalManager.js").then(module => {
+    const modal = module.showModal({
+      title: "Edit Transaction",
+      content: modalContent,
+      size: 'small'
+    });
+
+    // Add event listeners
+    document.getElementById('cancelEditTxBtn').addEventListener('click', () => {
+      modal.close();
+    });
+
+    document.getElementById('saveEditTxBtn').addEventListener('click', () => {
+      // Store original if not already stored
+      if (!tx.originalData) {
+        tx.originalData = {
+          date: tx.date,
+          description: tx.description,
+          income: tx.income,
+          expenses: tx.expenses,
+          category: tx.category,
+          subcategory: tx.subcategory
+        };
+        tx.edited = true;
+      }
+
+      // Update transaction with new values
+      tx.date = document.getElementById('editTxDate').value;
+      tx.description = document.getElementById('editTxDescription').value;
+      tx.income = document.getElementById('editTxIncome').value || null;
+      tx.expenses = document.getElementById('editTxExpenses').value || null;
+
+      // Save to localStorage and update UI
+      localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+      modal.close();
+      renderTransactions(AppState.transactions);
+      showToast("Transaction updated", "success");
+    });
+  }).catch(err => {
+    console.error("Error loading modal manager:", err);
+    showToast("Could not open transaction editor", "error");
+  });
 };
 
 window.revertTransaction = function (index) {

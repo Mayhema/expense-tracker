@@ -309,3 +309,37 @@ function generateCategoryColor(categoryName) {
 export function cleanupExpenseChart() {
   pieChart = destroyChart(pieChart);
 }
+
+/**
+ * Shows empty state for expense chart with improved aesthetics
+ */
+function showEmptyStateChart() {
+  const ctx = document.getElementById("expenseChart");
+  if (!ctx) return;
+
+  // Use createSafeChart to create a blank chart without any "No data" text
+  if (window.expenseChart) {
+    window.expenseChart.destroy();
+  }
+
+  window.expenseChart = createSafeChart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: []
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        // Remove the "No data" text entirely
+        title: { display: false }
+      }
+    }
+  });
+}

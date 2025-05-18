@@ -69,11 +69,13 @@ export function addMergedFile(data, mapping, name, signature, headerRowIndex = n
   // Process the data based on the data row index
   const processedData = dataRow > 0 ? data.slice(dataRow) : data;
 
-  // Transform the data to only include mapped columns and handle special formats
+  // FIX: Transform the data correctly preserving the original column order
+  // Create a proper mapping array that matches data indices to target indices
+  const columnIndices = Object.keys(columnMap).map(Number).sort((a, b) => a - b);
   const transformedData = processedData.map(row => {
-    const processedRow = [];
-    Object.entries(columnMap).forEach(([origIndex, headerType]) => {
-      const colIndex = parseInt(origIndex, 10);
+    // Create a new row with mapped values in the correct order
+    return columnIndices.map(colIndex => {
+      const headerType = columnMap[colIndex];
       let cellValue = colIndex < row.length ? row[colIndex] : '';
 
       // Convert Excel dates in Date columns
@@ -83,13 +85,12 @@ export function addMergedFile(data, mapping, name, signature, headerRowIndex = n
         cellValue = excelDateToJSDate(excelDate);
       }
 
-      processedRow.push(cellValue);
+      return cellValue;
     });
-    return processedRow;
   });
 
-  // Only include mappings for columns we're keeping
-  const processedMapping = Object.values(columnMap);
+  // Preserve the original column order in the processed mapping
+  const processedMapping = columnIndices.map(idx => columnMap[idx]);
 
   console.log("Processed mapping:", processedMapping);
   console.log("Sample processed data:", transformedData.slice(0, 2));

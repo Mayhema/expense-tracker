@@ -1,6 +1,14 @@
-import { AppState, saveCategories } from "../../core/appState.js";
+import { AppState } from "../../core/appState.js";
 import { showModal } from "../modalManager.js";
 import { showToast } from "../uiManager.js";
+import {
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  addSubcategory,
+  updateSubcategory,
+  deleteSubcategory
+} from "../../ui/categoryManager.js";
 
 /**
  * Track if modal is open to prevent multiple instances
@@ -199,6 +207,47 @@ export function showCategoryModal() {
 
   // Render initial categories
   renderCategories();
+
+  // Add function for adding subcategories to a category
+  function addSubcategoriesToCategory(categoryName, color) {
+    const modalContent = document.createElement("div");
+    modalContent.innerHTML = `
+      <div class="add-subcategory-form">
+        <input type="color" id="newSubcategoryColor" value="${color}">
+        <input type="text" id="newSubcategoryName" placeholder="New subcategory name">
+        <button id="addSubcategoryBtn" class="action-btn primary-btn">Add</button>
+      </div>
+    `;
+
+    const modal = showModal({
+      title: `Add Subcategories to ${categoryName}`,
+      content: modalContent,
+      size: "small"
+    });
+
+    document.getElementById("addSubcategoryBtn").addEventListener("click", () => {
+      const name = document.getElementById("newSubcategoryName").value.trim();
+      const color = document.getElementById("newSubcategoryColor").value;
+
+      if (!name) {
+        showToast("Please enter a subcategory name", "error");
+        return;
+      }
+
+      if (addSubcategory(categoryName, name, color)) {
+        modal.close();
+        renderCategories();
+      }
+    });
+  }
+
+  // Make sure imported functions are accessible to event handlers
+  window.addSubcategory = addSubcategory;
+  window.updateCategory = updateCategory;
+  window.deleteCategory = deleteCategory;
+  window.updateSubcategory = updateSubcategory;
+  window.deleteSubcategory = deleteSubcategory;
+  window.addSubcategoriesToCategory = addSubcategoriesToCategory;
 }
 
 /**
@@ -240,121 +289,6 @@ function setupCategoryModalEvents(modal) {
   modal.element.querySelector(".modal-close").addEventListener("click", () => {
     categoryModalOpen = false;
   });
-}
-
-/**
- * Adds a new category
- * @param {string} name - Category name
- * @param {string} color - Category color in hex
- * @returns {boolean} Success status
- */
-function addCategory(name, color) {
-  if (!name || !color) return false;
-
-  // Check for duplicate
-  if (AppState.categories[name]) {
-    showToast(`Category "${name}" already exists`, "error");
-    return false;
-  }
-
-  // Add the category
-  AppState.categories[name] = color;
-  saveCategories();
-  showToast(`Category "${name}" added`, "success");
-  return true;
-}
-
-/**
- * Updates an existing category
- * @param {string} oldName - Original category name
- * @param {string} newName - New category name
- * @param {string} newColor - New category color
- * @returns {boolean} Success status
- */
-function updateCategory(oldName, newName, newColor) {
-  if (!oldName || !newName || !newColor) return false;
-
-  // Check if the category exists
-  if (!AppState.categories[oldName]) {
-    showToast(`Category "${oldName}" not found`, "error");
-    return false;
-  }
-
-  // Check if new name already exists (unless it's the same name)
-  if (oldName !== newName && AppState.categories[newName]) {
-    showToast(`Category "${newName}" already exists`, "error");
-    return false;
-  }
-
-  // Get the current value (could be string or object with subcategories)
-  const currentValue = AppState.categories[oldName];
-
-  // Prepare the new value
-  let newValue;
-  if (typeof currentValue === 'object') {
-    // Keep subcategories if present
-    newValue = {
-      ...currentValue,
-      color: newColor
-    };
-  } else {
-    // Simple color string
-    newValue = newColor;
-  }
-
-  // Update or rename
-  if (oldName !== newName) {
-    delete AppState.categories[oldName];
-    AppState.categories[newName] = newValue;
-
-    // Update transactions with this category?
-    updateTransactionsCategory(oldName, newName);
-  } else {
-    AppState.categories[oldName] = newValue;
-  }
-
-  saveCategories();
-  showToast(`Category updated successfully`, "success");
-  return true;
-}
-
-/**
- * Updates transactions when category name changes
- * @param {string} oldName - Old category name
- * @param {string} newName - New category name
- */
-function updateTransactionsCategory(oldName, newName) {
-  try {
-    const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
-    let updated = false;
-
-    transactions.forEach(tx => {
-      if (tx.category === oldName) {
-        tx.category = newName;
-        updated = true;
-      }
-    });
-
-    if (updated) {
-      localStorage.setItem("transactions", JSON.stringify(transactions));
-    }
-  } catch (err) {
-    console.error("Error updating transactions with new category name:", err);
-  }
-}
-
-/**
- * Deletes a category
- * @param {string} name - Category name to delete
- * @returns {boolean} Success status
- */
-function deleteCategory(name) {
-  if (!name || !AppState.categories[name]) return false;
-
-  delete AppState.categories[name];
-  saveCategories();
-  showToast(`Category "${name}" deleted`, "success");
-  return true;
 }
 
 /**

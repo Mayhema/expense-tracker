@@ -412,8 +412,12 @@ export function createNewFileInput() {
   try {
     // Delete existing input element first
     const oldInput = document.getElementById("fileInput");
-    if (oldInput && oldInput.parentNode) {
-      oldInput.parentNode.removeChild(oldInput);
+    if (oldInput) {
+      // IMPORTANT: Remove all existing event listeners before removing element
+      oldInput.removeEventListener("change", onFileUpload);
+      if (oldInput.parentNode) {
+        oldInput.parentNode.removeChild(oldInput);
+      }
     }
 
     // Create a completely new input element
@@ -426,8 +430,8 @@ export function createNewFileInput() {
     // Add to body first, then add event listener
     document.body.appendChild(input);
 
-    // Add the event listener
-    input.addEventListener("change", onFileUpload);
+    // Add the event listener ONCE to prevent multiple triggers
+    input.addEventListener("change", onFileUpload, { once: true });
 
     console.log("New file input created with id: fileInput");
     return input;
@@ -435,11 +439,6 @@ export function createNewFileInput() {
     console.error("Error creating new file input:", err);
     return null;
   }
-}
-
-// Replace refreshFileInput with createNewFileInput
-export function refreshFileInput() {
-  return createNewFileInput();
 }
 
 /**

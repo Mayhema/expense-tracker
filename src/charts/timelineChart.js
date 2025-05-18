@@ -1,5 +1,5 @@
 import { AppState } from "../core/appState.js";
-import { destroyChart } from './chartCore.js';
+import { destroyChart, createSafeChart } from './chartCore.js';
 
 /**
  * Updates the timeline chart with new data
@@ -33,7 +33,7 @@ export function updateTimelineChart(transactions, periodOption = 'month') {
     if (!labels || labels.length === 0) {
       console.log("No valid timeline data to display - showing empty state");
       // Instead of returning early, show an empty state chart
-      showEmptyStateChart(ctx);
+      showEmptyStateChart();
       return;
     }
 
@@ -148,7 +148,7 @@ function refreshTimelineChart(period = 'month') {
   // Check if we have transaction data to display
   if (!AppState.transactions || AppState.transactions.length === 0) {
     console.log("No valid timeline data to display - showing empty state");
-    showEmptyStateChart(timelineCanvas);
+    showEmptyStateChart();
     return;
   }
 
@@ -248,112 +248,47 @@ function refreshTimelineChart(period = 'month') {
     console.log("Timeline chart updated successfully");
   } catch (error) {
     console.error("Error creating timeline chart:", error);
-    showEmptyStateChart(timelineCanvas);
+    showEmptyStateChart();
   }
 }
 
 /**
- * Shows an empty state chart when no data is available
+ * Shows empty state for timeline chart with improved aesthetics
  */
-function showEmptyStateChart(canvas) {
-  console.log("Displaying empty state timeline chart");
+function showEmptyStateChart() {
+  const ctx = document.getElementById("timelineChart");
+  if (!ctx) return;
 
-  try {
-    // Destroy existing chart if present
-    if (window.timelineChart) {
-      destroyChart(window.timelineChart);
-      window.timelineChart = null;
-    }
-
-    // Make sure canvas styles are explicitly set
-    if (canvas.style) {
-      canvas.style.height = canvas.style.height || '300px';
-    }
-
-    // Create simple empty state with explicit padding
-    const config = {
-      type: 'bar',
-      data: {
-        labels: ['No Data'],
-        datasets: [
-          {
-            label: 'Income',
-            data: [0],
-            backgroundColor: 'rgba(75, 192, 192, 0.2)'
-          },
-          {
-            label: 'Expenses',
-            data: [0],
-            backgroundColor: 'rgba(255, 99, 132, 0.2)'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        // Explicitly define layout padding
-        layout: {
-          padding: {
-            top: 20,
-            right: 20,
-            bottom: 20,
-            left: 20
-          }
-        },
-        plugins: {
-          legend: {
-            display: true
-          },
-          title: {
-            display: true,
-            text: 'No transaction data available'
-          },
-          // Disable tooltips for empty state
-          tooltip: {
-            enabled: false
-          }
-        },
-        scales: {
-          x: {
-            display: true,
-            grid: {
-              display: false
-            }
-          },
-          y: {
-            display: true,
-            beginAtZero: true,
-            grid: {
-              display: false
-            }
-          }
-        },
-        animation: false // Disable animations for better performance
-      }
-    };
-
-    // Use createSafeChart for extra protection
-    window.timelineChart = createSafeChart(canvas.id, config);
-
-  } catch (error) {
-    console.error("Error creating empty state chart:", error);
-
-    // Fall back to canvas rendering if chart fails
-    try {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('No transaction data available', canvas.width / 2, canvas.height / 2);
-      }
-    } catch (fallbackError) {
-      console.error("Error creating fallback display:", fallbackError);
-    }
+  // Use createSafeChart to safely create a blank chart without any "No data" text
+  if (window.timelineChart) {
+    window.timelineChart.destroy();
   }
+
+  window.timelineChart = createSafeChart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        borderColor: 'rgba(0,0,0,0)',
+        backgroundColor: 'rgba(0,0,0,0)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        // Remove the "No data" text entirely
+        title: { display: false }
+      }
+    }
+  });
 }
 
 /**

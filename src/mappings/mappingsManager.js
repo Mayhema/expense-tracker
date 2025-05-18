@@ -341,8 +341,8 @@ function findMappingByContentSignature(contentSig) {
 
 // Fix the renderMappingList to handle duplicates properly
 // Update the renderMappingList function to show file types and files
-export function renderMappingList() {
-  const list = document.getElementById("mappingsList");
+export function renderMappingList(targetElement = null) {
+  const list = targetElement || document.getElementById("mappingsList");
   if (!list) {
     console.warn("Mappings list element not found");
     return;
