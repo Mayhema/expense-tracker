@@ -483,6 +483,14 @@ window.changeTxCategory = function (transactionIndex, newCategory) {
   const tx = AppState.transactions[transactionIndex];
   if (!tx) return;
 
+  updateTransactionCategory(tx, newCategory);
+  updateCategoryUI(transactionIndex, newCategory);
+  updateCategoryMapping(tx, newCategory);
+  saveAndUpdateCharts();
+};
+
+// Update transaction data when category changes
+function updateTransactionCategory(tx, newCategory) {
   // Record original category for history if this is an edit
   if (!tx.originalData && tx.category !== newCategory) {
     tx.originalData = {
@@ -508,7 +516,10 @@ window.changeTxCategory = function (transactionIndex, newCategory) {
   if (!tx.categorized && newCategory) {
     tx.categorized = true;
   }
+}
 
+// Update the UI when category changes
+function updateCategoryUI(transactionIndex, newCategory) {
   // Get the row containing this transaction
   const row = document.querySelector(`tr[data-index="${transactionIndex}"]`);
   if (!row) return;
@@ -517,65 +528,75 @@ window.changeTxCategory = function (transactionIndex, newCategory) {
   const categoryCell = row.querySelector('.category-cell');
   if (!categoryCell) return;
 
-  // Update the cell with proper category (and potentially subcategory) dropdown
+  // Get category value and check if it has subcategories
   const categoryValue = AppState.categories[newCategory];
   const hasSubcategories = categoryValue &&
     typeof categoryValue === 'object' &&
     categoryValue.subcategories &&
     Object.keys(categoryValue.subcategories).length > 0;
 
-  // Update the category wrapper
+  updateCategoryStyle(categoryCell, newCategory, categoryValue);
+  updateSubcategoryDropdown(categoryCell, transactionIndex, newCategory, hasSubcategories);
+}
+
+// Update category styling
+function updateCategoryStyle(categoryCell, newCategory, categoryValue) {
   const categoryWrapper = categoryCell.querySelector('.category-wrapper');
-  if (categoryWrapper) {
-    // Update the category dropdown style
-    const categorySelect = categoryWrapper.querySelector('.category-select');
-    if (categorySelect && newCategory) {
-      let color;
-      if (typeof categoryValue === 'string') {
-        color = categoryValue;
-      } else if (categoryValue && categoryValue.color) {
-        color = categoryValue.color;
-      }
+  if (!categoryWrapper) return;
 
-      if (color) {
-        const textColor = getContrastColor(color);
-        categorySelect.style.backgroundColor = color;
-        categorySelect.style.color = textColor;
-      }
-    } else if (categorySelect) {
-      // Reset styling if no category
-      categorySelect.style.backgroundColor = '';
-      categorySelect.style.color = '';
+  const categorySelect = categoryWrapper.querySelector('.category-select');
+  if (!categorySelect) return;
+
+  if (categorySelect && newCategory) {
+    let color;
+    if (typeof categoryValue === 'string') {
+      color = categoryValue;
+    } else if (categoryValue && categoryValue.color) {
+      color = categoryValue.color;
     }
 
-    // Handle subcategory dropdown (add or remove)
-    const existingSubSelect = categoryWrapper.querySelector('.subcategory-select');
-
-    if (hasSubcategories) {
-      if (existingSubSelect) {
-        // Update options in existing dropdown
-        existingSubSelect.innerHTML = createSubcategoryOptions(newCategory);
-      } else {
-        // Create new subcategory dropdown
-        const subDropdown = document.createElement('div');
-        subDropdown.className = 'subcategory-dropdown';
-        subDropdown.style.marginTop = '5px';
-        subDropdown.innerHTML = createSubcategoryDropdown(transactionIndex, newCategory);
-        categoryWrapper.appendChild(subDropdown);
-      }
-    } else if (existingSubSelect) {
-      // Remove subcategory dropdown if category has no subcategories
-      existingSubSelect.remove();
+    if (color) {
+      const textColor = getContrastColor(color);
+      categorySelect.style.backgroundColor = color;
+      categorySelect.style.color = textColor;
     }
+  } else if (categorySelect) {
+    // Reset styling if no category
+    categorySelect.style.backgroundColor = '';
+    categorySelect.style.color = '';
   }
+}
 
-  // Add to category mapping system if not already there and if we have a category
+// Handle subcategory dropdown updates
+function updateSubcategoryDropdown(categoryCell, transactionIndex, newCategory, hasSubcategories) {
+  const categoryWrapper = categoryCell.querySelector('.category-wrapper');
+  if (!categoryWrapper) return;
+
+  const existingSubSelect = categoryWrapper.querySelector('.subcategory-select');
+
+  if (hasSubcategories) {
+    if (existingSubSelect) {
+      // Update options in existing dropdown
+      existingSubSelect.innerHTML = createSubcategoryOptions(newCategory);
+    } else {
+      // Create new subcategory dropdown
+      const subDropdown = document.createElement('div');
+      subDropdown.className = 'subcategory-dropdown';
+      subDropdown.style.marginTop = '5px';
+      subDropdown.innerHTML = createSubcategoryDropdown(transactionIndex, newCategory);
+      categoryWrapper.appendChild(subDropdown);
+    }
+  } else if (existingSubSelect) {
+    // Remove subcategory dropdown if category has no subcategories
+    existingSubSelect.remove();
+  }
+}
+
+// Update category mapping
+function updateCategoryMapping(tx, newCategory) {
   if (newCategory && tx.description) {
     addToCategoryMapping(tx.description, newCategory);
-  }
-
-  // If removing category mapping, remove from category mapping system
-  if (!newCategory && tx.description) {
+  } else if (!newCategory && tx.description) {
     // Import the function if not available
     import("./categoryMapping.js").then(module => {
       if (module.removeFromCategoryMapping) {
@@ -585,7 +606,10 @@ window.changeTxCategory = function (transactionIndex, newCategory) {
       console.error("Error importing removeFromCategoryMapping:", err);
     });
   }
+}
 
+// Save transactions and update charts
+function saveAndUpdateCharts() {
   // Save to localStorage
   localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
 
@@ -597,7 +621,7 @@ window.changeTxCategory = function (transactionIndex, newCategory) {
       }
     }).catch(err => console.error("Error updating charts:", err));
   }, 0);
-};
+}
 
 // New function to change subcategory
 window.changeTxSubcategory = function (transactionIndex, newSubcategory) {
@@ -1135,7 +1159,7 @@ function editTransactionCurrency(index) {
 const originalRenderTransactions = renderTransactions;
 
 // Now safely redefine the function
-renderTransactions = function(transactions, skipChartUpdate = false) {
+renderTransactions = function (transactions, skipChartUpdate = false) {
   // Note: we're calling the stored original function, not the redefined one
   originalRenderTransactions(transactions);
 
@@ -1391,7 +1415,7 @@ function updateCategoryFilterDropdown() {
 }
 
 // Override renderTransactions with our enhanced version
-renderTransactions = function(transactions, skipChartUpdate = false) {
+renderTransactions = function (transactions, skipChartUpdate = false) {
   // Call the original function
   originalRenderTransactions(transactions);
 

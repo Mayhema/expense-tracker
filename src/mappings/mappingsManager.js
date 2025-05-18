@@ -567,14 +567,12 @@ window.deleteMapping = function (index) {
 
           showToast(`Format mapping and ${associatedFiles.length} associated file(s) removed`, "success");
         }
-      } else {
+      } else if (confirm(`Delete format mapping for "${mappingFields}"?`)) {
         // No files associated, just confirm mapping deletion
-        if (confirm(`Delete format mapping for "${mappingFields}"?`)) {
-          mappings.splice(index, 1);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
-          renderMappingList();
-          showToast("Format mapping deleted", "success");
-        }
+        mappings.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
+        renderMappingList();
+        showToast("Format mapping deleted", "success");
       }
     } else {
       showToast("Invalid mapping index", "error");
@@ -687,38 +685,51 @@ function isValidMappingIndex(mappings, index) {
   return mappings && index >= 0 && index < mappings.length;
 }
 
+// Prepare mapping data for deletion
+function prepareMappingForDeletion(index) {
+  const mappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  if (!isValidMappingIndex(mappings, index)) {
+    showToast("Invalid mapping index", "error");
+    return null;
+  }
+
+  const mappingToDelete = mappings[index];
+  console.log("Mapping to delete:", mappingToDelete);
+
+  return {
+    mappings,
+    index,
+    mappingFields: mappingToDelete.mapping.filter(m => m !== "–").join(", "),
+    associatedFiles: mappingToDelete.files || []
+  };
+}
+
+// Confirm and execute mapping deletion
+function executeMappingDeletion(data) {
+  if (!data) return;
+
+  const { mappings, index, mappingFields, associatedFiles } = data;
+  const hasAssociatedFiles = associatedFiles.length > 0;
+
+  // Confirm deletion
+  const confirmMessage = buildConfirmMessage(mappingFields, associatedFiles);
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  // Process file removal if needed
+  const removedCount = hasAssociatedFiles ? removeAssociatedFiles(associatedFiles) : 0;
+
+  // Update mappings and UI
+  handleMappingDeletion(mappings, index, hasAssociatedFiles, removedCount);
+}
+
+// Simplified window.deleteMapping function
 window.deleteMapping = function (index) {
   try {
-    const mappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    console.log(`Attempting to delete mapping at index ${index}, total mappings:`, mappings.length);
-
-    // Early return if index is invalid
-    if (!isValidMappingIndex(mappings, index)) {
-      showToast("Invalid mapping index", "error");
-      return;
-    }
-
-    const mappingToDelete = mappings[index];
-    console.log("Mapping to delete:", mappingToDelete);
-
-    // Prepare mapping information
-    const mappingFields = mappingToDelete.mapping.filter(m => m !== "–").join(", ");
-    const associatedFiles = mappingToDelete.files || [];
-    const hasAssociatedFiles = associatedFiles.length > 0;
-
-    // Confirm deletion
-    const confirmMessage = buildConfirmMessage(mappingFields, associatedFiles);
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-
-    // Process file removal if needed
-    const removedCount = hasAssociatedFiles ?
-      removeAssociatedFiles(associatedFiles) : 0;
-
-    // Update mappings and UI
-    handleMappingDeletion(mappings, index, hasAssociatedFiles, removedCount);
-
+    const data = prepareMappingForDeletion(index);
+    executeMappingDeletion(data);
   } catch (err) {
     console.error("Error deleting mapping:", err);
     showToast("Error deleting mapping", "error");

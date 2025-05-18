@@ -61,8 +61,8 @@ function processDateHeader(headerText, state) {
     state.dateColumnFound = true;
     return "Date";
   } else {
-    // Allow multiple date columns if needed - just don't mark them as found
-    return "Date";
+    // Only map one date column to be consistent with other mappings
+    return "–";
   }
 }
 
@@ -293,18 +293,55 @@ function updateSaveButtonState() {
  * @param {string} dataRowInputId - ID of data row input (default: "dataRowInput")
  */
 export function renderHeaderPreview(data, targetElementId = "previewTable", headerRowInputId = "headerRowInput", dataRowInputId = "dataRowInput") {
+  if (!validatePreviewData(data)) return;
+
+  // Get row data based on input fields
+  const rowData = getRowData(data, headerRowInputId, dataRowInputId);
+  if (!rowData) return;
+
+  const { headerRow, dataRow, headerRowIndex, dataRowIndex } = rowData;
+
+  console.log("Rendering header preview with header row:", headerRow);
+  console.log("Data sample row:", dataRow);
+
+  // Ensure we have a valid mapping
+  ensureValidMapping(data, headerRow);
+
+  // Generate the preview HTML
+  const html = generatePreviewHtml(headerRow, dataRow, headerRowIndex, dataRowIndex);
+
+  // Update the DOM with generated HTML
+  updatePreviewDOM(html, targetElementId, headerRow);
+}
+
+/**
+ * Validates the data for preview
+ * @param {Array<Array>} data - Data to validate
+ * @returns {boolean} Whether data is valid
+ */
+function validatePreviewData(data) {
   if (!data || data.length === 0) {
     console.error("No data to render for header preview");
-    return;
+    return false;
   }
+  return true;
+}
 
+/**
+ * Gets row data based on input fields
+ * @param {Array<Array>} data - The data source
+ * @param {string} headerRowInputId - ID of header row input
+ * @param {string} dataRowInputId - ID of data row input
+ * @returns {Object|null} Row data object or null if invalid
+ */
+function getRowData(data, headerRowInputId, dataRowInputId) {
   // Get header and data row indices from input fields
   const headerRowInput = document.getElementById(headerRowInputId);
   const dataRowInput = document.getElementById(dataRowInputId);
 
   if (!headerRowInput || !dataRowInput) {
     console.error("Header row or data row input fields not found");
-    return;
+    return null;
   }
 
   const headerRowIndex = parseInt(headerRowInput.value, 10) - 1; // Convert to 0-based
@@ -313,37 +350,48 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
   // Validate indices
   if (headerRowIndex < 0 || headerRowIndex >= data.length) {
     console.error("Header row index out of range");
-    return;
+    return null;
   }
 
   if (dataRowIndex < 0 || dataRowIndex >= data.length) {
     console.error("Data row index out of range");
-    return;
+    return null;
   }
 
   const headerRow = data[headerRowIndex];
-
-  // Always use the selected data row even if it's the same as header row
   const dataRow = data[dataRowIndex];
 
   if (!headerRow || !dataRow) {
     console.error("Header or data row not found");
-    return;
+    return null;
   }
 
-  console.log("Rendering header preview with header row:", headerRow);
-  console.log("Data sample row:", dataRow);
+  return { headerRow, dataRow, headerRowIndex, dataRowIndex };
+}
 
+/**
+ * Ensures we have a valid mapping for the data
+ * @param {Array<Array>} data - The data
+ * @param {Array} headerRow - The header row
+ */
+function ensureValidMapping(data, headerRow) {
   // Check if we have an existing mapping
   if (!AppState.currentSuggestedMapping ||
     AppState.currentSuggestedMapping.length !== headerRow.length) {
     // Generate a new mapping suggestion
     AppState.currentSuggestedMapping = suggestMapping(data);
   }
+}
 
-  // Removed XML same row message - no longer showing this message
-
-  // Build HTML for the table
+/**
+ * Generates the HTML for the preview table
+ * @param {Array} headerRow - The header row data
+ * @param {Array} dataRow - The data row
+ * @param {number} headerRowIndex - Index of header row
+ * @param {number} dataRowIndex - Index of data row
+ * @returns {string} Generated HTML
+ */
+function generatePreviewHtml(headerRow, dataRow, headerRowIndex, dataRowIndex) {
   let html = '<table class="preview-table" style="width: 100%; margin-top: 20px;">';
 
   // File format info
@@ -356,26 +404,16 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
 
   // Header row with labels
   html += '<tr><th>Column</th>';
-
-  // Add headers
-  headerRow.forEach((header, i) => {
-    html += `<th>${i + 1}</th>`;
-  });
-
+  headerRow.forEach((_, i) => html += `<th>${i + 1}</th>`);
   html += '</tr>';
 
   // Original header row
   html += '<tr><td>Header</td>';
-
-  headerRow.forEach(header => {
-    html += `<td>${header || "<em>empty</em>"}</td>`;
-  });
-
+  headerRow.forEach(header => html += `<td>${header || "<em>empty</em>"}</td>`);
   html += '</tr>';
 
   // Add mapping dropdowns
   html += '<tr><td>Map To</td>';
-
   headerRow.forEach((_, i) => {
     const selected = AppState.currentSuggestedMapping && AppState.currentSuggestedMapping[i] ?
       AppState.currentSuggestedMapping[i] : "–";
@@ -388,19 +426,14 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
         </select>
       </td>`;
   });
-
   html += '</tr>';
 
-  // Sample data row - always use the chosen data row
+  // Sample data row
   html += '<tr><td>Sample</td>';
-
-  dataRow.forEach(cell => {
-    html += `<td>${cell || "<em>empty</em>"}</td>`;
-  });
-
+  dataRow.forEach(cell => html += `<td>${cell || "<em>empty</em>"}</td>`);
   html += '</tr></table>';
 
-  // Add mapping hint with clearer guidance based on file type
+  // Add mapping hint
   html += `
     <div class="mapping-hint">
       <p>Map columns to: <strong>Date</strong> (required), <strong>Income</strong> or <strong>Expenses</strong> (at least one required),
@@ -413,7 +446,16 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
     </div>
   `;
 
-  // Update the specified preview area
+  return html;
+}
+
+/**
+ * Updates the DOM with the preview HTML and sets up event handlers
+ * @param {string} html - The HTML to insert
+ * @param {string} targetElementId - ID of target element
+ * @param {Array} headerRow - The header row data for calculating modal width
+ */
+function updatePreviewDOM(html, targetElementId, headerRow) {
   const targetElement = document.getElementById(targetElementId);
   if (!targetElement) {
     console.error(`Target element ${targetElementId} not found`);
@@ -430,20 +472,15 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
     });
   });
 
-  // Enable the save button if we have the required fields
-  const hasDate = AppState.currentSuggestedMapping.includes("Date");
-  const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
-    AppState.currentSuggestedMapping.includes("Expenses");
+  updateSaveButtonState();
+  showHeaderMappingUI();
+  adjustModalWidth(headerRow.length);
+}
 
-  const saveButton = document.getElementById("saveHeadersBtn");
-  if (saveButton) {
-    saveButton.disabled = !(hasDate && hasAmount);
-    saveButton.title = hasDate && hasAmount ?
-      "Save this mapping" :
-      "You need at least Date and either Income or Expenses columns";
-  }
-
-  // Show header mapping UI if hidden
+/**
+ * Shows the header mapping UI elements
+ */
+function showHeaderMappingUI() {
   const rowSelectionPanel = document.getElementById("rowSelectionPanel");
   const saveHeadersBtn = document.getElementById("saveHeadersBtn");
   const clearPreviewBtn = document.getElementById("clearPreviewBtn");
@@ -451,9 +488,13 @@ export function renderHeaderPreview(data, targetElementId = "previewTable", head
   if (rowSelectionPanel) rowSelectionPanel.style.display = "block";
   if (saveHeadersBtn) saveHeadersBtn.style.display = "inline-block";
   if (clearPreviewBtn) clearPreviewBtn.style.display = "inline-block";
+}
 
-  // Get the number of columns to determine modal width
-  const columnCount = headerRow.length;
+/**
+ * Adjusts the modal width based on column count
+ * @param {number} columnCount - Number of columns
+ */
+function adjustModalWidth(columnCount) {
   const modalContent = document.querySelector(".modal-content");
   if (modalContent) {
     // Set width based on column count, but no wider than 90% of viewport

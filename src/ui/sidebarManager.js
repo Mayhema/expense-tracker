@@ -70,7 +70,13 @@ function setupDarkModeToggle() {
   const isDarkMode = localStorage.getItem("darkMode") === "true";
   darkModeToggle.checked = isDarkMode;
   document.body.classList.toggle("dark-mode", isDarkMode);
-  if (AppState) AppState.isDarkMode = isDarkMode;
+
+  // Check if AppState is available before accessing it
+  if (typeof AppState !== 'undefined' && AppState !== null) {
+    AppState.isDarkMode = isDarkMode;
+  } else {
+    console.warn("AppState not available yet, dark mode state will be set later");
+  }
 
   // Clean up any existing event handlers
   darkModeToggle.onclick = null;
@@ -81,7 +87,18 @@ function setupDarkModeToggle() {
     console.log(`Dark mode toggle clicked, new state: ${newState}`);
     document.body.classList.toggle("dark-mode", newState);
     localStorage.setItem("darkMode", newState);
-    if (AppState) AppState.isDarkMode = newState;
+
+    // FIXED: Add safety check when setting AppState values
+    try {
+      if (typeof AppState !== 'undefined') {
+        AppState.isDarkMode = newState;
+      }
+    } catch (err) {
+      console.warn("Could not update AppState with dark mode setting:", err.message);
+      // Log the full error for debugging purposes
+      console.error(err);
+    }
+
     showToast(`Dark mode ${newState ? "enabled" : "disabled"}`, "info");
 
     // Update theme for charts
@@ -275,5 +292,6 @@ function updateChartTheme(isDarkMode) {
 // Initialize on script load
 window.addEventListener('load', () => {
   console.log("Window loaded, ensuring toggle switches are working");
-  setTimeout(refreshToggleSwitches, 200);
+  // Add delay to ensure AppState is loaded
+  setTimeout(refreshToggleSwitches, 500);
 });

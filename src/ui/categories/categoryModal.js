@@ -272,14 +272,13 @@ function editCategoryItem(categoryName) {
         // Just update the color
         AppState.categories[categoryName] = updatedValue;
       }
+    } else if (newName !== categoryName) {
+      // For simple categories when name has changed
+      delete AppState.categories[categoryName];
+      AppState.categories[newName] = newColor;
     } else {
-      // For simple categories
-      if (newName !== categoryName) {
-        delete AppState.categories[categoryName];
-        AppState.categories[newName] = newColor;
-      } else {
-        AppState.categories[categoryName] = newColor;
-      }
+      // For simple categories when only color has changed
+      AppState.categories[categoryName] = newColor;
     }
 
     saveCategories();
@@ -597,9 +596,67 @@ export function showCategoryModal(transaction, onSelect) {
     size: "large" // Changed from xlarge to fix spelling warning
   });
 
-  // Add event listeners for category buttons
-  modalContent.querySelectorAll(".category-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
+  /**
+   * Handle subcategory button click
+   */
+  function handleSubcategoryClick(categoryName, modal, onSelect) {
+    return function (event) {
+      const subBtn = event.currentTarget;
+      const subcategoryName = subBtn.getAttribute("data-subcategory");
+      const subcategoryGrid = subBtn.closest(".subcategory-grid");
+
+      // Update UI to show selection
+      subcategoryGrid.querySelectorAll(".subcategory-btn").forEach(sb => {
+        sb.classList.remove("selected");
+      });
+      subBtn.classList.add("selected");
+
+      // Call onSelect with both category and subcategory
+      if (typeof onSelect === "function") {
+        onSelect(categoryName, subcategoryName);
+        modal.close();
+      }
+    };
+  }
+
+  /**
+   * Handle "None" subcategory button click
+   */
+  function handleNoneSubcategoryClick(categoryName, modal, onSelect) {
+    return function () {
+      // Call onSelect with just the category
+      if (typeof onSelect === "function") {
+        onSelect(categoryName, null);
+        modal.close();
+      }
+    };
+  }
+
+  /**
+   * Set up subcategory section
+   */
+  function setupSubcategorySection(categoryName, category, transaction, modal, subcategorySection, subcategoryGrid, onSelect) {
+    subcategorySection.style.display = "block";
+    subcategoryGrid.innerHTML = buildSubcategoryButtons(categoryName, category, transaction.subcategory);
+
+    // Add event listeners for subcategory buttons
+    subcategoryGrid.querySelectorAll(".subcategory-btn").forEach(subBtn => {
+      subBtn.addEventListener("click", handleSubcategoryClick(categoryName, modal, onSelect));
+    });
+
+    // Add a "None" button for subcategories
+    const noneBtn = subcategoryGrid.querySelector(".subcategory-none-btn");
+    if (noneBtn) {
+      noneBtn.addEventListener("click", handleNoneSubcategoryClick(categoryName, modal, onSelect));
+    }
+  }
+
+  /**
+   * Handle category button click
+   */
+  function handleCategoryClick(modalContent, transaction, modal, onSelect) {
+    return function () {
+      const btn = this;
       const categoryName = btn.getAttribute("data-category");
 
       // Update UI to show selection
@@ -617,48 +674,19 @@ export function showCategoryModal(transaction, onSelect) {
         const subcategoryGrid = modalContent.querySelector("#subcategoryGrid");
 
         if (subcategorySection && subcategoryGrid) {
-          subcategorySection.style.display = "block";
-          subcategoryGrid.innerHTML = buildSubcategoryButtons(categoryName, category, transaction.subcategory);
-
-          // Add event listeners for subcategory buttons
-          subcategoryGrid.querySelectorAll(".subcategory-btn").forEach(subBtn => {
-            subBtn.addEventListener("click", () => {
-              const subcategoryName = subBtn.getAttribute("data-subcategory");
-
-              // Update UI to show selection
-              subcategoryGrid.querySelectorAll(".subcategory-btn").forEach(sb => {
-                sb.classList.remove("selected");
-              });
-              subBtn.classList.add("selected");
-
-              // Call onSelect with both category and subcategory
-              if (typeof onSelect === "function") {
-                onSelect(categoryName, subcategoryName);
-                modal.close();
-              }
-            });
-          });
-
-          // Add a "None" button for subcategories
-          const noneBtn = subcategoryGrid.querySelector(".subcategory-none-btn");
-          if (noneBtn) {
-            noneBtn.addEventListener("click", () => {
-              // Call onSelect with just the category
-              if (typeof onSelect === "function") {
-                onSelect(categoryName, null);
-                modal.close();
-              }
-            });
-          }
+          setupSubcategorySection(categoryName, category, transaction, modal, subcategorySection, subcategoryGrid, onSelect);
         }
-      } else if (condition2) { // Use else if instead of else { if
+      } else if (typeof onSelect === "function") {
         // No subcategories, just call onSelect with the category
-        if (typeof onSelect === "function") {
-          onSelect(categoryName, null);
-          modal.close();
-        }
+        onSelect(categoryName, null);
+        modal.close();
       }
-    });
+    };
+  }
+
+  // Add event listeners for category buttons
+  modalContent.querySelectorAll(".category-btn").forEach(btn => {
+    btn.addEventListener("click", handleCategoryClick(modalContent, transaction, modal, onSelect));
   });
 
   // Add event listener for cancel button

@@ -69,6 +69,14 @@ export function updateTimelineChart(transactions, periodOption = 'month') {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 20,
+            right: 20,
+            bottom: 5,
+            left: 5
+          }
+        },
         scales: {
           x: {
             grid: {
@@ -131,13 +139,137 @@ export function updateTimelineChart(transactions, periodOption = 'month') {
 }
 
 /**
- * Shows an empty state chart when no data is available
- * @param {HTMLCanvasElement} ctx - The canvas context
+ * Updates the timeline chart with transaction data from AppState
  */
-function showEmptyStateChart(ctx) {
+function refreshTimelineChart(period = 'month') {
+  const timelineCanvas = document.getElementById('timelineChart');
+  if (!timelineCanvas) return;
+
+  // Check if we have transaction data to display
+  if (!AppState.transactions || AppState.transactions.length === 0) {
+    console.log("No valid timeline data to display - showing empty state");
+    showEmptyStateChart(timelineCanvas);
+    return;
+  }
+
   try {
-    // Create a placeholder chart with a message
-    window.timelineChart = new Chart(ctx, {
+    // Group transactions by period
+    const groupedData = groupTransactionsByPeriod(AppState.transactions, period);
+    const chartData = formatChartData(groupedData);
+
+    // Ensure layout padding is properly defined to prevent errors
+    const config = {
+      type: 'bar',
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 20,
+            right: 20,
+            bottom: 20,
+            left: 20
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          tooltip: {
+            enabled: true,
+            position: 'nearest',
+            callbacks: {
+              label: function (context) {
+                let value = context.raw;
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (typeof value === 'number') {
+                  return label + value.toFixed(2);
+                }
+                return label + value;
+              }
+            }
+          },
+          legend: {
+            position: 'top',
+            labels: {
+              color: isDarkMode ? '#e0e0e0' : '#333',
+              font: {
+                size: 14
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: gridColor
+            },
+            ticks: {
+              color: textColor,
+              autoSkip: true,
+              maxRotation: 45,
+              minRotation: 0
+            }
+          },
+          y: {
+            grid: {
+              color: gridColor
+            },
+            ticks: {
+              color: textColor,
+              // FIX: Use safer number formatting to avoid the RangeError
+              callback: function (value) {
+                if (value % 1 === 0) {
+                  return value.toString();
+                }
+                return value.toFixed(2);
+              }
+            },
+            beginAtZero: true
+          }
+        }
+      }
+    };
+
+    // Destroy any existing chart instance
+    if (window.timelineChart) {
+      destroyChart(window.timelineChart);
+      window.timelineChart = null;
+    }
+
+    // Create the new chart instance
+    window.timelineChart = new Chart(timelineCanvas, config);
+
+    console.log("Timeline chart updated successfully");
+  } catch (error) {
+    console.error("Error creating timeline chart:", error);
+    showEmptyStateChart(timelineCanvas);
+  }
+}
+
+/**
+ * Shows an empty state chart when no data is available
+ */
+function showEmptyStateChart(canvas) {
+  console.log("Displaying empty state timeline chart");
+
+  try {
+    // Destroy existing chart if present
+    if (window.timelineChart) {
+      destroyChart(window.timelineChart);
+      window.timelineChart = null;
+    }
+
+    // Make sure canvas styles are explicitly set
+    canvas.style.height = canvas.style.height || '300px';
+
+    // Create simple empty state with minimal configuration
+    const config = {
       type: 'bar',
       data: {
         labels: ['No Data'],
@@ -145,72 +277,80 @@ function showEmptyStateChart(ctx) {
           {
             label: 'Income',
             data: [0],
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 1
+            backgroundColor: 'rgba(75, 192, 192, 0.2)'
           },
           {
             label: 'Expenses',
             data: [0],
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1
+            backgroundColor: 'rgba(255, 99, 132, 0.2)'
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Explicitly define layout and padding
+        layout: {
+          padding: {
+            top: 20,
+            right: 20,
+            bottom: 20,
+            left: 20
+          }
+        },
         plugins: {
+          legend: {
+            display: true
+          },
           title: {
             display: true,
-            text: 'No transaction data available',
-            padding: {
-              top: 10,
-              bottom: 30
-            }
+            text: 'No transaction data available'
           },
-          subtitle: {
-            display: true,
-            text: 'Upload transaction files to see your financial timeline',
-            padding: {
-              bottom: 10
-            }
-          },
+          // Disable tooltips completely for empty state
           tooltip: {
-            enabled: true // Keep tooltips enabled
+            enabled: false
           }
         },
         scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              // FIX: Use a safer formatter to avoid the RangeError
-              callback: function (value) {
-                return value.toString();
-              },
-              display: false
-            },
+          x: {
+            display: true,
             grid: {
               display: false
             }
           },
-          x: {
-            ticks: {
-              display: false
-            },
+          y: {
+            display: true,
+            beginAtZero: true,
             grid: {
               display: false
             }
           }
-        }
+        },
+        animation: false // Disable animations for better performance
       }
-    });
-    console.log("Empty state chart displayed");
+    };
+
+    // Create chart using the safety wrapper
+    window.timelineChart = createSafeChart(canvas.id, config);
+
   } catch (error) {
     console.error("Error creating empty state chart:", error);
-    // If even the empty state fails, clear any references
-    window.timelineChart = null;
+
+    // Fall back to canvas rendering if chart fails
+    try {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No transaction data available', canvas.width / 2, canvas.height / 2);
+      }
+    } catch (fallbackError) {
+      console.error("Error creating fallback display:", fallbackError);
+    }
   }
 }
 
@@ -687,7 +827,7 @@ document.addEventListener('DOMContentLoaded', function () {
     periodSelect.addEventListener('change', function () {
       // Only update if we have transactions
       if (AppState.transactions && AppState.transactions.length > 0) {
-        updateTimelineChart(AppState.transactions, this.value);
+        refreshTimelineChart(this.value);
       }
     });
   }

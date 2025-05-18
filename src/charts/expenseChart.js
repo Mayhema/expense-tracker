@@ -5,14 +5,41 @@ let pieChart = null;
 let showSubcategories = false;
 
 /**
+ * Groups transactions by category or subcategory
+ * @param {Array} transactions - The transactions to process
+ * @returns {Object} Object containing category totals
+ */
+function groupTransactionsByCategory(transactions) {
+  const categoryTotals = {};
+
+  transactions.forEach(tx => {
+    // Only consider expenses (not income)
+    const amount = parseFloat(tx.expenses) || 0;
+    if (!amount) return;
+
+    if (showSubcategories && tx.category && tx.subcategory) {
+      // Use subcategory as the key when showing subcategories
+      const key = `${tx.category}:${tx.subcategory}`;
+      categoryTotals[key] = (categoryTotals[key] || 0) + amount;
+    } else {
+      // Just use main category
+      const category = tx.category || "Uncategorized";
+      categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+    }
+  });
+
+  return categoryTotals;
+}
+
+/**
  * Updates the expense pie chart with the given transactions
  * @param {Array} transactions - The transactions to display
  * @returns {boolean} True if successful, false otherwise
  */
 export function updateExpenseChart(transactions) {
-  try {
-    console.log("Updating expense chart with", transactions?.length || 0, "transactions");
+  console.log(`Updating expense chart with ${transactions.length} transactions`);
 
+  try {
     // Get the canvas
     const canvas = document.getElementById("expenseChart");
     if (!canvas) {
@@ -34,23 +61,7 @@ export function updateExpenseChart(transactions) {
     }
 
     // Group by category or subcategory based on toggle
-    const categoryTotals = {};
-
-    validTransactions.forEach(tx => {
-      // Only consider expenses (not income)
-      const amount = parseFloat(tx.expenses) || 0;
-      if (!amount) return;
-
-      if (showSubcategories && tx.category && tx.subcategory) {
-        // Use subcategory as the key when showing subcategories
-        const key = `${tx.category}:${tx.subcategory}`;
-        categoryTotals[key] = (categoryTotals[key] || 0) + amount;
-      } else {
-        // Just use main category
-        const category = tx.category || "Uncategorized";
-        categoryTotals[category] = (categoryTotals[category] || 0) + amount;
-      }
-    });
+    const categoryTotals = groupTransactionsByCategory(validTransactions);
 
     // If no categories with expenses, show empty chart
     const categories = Object.keys(categoryTotals);
@@ -99,11 +110,22 @@ export function updateExpenseChart(transactions) {
       }]
     };
 
-    // Create the chart using the safer method
-    pieChart = createSafeChart("expenseChart", {
+    // Ensure layout properties are properly defined
+    const config = {
       type: 'pie',
       data: chartData,
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        // Explicitly define layout padding to prevent errors
+        layout: {
+          padding: {
+            top: 20,
+            right: 20,
+            bottom: 20,
+            left: 20
+          }
+        },
         plugins: {
           legend: {
             position: 'right',
@@ -127,20 +149,32 @@ export function updateExpenseChart(transactions) {
             display: true,
             text: showSubcategories ? 'Expenses by Subcategory' : 'Expenses by Category'
           }
-        },
-        layout: {
-          padding: 20
         }
       }
-    });
+    };
 
-    // Add toggle button for subcategories
-    addToggleSubcategoriesButton();
+    // Use createSafeChart for reliable chart creation
+    window.expenseChart = createSafeChart('expenseChart', config);
 
-    return !!pieChart;
   } catch (error) {
-    console.error("Error updating expense chart:", error);
-    return false;
+    console.error("Error creating expense chart:", error);
+
+    // Fall back to canvas rendering
+    const canvas = document.getElementById('expenseChart');
+    if (canvas) {
+      try {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error creating expense chart', canvas.width / 2, canvas.height / 2);
+      } catch (fallbackError) {
+        console.error("Error creating fallback display:", fallbackError);
+      }
+    }
   }
 }
 

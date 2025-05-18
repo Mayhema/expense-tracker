@@ -102,6 +102,9 @@ export function loadMergedFiles() {
   }
 }
 
+// Flag to track if categories have been initialized globally
+export const categoriesInitialized = { value: false };
+
 // Flag to track if normalization has already run
 let categoriesNormalized = false;
 
@@ -191,6 +194,12 @@ function logIfVerbose(message, verboseLogging) {
  * Ensures default categories are loaded and normalized
  */
 export function ensureDefaultCategories() {
+  // Only run once globally across the entire app
+  if (categoriesInitialized.value) {
+    console.log("Categories already initialized globally, skipping");
+    return AppState.categories;
+  }
+
   if (!AppState.categories) {
     AppState.categories = {};
   }
@@ -200,7 +209,12 @@ export function ensureDefaultCategories() {
 
   // Save the normalized categories
   saveCategories();
-  console.log("Ensured default categories are loaded:", Object.keys(AppState.categories).sort());
+  console.log("Categories initialized:", Object.keys(AppState.categories).sort());
+
+  // Set global flag to prevent redundant initialization
+  categoriesInitialized.value = true;
+
+  return AppState.categories;
 }
 
 // Initialize the AppState once
@@ -209,8 +223,8 @@ export function ensureDefaultCategories() {
   AppState.isDarkMode = localStorage.getItem("darkMode") === "true" || false;
   AppState.categories = JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES;
 
-  // Normalize only once during initialization
-  if (!categoriesNormalized) {
+  // Normalize only once during initialization and set the global flag
+  if (!categoriesInitialized) {
     AppState.categories = normalizeCategories();
     ensureDefaultCategories();
   }

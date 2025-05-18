@@ -1,4 +1,4 @@
-import { AppState } from "../core/appState.js";
+import { AppState, categoriesInitialized } from "../core/appState.js";
 import { DEFAULT_CATEGORIES } from "../core/constants.js";
 import { showModal } from "./modalManager.js";
 import { showToast } from "./uiManager.js";
@@ -6,32 +6,18 @@ import { updateCategoryNameInMappings, updateSubcategoryNameInMappings } from ".
 
 // Define all functions that will be exported only once at the end of the file
 export function initializeCategories() {
-  // Use AppState.categories, which is derived from DEFAULT_CATEGORIES
+  // Check if categories are already initialized
+  if (categoriesInitialized) {
+    console.log("Categories already initialized, attaching event listeners only");
+    // Only attach event listeners, skip redundant initialization
+    attachCategoryEventListeners();
+    return;
+  }
+
   console.log("Initializing categories:", Object.keys(AppState.categories));
 
-  // Don't immediately call ensureDefaultCategories - defer it
+  // Don't call ensureDefaultCategories again - it's already been called in appState.js
   attachCategoryEventListeners();
-
-  // Defer AppState access with a small delay
-  setTimeout(() => {
-    try {
-      import("../core/appState.js").then(module => {
-        // Now we can safely use the AppState module
-        if (module.AppState && module.ensureDefaultCategories) {
-          module.ensureDefaultCategories();
-        } else {
-          console.warn("AppState module loaded but required functions not found");
-          ensureDefaultCategoriesFallback();
-        }
-      }).catch(err => {
-        console.error("Error importing AppState:", err);
-        ensureDefaultCategoriesFallback();
-      });
-    } catch (err) {
-      console.error("Error ensuring default categories:", err);
-      ensureDefaultCategoriesFallback();
-    }
-  }, 100);
 }
 
 /**
