@@ -1,82 +1,101 @@
-import { showFormatMappingsModal } from "../ui/formatMappingsModal.js";
+import { showCategoryModal } from "../ui/categories/categoryModal.js";
+import { showMappingsModal } from "../mappings/mappingsManager.js"; // This import should work now
 import { showMergedFilesModal } from "../ui/mergedFilesModal.js";
-import { openEditCategoriesModal } from "../ui/categories/categoryModal.js";
-import { applyFilters } from "../ui/transactionManager.js";
+import { createNewFileInput } from "../ui/fileUpload.js";
 import { exportMergedFilesAsCSV } from "../exports/exportManager.js";
-import { onFileUpload, createNewFileInput } from "../ui/fileUpload.js";
 
 /**
- * Initializes global event listeners
+ * Initialize event listeners for the application
  */
 export function initializeEventListeners() {
-  // Clear any existing handlers by removing and recreating elements
+  console.log("Initializing event listeners...");
 
-  // File upload button handler
+  // File upload events
+  initFileUploadEvents();
+
+  // Sidebar button events
+  initSidebarButtonEvents();
+
+  // Filter events
+  initFilterEvents();
+
+  // Export events
+  initExportEvents();
+
+  console.log("Event listeners initialized");
+}
+
+/**
+ * Initialize file upload-related events
+ */
+function initFileUploadEvents() {
   const fileUploadBtn = document.getElementById("fileUploadBtn");
   if (fileUploadBtn) {
-    // Clone to remove existing listeners
-    const newBtn = fileUploadBtn.cloneNode(true);
-    if (fileUploadBtn.parentNode) {
-      fileUploadBtn.parentNode.replaceChild(newBtn, fileUploadBtn);
-    }
+    fileUploadBtn.addEventListener("click", () => {
+      const fileInput = createNewFileInput();
+      if (fileInput) fileInput.click();
+    });
+  }
+}
 
-    // Add single click handler that creates a fresh file input
-    newBtn.addEventListener("click", () => {
-      const input = createNewFileInput();
-      if (input) {
-        input.click();
-      }
+/**
+ * Initialize sidebar button events
+ */
+function initSidebarButtonEvents() {
+  // Categories button
+  const editCategoriesBtn = document.getElementById("editCategoriesSidebarBtn");
+  if (editCategoriesBtn) {
+    editCategoriesBtn.addEventListener("click", () => {
+      // Change this to use showCategoryModal instead of openEditCategoriesModal
+      showCategoryModal();
     });
   }
 
-  // Reset file input event listener
-  const fileInput = document.getElementById("fileInput");
-  if (fileInput) {
-    // Create fresh event listener
-    const newInput = fileInput.cloneNode(true);
-    if (fileInput.parentNode) {
-      fileInput.parentNode.replaceChild(newInput, fileInput);
-    }
-    newInput.addEventListener("change", onFileUpload);
-  }
-
-  // Initialize format mappings and merged files buttons
+  // Mappings button
   const showMappingsBtn = document.getElementById("showMappingsBtn");
-  const showMergedFilesBtn = document.getElementById("showMergedFilesBtn");
-  const editCategoriesBtn = document.getElementById("editCategoriesSidebarBtn");
-  const exportMergedBtn = document.getElementById("exportMergedBtn");
-
   if (showMappingsBtn) {
-    showMappingsBtn.addEventListener("click", showFormatMappingsModal);
+    showMappingsBtn.addEventListener("click", showMappingsModal);
   }
 
+  // Merged files button
+  const showMergedFilesBtn = document.getElementById("showMergedFilesBtn");
   if (showMergedFilesBtn) {
     showMergedFilesBtn.addEventListener("click", showMergedFilesModal);
   }
+}
 
-  if (editCategoriesBtn) {
-    editCategoriesBtn.addEventListener("click", openEditCategoriesModal);
-  }
-
-  if (exportMergedBtn) {
-    exportMergedBtn.addEventListener("click", exportMergedFilesAsCSV);
-  }
-
-  // Initialize filter button
+/**
+ * Initialize filter-related events
+ */
+function initFilterEvents() {
   const applyFiltersBtn = document.getElementById("applyFiltersBtn");
   if (applyFiltersBtn) {
     applyFiltersBtn.addEventListener("click", () => {
-      const filters = {
-        startDate: document.getElementById("filterStartDate")?.value,
-        endDate: document.getElementById("filterEndDate")?.value,
-        category: document.getElementById("filterCategory")?.value,
-        minAmount: parseFloat(document.getElementById("filterMinAmount")?.value || "0"),
-        maxAmount: parseFloat(document.getElementById("filterMaxAmount")?.value || "0"),
-      };
-      applyFilters(filters);
+      import('../ui/transactionManager.js')
+        .then(module => {
+          if (typeof module.applyFilters === 'function') {
+            const filters = {
+              startDate: document.getElementById("filterStartDate")?.value || null,
+              endDate: document.getElementById("filterEndDate")?.value || null,
+              category: document.getElementById("filterCategory")?.value || null,
+              minAmount: document.getElementById("filterMinAmount")?.value || null,
+              maxAmount: document.getElementById("filterMaxAmount")?.value || null
+            };
+            module.applyFilters(filters);
+          }
+        })
+        .catch(err => console.error("Error applying filters:", err));
     });
   }
+}
 
-  // Attach global functions that need to be accessible from HTML
-  window.applyFilters = applyFilters;
+/**
+ * Initialize export-related events
+ */
+function initExportEvents() {
+  // Add export button event listeners here if needed
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportMergedFilesAsCSV);
+  }
 }

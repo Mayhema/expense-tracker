@@ -287,171 +287,149 @@ function attachEventHandlers(container, modal) {
   container.querySelector("#categoriesList").addEventListener("click", (event) => {
     const target = event.target;
 
-    // Handle save category button
-    if (target.classList.contains("save-category-btn")) {
-      const categoryName = target.getAttribute("data-name");
-      const row = target.closest(".category-edit-row");
-      const nameInput = row.querySelector(".category-name-input");
-      const colorInput = row.querySelector(".category-color-input");
+    const buttonHandlers = {
+      "save-category-btn": () => handleSaveCategoryClick(target, container),
+      "delete-category-btn": () => handleDeleteCategoryClick(target, container),
+      "subcategories-btn": () => handleSubcategoriesClick(target, container),
+      "save-subcategory-btn": () => handleSaveSubcategoryClick(target, container),
+      "delete-subcategory-btn": () => handleDeleteSubcategoryClick(target, container),
+      "add-subcategory-btn": () => handleAddSubcategoryClick(target, container)
+    };
 
-      const newName = nameInput.value.trim();
-      const newColor = colorInput.value;
-
-      if (!newName) {
-        showToast("Category name cannot be empty", "error");
-        return;
+    // Execute handler if button class matches
+    for (const [className, handler] of Object.entries(buttonHandlers)) {
+      if (target.classList.contains(className)) {
+        handler();
+        break;
       }
-
-      // If name changed, check if new name already exists
-      if (newName !== categoryName && AppState.categories[newName]) {
-        showToast(`Category "${newName}" already exists`, "error");
-        return;
-      }
-
-      // Update category
-      updateCategory(categoryName, newName, newColor);
-
-      // Re-render to update all references
-      renderCategoryList(container);
-
-      showToast(`Category updated successfully`, "success");
-    }
-
-    // Handle delete category button
-    else if (target.classList.contains("delete-category-btn")) {
-      const categoryName = target.getAttribute("data-name");
-
-      if (confirm(`Are you sure you want to delete category "${categoryName}"?`)) {
-        delete AppState.categories[categoryName];
-        saveCategories();
-        renderCategoryList(container);
-        showToast(`Category "${categoryName}" deleted`, "success");
-      }
-    }
-
-    // Handle subcategories button
-    else if (target.classList.contains("subcategories-btn")) {
-      const categoryName = target.getAttribute("data-name");
-      const subcategoriesContainer = container.querySelector(`#subcategories-${categoryName}`);
-
-      if (subcategoriesContainer) {
-        const isVisible = subcategoriesContainer.style.display !== "none";
-        subcategoriesContainer.style.display = isVisible ? "none" : "block";
-
-        // If showing subcategories, ensure the category has a subcategories object
-        if (!isVisible) {
-          if (typeof AppState.categories[categoryName] === "string") {
-            // Convert simple category to complex one with subcategories
-            const color = AppState.categories[categoryName];
-            AppState.categories[categoryName] = {
-              color: color,
-              subcategories: {}
-            };
-            saveCategories();
-          } else if (!AppState.categories[categoryName].subcategories) {
-            AppState.categories[categoryName].subcategories = {};
-            saveCategories();
-          }
-        }
-      }
-    }
-
-    // Handle save subcategory button
-    else if (target.classList.contains("save-subcategory-btn")) {
-      const parentCategory = target.getAttribute("data-parent");
-      const subcategoryName = target.getAttribute("data-name");
-      const row = target.closest(".subcategory-edit-row");
-      const nameInput = row.querySelector(".subcategory-name-input");
-      const colorInput = row.querySelector(".subcategory-color-input");
-
-      const newName = nameInput.value.trim();
-      const newColor = colorInput.value;
-
-      if (!newName) {
-        showToast("Subcategory name cannot be empty", "error");
-        return;
-      }
-
-      // If name changed, check if new name already exists
-      if (newName !== subcategoryName &&
-        AppState.categories[parentCategory].subcategories[newName]) {
-        showToast(`Subcategory "${newName}" already exists`, "error");
-        return;
-      }
-
-      // Update subcategory
-      updateSubcategory(parentCategory, subcategoryName, newName, newColor);
-
-      // Re-render to update all references
-      renderCategoryList(container);
-
-      showToast(`Subcategory updated successfully`, "success");
-    }
-
-    // Handle delete subcategory button
-    else if (target.classList.contains("delete-subcategory-btn")) {
-      const parentCategory = target.getAttribute("data-parent");
-      const subcategoryName = target.getAttribute("data-name");
-
-      if (confirm(`Are you sure you want to delete subcategory "${subcategoryName}"?`)) {
-        delete AppState.categories[parentCategory].subcategories[subcategoryName];
-        saveCategories();
-        renderCategoryList(container);
-        showToast(`Subcategory "${subcategoryName}" deleted`, "success");
-      }
-    }
-
-    // Handle add subcategory button
-    else if (target.classList.contains("add-subcategory-btn")) {
-      const parentCategory = target.getAttribute("data-parent");
-      const form = target.closest(".add-subcategory-form");
-      const nameInput = form.querySelector(".new-subcategory-name");
-      const colorInput = form.querySelector(".new-subcategory-color");
-
-      const name = nameInput.value.trim();
-      const color = colorInput.value;
-
-      if (!name) {
-        showToast("Please enter a subcategory name", "error");
-        return;
-      }
-
-      // Check if category is in correct format
-      if (typeof AppState.categories[parentCategory] === "string") {
-        // Convert simple category to complex one with subcategories
-        const categoryColor = AppState.categories[parentCategory];
-        AppState.categories[parentCategory] = {
-          color: categoryColor,
-          subcategories: {}
-        };
-      }
-
-      // Ensure subcategories object exists
-      if (!AppState.categories[parentCategory].subcategories) {
-        AppState.categories[parentCategory].subcategories = {};
-      }
-
-      // Check if subcategory already exists
-      if (AppState.categories[parentCategory].subcategories[name]) {
-        showToast("This subcategory already exists", "error");
-        return;
-      }
-
-      // Add the new subcategory
-      AppState.categories[parentCategory].subcategories[name] = color;
-
-      // Save to local storage
-      saveCategories();
-
-      // Clear the inputs
-      nameInput.value = "";
-
-      // Re-render the category list
-      renderCategoryList(container);
-
-      showToast(`Subcategory "${name}" added successfully`, "success");
     }
   });
+
+  // Handler functions for different button types
+  function handleSaveCategoryClick(target, container) {
+    const categoryName = target.getAttribute("data-name");
+    const row = target.closest(".category-edit-row");
+    const nameInput = row.querySelector(".category-name-input");
+    const colorInput = row.querySelector(".category-color-input");
+    const newName = nameInput.value.trim();
+    const newColor = colorInput.value;
+
+    if (!newName) {
+      showToast("Category name cannot be empty", "error");
+      return;
+    }
+
+    if (newName !== categoryName && AppState.categories[newName]) {
+      showToast(`Category "${newName}" already exists`, "error");
+      return;
+    }
+
+    updateCategory(categoryName, newName, newColor);
+    renderCategoryList(container);
+    showToast(`Category updated successfully`, "success");
+  }
+
+  function handleDeleteCategoryClick(target, container) {
+    const categoryName = target.getAttribute("data-name");
+    if (confirm(`Are you sure you want to delete category "${categoryName}"?`)) {
+      delete AppState.categories[categoryName];
+      saveCategories();
+      renderCategoryList(container);
+      showToast(`Category "${categoryName}" deleted`, "success");
+    }
+  }
+
+  function handleSubcategoriesClick(target, container) {
+    const categoryName = target.getAttribute("data-name");
+    const subcategoriesContainer = container.querySelector(`#subcategories-${categoryName}`);
+
+    if (subcategoriesContainer) {
+      const isVisible = subcategoriesContainer.style.display !== "none";
+      subcategoriesContainer.style.display = isVisible ? "none" : "block";
+
+      if (!isVisible) {
+        ensureSubcategoriesExist(categoryName);
+      }
+    }
+  }
+
+  function handleSaveSubcategoryClick(target, container) {
+    const parentCategory = target.getAttribute("data-parent");
+    const subcategoryName = target.getAttribute("data-name");
+    const row = target.closest(".subcategory-edit-row");
+    const nameInput = row.querySelector(".subcategory-name-input");
+    const colorInput = row.querySelector(".subcategory-color-input");
+    const newName = nameInput.value.trim();
+    const newColor = colorInput.value;
+
+    if (!newName) {
+      showToast("Subcategory name cannot be empty", "error");
+      return;
+    }
+
+    if (newName !== subcategoryName &&
+      AppState.categories[parentCategory].subcategories[newName]) {
+      showToast(`Subcategory "${newName}" already exists`, "error");
+      return;
+    }
+
+    updateSubcategory(parentCategory, subcategoryName, newName, newColor);
+    renderCategoryList(container);
+    showToast(`Subcategory updated successfully`, "success");
+  }
+
+  function handleDeleteSubcategoryClick(target, container) {
+    const parentCategory = target.getAttribute("data-parent");
+    const subcategoryName = target.getAttribute("data-name");
+
+    if (confirm(`Are you sure you want to delete subcategory "${subcategoryName}"?`)) {
+      delete AppState.categories[parentCategory].subcategories[subcategoryName];
+      saveCategories();
+      renderCategoryList(container);
+      showToast(`Subcategory "${subcategoryName}" deleted`, "success");
+    }
+  }
+
+  function handleAddSubcategoryClick(target, container) {
+    const parentCategory = target.getAttribute("data-parent");
+    const form = target.closest(".add-subcategory-form");
+    const nameInput = form.querySelector(".new-subcategory-name");
+    const colorInput = form.querySelector(".new-subcategory-color");
+    const name = nameInput.value.trim();
+    const color = colorInput.value;
+
+    if (!name) {
+      showToast("Please enter a subcategory name", "error");
+      return;
+    }
+
+    ensureSubcategoriesExist(parentCategory);
+
+    if (AppState.categories[parentCategory].subcategories[name]) {
+      showToast("This subcategory already exists", "error");
+      return;
+    }
+
+    AppState.categories[parentCategory].subcategories[name] = color;
+    saveCategories();
+    nameInput.value = "";
+    renderCategoryList(container);
+    showToast(`Subcategory "${name}" added successfully`, "success");
+  }
+
+  function ensureSubcategoriesExist(categoryName) {
+    if (typeof AppState.categories[categoryName] === "string") {
+      const color = AppState.categories[categoryName];
+      AppState.categories[categoryName] = {
+        color: color,
+        subcategories: {}
+      };
+      saveCategories();
+    } else if (!AppState.categories[categoryName].subcategories) {
+      AppState.categories[categoryName].subcategories = {};
+      saveCategories();
+    }
+  }
 
   // Add event handler for regex editor button
   container.querySelector("#openRegexEditorBtn").addEventListener("click", () => {

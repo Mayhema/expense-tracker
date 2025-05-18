@@ -891,6 +891,54 @@ function toggleMappingSection(mappingId) {
 }
 
 /**
+ * Shows the format mappings modal
+ */
+export function showMappingsModal() {
+  const modalContent = document.createElement("div");
+  modalContent.innerHTML = `
+    <div style="padding: 10px;">
+      <h3>File Format Mappings</h3>
+      <p>These mappings help auto-detect file formats when importing new files.</p>
+
+      <div id="mappingsListView" style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
+        Loading mappings...
+      </div>
+
+      <div style="margin-top: 20px; text-align: right;">
+        <button id="clearMappingsBtn" class="action-btn danger-btn" style="margin-right: 10px;">Clear All Mappings</button>
+        <button id="closeMappingsBtn" class="action-btn">Close</button>
+      </div>
+    </div>
+  `;
+
+  import("../ui/modalManager.js").then(module => {
+    const modal = module.showModal({
+      title: "Format Mappings",
+      content: modalContent,
+      size: "large"
+    });
+
+    // Render mappings list
+    renderMappingList(document.getElementById("mappingsListView"));
+
+    // Add event listeners
+    document.getElementById("closeMappingsBtn").addEventListener("click", () => {
+      modal.close();
+    });
+
+    document.getElementById("clearMappingsBtn").addEventListener("click", () => {
+      if (confirm("Are you sure you want to clear all file format mappings? This cannot be undone.")) {
+        localStorage.removeItem("fileFormatMappings");
+        renderMappingList(document.getElementById("mappingsListView"));
+        import("../ui/uiManager.js").then(m => m.showToast("All mappings cleared", "info"));
+      }
+    });
+  }).catch(err => {
+    console.error("Error showing mappings modal:", err);
+  });
+}
+
+/**
  * Gets a mapping by name
  * @param {string} name - The name to look for
  * @returns {Object|null} The mapping object or null if not found

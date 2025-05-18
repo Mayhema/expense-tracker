@@ -183,8 +183,11 @@ function createCategoryDropdown(rowIndex, selectedCategory, selectedSubcategory)
     categories[selectedCategory].subcategories &&
     Object.keys(categories[selectedCategory].subcategories).length > 0;
 
-  // Return complete category UI with both dropdowns in a container
-  return `<div class="category-container" style="width: 100%;">
+  // Create the subcategory dropdown with proper disabled state
+  const subcategoryDropdown = createSubcategoryDropdown(rowIndex, selectedCategory, selectedSubcategory);
+
+  // Return complete category UI with both dropdowns in a container with fixed width to prevent shifting
+  return `<div class="category-container" style="width: 100%; display: flex; flex-direction: column;">
     <select
       onchange="window.changeTxCategory(${rowIndex}, this.value)"
       class="category-select"
@@ -194,20 +197,42 @@ function createCategoryDropdown(rowIndex, selectedCategory, selectedSubcategory)
       ${selectedColorStyle}
       style="width: 100%; min-width: 100%; box-sizing: border-box;"
     >${options}</select>
-    ${hasSubcategories ? createSubcategoryDropdown(rowIndex, selectedCategory, selectedSubcategory) : ''}
+    ${subcategoryDropdown}
   </div>`;
 }
 
-// Fix subcategory dropdown styling
+// Fix the subcategory dropdown function to handle disabled state
 function createSubcategoryDropdown(rowIndex, mainCategory, selectedSubcategory) {
-  if (!mainCategory || !AppState.categories[mainCategory] ||
-    typeof AppState.categories[mainCategory] !== 'object' ||
-    !AppState.categories[mainCategory].subcategories ||
-    Object.keys(AppState.categories[mainCategory].subcategories).length === 0) {
-    return '';
+  const categories = AppState.categories || {};
+  const hasCategory = !!mainCategory;
+
+  const hasSubcategories = hasCategory &&
+    categories[mainCategory] &&
+    typeof categories[mainCategory] === 'object' &&
+    categories[mainCategory].subcategories &&
+    Object.keys(categories[mainCategory].subcategories).length > 0;
+
+  // Base styles with conditional disabled state
+  const baseStyles = `
+    width: 100%;
+    min-width: 100%;
+    margin-top: 3px;
+    box-sizing: border-box;
+    ${!hasCategory || !hasSubcategories ? 'opacity: 0.6; cursor: not-allowed;' : ''}
+  `;
+
+  // If no category is selected or the category has no subcategories, show disabled dropdown
+  if (!hasCategory || !hasSubcategories) {
+    return `<select
+      class="subcategory-select"
+      data-index="${rowIndex}"
+      disabled
+      style="${baseStyles}"
+    ><option value="">No subcategories</option></select>`;
   }
 
-  const subcategories = AppState.categories[mainCategory].subcategories;
+  // If we get here, we have a category with subcategories
+  const subcategories = categories[mainCategory].subcategories;
   let options = '<option value="">None</option>';
 
   // Sort subcategories alphabetically
@@ -236,7 +261,7 @@ function createSubcategoryDropdown(rowIndex, mainCategory, selectedSubcategory) 
     class="subcategory-select"
     data-index="${rowIndex}"
     ${selectedColorStyle}
-    style="width: 100%; min-width: 100%; margin-top: 3px; box-sizing: border-box;"
+    style="${baseStyles}"
   >${options}</select>`;
 }
 
@@ -798,7 +823,32 @@ window.editTransaction = function (index) {
 };
 
 window.revertTransaction = function (index) {
-  // ...existing code for reverting transactions...
+  const tx = AppState.transactions[index];
+  if (!tx || !tx.originalData) return;
+
+  // Confirm with user
+  if (!confirm("Revert this transaction to its original state?")) return;
+
+  // Restore original values
+  const original = tx.originalData;
+  tx.date = original.date;
+  tx.description = original.description;
+  tx.income = original.income;
+  tx.expenses = original.expenses;
+  tx.category = original.category;
+  tx.subcategory = original.subcategory;
+  tx.currency = original.currency || tx.currency;
+
+  // Remove edit markers
+  delete tx.originalData;
+  delete tx.edited;
+
+  // Save to localStorage
+  localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+
+  // Update UI
+  renderTransactions(AppState.transactions);
+  showToast("Transaction reverted to original", "success");
 };
 
 window.deleteTransaction = deleteTransaction;

@@ -229,21 +229,18 @@
   white-space: nowrap;
 }
 
-/* Category cell styling with colors */
+/* Category cell styling with colors - CONSOLIDATED SELECTOR */
 .category-cell {
   transition: background-color 0.3s;
   display: flex;
   align-items: center;
   padding: 0 !important;
-}
-
-.category-cell {
   width: 150px;
   min-width: 150px;
   max-width: 150px;
-  padding: 0 !important;
 }
 
+/* Category container styling - CONSOLIDATED SELECTOR */
 .category-container {
   display: flex;
   flex-direction: column;
@@ -651,20 +648,18 @@ th {
   overflow-y: auto;
 }
 
-/* Preview table styling is already defined above */
-
-/* Category styling */
+/* Category styling - CONSOLIDATED SELECTOR */
 #categoryList {
-  display: flex;
+  display: flex !important;
   flex-wrap: wrap;
   margin: 10px 0;
   gap: 8px;
   min-height: 40px;
 }
 
+/* Category button styling - CONSOLIDATED SELECTOR */
 .category-btn {
   padding: 6px 12px;
-  margin: 5px;
   border: none;
   border-radius: 20px;
   cursor: pointer;
@@ -672,6 +667,8 @@ th {
   transition: all 0.3s ease;
   text-align: center;
   white-space: nowrap;
+  display: inline-block;
+  margin: 4px; /* Keep only one margin property */
 }
 
 .category-btn.active {
@@ -784,150 +781,69 @@ th {
 
 .dark-mode .transaction-row.edited {
   background-color: #3a3527;
-
-  /* These styles are already defined above */
-  .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-  }
-
-  .modal-container {
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 20px;
-    position: relative;
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-  }
-
-  .dark-mode .modal-header {
-    border-bottom: 1px solid #444;
-  }
-
-  .modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #777;
-  }
-
-  .dark-mode .modal-close {
-    color: #aaa;
-  }
-
-  .modal-body {
-    margin-bottom: 20px;
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    padding-top: 10px;
-    border-top: 1px solid #eee;
-  }
-
-  .dark-mode .modal-footer {
-    border-top: 1px solid #444;
-  }
-
-  /* Category editor styling */
-  .category-edit-row {
-    display: flex;
-    align-items: center;
-    background-color: #f8f8f8;
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 8px;
-  }
-
-  .dark-mode .category-edit-row {
-    background-color: #333;
-  }
-
-  .category-edit-row input[type="color"] {
-    width: 40px;
-
-    /* Category editor styling - additional properties */
-    .category-edit-row {
-      background-color: #f8f8f8;
-      padding: 8px;
-    }
-
-    .dark-mode .category-edit-row {
-      background-color: #333;
-    }
-  }
-
-  .dark-mode .category-edit-row input[type="text"] {
-    background-color: #2a2a2a;
-    color: #fff;
-    border-color: #555;
-  }
-
-  .category-edit-row button {
-    background: none;
-    border: none;
-    padding: 5px 8px;
-  }
-
-  /* Add category form styling */
-  .add-category-form {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-  }
-
-  .dark-mode .add-category-form {
-    border-bottom: 1px solid #444;
-  }
-
-  .add-category-form input[type="text"] {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-right: 10px;
-  }
-
-  /* Add category form styling - additional properties */
-  width: 50px;
-  height: 36px;
-  border: none;
-  border-radius: 4px;
-  margin-right: 10px;
-  padding: 0;
 }
 
-.add-category-form button {
-  padding: 8px 16px;
-  background-color: #4CAF50;
-  color: white;
+/* Modal styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+}
+
+.modal-container {
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.dark-mode .modal-header {
+  border-bottom: 1px solid #444;
+}
+
+.modal-close {
+  background: none;
   border: none;
-  border-radius: 4px;
+  font-size: 24px;
   cursor: pointer;
+  color: #777;
 }
 
-/* Category mapping styling */
-.category-mapping-container {
-  margin-top: 20px;
+.dark-mode .modal-close {
+  color: #aaa;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
   border-top: 1px solid #eee;
-  padding-top: 15px;
 }
 
+.dark-mode .modal-footer {
+  border-top: 1px solid #444;
+}
+
+/* Category mapping section - CONSOLIDATED SELECTOR - Remove duplicate at line 845 */
+/* The category-mapping-container is already defined at line 76 */
+
+/* Category header styling - CONSOLIDATED SELECTOR */
 .category-header {
   padding: 8px;
   border-radius: 4px;
@@ -935,95 +851,127 @@ th {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
 }
 
-/* Charts section styling */
+/* Charts container styling - CONSOLIDATED SELECTOR */
 .charts-container {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  margin-top: 20px;
 }
 
+/* Chart wrapper styling - CONSOLIDATED SELECTOR */
 .chart-wrapper {
   background-color: #fff;
   border-radius: 8px;
   padding: 15px;
-
-  /* Category mapping styling - already defined above */
-  .dark-mode .chart-wrapper {
-    background-color: #2a2a2a;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .category-header {
-      padding: 8px;
-      border-radius: 4px;
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-    }
-
-    /* Charts section styling */
-    .charts-container {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-top: 20px;
-    }
-
-    .chart-wrapper {
-      background-color: #fff;
-      border-radius: 8px;
-      padding: 15px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      height: 250px;
-      position: relative;
-      overflow: hidden;
-      flex: 1;
-      min-height: 400px;
-    }
-
-    .dark-mode .chart-wrapper {
-      background-color: #2a2a2a;
-    }
-  }
-
-  /* Charts section styling */
-  .charts-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
-  }
-
-  .chart-wrapper {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 15px;
-
-    /* Subcategory styles */
-    .subcategory-btn {
-      margin-left: 15px;
-      font-size: 0.9em;
-    }
-
-    /* Category header styling already defined above */
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .dark-mode .category-section-header {
-    background-color: #333;
-  }
-
-  /* Charts section styling already defined above */
+  flex: 1;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.dark-mode .chart-wrapper {
+  background-color: #2a2a2a;
+}
+
+.chart-wrapper h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Make canvas take up more space */
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: calc(100% - 40px) !important;
+  max-height: 500px;
+}
+
+/* Summary styling improvements */
+.summary-container {
+  margin: 15px 0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.dark-mode .summary-row {
+  background-color: #2d2d2d;
+}
+
+.summary-item {
+  flex: 1;
+  text-align: center;
+}
+
+.positive-balance {
+  color: #4CAF50;
+}
+
+.negative-balance {
+  color: #F44336;
+}
+
+/* Debug-only elements */
+.debug-only {
+  display: none;
+}
+
+.debug-mode .debug-only {
+  display: block;
+}
+
+/* For inline debug elements */
+.debug-mode .debug-only-inline {
+  display: inline-block;
+}
+
+/* Category select and subcategory select styling */
+.category-select,
+.subcategory-select {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  height: 28px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 13px;
+}
+
+/* Stable width for subcategory dropdown */
+.subcategory-select {
+  margin-top: 3px;
+}
+
+.subcategory-select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.dark-mode .subcategory-select:disabled {
+  background-color: #333;
+  color: #777;
+}
+
+.dark-mode .category-select,
+.dark-mode .subcategory-select {
+  border-color: #555;
+  background-color: #333;
+  color: #fff;
+}
+
+/* Subcategory form styling */
 .dark-mode .subcategory-form {
   background: #333;
 }
@@ -1089,149 +1037,29 @@ th {
   background-color: #388E3C;
 }
 
-/* Collapsible mapping sections */
-.category-header {
-  cursor: pointer;
-}
-
-/* Chart improvements */
-.charts-container {
-  margin-top: 20px;
-}
-
+/* Pie chart row styling */
 .pie-charts-row {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
   min-height: 400px;
-  /* Increase from 350px */
 }
 
-.chart-wrapper {
-  flex: 1;
-  min-height: 400px;
-  /* Increase from 350px */
-  padding: 15px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
-}
-
-.dark-mode .chart-wrapper {
-  background-color: #2a2a2a;
-}
-
-.chart-wrapper h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-/* Make canvas take up more space */
-.chart-wrapper canvas {
-  width: 100% !important;
-  height: calc(100% - 40px) !important;
-  max-height: 500px;
-}
-
-/* Summary styling improvements */
-.summary-container {
-  margin: 15px 0;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-around;
-  padding: 15px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-}
-
-.dark-mode .summary-row {
-  background-color: #2d2d2d;
-}
-
-.summary-item {
-  flex: 1;
-  text-align: center;
-}
-
-.positive-balance {
-  color: #4CAF50;
-}
-
-.negative-balance {
-  color: #F44336;
-}
-
-/* Debug-only elements */
-.debug-only {
-  display: none;
-}
-
-.debug-mode .debug-only {
-  display: block;
-}
-
-/* For inline debug elements */
-.debug-mode .debug-only-inline {
-  display: inline-block;
-}
-
-/* Fix category dropdown styling */
-.category-cell {
-  width: 150px;
-  min-width: 150px;
-  max-width: 150px;
-  padding: 0 !important;
-}
-
-.category-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px;
-  width: 100%;
-}
-
-.category-select,
-.subcategory-select {
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box;
-  height: 28px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
-
-.dark-mode .category-select,
-.dark-mode .subcategory-select {
-  border-color: #555;
-  background-color: #333;
-  color: #fff;
-}
-
-/* Make category buttons above transactions table visible */
-#categoryList {
-  display: flex !important;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-  min-height: 40px;
-}
-
-.category-btn {
-  display: inline-block;
-  padding: 6px 12px;
+/* Form element styling for categories */
+.add-category-form button {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: 4px;
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  text-align: center;
-  white-space: nowrap;
-  margin: 4px;
+}
+
+.add-category-form input[type="color"] {
+  width: 50px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  margin-right: 10px;
+  padding: 0;
 }
