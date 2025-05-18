@@ -3,7 +3,6 @@ import { showToast } from "../ui/uiManager.js";
 import { updateChartsWithCurrentData } from "../charts/chartManager.js"; // Fixed import
 import { updateTransactions } from "../ui/transactionManager.js";
 import { renderMergedFiles } from "../ui/fileListUI.js";
-import { renderMappingList } from "../mappings/mappingsManager.js";
 
 /**
  * Adds a file to the merged files list
@@ -18,10 +17,10 @@ import { renderMappingList } from "../mappings/mappingsManager.js";
 export function addMergedFile(data, mapping, name, signature, headerRowIndex = null, dataRowIndex = null, currency = "USD") {
   // Use provided indices or get from DOM
   const headerRow = headerRowIndex !== null ? headerRowIndex :
-    parseInt(document.getElementById("headerRowInput").value, 10) - 1;
+    parseInt(document.getElementById("headerRowInput")?.value || "1", 10) - 1;
 
   const dataRow = dataRowIndex !== null ? dataRowIndex :
-    parseInt(document.getElementById("dataRowInput").value, 10) - 1;
+    parseInt(document.getElementById("dataRowInput")?.value || "2", 10) - 1;
 
   // Get currency from dropdown or use provided currency
   const currencySelect = document.getElementById("fileCurrency");
@@ -29,21 +28,31 @@ export function addMergedFile(data, mapping, name, signature, headerRowIndex = n
 
   console.log(`Adding merged file with headerRow=${headerRow + 1}, dataRow=${dataRow + 1}, currency=${fileCurrency}`);
 
-  // Use our signature normalization helper
-  const sigString = typeof signature === 'object'
-    ? (signature.mappingSig || signature.formatSig || signature.contentSig || JSON.stringify(signature))
-    : String(signature);
+  // Ensure we have valid signature values
+  let mappingSig = '';
+  let formatSig = '';
+  let contentSig = '';
 
-  // Improved duplicate detection - check for same name AND content, not just format
-  const isDuplicate = AppState.mergedFiles.some(f =>
+  if (typeof signature === 'object') {
+    mappingSig = signature.mappingSig || '';
+    formatSig = signature.formatSig || '';
+    contentSig = signature.contentSig || '';
+  } else {
+    // For string signatures, assume it's a mapping signature
+    mappingSig = String(signature);
+  }
+
+  // Check for exact file duplicate first (same name AND content)
+  const exactDuplicate = AppState.mergedFiles.find(f =>
     f.fileName === name &&
-    // If we have content signatures, use those for better comparison
-    (typeof signature === 'object' && signature.contentSig && f.contentSignature === signature.contentSig)
+    (f.contentSignature === contentSig || f.signature === mappingSig)
   );
 
-  if (isDuplicate) {
-    showToast("This file is already merged.", "error");
-    return;
+  if (exactDuplicate) {
+    if (!confirm(`This exact file "${name}" appears to be already imported. Do you want to import it again?`)) {
+      showToast("File import cancelled - duplicate detected", "info");
+      return;
+    }
   }
 
   // Create a clean copy of mapping to avoid reference issues
@@ -91,12 +100,12 @@ export function addMergedFile(data, mapping, name, signature, headerRowIndex = n
     data: transformedData,
     dataRow: dataRow,
     headerRow: headerRow,
-    signature: sigString,  // Store as string
-    // Store content signature separately to better detect duplicates
-    contentSignature: typeof signature === 'object' ? signature.contentSig : null,
+    signature: mappingSig,  // Store mapping signature
+    formatSignature: formatSig, // Store format signature separately
+    contentSignature: contentSig, // Store content signature separately
     selected: true,
     currency: fileCurrency, // Store currency with the file
-    dateAdded: new Date().toISOString() // Add this line
+    dateAdded: new Date().toISOString()
   };
 
   console.log("Adding merged file:", merged);
@@ -111,7 +120,17 @@ export function addMergedFile(data, mapping, name, signature, headerRowIndex = n
 
   // Update the UI components in the correct order
   renderMergedFiles();
-  renderMappingList();
+
+  // Try to import and run the renderMappingList function
+  try {
+    import("../mappings/mappingsManager.js").then(module => {
+      if (typeof module.renderMappingList === 'function') {
+        module.renderMappingList();
+      }
+    }).catch(err => console.error("Error importing mappingsManager:", err));
+  } catch (error) {
+    console.error("Error rendering mapping list:", error);
+  }
 
   // Apply auto-categorization before updating transactions
   autoCategorizeNewTransactions(AppState.mergedFiles[AppState.mergedFiles.length - 1]);
@@ -120,7 +139,7 @@ export function addMergedFile(data, mapping, name, signature, headerRowIndex = n
   showToast("File merged successfully!", "success");
 
   // Update charts with new transaction data
-  updateChartsWithCurrentData(AppState.transactions);
+  updateChartsWithCurrentData();
 }
 
 /**

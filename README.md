@@ -5,34 +5,54 @@ A modern, client-side expense tracker that helps you analyze and categorize your
 ## Features
 
 - **File Import**: Import transaction data from CSV, Excel, XML files with automatic format detection
+- **Multi-Currency Support**: Handle transactions in different currencies with proper display and summaries
 - **Format Mapping**: Save and reuse file format mappings for easier imports
 - **Transaction Management**: View, filter, edit, and categorize all your transactions
-- **Currency Support**: Support for multiple currencies in transactions
-- **Categories Management**: Create, edit and manage expense categories with subcategories
+- **Categories & Subcategories**: Create hierarchical categories with subcategories for detailed expense tracking
 - **Auto-Categorization**: Automatically categorize transactions based on description patterns
 - **Transaction Editing**: Edit transaction details with history tracking and revert capability
-- **Financial Summary**: Get a clear overview of income, expenses and balance
+- **Financial Summary**: Get a clear overview of income, expenses, and balance by currency
 - **Visual Reports**: Analyze your spending with time-series and pie charts
 
-## Key Features Added
+## Key Capabilities
 
-### Modal Preview System
-File upload preview now opens in a modal dialog that adapts its size to the number of columns in the file, making it easier to work with wide files.
+### Enhanced File Processing
+- Automatic file format detection
+- Smart header mapping suggestions
+- Duplicate file detection
+- Support for Excel date formats
 
-### Enhanced Currency Support
-Each file can have its own currency setting, and transactions maintain their original currency information.
+### Multi-Currency Support
+- Assign currency to imported files
+- Currency-specific transaction tracking
+- Grouped financial summaries by currency
+- Support for major currency symbols
 
-### Improved Auto-categorization
-The system now more accurately identifies transaction types based on content analysis and learns from your categorizations.
+### Interactive Data Visualization
+- Income vs. Expenses overview chart
+- Category breakdown pie chart
+- Timeline chart with customizable periods
+- Dark mode support for all visualizations
 
-### Responsive Charts
-All charts are now properly sized and can be toggled on/off for better customization of your dashboard view.
+### Smart Categorization
+- Hierarchical category system with subcategories
+- Visual category filtering buttons
+- Automatic transaction categorization
+- Pattern-based rules for categorization
 
-### Optimized Timeline Visualization
-Timeline chart now uses a mixed bar/line format for better visual distinction between income and expenses.
+### User Experience
+- Dark/light mode with system preference detection
+- Responsive design for desktop and tablet
+- Local data storage for privacy
+- Export capabilities for data portability
 
-### Improved Date Handling
-The application now properly handles various date formats including Excel serial dates, ISO dates, and localized formats.
+## Getting Started
+
+1. Clone the repository
+2. Open index.html in your browser
+3. Upload your transaction files using the Import button
+4. Map the file format if this is a new file type
+5. Start categorizing and analyzing your expenses!
 
 ## Project Structure
 ```
@@ -63,14 +83,6 @@ expense-tracker/
 │   └── usage.md
 └── README.md             # Project overview
 ```
-
-## Getting Started
-
-1. Clone the repository
-2. Open index.html in your browser
-3. Upload your transaction files using the Import button
-4. Map the file format if this is a new file type
-5. Start categorizing and analyzing your expenses!
 
 ## Browser Support
 

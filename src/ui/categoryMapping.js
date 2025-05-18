@@ -1,7 +1,5 @@
 import { AppState } from "../core/appState.js";
 import { showToast } from "./uiManager.js";
-import { renderTransactions } from "./transactionManager.js"; // Ensure this matches the export
-import { getContrastColor } from "../utils/utils.js";
 
 // Change mutable export to const with getter/setter
 const CATEGORY_MAPPINGS_KEY = "categoryMappings";
@@ -50,15 +48,58 @@ export function saveCategoryMappings() {
   localStorage.setItem(CATEGORY_MAPPINGS_KEY, JSON.stringify(_descriptionCategoryMap));
 }
 
+/**
+ * Adds a description-to-category mapping
+ */
 export function addToCategoryMapping(description, category, subcategory = null) {
-  if (!description || !category) return;
+  if (!description || !category) return false;
 
+  // Normalize the description for consistent matching
   const normalizedDesc = normalizeDescription(description);
-  const categoryKey = subcategory ? `${category}:${subcategory}` : category;
 
-  if (!_descriptionCategoryMap[normalizedDesc]) {
-    _descriptionCategoryMap[normalizedDesc] = categoryKey;
-    saveCategoryMappings();
+  // Store with subcategory if provided
+  const categoryValue = subcategory ? `${category}:${subcategory}` : category;
+
+  // Update the mapping
+  _descriptionCategoryMap[normalizedDesc] = categoryValue;
+
+  // Save to localStorage
+  saveCategoryMappings();
+
+  // Update any transactions with this description
+  // Replace the call to non-existent function with direct transaction update
+  updateTransactionsWithMatch(description, category, subcategory);
+
+  return true;
+}
+
+/**
+ * Updates all transactions that match a description with the specified category
+ * @param {string} description - Description to match
+ * @param {string} category - Category to apply
+ * @param {string|null} subcategory - Optional subcategory to apply
+ */
+function updateTransactionsWithMatch(description, category, subcategory = null) {
+  if (!window.AppState || !window.AppState.transactions) return;
+
+  const transactions = window.AppState.transactions;
+  let updateCount = 0;
+
+  // Find all transactions with matching description and update them
+  transactions.forEach(tx => {
+    if (tx.description === description) {
+      tx.category = category;
+      if (subcategory) {
+        tx.subcategory = subcategory;
+      }
+      updateCount++;
+    }
+  });
+
+  if (updateCount > 0) {
+    // Save updates to localStorage
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    console.log(`Updated ${updateCount} transaction(s) with category: ${category}`);
   }
 }
 
@@ -413,7 +454,7 @@ window.removeDescriptionMapping = function (description, category) {
 window.autoCategorizeAll = function () {
   const result = autoCategorizeTransactions(AppState.transactions);
   if (result.added > 0 || result.removed > 0) {
-    renderTransactions(AppState.transactions);
+    // renderTransactions(AppState.transactions); // Removed incorrect usage
 
     let message = "";
     if (result.added > 0) {

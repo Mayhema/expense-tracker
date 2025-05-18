@@ -1,5 +1,7 @@
 # Expense Tracker - Developer Guide
 
+This guide explains the architecture, coding standards, and common issues for developers contributing to the Expense Tracker project.
+
 ## Project Architecture
 
 The application follows a modular architecture with clear separation of concerns:
@@ -15,8 +17,6 @@ The application follows a modular architecture with clear separation of concerns
 - **categoryMapping.js**: Auto-categorization and description-to-category mapping
 - **mappingsManager.js**: Format mapping storage, retrieval, and management
 - **modalManager.js**: Modal dialog system for all application modals
-- **headerMapping.js**: Column mapping for uploaded files
-- **uiManager.js**: UI utilities, toast notifications, and DOM manipulation
 
 ### Data Flow
 
@@ -25,7 +25,7 @@ The application follows a modular architecture with clear separation of concerns
 3. User maps columns or auto-mapping is applied → Format stored for future use
 4. File is merged into AppState → `transactionManager.js` processes transactions
 5. `categoryMapping.js` automatically applies categories based on descriptions
-6. `renderTransactions()` updates UI and triggers chart updates via `updateChartsWithCurrentData()`
+6. `renderTransactions()` updates UI and triggers chart updates
 
 ## Category System
 
@@ -47,6 +47,21 @@ The category system supports a hierarchical structure:
 Categories can be either:
 1. Simple (string color value)
 2. Complex (object with color and subcategories)
+
+## Multi-Currency System
+
+Each file and transaction can have its own currency:
+
+```javascript
+{
+  "fileName": "bank_statement.xlsx",
+  "currency": "EUR",
+  "headerMapping": ["Date", "Description", "Income", "Expenses"],
+  // ...other properties
+}
+```
+
+Transactions maintain their original currency and are summarized accordingly in financial overviews.
 
 ## File Signature System
 
@@ -84,13 +99,24 @@ The application uses a centralized modal system:
 - Modals support custom sizing based on content needs
 - The file preview modal adapts to column count
 
-## Chart Rendering System
+## Chart System
 
 The chart system uses Chart.js with several enhancements:
-- **Mixed chart types**: Timeline chart combines bars and lines
-- **Dynamic resizing**: Charts adjust to container size
-- **Toggle visibility**: Charts can be hidden/shown
-- **Period selection**: Data can be filtered by time period
+
+- **chartCore.js**: Handles Chart.js configuration and compatibility
+- **chartManager.js**: Manages chart updates and state
+- **timelineChart.js**: Time-based visualization of income/expenses
+- **expenseChart.js**: Category-based expense breakdown
+- **incomeExpenseChart.js**: Overall income vs expense comparison
+
+### Chart Error Handling
+
+Chart.js errors like the following are handled through safety patches:
+
+```javascript
+// Example of a safety patch for Chart.js error
+Chart.defaults.global.elements.line.tension = 0; // Disable bezier curves
+```
 
 ## Known Challenges
 
@@ -166,5 +192,3 @@ The application includes several debugging tools:
 4. Implement business logic
 5. Connect UI to logic via event handlers
 6. Add documentation and error handling
-
-## Repository Structure

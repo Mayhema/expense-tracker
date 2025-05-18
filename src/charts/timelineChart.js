@@ -157,7 +157,7 @@ function refreshTimelineChart(period = 'month') {
     const groupedData = groupTransactionsByPeriod(AppState.transactions, period);
     const chartData = formatChartData(groupedData);
 
-    // Ensure layout padding is fully defined in config
+    // Ensure layout padding is properly defined to prevent errors
     const config = {
       type: 'bar',
       data: chartData,
@@ -265,13 +265,13 @@ function showEmptyStateChart(canvas) {
       window.timelineChart = null;
     }
 
-    // Ensure canvas has dimensions
+    // Make sure canvas styles are explicitly set
     if (canvas.style) {
       canvas.style.height = canvas.style.height || '300px';
     }
 
-    // Very simple config with no interactive elements that could cause errors
-    window.timelineChart = createSafeChart(canvas.id, {
+    // Create simple empty state with explicit padding
+    const config = {
       type: 'bar',
       data: {
         labels: ['No Data'],
@@ -291,6 +291,7 @@ function showEmptyStateChart(canvas) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Explicitly define layout padding
         layout: {
           padding: {
             top: 20,
@@ -307,8 +308,9 @@ function showEmptyStateChart(canvas) {
             display: true,
             text: 'No transaction data available'
           },
+          // Disable tooltips for empty state
           tooltip: {
-            enabled: false // Completely disable tooltips for empty state
+            enabled: false
           }
         },
         scales: {
@@ -326,14 +328,17 @@ function showEmptyStateChart(canvas) {
             }
           }
         },
-        animation: false // Disable animations for empty state
+        animation: false // Disable animations for better performance
       }
-    });
+    };
+
+    // Use createSafeChart for extra protection
+    window.timelineChart = createSafeChart(canvas.id, config);
 
   } catch (error) {
     console.error("Error creating empty state chart:", error);
 
-    // Fall back to simple canvas rendering
+    // Fall back to canvas rendering if chart fails
     try {
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -346,7 +351,7 @@ function showEmptyStateChart(canvas) {
         ctx.fillText('No transaction data available', canvas.width / 2, canvas.height / 2);
       }
     } catch (fallbackError) {
-      console.error("Failed to render fallback message:", fallbackError);
+      console.error("Error creating fallback display:", fallbackError);
     }
   }
 }

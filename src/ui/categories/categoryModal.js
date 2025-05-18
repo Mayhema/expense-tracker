@@ -1,7 +1,6 @@
-import { AppState } from "../../core/appState.js";
-// Remove this unused import: import { showCategoryManagerModal } from "../categoryManager.js";
-import { showToast } from "../uiManager.js";
+import { AppState, saveCategories } from "../../core/appState.js";
 import { showModal } from "../modalManager.js";
+import { showToast } from "../uiManager.js";
 import { getContrastColor } from "../../utils/utils.js";
 import { updateTransactions } from "../transactionManager.js";
 import { updateChartsWithCurrentData } from "../../charts/chartManager.js";

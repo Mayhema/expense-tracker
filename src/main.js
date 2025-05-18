@@ -63,6 +63,16 @@ async function initializeApp() {
     // Step 7: Load user data after everything is initialized
     loadTransactionsAndCharts();
 
+    // Make sure renderCategoryButtons is called after loading
+    // Explicitly render category filter buttons
+    setTimeout(() => {
+      import("./ui/transactionManager.js").then(module => {
+        if (typeof module.renderCategoryButtons === "function") {
+          module.renderCategoryButtons();
+        }
+      });
+    }, 500);
+
     console.log("App initialization complete");
   } catch (error) {
     console.error("Error in initialization sequence:", error);

@@ -7,6 +7,7 @@
   appearance: auto;
   background-color: inherit;
   color: inherit;
+  box-sizing: border-box;
 }
 
 .category-select option {
@@ -234,6 +235,21 @@
   display: flex;
   align-items: center;
   padding: 0 !important;
+}
+
+.category-cell {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  padding: 0 !important;
+}
+
+.category-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  width: 100%;
 }
 
 /* Improved edit mode styling */
@@ -642,16 +658,36 @@ th {
   display: flex;
   flex-wrap: wrap;
   margin: 10px 0;
+  gap: 8px;
+  min-height: 40px;
 }
 
 .category-btn {
+  padding: 6px 12px;
   margin: 5px;
-  padding: 10px;
   border: none;
-  border-radius: 5px;
-  color: #fff;
+  border-radius: 20px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.category-btn.active {
+  transform: scale(1.05);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid #fff;
+}
+
+.category-btn.inactive {
+  opacity: 0.8;
+  transform: scale(1);
+}
+
+.category-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Filter styles */
@@ -1142,4 +1178,60 @@ th {
 /* For inline debug elements */
 .debug-mode .debug-only-inline {
   display: inline-block;
+}
+
+/* Fix category dropdown styling */
+.category-cell {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  padding: 0 !important;
+}
+
+.category-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  width: 100%;
+}
+
+.category-select,
+.subcategory-select {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.dark-mode .category-select,
+.dark-mode .subcategory-select {
+  border-color: #555;
+  background-color: #333;
+  color: #fff;
+}
+
+/* Make category buttons above transactions table visible */
+#categoryList {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+  min-height: 40px;
+}
+
+.category-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-align: center;
+  white-space: nowrap;
+  margin: 4px;
 }

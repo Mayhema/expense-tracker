@@ -235,6 +235,22 @@
   <script type="module" src="./utils/debug.js"></script>
   <script type="module" src="./utils/fileUtils.js"></script>
   <script type="module" src="./main.js"></script>
+  <script type="module">
+    // Add this script to ensure category buttons are initialized
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wait for everything else to initialize
+      setTimeout(() => {
+        import('./ui/transactionManager.js').then(module => {
+          if (module.renderCategoryButtons) {
+            console.log("Initializing category buttons");
+            module.renderCategoryButtons();
+          } else {
+            console.warn("renderCategoryButtons function not found");
+          }
+        }).catch(err => console.error("Error loading transactionManager:", err));
+      }, 1000);
+    });
+  </script>
 </body>
 
 </html>
