@@ -208,44 +208,56 @@ function fixTooltipFunctions() {
       const originalPositionChanged = Chart.Tooltip.prototype._positionChanged;
       Chart.Tooltip.prototype._positionChanged = function () {
         try {
-          // Add additional safety checks
+          // Add comprehensive safety checks
+          if (!this || !this._chart) return false;
           if (!this._active) this._active = [];
-          if (!this._chart) return false;
           if (this._active.length === 0) return false;
 
-          // Fix "call" property issue by ensuring all required objects exist
-          if (!this.options) this.options = {};
+          // Check for chartArea which is used in positioning calculations
           if (!this._chart.chartArea) return false;
 
-          // Only call original if we have all required properties
-          if (typeof originalPositionChanged === 'function') {
-            return originalPositionChanged.apply(this, arguments);
-          }
-          return false;
+          // Check if the original function exists and is callable
+          if (typeof originalPositionChanged !== 'function') return false;
+
+          return originalPositionChanged.apply(this, arguments);
         } catch (error) {
-          log(`Tooltip positioning error suppressed: ${error.message}`, LOG_LEVEL.WARN);
+          log(`Prevented tooltip positioning error: ${error.message}`, LOG_LEVEL.WARN);
           return false;
         }
       };
     }
 
-    // Make handleEvent safer
+    // Fix handleEvent to prevent 'call' errors
     if (Chart.Tooltip.prototype.handleEvent) {
       const originalHandleEvent = Chart.Tooltip.prototype.handleEvent;
       Chart.Tooltip.prototype.handleEvent = function (e) {
         try {
-          // Ensure _active exists
+          // Ensure we have all required properties
+          if (!this || !this._chart) return false;
           if (!this._active) this._active = [];
 
-          // Check other required properties to prevent "call" errors
-          if (!e || !this._chart) return false;
-
-          return originalHandleEvent.apply(this, arguments);
+          // Only call original if we have all required properties
+          if (typeof originalHandleEvent === 'function') {
+            return originalHandleEvent.apply(this, arguments);
+          }
+          return false;
         } catch (error) {
-          log(`Tooltip event error suppressed: ${error.message}`, LOG_LEVEL.WARN);
+          log(`Prevented tooltip event error: ${error.message}`, LOG_LEVEL.WARN);
           return false;
         }
       };
+    }
+
+    // Register global tooltip safety plugin
+    if (typeof Chart.register === 'function') {
+      Chart.register({
+        id: 'globalTooltipSafety',
+        beforeEvent: function (chart, args) {
+          if (!chart.tooltip) chart.tooltip = { _active: [] };
+          if (!chart.tooltip._active) chart.tooltip._active = [];
+          return true;
+        }
+      });
     }
   } catch (error) {
     log(`Error fixing tooltip functions: ${error.message}`, LOG_LEVEL.ERROR);
@@ -460,7 +472,7 @@ function prepareChartConfig(config, canvasId) {
 }
 
 /**
- * EXPORTED: Creates a chart with error handling
+ * Creates a chart with error handling and theme support
  * @param {string} canvasId - Canvas element ID
  * @param {object} config - Chart configuration
  * @returns {Chart|null} Chart instance or null if creation failed
@@ -478,20 +490,103 @@ export function createSafeChart(canvasId, config) {
       return null;
     }
 
-    // Get and validate canvas
-    const canvas = getValidCanvas(canvasId);
-    if (!canvas) return null;
+    // Get the canvas element
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      log(`Canvas with ID "${canvasId}" not found`, LOG_LEVEL.ERROR);
+      return null;
+    }
+
+    // Ensure the canvas has proper dimensions
+    if (!canvas.style.height) {
+      canvas.style.height = '300px';
+    }
+
+    // Create a completely new deep-copied config to avoid reference issues
+    const safeConfig = JSON.parse(JSON.stringify(config));
+
+    // CRITICAL FIX: Ensure all required layout objects are defined
+    // This prevents "Cannot read properties of undefined (reading 'top')" errors
+    if (!safeConfig.options) safeConfig.options = {};
+
+    // Fix layout structure - the most common source of 'top' errors
+    if (!safeConfig.options.layout) {
+      safeConfig.options.layout = {
+        padding: {
+          top: 20,
+          right: 20,
+          bottom: 20,
+          left: 20
+        }
+      };
+    } else if (!safeConfig.options.layout.padding) {
+      safeConfig.options.layout.padding = {
+        top: 20,
+        right: 20,
+        bottom: 20,
+        left: 20
+      };
+    } else if (typeof safeConfig.options.layout.padding === 'number') {
+      // If padding is a single number, convert to object with all directions
+      const padding = safeConfig.options.layout.padding;
+      safeConfig.options.layout.padding = {
+        top: padding,
+        right: padding,
+        bottom: padding,
+        left: padding
+      };
+    } else {
+      // Ensure all padding directions exist
+      const padding = safeConfig.options.layout.padding;
+      if (padding.top === undefined) padding.top = 20;
+      if (padding.right === undefined) padding.right = 20;
+      if (padding.bottom === undefined) padding.bottom = 20;
+      if (padding.left === undefined) padding.left = 20;
+    }
+
+    // Fix plugins structure
+    if (!safeConfig.options.plugins) safeConfig.options.plugins = {};
+
+    // CRITICAL FIX: Disable tooltips for charts with no data
+    const hasData = safeConfig.data &&
+      safeConfig.data.datasets &&
+      safeConfig.data.datasets.some(ds => ds.data && ds.data.length > 0 &&
+        ds.data.some(val => val !== 0 && val !== null));
+
+    if (!hasData) {
+      // Disable tooltips completely for empty state charts
+      safeConfig.options.plugins.tooltip = { enabled: false };
+    } else if (!safeConfig.options.plugins.tooltip) {
+      // Ensure tooltip configuration exists for charts with data
+      safeConfig.options.plugins.tooltip = {
+        enabled: true,
+        mode: 'nearest',
+        intersect: true
+      };
+    }
+
+    // Global tooltip safety plugin - prevents 'call' errors by ensuring tooltip objects exist
+    const tooltipSafetyPlugin = {
+      id: `tooltip-safety-${canvasId}`,
+      beforeEvent: function (chart, args, options) {
+        // Ensure tooltip and chart objects are properly initialized
+        if (!chart.tooltip) chart.tooltip = { _active: [] };
+        if (!chart.tooltip._active) chart.tooltip._active = [];
+        return true;
+      }
+    };
+
+    // Add our plugin
+    if (!safeConfig.plugins) safeConfig.plugins = [];
+    safeConfig.plugins.push(tooltipSafetyPlugin);
 
     // Destroy any existing chart on this canvas
     destroyChart(canvasId);
 
-    // Prepare configuration with all required properties
-    const enhancedConfig = prepareChartConfig(config, canvasId);
-
     // Create new chart
-    const chart = new Chart(canvas, enhancedConfig);
+    const chart = new Chart(canvas, safeConfig);
 
-    // Apply current theme if needed
+    // Apply current theme
     if (STATE.darkMode && typeof window.updateChartTheme === 'function') {
       window.updateChartTheme(chart, true);
     }
@@ -499,6 +594,27 @@ export function createSafeChart(canvasId, config) {
     return chart;
   } catch (error) {
     log(`Error creating chart on "${canvasId}": ${error.message}`, LOG_LEVEL.ERROR);
+
+    // Display a fallback message on the canvas
+    try {
+      const canvas = document.getElementById(canvasId);
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width || 300, canvas.height || 150);
+          ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
+          ctx.fillRect(0, 0, canvas.width || 300, canvas.height || 150);
+          ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
+          ctx.textAlign = 'center';
+          ctx.font = '14px Arial';
+          ctx.fillText('Error creating chart', (canvas.width || 300) / 2, (canvas.height || 150) / 2);
+        }
+      }
+    } catch (fallbackError) {
+      log(`Error creating fallback rendering: ${fallbackError.message}`, LOG_LEVEL.ERROR);
+      console.error(fallbackError); // Log full error object for debugging
+    }
+
     return null;
   }
 }

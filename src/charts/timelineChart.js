@@ -139,7 +139,7 @@ export function updateTimelineChart(transactions, periodOption = 'month') {
 }
 
 /**
- * Updates the timeline chart with transaction data from AppState
+ * Updates the timeline chart with transaction data
  */
 function refreshTimelineChart(period = 'month') {
   const timelineCanvas = document.getElementById('timelineChart');
@@ -157,7 +157,7 @@ function refreshTimelineChart(period = 'month') {
     const groupedData = groupTransactionsByPeriod(AppState.transactions, period);
     const chartData = formatChartData(groupedData);
 
-    // Ensure layout padding is properly defined to prevent errors
+    // Ensure layout padding is fully defined in config
     const config = {
       type: 'bar',
       data: chartData,
@@ -265,11 +265,13 @@ function showEmptyStateChart(canvas) {
       window.timelineChart = null;
     }
 
-    // Make sure canvas styles are explicitly set
-    canvas.style.height = canvas.style.height || '300px';
+    // Ensure canvas has dimensions
+    if (canvas.style) {
+      canvas.style.height = canvas.style.height || '300px';
+    }
 
-    // Create simple empty state with minimal configuration
-    const config = {
+    // Very simple config with no interactive elements that could cause errors
+    window.timelineChart = createSafeChart(canvas.id, {
       type: 'bar',
       data: {
         labels: ['No Data'],
@@ -289,7 +291,6 @@ function showEmptyStateChart(canvas) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        // Explicitly define layout and padding
         layout: {
           padding: {
             top: 20,
@@ -306,9 +307,8 @@ function showEmptyStateChart(canvas) {
             display: true,
             text: 'No transaction data available'
           },
-          // Disable tooltips completely for empty state
           tooltip: {
-            enabled: false
+            enabled: false // Completely disable tooltips for empty state
           }
         },
         scales: {
@@ -326,17 +326,14 @@ function showEmptyStateChart(canvas) {
             }
           }
         },
-        animation: false // Disable animations for better performance
+        animation: false // Disable animations for empty state
       }
-    };
-
-    // Create chart using the safety wrapper
-    window.timelineChart = createSafeChart(canvas.id, config);
+    });
 
   } catch (error) {
     console.error("Error creating empty state chart:", error);
 
-    // Fall back to canvas rendering if chart fails
+    // Fall back to simple canvas rendering
     try {
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -349,7 +346,7 @@ function showEmptyStateChart(canvas) {
         ctx.fillText('No transaction data available', canvas.width / 2, canvas.height / 2);
       }
     } catch (fallbackError) {
-      console.error("Error creating fallback display:", fallbackError);
+      console.error("Failed to render fallback message:", fallbackError);
     }
   }
 }

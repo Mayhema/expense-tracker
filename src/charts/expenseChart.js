@@ -36,6 +36,91 @@ function groupTransactionsByCategory(transactions) {
  * @param {Array} transactions - The transactions to display
  * @returns {boolean} True if successful, false otherwise
  */
+/**
+ * Creates chart configuration based on categories and totals
+ * @param {Array} categories - List of categories
+ * @param {Object} categoryTotals - Category totals
+ * @returns {Object} Chart configuration
+ */
+function createChartConfig(categories, categoryTotals) {
+  // Create colors array based on categories or subcategories
+  const colors = categories.map(category => {
+    if (showSubcategories && category.includes(':')) {
+      // Extract subcategory color
+      const [mainCat, subCat] = category.split(':');
+      const mainCategory = AppState.categories[mainCat];
+      if (mainCategory && typeof mainCategory === 'object' &&
+        mainCategory.subcategories && mainCategory.subcategories[subCat]) {
+        return mainCategory.subcategories[subCat];
+      }
+    }
+
+    // Default to category color or generate based on name
+    const mainCatName = category.includes(':') ? category.split(':')[0] : category;
+    return generateCategoryColor(mainCatName);
+  });
+
+  // Create display labels (format subcategory labels)
+  const displayLabels = categories.map(category => {
+    if (category.includes(':')) {
+      const [mainCat, subCat] = category.split(':');
+      return `${mainCat}: ${subCat}`;
+    }
+    return category;
+  });
+
+  // Create the chart data
+  const chartData = {
+    labels: displayLabels,
+    datasets: [{
+      data: categories.map(cat => categoryTotals[cat]),
+      backgroundColor: colors,
+      borderWidth: 1
+    }]
+  };
+
+  return {
+    type: 'pie',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 20,
+          right: 20,
+          bottom: 20,
+          left: 20
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 15,
+            padding: 10
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.raw || 0;
+              return '$' + value.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+              });
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: showSubcategories ? 'Expenses by Subcategory' : 'Expenses by Category'
+        }
+      }
+    }
+  };
+}
+
 export function updateExpenseChart(transactions) {
   console.log(`Updating expense chart with ${transactions.length} transactions`);
 
@@ -74,50 +159,16 @@ export function updateExpenseChart(transactions) {
     // Sort categories by amount
     categories.sort((a, b) => categoryTotals[b] - categoryTotals[a]);
 
-    // Create colors array based on categories or subcategories
-    const colors = categories.map(category => {
-      if (showSubcategories && category.includes(':')) {
-        // Extract subcategory color
-        const [mainCat, subCat] = category.split(':');
-        const mainCategory = AppState.categories[mainCat];
-        if (mainCategory && typeof mainCategory === 'object' &&
-          mainCategory.subcategories && mainCategory.subcategories[subCat]) {
-          return mainCategory.subcategories[subCat];
-        }
-      }
-
-      // Default to category color or generate based on name
-      const mainCatName = category.includes(':') ? category.split(':')[0] : category;
-      return generateCategoryColor(mainCatName);
-    });
-
-    // Create display labels (format subcategory labels)
-    const displayLabels = categories.map(category => {
-      if (category.includes(':')) {
-        const [mainCat, subCat] = category.split(':');
-        return `${mainCat}: ${subCat}`;
-      }
-      return category;
-    });
-
-    // Create the chart data
-    const chartData = {
-      labels: displayLabels,
-      datasets: [{
-        data: categories.map(cat => categoryTotals[cat]),
-        backgroundColor: colors,
-        borderWidth: 1
-      }]
-    };
+    // Create chart configuration
+    const config = createChartConfig(categories, categoryTotals);
 
     // Ensure layout properties are properly defined
-    const config = {
+    const finalConfig = {
       type: 'pie',
-      data: chartData,
+      data: config.data,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        // Explicitly define layout padding to prevent errors
         layout: {
           padding: {
             top: 20,
@@ -154,7 +205,7 @@ export function updateExpenseChart(transactions) {
     };
 
     // Use createSafeChart for reliable chart creation
-    window.expenseChart = createSafeChart('expenseChart', config);
+    window.expenseChart = createSafeChart('expenseChart', finalConfig);
 
   } catch (error) {
     console.error("Error creating expense chart:", error);
