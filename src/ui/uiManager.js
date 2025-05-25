@@ -27,36 +27,58 @@ export function toggleDarkMode() {
   showToast(`Dark mode ${isDarkMode ? "enabled" : "disabled"}`, "info");
 }
 
-export function showToast(message, type = "info") {
-  if (activeToast) {
-    activeToast.remove(); // Remove any existing toast
+/**
+ * Shows a simple toast notification at the top of the screen
+ * @param {string} message - The message to display
+ * @param {string} type - The type of toast (success, error, warning, info)
+ * @param {number} duration - How long to show the toast (in milliseconds)
+ */
+export function showToast(message, type = "info", duration = 2000) {
+  // Get or create toast container
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "toast-container";
+    document.body.appendChild(container);
   }
 
+  // Create simple toast element
   const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
+  toast.className = `toast ${type}`;
   toast.textContent = message;
 
-  Object.assign(toast.style, {
-    position: "fixed",
-    bottom: "30px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: type === "error" ? "#e74c3c" : "#333",
-    color: "#fff",
-    padding: "12px 24px",
-    borderRadius: "6px",
-    zIndex: 9999,
-    fontSize: "16px",
-    opacity: 0.95,
-  });
+  // Add to container
+  container.appendChild(toast);
 
-  document.body.appendChild(toast);
-  activeToast = toast;
-
+  // Auto-remove after duration
   setTimeout(() => {
-    toast.remove();
-    activeToast = null;
-  }, 3500);
+    removeToast(toast);
+  }, duration);
+
+  // Limit number of toasts (keep only 2 most recent)
+  const toasts = container.querySelectorAll('.toast');
+  if (toasts.length > 2) {
+    removeToast(toasts[0]);
+  }
+}
+
+/**
+ * Removes a toast with animation
+ * @param {HTMLElement} toast - Toast element to remove
+ */
+function removeToast(toast) {
+  if (!toast || !toast.parentNode) return;
+
+  // Add removing class for exit animation
+  toast.classList.add('removing');
+
+  // Remove after animation completes
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 200);
 }
 
 export function handleError(error, userMessage = "An error occurred.") {
@@ -74,21 +96,67 @@ export function initializeDragAndDrop(onFileUpload) {
   });
 
   dropZone.addEventListener("dragleave", () => {
-    dropZone.style.backgroundColor = "white";
+    dropZone.style.backgroundColor = "white"; // Or initial color
   });
 
   dropZone.addEventListener("drop", (event) => {
     event.preventDefault();
-    dropZone.style.backgroundColor = "white";
+    dropZone.style.backgroundColor = "white"; // Or initial color
 
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      onFileUpload({ target: { files: [file] } });
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      // Pass the FileList directly to onFileUpload
+      onFileUpload({ target: { files: files } });
     }
   });
 }
 
 // Add these functions to show loading states
+
+
+
+/**
+ * Updates UI elements based on debug mode state
+ * @param {boolean} isDebugMode - Whether debug mode is enabled
+ */
+export function updateDebugModeUI(isDebugMode) {
+  const debugTools = document.querySelectorAll('.debug-tools');
+
+  debugTools.forEach(tool => {
+    tool.style.display = isDebugMode ? 'inline-block' : 'none';
+  });
+
+  // Save the debug mode state
+  localStorage.setItem('debugMode', isDebugMode);
+
+  // Toggle debug class on body
+  document.body.classList.toggle('debug-mode', isDebugMode);
+
+  // Show/hide chart controls based on debug mode
+  const chartControls = document.querySelectorAll('.chart-controls');
+  chartControls.forEach(control => {
+    control.style.display = isDebugMode ? 'inline-block' : 'none';
+  });
+
+  console.log(`Debug mode ${isDebugMode ? 'enabled' : 'disabled'}`);
+}
+
+/**
+ * Initialize all UI components
+ */
+export function initializeUI() {
+  console.log("Initializing UI components...");
+
+  // Initialize sidebar controls first
+  initializeSidebarControls();
+
+  // Initialize other UI components
+  initializeTooltips();
+  initializeResponsiveFeatures();
+
+  console.log("UI components initialized");
+}
+
 
 /**
  * Shows a loading indicator on an element
@@ -182,128 +250,238 @@ export function showPageLoadingOverlay(message = 'Loading...') {
   };
 }
 
-/**
- * Updates UI elements based on debug mode state
- * @param {boolean} isDebugMode - Whether debug mode is enabled
- */
-export function updateDebugModeUI(isDebugMode) {
-  const debugTools = document.querySelectorAll('.debug-tools');
 
-  debugTools.forEach(tool => {
-    tool.style.display = isDebugMode ? 'inline-block' : 'none';
+export function updateCurrencyFilters() {
+  const chartCurrencySelect = document.getElementById('chartCurrencySelect');
+  if (!chartCurrencySelect) return;
+
+  // Clear existing options except "All Currencies"
+  const firstOption = chartCurrencySelect.querySelector('option[value="all"]');
+  chartCurrencySelect.innerHTML = '';
+
+  if (firstOption) {
+    chartCurrencySelect.appendChild(firstOption);
+  } else {
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'All Currencies';
+    chartCurrencySelect.appendChild(allOption);
+  }
+
+  // Get unique currencies from transactions
+  const currencies = new Set();
+  if (AppState.transactions) {
+    AppState.transactions.forEach(tx => {
+      if (tx.currency) {
+        currencies.add(tx.currency);
+      }
+    });
+  }
+
+  // Add currency options
+  currencies.forEach(currency => {
+    const option = document.createElement('option');
+    option.value = currency; // Fixed: This line was causing the error
+    option.textContent = currency;
+    chartCurrencySelect.appendChild(option);
+  });
+}
+
+/**
+ * Initialize sidebar controls and toggle functionality
+ */
+function initializeSidebarControls() {
+  console.log("Initializing sidebar controls...");
+
+  // Menu button to open sidebar
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+
+  if (menuBtn && sidebar && overlay) {
+    // Clean up any existing listeners
+    const newMenuBtn = menuBtn.cloneNode(true);
+    menuBtn.parentNode.replaceChild(newMenuBtn, menuBtn);
+
+    newMenuBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Menu button clicked - opening sidebar");
+      openSidebar();
+    });
+  }
+
+  if (closeSidebarBtn) {
+    const newCloseBtn = closeSidebarBtn.cloneNode(true);
+    closeSidebarBtn.parentNode.replaceChild(newCloseBtn, closeSidebarBtn);
+
+    newCloseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Close button clicked - closing sidebar");
+      closeSidebar();
+    });
+  }
+
+  if (overlay) {
+    const newOverlay = overlay.cloneNode(true);
+    overlay.parentNode.replaceChild(newOverlay, overlay);
+
+    newOverlay.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Overlay clicked - closing sidebar");
+      closeSidebar();
+    });
+  }
+
+  console.log("Sidebar controls initialized");
+}
+
+/**
+ * Open the sidebar
+ */
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+
+  if (sidebar && overlay) {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent body scrolling
+    console.log("Sidebar opened");
+  }
+}
+
+/**
+ * Close the sidebar
+ */
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+
+  if (sidebar && overlay) {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    document.body.style.overflow = ''; // Restore body scrolling
+    console.log("Sidebar closed");
+  }
+}
+
+/**
+ * Initialize tooltips for UI elements
+ */
+function initializeTooltips() {
+  // Add tooltips to buttons and interactive elements
+  const elementsWithTitles = document.querySelectorAll('[title]');
+
+  elementsWithTitles.forEach(element => {
+    // Simple tooltip functionality - browser native titles work fine
+    // Could be enhanced with custom tooltip library later
+    element.addEventListener('mouseenter', function () {
+      // Optional: Add custom tooltip styling or behavior
+    });
   });
 
-  // Save the debug mode state
-  localStorage.setItem('debugMode', isDebugMode);
+  console.log(`Initialized tooltips for ${elementsWithTitles.length} elements`);
+}
 
-  // Toggle debug class on body
-  document.body.classList.toggle('debug-mode', isDebugMode);
+/**
+ * Initialize responsive features for mobile/tablet support
+ */
+function initializeResponsiveFeatures() {
+  // Handle responsive table scrolling
+  initializeResponsiveTables();
 
-  // Show/hide chart controls based on debug mode
-  const chartControls = document.querySelectorAll('.chart-controls');
-  chartControls.forEach(control => {
-    control.style.display = isDebugMode ? 'inline-block' : 'none';
+  // Handle responsive modal sizing
+  initializeResponsiveModals();
+
+  // Handle responsive chart containers
+  initializeResponsiveCharts();
+
+  console.log("Responsive features initialized");
+}
+
+/**
+ * Make tables responsive on smaller screens
+ */
+function initializeResponsiveTables() {
+  const tables = document.querySelectorAll('.transactions-table, .preview-table');
+
+  tables.forEach(table => {
+    // Wrap tables in scrollable containers if not already wrapped
+    if (!table.closest('.table-responsive')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-responsive';
+      wrapper.style.overflowX = 'auto';
+      wrapper.style.marginBottom = '20px';
+
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
+  });
+}
+
+/**
+ * Initialize responsive modal behavior
+ */
+function initializeResponsiveModals() {
+  // Listen for window resize to adjust modal sizes
+  window.addEventListener('resize', () => {
+    const modals = document.querySelectorAll('.modal-content');
+    modals.forEach(modal => {
+      // Adjust modal width for small screens
+      if (window.innerWidth < 768) {
+        modal.style.width = '95%';
+        modal.style.maxWidth = '95%';
+      } else {
+        // Reset to original sizing
+        modal.style.width = '';
+        modal.style.maxWidth = '';
+      }
+    });
+  });
+}
+
+/**
+ * Initialize responsive chart containers
+ */
+function initializeResponsiveCharts() {
+  // Ensure chart containers are responsive
+  const chartContainers = document.querySelectorAll('.chart-wrapper, .charts-container');
+
+  chartContainers.forEach(container => {
+    // Add responsive classes if not present
+    if (!container.classList.contains('responsive-chart')) {
+      container.classList.add('responsive-chart');
+    }
   });
 
-  console.log(`Debug mode ${isDebugMode ? 'enabled' : 'disabled'}`);
-}
-
-/**
- * Initialize UI components
- */
-export function initializeUI() {
-  console.log("Initializing UI components...");
-
-  // Initialize toast container if it doesn't exist
-  const toastContainer = document.getElementById("toastContainer");
-  if (!toastContainer) {
-    const container = document.createElement("div");
-    container.id = "toastContainer";
-    container.style.position = "fixed";
-    container.style.bottom = "20px";
-    container.style.right = "20px";
-    container.style.zIndex = "1000";
-    document.body.appendChild(container);
-  }
-
-  // Toggle debug mode
-  const debugModeToggle = document.getElementById('debugModeToggle');
-  if (debugModeToggle) {
-    // Set initial state
-    const isDebugMode = localStorage.getItem('debugMode') === 'true';
-    debugModeToggle.checked = isDebugMode;
-    updateDebugModeUI(isDebugMode);
-
-    // Add event listener
-    debugModeToggle.addEventListener('change', () => {
-      updateDebugModeUI(debugModeToggle.checked);
-    });
-  }
-
-  // Initialize chart toggle buttons
-  initializeChartToggleButtons();
-
-  // Initialize any other UI elements that don't have dedicated init functions
-  setupUIEventListeners();
-}
-
-/**
- * Initialize chart toggle buttons (visible only in debug mode)
- */
-function initializeChartToggleButtons() {
-  // Income/Expense chart toggle
-  const toggleIncomeExpenseBtn = document.getElementById('toggleIncomeExpenseChartBtn');
-  if (toggleIncomeExpenseBtn) {
-    toggleIncomeExpenseBtn.addEventListener('click', () => {
-      const wrapper = document.querySelector('.chart-wrapper:nth-child(1)');
-      if (wrapper) {
-        wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
-      }
-    });
-  }
-
-  // Expense chart toggle
-  const toggleExpenseChartBtn = document.getElementById('toggleExpenseChartBtn');
-  if (toggleExpenseChartBtn) {
-    toggleExpenseChartBtn.addEventListener('click', () => {
-      const wrapper = document.querySelector('.chart-wrapper:nth-child(2)');
-      if (wrapper) {
-        wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
-      }
-    });
-  }
-
-  // Timeline chart toggle
-  const toggleTimelineChartBtn = document.getElementById('toggleTimelineChartBtn');
-  if (toggleTimelineChartBtn) {
-    toggleTimelineChartBtn.addEventListener('click', () => {
-      const wrapper = document.querySelector('.chart-wrapper:nth-child(3)');
-      if (wrapper) {
-        wrapper.style.display = wrapper.style.display === 'none' ? 'block' : 'none';
-      }
-    });
-  }
-}
-
-/**
- * Sets up event listeners for UI components
- */
-function setupUIEventListeners() {
-  // Set up click handlers for collapsible sections
-  document.querySelectorAll('.section-header[data-toggle]').forEach(header => {
-    header.addEventListener('click', function () {
-      const targetId = this.getAttribute('data-toggle');
-      const targetElement = document.getElementById(targetId);
-      if (targetElement) {
-        const isVisible = targetElement.style.display !== 'none';
-        targetElement.style.display = isVisible ? 'none' : 'block';
-
-        // Update toggle icon if present
-        const toggleIcon = this.querySelector('.toggle-icon');
-        if (toggleIcon) {
-          toggleIcon.textContent = isVisible ? '▼' : '▲';
+  // Handle chart resize on window resize
+  window.addEventListener('resize', debounce(() => {
+    // Trigger chart resize if Chart.js is available
+    if (window.Chart && window.Chart.instances) {
+      Object.values(window.Chart.instances).forEach(chart => {
+        if (chart && typeof chart.resize === 'function') {
+          chart.resize();
         }
-      }
-    });
-  });
+      });
+    }
+  }, 250));
+}
+
+/**
+ * Debounce utility function for resize events
+ */
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }

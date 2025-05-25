@@ -27,7 +27,7 @@ export function showCategoryManagerModal() {
         <div class="add-category-form">
           <input type="color" id="newCategoryColor" value="#4CAF50">
           <input type="text" id="newCategoryName" placeholder="New Category Name">
-          <button id="addCategoryBtn" class="button primary-btn">Add Category</button>
+          <button id="addCategoryBtn" class="button primary-btn icon-btn" title="Add Category">➕</button>
         </div>
 
         <div id="categoriesList" class="categories-list"></div>
@@ -40,7 +40,7 @@ export function showCategoryManagerModal() {
       </div>
 
       <div class="button-container" style="text-align: right; margin-top: 20px;">
-        <button id="openRegexEditorBtn" class="button">Edit Rules</button>
+        <button id="openRegexEditorBtnModal" class="button">Edit Automatic Rules</button> <!-- Changed ID -->
         <button id="closeCategoryManagerBtn" class="button primary-btn">Close</button>
       </div>
     `;
@@ -81,32 +81,32 @@ function renderCategoryList(container) {
   let html = '';
 
   // Sort categories alphabetically
-  const sortedCategories = Object.keys(AppState.categories).sort();
+  const sortedCategories = Object.keys(AppState.categories || {}).sort();
 
   sortedCategories.forEach(name => {
     const value = AppState.categories[name];
     const color = typeof value === 'string' ? value : (value.color || '#cccccc');
+    const hasSubcategories = typeof value === 'object' && value.subcategories && Object.keys(value.subcategories).length > 0;
 
     html += `
       <div class="category-edit-row" data-category="${name}">
         <input type="color" value="${color}" data-name="${name}" class="category-color-input">
         <input type="text" value="${name}" data-original="${name}" class="category-name-input">
         <div class="category-buttons">
-          <button class="save-category-btn primary-btn" data-name="${name}">Save</button>
-          <button class="delete-category-btn" data-name="${name}">Delete</button>
-          <button class="subcategories-btn" data-name="${name}">Subcategories</button>
+          <button class="save-category-btn primary-btn icon-btn" data-name="${name}" title="Save">💾</button>
+          <button class="delete-category-btn icon-btn" data-name="${name}" title="Delete">🗑️</button>
+          <button class="subcategories-btn icon-btn" data-name="${name}" title="${hasSubcategories ? 'Manage' : 'Add'} Subcategories">${hasSubcategories ? '📂' : '➕📂'}</button>
         </div>
       </div>
     `;
 
-    // Render subcategories if they exist
+    // Render subcategories if they exist (inline and toggled)
+    html += `<div class="subcategories-container" id="subcategories-${name}" style="margin-left: 20px; display: none; background-color: #f0f0f0; padding:10px; border-radius:4px;">`;
     if (typeof value === 'object' && value.subcategories) {
       const subcategories = value.subcategories;
       const subcategoryIds = Object.keys(subcategories);
 
       if (subcategoryIds.length > 0) {
-        html += `<div class="subcategories-container" id="subcategories-${name}" style="margin-left: 20px; display: none;">`;
-
         subcategoryIds.sort().forEach(subName => {
           const subColor = subcategories[subName];
           html += `
@@ -114,32 +114,26 @@ function renderCategoryList(container) {
               <input type="color" value="${subColor}" class="subcategory-color-input">
               <input type="text" value="${subName}" data-original="${subName}" class="subcategory-name-input">
               <div class="subcategory-buttons">
-                <button class="save-subcategory-btn primary-btn" data-parent="${name}" data-name="${subName}">Save</button>
-                <button class="delete-subcategory-btn" data-parent="${name}" data-name="${subName}">Delete</button>
+                <button class="save-subcategory-btn primary-btn icon-btn" data-parent="${name}" data-name="${subName}" title="Save Subcategory">💾</button>
+                <button class="delete-subcategory-btn icon-btn" data-parent="${name}" data-name="${subName}" title="Delete Subcategory">🗑️</button>
               </div>
             </div>
           `;
         });
-
-        // Add form to create new subcategory
-        html += `
-          <div class="add-subcategory-form" data-parent="${name}">
-            <input type="color" class="new-subcategory-color" value="#8bd48b">
-            <input type="text" class="new-subcategory-name" placeholder="New Subcategory Name">
-            <button class="add-subcategory-btn primary-btn" data-parent="${name}">Add</button>
-          </div>
-        </div>`;
       } else {
-        html += `<div class="subcategories-container" id="subcategories-${name}" style="margin-left: 20px; display: none;">
-          <div class="empty-subcategories">No subcategories yet.</div>
-          <div class="add-subcategory-form" data-parent="${name}">
-            <input type="color" class="new-subcategory-color" value="#8bd48b">
-            <input type="text" class="new-subcategory-name" placeholder="New Subcategory Name">
-            <button class="add-subcategory-btn primary-btn" data-parent="${name}">Add</button>
-          </div>
-        </div>`;
+        html += `<div class="empty-subcategories">No subcategories yet.</div>`;
       }
+    } else {
+      html += `<div class="empty-subcategories">No subcategories yet.</div>`;
     }
+    // Add form to create new subcategory inside the container
+    html += `
+      <div class="add-subcategory-form" data-parent="${name}" style="margin-top:10px;">
+        <input type="color" class="new-subcategory-color" value="#8bd48b">
+        <input type="text" class="new-subcategory-name" placeholder="New Subcategory Name">
+        <button class="add-subcategory-btn primary-btn icon-btn" data-parent="${name}" title="Add Subcategory">➕</button>
+      </div>
+    </div>`; // Close subcategories-container
   });
 
   categoriesList.innerHTML = html;
@@ -432,7 +426,7 @@ function attachEventHandlers(container, modal) {
   }
 
   // Add event handler for regex editor button
-  container.querySelector("#openRegexEditorBtn").addEventListener("click", () => {
+  container.querySelector("#openRegexEditorBtnModal").addEventListener("click", () => { // Use new ID
     import("./RegexRuleEditor.js")
       .then(module => module.openRegexRuleEditor())
       .catch(error => console.error("Error opening regex editor:", error));

@@ -1,146 +1,133 @@
-import { createSafeChart, destroyChart, displayNoDataMessage, validateChartData } from "./chartCore.js";
+import { destroyChart, calculateIncomeExpenseTotals, getChartColors } from './chartCore.js';
 
-// Store chart instance for proper cleanup
-let pieChart = null;
+// Store chart instance
+let incomeExpenseChart = null;
 
 /**
- * Updates the income vs expenses pie chart with the given transactions
- * @param {Array} transactions - The transactions to display
- * @returns {boolean} True if successful, false otherwise
+ * Destroy existing income/expense chart instance
  */
-export function updateIncomeExpenseChart(transactions) {
+export function destroyIncomeExpenseChart() {
+  if (incomeExpenseChart) {
+    incomeExpenseChart.destroy();
+    incomeExpenseChart = null;
+    console.log("Income/Expense chart destroyed");
+  }
+}
+
+/**
+ * Create income vs expense chart using the new registration system
+ */
+export function createIncomeExpenseChart(transactions, createChartFn) {
   try {
-    const canvas = document.getElementById("incomeExpenseChart");
-    if (!canvas) return false;
+    console.log("Creating income/expense chart...");
 
-    // Clean up existing chart
-    pieChart = destroyChart(pieChart);
-
-    // Validate data
-    const validTransactions = validateChartData(transactions);
-    if (!validTransactions.length) {
-      displayNoDataMessage("incomeExpenseChart", "No transaction data to display");
-      return false;
+    if (!transactions || transactions.length === 0) {
+      return null;
     }
 
-    // Calculate total income and expenses
-    const totalIncome = validTransactions
-      .filter(tx => tx.income && !isNaN(parseFloat(tx.income)))
-      .reduce((sum, tx) => sum + parseFloat(tx.income), 0);
+    const totals = calculateIncomeExpenseTotals(transactions);
+    const colors = getChartColors(document.body.classList.contains('dark-mode'));
 
-    const totalExpenses = validTransactions
-      .filter(tx => tx.expenses && !isNaN(parseFloat(tx.expenses)))
-      .reduce((sum, tx) => sum + parseFloat(tx.expenses), 0);
+    if (totals.income === 0 && totals.expenses === 0) {
+      return null;
+    }
 
-    // Create chart data
-    const data = {
-      labels: ['Income', 'Expenses'],
-      datasets: [{
-        data: [totalIncome, totalExpenses],
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.7)',
-          'rgba(255, 99, 132, 0.7)'
-        ],
-        borderColor: [
-          'rgb(75, 192, 192)',
-          'rgb(255, 99, 132)'
-        ],
-        borderWidth: 1,
-        hoverOffset: 15
-      }]
-    };
-
-    // Create chart
-    pieChart = createSafeChart("incomeExpenseChart", {
-      type: 'pie',
-      data: data,
+    const config = {
+      type: 'doughnut',
+      data: {
+        labels: ['Income', 'Expenses'],
+        datasets: [{
+          data: [totals.income, totals.expenses],
+          backgroundColor: [colors.income, colors.expenses],
+          borderWidth: 2,
+          borderColor: colors.background
+        }]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          intersect: false
+        },
         plugins: {
           legend: {
-            position: 'top',
+            position: 'bottom',
             labels: {
-              generateLabels: function (chart) {
-                // Get the default label items
-                const original = Chart.overrides.pie.plugins.legend.labels.generateLabels;
-                const labelsOriginal = original.call(this, chart);
-
-                // Add amounts to labels
-                return labelsOriginal.map((label, i) => {
-                  const value = chart.data.datasets[0].data[i];
-                  const formattedValue = new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 2
-                  }).format(value);
-
-                  label.text = `${label.text}: ${formattedValue}`;
-                  return label;
-                });
-              }
+              color: colors.text,
+              padding: 20
             }
           },
           tooltip: {
             callbacks: {
               label: function (context) {
-                const value = context.raw || 0;
-                return `${context.label}: $${value.toLocaleString('en-US', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                })}`;
+                const value = context.parsed;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${context.label}: ${value.toFixed(2)} (${percentage}%)`;
               }
             }
           }
         }
       }
-    });
+    };
 
-    return true;
+    return createChartFn('incomeExpenseChart', config);
   } catch (error) {
-    console.error("Error updating income/expense chart:", error);
-    displayNoDataMessage("incomeExpenseChart", "Error rendering chart");
-    return false;
+    console.error("Error creating income/expense chart:", error);
+    return null;
   }
 }
 
 /**
- * Shows empty state for income/expense chart with improved aesthetics
+ * Update the income vs expense chart
  */
-function showEmptyStateChart() {
-  const ctx = document.getElementById("incomeExpenseChart");
-  if (!ctx) return;
-
-  // Use createSafeChart to create a blank chart without any "No data" text
-  if (window.incomeExpenseChart) {
-    window.incomeExpenseChart.destroy();
-  }
-
-  window.incomeExpenseChart = createSafeChart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        backgroundColor: []
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false },
-        // Remove the "No data" text entirely
-        title: { display: false }
-      }
-    }
+export function updateIncomeExpenseChart(transactions) {
+  return createIncomeExpenseChart(transactions, (canvasId, config) => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    return new Chart(ctx, config);
   });
+}
+
+/**
+ * Clear the income vs expense chart
+ */
+export function clearIncomeExpenseChart() {
+  if (incomeExpenseChart) {
+    try {
+      incomeExpenseChart.destroy();
+      incomeExpenseChart = null;
+      console.log("Income/expense chart cleared");
+    } catch (error) {
+      console.error("Error clearing income/expense chart:", error);
+    }
+  }
+}
+
+// Helper function to display no data message - renamed to avoid conflict
+function showNoDataMessage(canvas, message) {
+  const ctx = canvas.getContext('2d');
+
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Set text properties
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '14px Arial';
+
+  // Determine text color based on theme
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  ctx.fillStyle = isDarkMode ? '#aaaaaa' : '#666666';
+
+  // Draw message in center of canvas
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }
 
 /**
  * Cleans up the income vs expense chart
  */
 export function cleanupIncomeExpenseChart() {
-  pieChart = destroyChart(pieChart);
+  incomeExpenseChart = destroyChart(incomeExpenseChart);
 }

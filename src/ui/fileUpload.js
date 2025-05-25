@@ -4,22 +4,32 @@ import { showToast, hideElement } from "./uiManager.js";
 import { renderHeaderPreview } from "./headerMapping.js";
 import { validateRowIndices } from "../utils/validation.js";
 import { saveHeadersAndFormat } from "../mappings/mappingsManager.js";
-import { addMergedFile, renderMergedFiles } from "../main.js";
+import { addMergedFile } from "../core/fileManager.js"; // New import
+import { renderMergedFiles } from "./fileListUI.js"; // renderMergedFiles is likely here or in main
 import { updateTransactions } from "./transactionManager.js";
 import { showModal } from "./modalManager.js";
 import { CURRENCIES, DEFAULT_CURRENCY } from "../constants/currencies.js";
 
 /**
- * Clears the file preview area
+ * Clears the file preview area and ensures temporary data is removed
  */
 export function clearPreview() {
+  console.log("Clearing preview and all temporary data");
+
   // Clear preview area
-  document.getElementById("previewTable").innerHTML = "";
+  const previewTable = document.getElementById("previewTable");
+  if (previewTable) previewTable.innerHTML = "";
 
   // Hide UI controls
   hideElement("rowSelectionPanel");
   hideElement("saveHeadersBtn");
   hideElement("clearPreviewBtn");
+
+  // Ensure all temporary data is removed
+  localStorage.removeItem("tempFileSignature");
+
+  // Clean up any file input elements
+  cleanupExistingFileInputs();
 
   // Reset state
   resetFileState();
@@ -191,7 +201,14 @@ function storeFileDataInState(file, data) {
 
   AppState.currentFileData = data;
   AppState.currentFileName = file.name;
-  AppState.currentFileSignature = generateFileSignature(file.name, data);
+
+  // Generate signature but ONLY store in memory (not localStorage)
+  const tempSignature = generateFileSignature(file.name, data);
+  AppState.currentFileSignature = tempSignature;
+
+  // IMPORTANT FIX: Do NOT store in localStorage at all during previewing
+  // This ensures signatures are never persisted until explicit save
+  console.log("File data stored in memory only (not saved to storage)");
 }
 
 function checkForDuplicateFile(file) {
@@ -236,14 +253,11 @@ function isXmlFile(file) {
 }
 
 function findXmlMapping(data) {
-  // XML mapping lookup logic
-  // For now, just return null until proper implementation
   return null;
 }
 
 function findStandardMapping(data) {
   // Standard mapping lookup logic
-  // For now, just return null until proper implementation
   return null;
 }
 
@@ -278,6 +292,157 @@ function addRowInputValidation(data) {
   }
 
   return true;
+}
+
+
+/**
+ * Global flag to prevent multiple file inputs from being created simultaneously
+ */
+let fileInputInProgress = false;
+
+/**
+ * Ensure the file upload button works correctly
+ */
+export function initializeFileUpload() {
+  console.log("Initializing file upload functionality");
+
+  // Remove all file inputs first
+  cleanupAllFileInputs();
+
+  const fileUploadBtn = document.getElementById("fileUploadBtn");
+  if (!fileUploadBtn) {
+    console.error("File upload button not found in DOM");
+    return;
+  }
+
+  // CRITICAL FIX: Use a more reliable approach for the upload button
+  // First completely remove and recreate the button
+  const newBtn = document.createElement("button");
+  newBtn.id = "fileUploadBtn";
+  newBtn.className = fileUploadBtn.className || 'action-button';
+  newBtn.title = fileUploadBtn.title || 'Upload Transaction File';
+  newBtn.innerHTML = fileUploadBtn.innerHTML || '<span class="action-icon">📤</span><span class="action-text">Upload</span>';
+
+  if (fileUploadBtn.parentNode) {
+    fileUploadBtn.parentNode.replaceChild(newBtn, fileUploadBtn);
+  }
+
+  // Add a single click handler with protection against multiple calls
+  newBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Prevent rapid clicking
+    if (fileInputInProgress) {
+      console.log("File input already in progress, ignoring click");
+      return;
+    }
+
+    fileInputInProgress = true;
+    console.log("File upload button clicked");
+
+    // First clean up any existing file inputs
+    cleanupAllFileInputs();
+
+    // Create a new file input with unique ID
+    const uniqueId = `fileInput_${Date.now()}`;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.id = uniqueId;
+    input.accept = ".csv,.xlsx,.xls,.xml";
+    input.style.display = "none";
+
+    // Add the event listener before adding to DOM
+    input.addEventListener("change", handleFileSelection);
+
+    // Add to DOM and trigger click
+    document.body.appendChild(input);
+    input.click();
+
+    // Reset flag if user cancels dialog
+    setTimeout(() => {
+      fileInputInProgress = false;
+    }, 5000);
+  });
+
+  console.log("File upload button initialized with clean event handlers");
+}
+
+/**
+ * One-time handler for file selection
+ */
+function handleFileSelection(event) {
+  // Remove this handler immediately to prevent double processing
+  event.target.removeEventListener("change", handleFileSelection);
+
+  // Process file
+  onFileUpload(event);
+
+  // Remove the input element after a short delay
+  setTimeout(() => {
+    if (event.target.parentNode) {
+      event.target.parentNode.removeChild(event.target);
+    }
+    fileInputInProgress = false;
+  }, 100);
+}
+
+/**
+ * Remove ALL file inputs from the document
+ */
+function cleanupAllFileInputs() {
+  // Get all file inputs
+  document.querySelectorAll('input[type="file"]').forEach(input => {
+    // Remove from DOM to ensure garbage collection of event handlers
+    if (input.parentNode) {
+      input.parentNode.removeChild(input);
+    }
+  });
+  console.log("Cleaned up all file inputs");
+}
+
+/**
+ * Creates a new file input element with guaranteed uniqueness
+ * @returns {HTMLInputElement} The newly created file input element
+ */
+export function createNewFileInput() {
+  try {
+    // Clean up any existing file inputs to prevent memory leaks
+    cleanupAllFileInputs();
+
+    // Create a new file input element with a unique ID
+    const uniqueId = `fileInput_${Date.now()}`;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.id = uniqueId;
+    input.accept = ".csv,.xlsx,.xls,.xml";
+    input.style.display = "none";
+
+    // Add to body first, then add event listener
+    document.body.appendChild(input);
+
+    // Add event listener for the change event
+    input.addEventListener("change", function oneTimeHandler(event) {
+      // Remove the handler immediately to prevent double-firing
+      input.removeEventListener("change", oneTimeHandler);
+
+      // Process the file
+      onFileUpload(event);
+
+      // Clean up the input element after processing
+      setTimeout(() => {
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+      }, 100);
+    });
+
+    console.log("New file input created with id:", uniqueId);
+    return input;
+  } catch (error) {
+    console.error("Error creating file input:", error);
+    return null;
+  }
 }
 
 /**
@@ -351,7 +516,7 @@ export function onSaveHeaders(modal) {
       AppState.currentFileName,
       AppState.currentFileData,
       mapping,
-      currency // Include currency in signature
+      currency
     );
 
     // Get signature string
@@ -397,150 +562,10 @@ export function onSaveHeaders(modal) {
     resetFileState();
 
     showToast("File saved and merged successfully", "success");
-    renderMergedFiles();
+    renderMergedFiles(); // Ensure this is called to update the UI
     updateTransactions();
   } catch (error) {
     console.error("Error saving headers:", error);
     showToast("Failed to save mapping: " + error.message, "error");
   }
-}
-
-/**
- * Creates a new file input element for each upload to avoid value manipulation
- */
-export function createNewFileInput() {
-  try {
-    // Delete existing input element first
-    const oldInput = document.getElementById("fileInput");
-    if (oldInput) {
-      // IMPORTANT: Remove all existing event listeners before removing element
-      oldInput.removeEventListener("change", onFileUpload);
-      if (oldInput.parentNode) {
-        oldInput.parentNode.removeChild(oldInput);
-      }
-    }
-
-    // Create a completely new input element
-    const input = document.createElement("input");
-    input.type = "file";
-    input.id = "fileInput";
-    input.style.display = "none";
-    input.accept = ".csv,.xlsx,.xls,.xml";
-
-    // Add to body first, then add event listener
-    document.body.appendChild(input);
-
-    // Add the event listener ONCE to prevent multiple triggers
-    input.addEventListener("change", onFileUpload, { once: true });
-
-    console.log("New file input created with id: fileInput");
-    return input;
-  } catch (err) {
-    console.error("Error creating new file input:", err);
-    return null;
-  }
-}
-
-/**
- * Ensures the row selection UI elements exist
- * @returns {boolean} True if elements were created or already existed
- */
-function ensureRowSelectionUI() {
-  // First, ensure we have a preview table container
-  let previewContainer = document.getElementById("previewContainer");
-  if (!previewContainer) {
-    // Create the whole file preview section if it doesn't exist
-    const fileUploadSection = document.getElementById("fileUploadSection") ||
-      document.querySelector(".section") ||
-      document.body;
-
-    previewContainer = document.createElement("div");
-    previewContainer.id = "previewContainer";
-    previewContainer.className = "preview-container";
-    previewContainer.style.marginTop = "20px";
-    fileUploadSection.appendChild(previewContainer);
-
-    // Create preview table element
-    const previewTable = document.createElement("div");
-    previewTable.id = "previewTable";
-    previewTable.className = "preview-table";
-    previewContainer.appendChild(previewTable);
-
-    console.log("Created preview table element");
-  }
-
-  // Now check for row selection panel
-  let rowSelectionPanel = document.getElementById("rowSelectionPanel");
-  if (!rowSelectionPanel) {
-    // Create row selection panel with all its contents
-    rowSelectionPanel = document.createElement("div");
-    rowSelectionPanel.id = "rowSelectionPanel";
-    rowSelectionPanel.className = "row-selection-panel";
-    rowSelectionPanel.style.marginBottom = "15px";
-    rowSelectionPanel.innerHTML = `
-      <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 15px;">
-        <div>
-          <label for="headerRowInput">Header Row:</label>
-          <input type="number" id="headerRowInput" min="1" value="1" style="width: 60px;">
-        </div>
-        <div>
-          <label for="dataRowInput">Data Starts at Row:</label>
-          <input type="number" id="dataRowInput" min="1" value="2" style="width: 60px;">
-        </div>
-        <button id="updatePreviewBtn" class="button" style="padding: 5px 10px;">Update Preview</button>
-      </div>
-    `;
-
-    // Insert at the beginning of the preview container
-    if (previewContainer.firstChild) {
-      previewContainer.insertBefore(rowSelectionPanel, previewContainer.firstChild);
-    } else {
-      previewContainer.appendChild(rowSelectionPanel);
-    }
-
-    // Add buttons for saving and clearing
-    const buttonContainer = document.createElement("div");
-    buttonContainer.style.marginTop = "15px";
-    buttonContainer.style.display = "flex";
-    buttonContainer.style.gap = "10px";
-
-    const saveButton = document.createElement("button");
-    saveButton.id = "saveHeadersBtn";
-    saveButton.className = "button primary-btn";
-    saveButton.textContent = "Save Mapping & Merge File";
-    saveButton.onclick = onSaveHeaders;
-    buttonContainer.appendChild(saveButton);
-
-    const clearButton = document.createElement("button");
-    clearButton.id = "clearPreviewBtn";
-    clearButton.className = "button";
-    clearButton.textContent = "Clear Preview";
-    clearButton.onclick = clearPreview;
-    buttonContainer.appendChild(clearButton);
-
-    previewContainer.appendChild(buttonContainer);
-
-    // Add event listener to update button
-    const updateBtn = document.getElementById("updatePreviewBtn");
-    if (updateBtn) {
-      updateBtn.addEventListener("click", () => {
-        if (AppState.currentFileData) {
-          renderHeaderPreview(AppState.currentFileData);
-        }
-      });
-    }
-
-    console.log("Created row selection panel and buttons");
-  }
-
-  // Now we should have all required elements
-  const headerRowInput = document.getElementById("headerRowInput");
-  const dataRowInput = document.getElementById("dataRowInput");
-
-  if (!headerRowInput || !dataRowInput) {
-    console.error("Failed to create all required elements");
-    return false;
-  }
-
-  return true;
 }

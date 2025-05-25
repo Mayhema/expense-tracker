@@ -1,42 +1,90 @@
-// Move from src/core/constants.js
+/**
+ * Header mapping options for file import
+ */
+export const HEADERS = [
+  "–", // Placeholder for unmapped columns
+  "Date",
+  "Description",
+  "Income",
+  "Expenses"
+];
 
-export const HEADERS = ["Date", "Income", "Expenses", "Description", "–"];
-
-// Add more constants here
-export const STORAGE_KEYS = {
-  MERGED_FILES: "mergedFiles",
-  TRANSACTIONS: "transactions",
-  CATEGORIES: "expenseCategories",
-  FORMAT_MAPPINGS: "fileFormatMappings",
-  CATEGORY_MAPPINGS: "categoryMappings",
-  DARK_MODE: "darkMode",
-  COLLAPSED_SECTIONS: {
-    MERGED_FILES: "mergedFilesSectionCollapsed"
-  }
-};
-
-export const FILE_TYPES = {
-  XML: "xml",
-  XLSX: "xlsx",
-  XLS: "xls",
-  CSV: "csv"
-};
-
-export const EXCEL_DATE = {
-  MIN: 35000,
-  MAX: 50000
-};
-
-// Fix the DEFAULT_CATEGORIES definition - it was using an object format when an array was expected
+/**
+ * Default expense categories with colors
+ */
 export const DEFAULT_CATEGORIES = {
-  "Food": "#FF6384",
-  "Housing": "#36A2EB",
-  "Transportation": "#FFCE56",
-  "Entertainment": "#4BC0C0",
-  "Healthcare": "#9966FF",
-  "Shopping": "#FF9F40",
-  "Personal Care": "#8AC249",
-  "Education": "#EA526F",
-  "Utilities": "#7B68EE",
-  "Travel": "#2ECC71"
+  "Food": "#4CAF50",
+  "Transportation": "#2196F3",
+  "Entertainment": "#FF9800",
+  "Shopping": "#E91E63",
+  "Bills": "#F44336",
+  "Healthcare": "#9C27B0",
+  "Education": "#607D8B",
+  "Travel": "#00BCD4",
+  "Savings": "#4CAF50"
+  // "Other" completely removed - uncategorized transactions will be handled separately
+};
+
+/**
+ * File format constants
+ */
+export const SUPPORTED_FILE_TYPES = ['.csv', '.xlsx', '.xls', '.xml'];
+
+/**
+ * Chart configuration constants
+ */
+export const CHART_COLORS = {
+  income: '#4CAF50',
+  expenses: '#F44336',
+  primary: '#2196F3',
+  secondary: '#FF9800',
+  success: '#4CAF50',
+  warning: '#FF9800',
+  error: '#F44336',
+  info: '#2196F3'
+};
+
+/**
+ * Date format constants
+ */
+export const DATE_FORMATS = {
+  ISO: 'YYYY-MM-DD',
+  US: 'MM/DD/YYYY',
+  EU: 'DD/MM/YYYY',
+  DISPLAY: 'DD/MM/YYYY'
+};
+
+/**
+ * Application settings
+ */
+export const APP_SETTINGS = {
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  maxTransactions: 50000,
+  defaultCurrency: 'USD',
+  dateFormat: DATE_FORMATS.DISPLAY,
+  autoSave: true,
+  debugMode: false
+};
+
+/**
+ * Local storage keys
+ */
+export const STORAGE_KEYS = {
+  transactions: 'transactions',
+  categories: 'expenseCategories',
+  mergedFiles: 'mergedFiles',
+  mappings: 'fileFormatMappings',
+  settings: 'appSettings',
+  darkMode: 'darkMode',
+  debugMode: 'debugMode'
+};
+
+/**
+ * Export constants for validation
+ */
+export const VALIDATION = {
+  minDate: new Date('1900-01-01'),
+  maxDate: new Date('2100-12-31'),
+  maxDescriptionLength: 500,
+  maxCategoryLength: 100
 };

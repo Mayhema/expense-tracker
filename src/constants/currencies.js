@@ -1,50 +1,73 @@
 /**
- * Currency definitions with symbols and codes
+ * Currency definitions with symbols and names
  */
 export const CURRENCIES = {
-  USD: { code: "USD", symbol: "$", name: "US Dollar" },
-  EUR: { code: "EUR", symbol: "€", name: "Euro" },
-  GBP: { code: "GBP", symbol: "£", name: "British Pound" },
-  JPY: { code: "JPY", symbol: "¥", name: "Japanese Yen" },
-  CAD: { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
-  AUD: { code: "AUD", symbol: "A$", name: "Australian Dollar" },
-  CNY: { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
-  CHF: { code: "CHF", symbol: "Fr", name: "Swiss Franc" },
-  ILS: { code: "ILS", symbol: "₪", name: "Israeli Shekel" },
-  INR: { code: "INR", symbol: "₹", name: "Indian Rupee" },
-  RUB: { code: "RUB", symbol: "₽", name: "Russian Ruble" }
+  USD: { name: 'US Dollar', symbol: '$' },
+  EUR: { name: 'Euro', symbol: '€' },
+  GBP: { name: 'British Pound', symbol: '£' },
+  JPY: { name: 'Japanese Yen', symbol: '¥' },
+  CAD: { name: 'Canadian Dollar', symbol: 'C$' },
+  AUD: { name: 'Australian Dollar', symbol: 'A$' },
+  CHF: { name: 'Swiss Franc', symbol: 'CHF' },
+  CNY: { name: 'Chinese Yuan', symbol: '¥' },
+  SEK: { name: 'Swedish Krona', symbol: 'kr' },
+  NOK: { name: 'Norwegian Krone', symbol: 'kr' },
+  MXN: { name: 'Mexican Peso', symbol: '$' },
+  NZD: { name: 'New Zealand Dollar', symbol: 'NZ$' },
+  SGD: { name: 'Singapore Dollar', symbol: 'S$' },
+  HKD: { name: 'Hong Kong Dollar', symbol: 'HK$' },
+  KRW: { name: 'South Korean Won', symbol: '₩' },
+  TRY: { name: 'Turkish Lira', symbol: '₺' },
+  RUB: { name: 'Russian Ruble', symbol: '₽' },
+  INR: { name: 'Indian Rupee', symbol: '₹' },
+  BRL: { name: 'Brazilian Real', symbol: 'R$' },
+  ZAR: { name: 'South African Rand', symbol: 'R' },
+  PLN: { name: 'Polish Zloty', symbol: 'zł' },
+  CZK: { name: 'Czech Koruna', symbol: 'Kč' },
+  HUF: { name: 'Hungarian Forint', symbol: 'Ft' },
+  ILS: { name: 'Israeli Shekel', symbol: '₪' },
+  DKK: { name: 'Danish Krone', symbol: 'kr' },
+  RON: { name: 'Romanian Leu', symbol: 'lei' },
+  BGN: { name: 'Bulgarian Lev', symbol: 'лв' },
+  HRK: { name: 'Croatian Kuna', symbol: 'kn' },
+  ISK: { name: 'Icelandic Krona', symbol: 'kr' }
 };
 
-export const DEFAULT_CURRENCY = "USD";
+/**
+ * Default currency
+ */
+export const DEFAULT_CURRENCY = 'USD';
 
 /**
- * Formats a number with the appropriate currency symbol
+ * Get currency symbol by code
+ * @param {string} currencyCode - The currency code
+ * @returns {string} The currency symbol
+ */
+export function getCurrencySymbol(currencyCode) {
+  return CURRENCIES[currencyCode]?.symbol || currencyCode;
+}
+
+/**
+ * Get currency name by code
+ * @param {string} currencyCode - The currency code
+ * @returns {string} The currency name
+ */
+export function getCurrencyName(currencyCode) {
+  return CURRENCIES[currencyCode]?.name || currencyCode;
+}
+
+/**
+ * Format amount with currency
  * @param {number} amount - The amount to format
- * @param {string} currencyCode - The currency code (USD, EUR, etc.)
+ * @param {string} currencyCode - The currency code
  * @returns {string} Formatted amount with currency symbol
  */
 export function formatCurrency(amount, currencyCode = DEFAULT_CURRENCY) {
-  if (!amount && amount !== 0) return '';
+  if (amount === null || amount === undefined || amount === '') return '';
 
-  const currency = CURRENCIES[currencyCode] || CURRENCIES[DEFAULT_CURRENCY];
   const numAmount = parseFloat(amount);
+  if (isNaN(numAmount)) return amount;
 
-  // Format with appropriate decimals
-  let formatted;
-  if (currencyCode === 'JPY' || currencyCode === 'RUB') {
-    // These currencies typically don't use decimal places
-    formatted = Math.round(numAmount).toLocaleString();
-  } else {
-    formatted = numAmount.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-
-  // Add symbol in correct position
-  if (currencyCode === 'USD' || currencyCode === 'CAD' || currencyCode === 'AUD') {
-    return currency.symbol + formatted;
-  } else {
-    return formatted + ' ' + currency.symbol;
-  }
+  const symbol = getCurrencySymbol(currencyCode);
+  return `${symbol}${Math.abs(numAmount).toFixed(2)}`;
 }

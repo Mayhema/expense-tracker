@@ -1,140 +1,266 @@
 import { AppState } from "../core/appState.js";
-import { destroyChart, createSafeChart } from './chartCore.js';
+import { destroyChart, validateChartData, processTimelineData, getChartColors } from './chartCore.js';
 
 /**
- * Updates the timeline chart with new data
- * @param {Array} transactions - The transaction data to display
- * @param {string} periodOption - The time period option (month, quarter, year)
+ * Creates and updates the timeline chart
+ * @param {Array} transactions - Array of transaction objects
  */
-export function updateTimelineChart(transactions, periodOption = 'month') {
+export function updateTimelineChart(transactions) {
   try {
-    const ctx = document.getElementById("timelineChart");
-    if (!ctx) {
-      console.error("Timeline chart canvas not found");
-      return;
+    console.log("Updating timeline chart...");
+
+    if (!validateChartData(transactions)) {
+      clearTimelineChart();
+      return null;
     }
 
-    console.log("Updating timeline chart with period:", periodOption);
+    const timelineData = processTimelineData(transactions);
+    const colors = getChartColors(document.body.classList.contains('dark-mode'));
 
-    // More robust chart destruction with additional checks
-    if (window.timelineChart) {
-      try {
-        destroyChartInstance(window.timelineChart);
-        window.timelineChart = null;
-      } catch (err) {
-        console.warn("Error destroying timeline chart:", err);
+    if (timelineData.labels.length === 0) {
+      clearTimelineChart();
+      return null;
+    }
+
+    const chartData = {
+      labels: timelineData.labels,
+      datasets: [
+        {
+          label: 'Income',
+          data: timelineData.incomeData,
+          borderColor: colors.income,
+          backgroundColor: colors.income + '20',
+          tension: 0.1,
+          fill: false
+        },
+        {
+          label: 'Expenses',
+          data: timelineData.expenseData,
+          borderColor: colors.expenses,
+          backgroundColor: colors.expenses + '20',
+          tension: 0.1,
+          fill: false
+        }
+      ]
+    };
+
+    const chartInstance = initializeTimelineChart(chartData, colors);
+    return chartInstance;
+  } catch (error) {
+    console.error("Error updating timeline chart:", error);
+    return null;
+  }
+}
+
+/**
+ * Prepares data for timeline chart
+ * @param {Array} transactions - Filtered transactions
+ * @returns {Object} Chart.js data object
+ */
+function prepareTimelineData(transactions) {
+  const monthlyData = {};
+
+  // Group transactions by month
+  transactions.forEach(tx => {
+    if (!tx.date) return;
+
+    try {
+      const date = new Date(tx.date);
+      if (isNaN(date.getTime())) return;
+
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { income: 0, expenses: 0 };
       }
+
+      monthlyData[monthKey].income += parseFloat(tx.income) || 0;
+      monthlyData[monthKey].expenses += parseFloat(tx.expenses) || 0;
+    } catch (error) {
+      console.warn('Error processing date for timeline:', tx.date, error);
     }
+  });
 
-    // Create data for the chart
-    const { labels, incomeData, expensesData } = prepareTimelineData(transactions, periodOption);
+  // Sort months chronologically
+  const sortedMonths = Object.keys(monthlyData).sort();
 
-    // Check if we have valid data - IMPROVED EMPTY STATE HANDLING
-    if (!labels || labels.length === 0) {
-      console.log("No valid timeline data to display - showing empty state");
-      // Instead of returning early, show an empty state chart
-      showEmptyStateChart();
-      return;
-    }
+  if (sortedMonths.length === 0) {
+    return { labels: [], datasets: [] };
+  }
 
-    // Create chart configuration with proper number formatting
-    const isDarkMode = document.body.classList.contains("dark-mode");
-    const textColor = isDarkMode ? "#e0e0e0" : "#666666";
-    const gridColor = isDarkMode ? "#444444" : "#dddddd";
+  // Prepare chart data
+  const incomeData = sortedMonths.map(month => monthlyData[month].income);
+  const expenseData = sortedMonths.map(month => monthlyData[month].expenses);
 
-    // Create a new chart instance with safer number formatting
-    window.timelineChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Income',
-            data: incomeData,
-            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 1,
-            order: 2
-          },
-          {
-            label: 'Expenses',
-            data: expensesData,
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1,
-            order: 1
-          }
-        ]
+  // Format labels for display (MMM YYYY)
+  const labels = sortedMonths.map(month => {
+    const [year, monthNum] = month.split('-');
+    const date = new Date(year, monthNum - 1);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  });
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Income',
+        data: incomeData,
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        tension: 0.1,
+        fill: false
       },
+      {
+        label: 'Expenses',
+        data: expenseData,
+        borderColor: '#F44336',
+        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+        tension: 0.1,
+        fill: false
+      }
+    ]
+  };
+}
+
+/**
+ * Clears the timeline chart
+ * @param {HTMLCanvasElement} canvas - Chart canvas
+ */
+function clearChart(canvas) {
+  const existingChart = Chart.getChart(canvas);
+  if (existingChart) {
+    existingChart.destroy();
+  }
+
+  // Clear the chart instance
+  storeChartInstance('timeline', null);
+}
+
+// Store chart instance
+let timelineChart = null;
+let timelineChartInstance = null;
+
+/**
+ * Initialize timeline chart with better canvas management
+ */
+function initializeTimelineChart(data, colors) {
+  const canvas = document.getElementById("timelineChart");
+  if (!canvas) {
+    console.error("Timeline chart canvas not found");
+    return null;
+  }
+
+  // Get clean context - canvas should already be cleaned by chartManager
+  const ctx = canvas.getContext('2d');
+
+  try {
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: data,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: {
-          padding: {
-            top: 20,
-            right: 20,
-            bottom: 5,
-            left: 5
-          }
-        },
         scales: {
-          x: {
+          y: {
+            beginAtZero: true,
             grid: {
-              color: gridColor
+              color: colors.grid
             },
             ticks: {
-              color: textColor,
-              autoSkip: true,
-              maxRotation: 45,
-              minRotation: 0
+              color: colors.text
             }
           },
-          y: {
+          x: {
             grid: {
-              color: gridColor
+              color: colors.grid
             },
             ticks: {
-              color: textColor,
-              // FIX: Use safer number formatting to avoid the RangeError
-              callback: function (value) {
-                if (value % 1 === 0) {
-                  return value.toString();
-                }
-                return value.toFixed(2);
-              }
-            },
-            beginAtZero: true
+              color: colors.text
+            }
           }
         },
         plugins: {
-          tooltip: {
-            backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-            titleColor: isDarkMode ? '#fff' : '#000',
-            bodyColor: isDarkMode ? '#fff' : '#000',
-            borderColor: gridColor,
-            borderWidth: 1,
-            // FIX: Use safer number formatting for tooltips
-            callbacks: {
-              label: function (context) {
-                let value = context.raw;
-                let label = context.dataset.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                if (typeof value === 'number') {
-                  return label + value.toFixed(2);
-                }
-                return label + value;
-              }
+          legend: {
+            labels: {
+              color: colors.text
             }
           }
         }
       }
     });
 
-    console.log("Timeline chart created successfully");
+    console.log("Timeline chart initialized successfully");
+    return chart;
   } catch (error) {
     console.error("Error creating timeline chart:", error);
+    return null;
+  }
+}
+
+/**
+ * Clear the timeline chart
+ */
+export function clearTimelineChart() {
+  if (timelineChart) {
+    try {
+      timelineChart.destroy();
+      timelineChart = null;
+      console.log("Timeline chart cleared");
+    } catch (error) {
+      console.error("Error clearing timeline chart:", error);
+    }
+  }
+}
+
+/**
+ * Destroy existing timeline chart instance
+ */
+export function destroyTimelineChart() {
+  if (timelineChart) {
+    timelineChart.destroy();
+    timelineChart = null;
+    console.log("Timeline chart destroyed");
+  }
+}
+
+/**
+ * Update timeline chart with current period
+ */
+function updateTimelineChartInternal() {
+  console.log("Updating timeline chart...");
+
+  // Destroy existing chart first
+  destroyTimelineChart();
+
+  try {
+    const period = getChartPeriod();
+    console.log(`Updating timeline chart with period: ${period}`);
+
+    const timelineData = calculateTimelineData(period);
+
+    if (!timelineData.hasData) {
+      console.log("No valid transaction data for timeline");
+      showEmptyStateChart();
+      return;
+    }
+
+    // Initialize new chart
+    timelineChartInstance = initializeTimelineChart();
+
+    if (!timelineChartInstance) {
+      console.error("Could not initialize timeline chart");
+      return;
+    }
+
+    timelineChartInstance.data.labels = timelineData.labels;
+    timelineChartInstance.data.datasets[0].data = timelineData.income;
+    timelineChartInstance.data.datasets[1].data = timelineData.expenses;
+    timelineChartInstance.update('none');
+
+    console.log("Timeline chart updated");
+  } catch (error) {
+    console.error("Error creating timeline chart:", error);
+    destroyTimelineChart(); // Clean up on error
   }
 }
 
@@ -253,42 +379,27 @@ function refreshTimelineChart(period = 'month') {
 }
 
 /**
- * Shows empty state for timeline chart with improved aesthetics
+ * Shows empty state for timeline chart
  */
 function showEmptyStateChart() {
-  const ctx = document.getElementById("timelineChart");
-  if (!ctx) return;
+  console.log("No valid timeline data to display - showing empty state");
 
-  // Use createSafeChart to safely create a blank chart without any "No data" text
-  if (window.timelineChart) {
-    window.timelineChart.destroy();
-  }
+  // Destroy any existing chart first
+  destroyTimelineChart();
 
-  window.timelineChart = createSafeChart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        borderColor: 'rgba(0,0,0,0)',
-        backgroundColor: 'rgba(0,0,0,0)'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { display: false },
-        y: { display: false }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false },
-        // Remove the "No data" text entirely
-        title: { display: false }
-      }
+  try {
+    // Create empty chart
+    timelineChartInstance = initializeTimelineChart();
+
+    if (timelineChartInstance) {
+      timelineChartInstance.data.labels = ['No Data'];
+      timelineChartInstance.data.datasets[0].data = [0];
+      timelineChartInstance.data.datasets[1].data = [0];
+      timelineChartInstance.update('none');
     }
-  });
+  } catch (error) {
+    console.error("Error creating empty state chart:", error);
+  }
 }
 
 /**
@@ -314,44 +425,6 @@ function destroyChartInstance(chart) {
     } catch (err) {
       console.warn("Failed to destroy chart via fallback method:", err);
     }
-  }
-}
-
-/**
- * Safely destroys the timeline chart instance
- */
-function destroyTimelineChart() {
-  try {
-    // Check three different possible states for the chart
-    if (window.timelineChart) {
-      // Check if it's a Chart.js instance with destroy method
-      if (typeof window.timelineChart.destroy === 'function') {
-        console.log("Destroying existing timeline chart");
-        window.timelineChart.destroy();
-      }
-      // Check if it might have an update method (partially initialized chart)
-      else if (typeof window.timelineChart.update === 'function') {
-        console.log("Cleaning up chart with update method");
-        window.timelineChart.data.datasets = [];
-        window.timelineChart.update();
-      }
-
-      // Reset the chart variable regardless
-      window.timelineChart = null;
-    }
-
-    // Additional cleanup - check for canvas and clear it manually as a last resort
-    const canvas = document.getElementById("timelineChart");
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-  } catch (error) {
-    console.warn("Error during timeline chart cleanup:", error);
-    // Final fallback - just delete the reference
-    window.timelineChart = null;
   }
 }
 
@@ -616,8 +689,6 @@ function getPeriodLabel(date, period) {
   }
 }
 
-let timelineChart;
-
 /**
  * Renders the timeline chart
  * @param {Array} data - The transaction data to render
@@ -629,12 +700,12 @@ function renderTimelineChart(data) {
 }
 
 /**
- * Prepares transaction data for timeline visualization
+ * Prepares transaction data for timeline visualization with period options
  * @param {Array} transactions - The transaction data to display
  * @param {string} periodOption - The time period option (month, quarter, year)
  * @returns {Object} Object with labels, incomeData, and expensesData arrays
  */
-function prepareTimelineData(transactions, periodOption = 'month') {
+function prepareTimelineDataWithPeriod(transactions, periodOption = 'month') {
   // Default empty results
   const result = {
     labels: [],
@@ -731,7 +802,7 @@ function getPeriodKey(date, periodOption) {
 /**
  * Formats period key into readable label
  * @param {string} periodKey - The period key
- * @param {string} periodOption - The selected period option
+ * @param {string} periodOption - The selected period type
  * @returns {string} Formatted label
  */
 function formatPeriodDisplayLabel(periodKey, periodOption) {
@@ -754,6 +825,89 @@ function formatPeriodDisplayLabel(periodKey, periodOption) {
   const date = new Date(parseInt(year), parseInt(month) - 1, 1);
 
   return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+}
+
+/**
+ * Create timeline chart using the new registration system
+ */
+export function createTimelineChart(transactions, createChartFn) {
+  try {
+    console.log("Creating timeline chart...");
+
+    if (!validateChartData(transactions)) {
+      return null;
+    }
+
+    const timelineData = processTimelineData(transactions);
+    const colors = getChartColors(document.body.classList.contains('dark-mode'));
+
+    if (timelineData.labels.length === 0) {
+      return null;
+    }
+
+    const config = {
+      type: 'line',
+      data: {
+        labels: timelineData.labels,
+        datasets: [
+          {
+            label: 'Income',
+            data: timelineData.incomeData,
+            borderColor: colors.income,
+            backgroundColor: colors.income + '20',
+            tension: 0.1,
+            fill: false
+          },
+          {
+            label: 'Expenses',
+            data: timelineData.expenseData,
+            borderColor: colors.expenses,
+            backgroundColor: colors.expenses + '20',
+            tension: 0.1,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: colors.grid
+            },
+            ticks: {
+              color: colors.text
+            }
+          },
+          x: {
+            grid: {
+              color: colors.grid
+            },
+            ticks: {
+              color: colors.text
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: colors.text
+            }
+          }
+        }
+      }
+    };
+
+    return createChartFn('timelineChart', config);
+  } catch (error) {
+    console.error("Error creating timeline chart:", error);
+    return null;
+  }
 }
 
 // Initialize the timeline chart when the page loads

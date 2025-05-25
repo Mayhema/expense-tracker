@@ -5,15 +5,216 @@ import { showToast } from "./uiManager.js";
 const CATEGORY_MAPPINGS_KEY = "categoryMappings";
 // Instead of: export let descriptionCategoryMap = {};
 let _descriptionCategoryMap = {};
+
+// Category mapping from transaction descriptions to categories
 export const descriptionCategoryMap = {
-  get map() { return _descriptionCategoryMap; },
-  set map(value) { _descriptionCategoryMap = value; }
+  map: {},
+  isInitialized: false, // Flag to prevent multiple initializations
+
+  // Initialize if needed
+  init() {
+    if (this.isInitialized) {
+
+      return this;
+    }
+    try {
+      const saved = localStorage.getItem("categoryMappings");
+      if (saved) {
+        this.map = JSON.parse(saved);
+        console.log(`Loaded ${Object.keys(this.map).length} category mappings from localStorage.`);
+      } else {
+        this.map = {};
+        console.log("No saved category mappings found, initialized empty map.");
+      }
+    } catch (e) {
+      console.error("Error loading category mappings:", e);
+      this.map = {}; // Reset to empty map on error
+    }
+    this.isInitialized = true;
+    return this;
+  }
 };
+
+/**
+ * Saves category mappings to local storage
+ */
+export function saveCategoryMappings() {
+  if (!descriptionCategoryMap.isInitialized) {
+    // Initialize first if not already, to avoid overwriting with empty if loaded late
+    descriptionCategoryMap.init();
+  }
+  try {
+    localStorage.setItem("categoryMappings", JSON.stringify(descriptionCategoryMap.map));
+    console.log(`Saved ${Object.keys(descriptionCategoryMap.map).length} category mappings to localStorage.`);
+  } catch (e) {
+    console.error("Error saving category mappings:", e);
+  }
+}
+
+/**
+ * Add or update a transaction description to category mapping.
+ * This function should be called when a user manually categorizes a transaction
+ * or when a new rule is explicitly created.
+ * @param {string} description - Transaction description (or regex pattern).
+ * @param {string} category - Category name.
+ * @param {string} [subcategory=null] - Optional subcategory name.
+ * @param {boolean} [isRegex=false] - Whether the description is a regex pattern.
+ */
+export function learnOrUpdateMapping(description, category, subcategory = null, isRegex = false) {
+  if (!description || !category) {
+    console.warn("learnOrUpdateMapping: Description and category are required.");
+    return;
+  }
+
+  descriptionCategoryMap.init(); // Ensure map is loaded
+
+  const mappingValue = subcategory ? `${category}:${subcategory}` : category;
+
+  // For non-regex, normalize the description key (e.g., to lowercase, trim)
+  const key = isRegex ? description.trim() : description.trim().toLowerCase();
+
+  if (descriptionCategoryMap.map[key] === mappingValue) {
+    return; // No change needed
+  }
+
+  descriptionCategoryMap.map[key] = mappingValue;
+  saveCategoryMappings(); // Save immediately
+
+  console.log(`Learned/Updated mapping: "${key}" -> ${mappingValue}`);
+
+  // Optionally, re-apply to existing transactions if desired (can be intensive)
+  // import("./transactionManager.js").then(tm => tm.updateTransactions());
+}
+
+/**
+ * Get category for a transaction description
+ * @param {string} description - Transaction description
+ * @returns {string|null} Category name (e.g., "Category" or "Category:Subcategory") or null if not found
+ */
+export function getCategoryForDescription(description) {
+  if (!description) return null;
+
+  descriptionCategoryMap.init(); // Ensure map is loaded
+
+  const normalizedDescription = description.trim().toLowerCase();
+
+  // 1. Direct match for normalized non-regex descriptions
+  if (descriptionCategoryMap.map[normalizedDescription]) {
+    return descriptionCategoryMap.map[normalizedDescription];
+  }
+
+  // 2. Try regex patterns
+  for (const pattern in descriptionCategoryMap.map) {
+    const isLikelyRegex = pattern.startsWith("^") || pattern.endsWith("$") || pattern.includes("*") || pattern.includes("(") || pattern.includes("[");
+    if (isLikelyRegex) {
+      try {
+        const regex = new RegExp(pattern, "i"); // Case-insensitive regex matching
+        if (regex.test(description)) { // Test against original description for regex
+          // console.log(`Regex match for "${description}" with pattern "${pattern}": ${descriptionCategoryMap.map[pattern]}`);
+          return descriptionCategoryMap.map[pattern];
+        }
+      } catch (e) {
+        console.warn(`Invalid regex pattern skipped: "${pattern}"`, e.message);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Apply category mappings to transactions
+ * @param {Array} transactions - Array of transactions
+ * @returns {number} Number of transactions categorized
+ */
+export function applyCategoryMappings(transactions) {
+  if (!transactions || !Array.isArray(transactions)) return 0;
+
+  // Make sure mappings are initialized
+  descriptionCategoryMap.init();
+
+  let categorizedCount = 0;
+
+  transactions.forEach(tx => {
+    // Skip already categorized transactions
+    if (tx.category) return;
+
+    if (tx.description) {
+      const categoryMapping = getCategoryForDescription(tx.description);
+
+      if (categoryMapping) {
+        console.log(`Auto-categorizing: "${tx.description}" → ${categoryMapping}`);
+
+        // Check if it contains a subcategory (format: "Category:Subcategory")
+        if (categoryMapping.includes(":")) {
+          const [category, subcategory] = categoryMapping.split(":");
+          tx.category = category;
+          tx.subcategory = subcategory;
+        } else {
+          tx.category = categoryMapping;
+        }
+
+        categorizedCount++;
+      }
+    }
+  });
+
+  console.log(`Applied ${categorizedCount} category mappings to transactions`);
+  return categorizedCount;
+}
+
+/**
+ * Adds a description-to-category mapping
+ * @param {string} description - Transaction description
+ * @param {string} category - Category to map to
+ * @param {string} subcategory - Optional subcategory
+ */
+export function addToCategoryMapping(description, category, subcategory = null) {
+  learnOrUpdateMapping(description, category, subcategory, false); // Assume not regex by default
+}
+
+/**
+ * Updates category name in all mappings when category is renamed
+ * @param {string} oldName - Old category name
+ * @param {string} newName - New category name
+ */
+export function updateCategoryNameInMappings(oldName, newName) {
+  if (!oldName || !newName) return;
+
+  // Initialize map if needed
+  descriptionCategoryMap.init();
+
+  let updateCount = 0;
+
+  // Update all mappings that use this category
+  Object.keys(descriptionCategoryMap.map).forEach(key => {
+    const value = descriptionCategoryMap.map[key];
+
+    if (value === oldName) {
+      // Direct category match
+      descriptionCategoryMap.map[key] = newName;
+      updateCount++;
+    } else if (value.startsWith(`${oldName}:`)) {
+      // Category with subcategory
+      const subcategory = value.split(':')[1];
+      descriptionCategoryMap.map[key] = `${newName}:${subcategory}`;
+      updateCount++;
+    }
+  });
+
+  if (updateCount > 0) {
+    saveCategoryMappings();
+    console.log(`Updated ${updateCount} category mappings from "${oldName}" to "${newName}"`);
+  }
+}
 
 // Define utility functions only once at the beginning of the file
 function normalizeDescription(description) {
   if (!description) return "";
-  return description.trim().toLowerCase();
+  return description
+    .toLowerCase()
+    .trim()
+    .replace(/\s{2,}/g, ' '); // Replace multiple spaces with one
 }
 
 function containsHebrew(text) {
@@ -26,244 +227,6 @@ function normalizeHebrewText(text) {
 
 function normalizeLatinText(text) {
   return text.replace(/[^a-zA-Z0-9\s]/g, "").trim();
-}
-
-export function initCategoryMapping() {
-  loadCategoryMappings();
-}
-
-export function loadCategoryMappings() {
-  try {
-    const savedMappings = localStorage.getItem(CATEGORY_MAPPINGS_KEY);
-    if (savedMappings) {
-      _descriptionCategoryMap = JSON.parse(savedMappings);
-    }
-  } catch (err) {
-    console.error("Error loading category mappings:", err);
-    _descriptionCategoryMap = {};
-  }
-}
-
-export function saveCategoryMappings() {
-  localStorage.setItem(CATEGORY_MAPPINGS_KEY, JSON.stringify(_descriptionCategoryMap));
-}
-
-/**
- * Adds a description-to-category mapping
- */
-export function addToCategoryMapping(description, category, subcategory = null) {
-  if (!description || !category) return false;
-
-  // Normalize the description for consistent matching
-  const normalizedDesc = normalizeDescription(description);
-
-  // Store with subcategory if provided
-  const categoryValue = subcategory ? `${category}:${subcategory}` : category;
-
-  // Update the mapping
-  _descriptionCategoryMap[normalizedDesc] = categoryValue;
-
-  // Save to localStorage
-  saveCategoryMappings();
-
-  // Update any transactions with this description
-  // Replace the call to non-existent function with direct transaction update
-  updateTransactionsWithMatch(description, category, subcategory);
-
-  return true;
-}
-
-/**
- * Updates all transactions that match a description with the specified category
- * @param {string} description - Description to match
- * @param {string} category - Category to apply
- * @param {string|null} subcategory - Optional subcategory to apply
- */
-function updateTransactionsWithMatch(description, category, subcategory = null) {
-  if (!window.AppState || !window.AppState.transactions) return;
-
-  const transactions = window.AppState.transactions;
-  let updateCount = 0;
-
-  // Find all transactions with matching description and update them
-  transactions.forEach(tx => {
-    if (tx.description === description) {
-      tx.category = category;
-      if (subcategory) {
-        tx.subcategory = subcategory;
-      }
-      updateCount++;
-    }
-  });
-
-  if (updateCount > 0) {
-    // Save updates to localStorage
-    localStorage.setItem("transactions", JSON.stringify(transactions));
-    console.log(`Updated ${updateCount} transaction(s) with category: ${category}`);
-  }
-}
-
-/**
- * Removes a description from category mappings
- * @param {string} description - Description to remove
- * @returns {boolean} True if removed, false if not found
- */
-export function removeFromCategoryMapping(description) {
-  if (!description) return false;
-
-  const normalizedDesc = normalizeDescription(description);
-
-  // Check if this description exists in the mappings
-  if (_descriptionCategoryMap[normalizedDesc]) {
-    delete _descriptionCategoryMap[normalizedDesc];
-    saveCategoryMappings();
-    return true;
-  }
-
-  return false;
-}
-
-export function getCategoryForDescription(description) {
-  // Break this into smaller functions
-  if (!description) return null;
-
-  const normalizedDesc = normalizeDescription(description);
-
-  // Extract exact match check to a separate function
-  const exactMatch = findExactCategoryMatch(normalizedDesc);
-  if (exactMatch) return exactMatch;
-
-  // Extract partial match logic to a separate function
-  return findPartialCategoryMatch(normalizedDesc);
-}
-
-// Helper functions to reduce complexity
-function findExactCategoryMatch(normalizedDesc) {
-  if (_descriptionCategoryMap[normalizedDesc]) {
-    const categoryKey = _descriptionCategoryMap[normalizedDesc];
-
-    // Check if it includes a subcategory
-    if (categoryKey.includes(':')) {
-      const [category, subcategory] = categoryKey.split(':');
-      return { category, subcategory };
-    }
-
-    return { category: categoryKey };
-  }
-
-  return null;
-}
-
-function findPartialCategoryMatch(normalizedDesc) {
-  // Then try partial matches - more careful with Hebrew text
-  const isHebrew = /[\u0590-\u05FF]/.test(normalizedDesc);
-
-  for (const [key, category] of Object.entries(_descriptionCategoryMap)) {
-    const keyIsHebrew = /[\u0590-\u05FF]/.test(key);
-
-    // Only match Hebrew with Hebrew and Latin with Latin
-    if (isHebrew === keyIsHebrew) {
-      // For Hebrew text or very short descriptions, require more strict matching
-      if (isHebrew || normalizedDesc.length < 5) {
-        if (normalizedDesc === key ||
-          normalizedDesc.includes(key) ||
-          key.includes(normalizedDesc)) {
-          return category;
-        }
-      } else if (normalizedDesc.includes(key) || key.includes(normalizedDesc)) {
-        // For non-Hebrew, standard matching behavior
-        return category;
-      }
-    }
-  }
-
-  return null;
-}
-
-export function getDescriptionsForCategory(category) {
-  if (!category) return [];
-
-  return Object.entries(_descriptionCategoryMap)
-    .filter(([_, cat]) => cat === category)
-    .map(([desc, _]) => desc);
-}
-
-export function updateCategoryNameInMappings(oldName, newName) {
-  if (!oldName || !newName) return;
-
-  let updated = false;
-  for (const [desc, category] of Object.entries(_descriptionCategoryMap)) {
-    if (category === oldName) {
-      _descriptionCategoryMap[desc] = newName;
-      updated = true;
-    }
-  }
-
-  if (updated) {
-    saveCategoryMappings();
-  }
-}
-
-// Helper function to apply category to a transaction
-function applyCategory(tx, categoryInfo) {
-  let needsUpdate = false;
-
-  if (categoryInfo.category && tx.category !== categoryInfo.category) {
-    tx.category = categoryInfo.category;
-    needsUpdate = true;
-  }
-
-  if (categoryInfo.subcategory) {
-    if (tx.subcategory !== categoryInfo.subcategory) {
-      tx.subcategory = categoryInfo.subcategory;
-      needsUpdate = true;
-    }
-  } else if (tx.subcategory) {
-    delete tx.subcategory;
-    needsUpdate = true;
-  }
-
-  if (needsUpdate) {
-    tx.autoCategorized = true;
-    return true;
-  }
-  return false;
-}
-
-// Helper function to remove category from a transaction
-function removeCategory(tx) {
-  tx.category = null;
-  if (tx.subcategory) delete tx.subcategory;
-  delete tx.autoCategorized;
-  return true;
-}
-
-export function autoCategorizeTransactions(transactions) {
-  if (!transactions || !transactions.length) return 0;
-
-  let count = 0;
-  let removedCount = 0;
-
-  transactions.forEach(tx => {
-    if (!tx.description) return;
-
-    const categoryInfo = getCategoryForDescription(tx.description);
-
-    if (categoryInfo) {
-      if (applyCategory(tx, categoryInfo)) {
-        count++;
-      }
-    } else if (tx.autoCategorized && tx.category) {
-      removeCategory(tx);
-      removedCount++;
-    }
-  });
-
-  if (count > 0 || removedCount > 0) {
-    localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
-  }
-
-  return { added: count, removed: removedCount };
 }
 
 /**
@@ -470,10 +433,8 @@ window.autoCategorizeAll = function () {
   }
 };
 
-// Add subcategory mapping functions
-
 /**
- * Updates subcategory name in all category mappings
+ * Updates subcategory name in all mappings
  * @param {string} categoryName - Parent category name
  * @param {string} oldSubName - Old subcategory name
  * @param {string} newSubName - New subcategory name
@@ -481,18 +442,17 @@ window.autoCategorizeAll = function () {
 export function updateSubcategoryNameInMappings(categoryName, oldSubName, newSubName) {
   if (!categoryName || !oldSubName || !newSubName) return;
 
-  // Full key with category and subcategory
-  const oldKey = `${categoryName}:${oldSubName}`;
-  const newKey = `${categoryName}:${newSubName}`;
-
   let updated = false;
+  // Create a copy of the mapping object to iterate through
+  const mappings = { ..._descriptionCategoryMap };
 
-  for (const [desc, category] of Object.entries(_descriptionCategoryMap)) {
-    if (category === oldKey) {
-      _descriptionCategoryMap[desc] = newKey;
+  Object.entries(mappings).forEach(([desc, catValue]) => {
+    // Check if this is a matching category:subcategory format
+    if (typeof catValue === 'string' && catValue === `${categoryName}:${oldSubName}`) {
+      _descriptionCategoryMap[desc] = `${categoryName}:${newSubName}`;
       updated = true;
     }
-  }
+  });
 
   if (updated) {
     saveCategoryMappings();

@@ -40,8 +40,18 @@ export function saveAppState() {
 export function resetFileState() {
   AppState.currentFileData = null;
   AppState.currentFileName = null;
-  AppState.currentFileSignature = null;
+  AppState.currentFileSignature = null;  // Clear signature
   AppState.currentSuggestedMapping = null;
+
+  // Clear any temporary signature data from both localStorage and window
+  try {
+    localStorage.removeItem("tempFileSignature");
+    delete window.tempFileSignature;
+  } catch (e) {
+    console.error("Error removing temporary file signature:", e);
+  }
+
+  console.log("File state completely reset and signatures removed");
 }
 
 export function loadMergedFiles() {
@@ -102,11 +112,43 @@ export function loadMergedFiles() {
   }
 }
 
+/**
+ * Loads transactions and applies category mappings
+ */
+export function loadTransactions() {
+  try {
+    const savedTransactions = localStorage.getItem("transactions");
+    if (savedTransactions) {
+      AppState.transactions = JSON.parse(savedTransactions);
+      console.log(`Loaded ${AppState.transactions.length} transactions from localStorage`);
+
+      // Apply category mappings to transactions without categories
+      import("../ui/categoryMapping.js").then(module => {
+        if (typeof module.applyCategoryMappings === 'function') {
+          const count = module.applyCategoryMappings(AppState.transactions);
+          if (count > 0) {
+            // Save the updated transactions with mappings applied
+            localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+          }
+        }
+      }).catch(err => {
+        console.error("Error applying category mappings:", err);
+      });
+
+      return AppState.transactions;
+    }
+    return [];
+  } catch (e) {
+    console.error("Error loading transactions:", e);
+    return [];
+  }
+}
+
 // Flag to track if categories have been initialized globally
 export const categoriesInitialized = { value: false };
 
 // Flag to track if normalization has already run
-let categoriesNormalized = false;
+let categoriesNormalized = false; // This flag can remain for normalizeCategories internal logic
 
 // Helper function to detect production mode
 function isProductionEnvironment() {
@@ -119,18 +161,19 @@ function isProductionEnvironment() {
  * Normalizes category names to fix duplicates like Transport/Transportation
  * @returns {Object} Normalized categories
  */
-function normalizeCategories() {
+function normalizeCategories(categoriesToNormalize) { // Accept categories as a parameter
   // Skip verbose logging in production
   const verboseLogging = !isProductionEnvironment();
 
-  // Skip if already normalized
-  if (categoriesNormalized) {
-    logIfVerbose("Categories already normalized, skipping", verboseLogging);
-    return { ...AppState.categories };
-  }
+  // If already normalized (based on a global flag, or perhaps this function should be idempotent without a flag)
+  // For simplicity, let's assume it can run if needed, but the IIFE will call it once.
+  // if (categoriesNormalized) {
+  //   logIfVerbose("Categories already normalized, skipping", verboseLogging);
+  //   return { ...categoriesToNormalize };
+  // }
 
-  const currentCategories = { ...AppState.categories };
-  logIfVerbose("Normalizing categories. Current categories: " +
+  const currentCategories = { ...categoriesToNormalize };
+  logIfVerbose("Normalizing categories. Input categories: " +
     Object.keys(currentCategories).sort(), verboseLogging);
 
   // Handle specific category normalizations
@@ -143,7 +186,6 @@ function normalizeCategories() {
   logIfVerbose("After normalization - categories: " +
     Object.keys(normalized).sort(), verboseLogging);
 
-  categoriesNormalized = true;
   return normalized;
 }
 
@@ -190,42 +232,50 @@ function logIfVerbose(message, verboseLogging) {
   }
 }
 
-/**
- * Ensures default categories are loaded and normalized
- */
-export function ensureDefaultCategories() {
-  // Only run once globally across the entire app
-  if (categoriesInitialized.value) {
-    console.log("Categories already initialized globally, skipping");
-    return AppState.categories;
-  }
-
-  if (!AppState.categories) {
-    AppState.categories = {};
-  }
-
-  // Fix any duplicate categories like "Transport"/"Transportation"
-  AppState.categories = normalizeCategories();
-
-  // Save the normalized categories
-  saveCategories();
-  console.log("Categories initialized:", Object.keys(AppState.categories).sort());
-
-  // Set global flag to prevent redundant initialization
-  categoriesInitialized.value = true;
-
-  return AppState.categories;
-}
-
 // Initialize the AppState once
 (function initializeAppState() {
-  // Load from localStorage
+  console.log("appState.js: Initializing AppState...");
+  // Load isDarkMode
   AppState.isDarkMode = localStorage.getItem("darkMode") === "true" || false;
-  AppState.categories = JSON.parse(localStorage.getItem("expenseCategories")) || DEFAULT_CATEGORIES;
 
-  // Normalize only once during initialization and set the global flag
-  if (!categoriesInitialized) {
-    AppState.categories = normalizeCategories();
-    ensureDefaultCategories();
+  // Load categories from localStorage
+  let loadedCategories = null;
+  try {
+    const savedCategories = localStorage.getItem("expenseCategories");
+    if (savedCategories) {
+      loadedCategories = JSON.parse(savedCategories);
+    }
+  } catch (e) {
+    console.error("Error parsing saved categories from localStorage:", e);
+    loadedCategories = null;
   }
+
+  // If no valid categories in localStorage, use defaults
+  if (!loadedCategories || Object.keys(loadedCategories).length === 0) {
+    console.log("appState.js: No categories in localStorage or empty, using DEFAULT_CATEGORIES.");
+    AppState.categories = { ...DEFAULT_CATEGORIES };
+  } else {
+    console.log("appState.js: Loaded categories from localStorage.");
+    AppState.categories = loadedCategories;
+  }
+
+  // Normalize categories (this ensures defaults are also considered if missing after load)
+  if (!categoriesNormalized) { // Use the module-level flag
+    AppState.categories = normalizeCategories(AppState.categories);
+    categoriesNormalized = true; // Set flag after first normalization
+  }
+
+
+  // Save potentially modified (defaulted or normalized) categories back
+  saveCategories();
+  console.log("appState.js: Categories initialized and saved:", Object.keys(AppState.categories).sort());
+
+  // Set global flag to indicate categories are ready
+  categoriesInitialized.value = true;
+
+  // Load other parts of AppState
+  loadMergedFiles(); // Ensure merged files are loaded
+  loadTransactions(); // Ensure transactions are loaded
+
+  console.log("appState.js: AppState initialization complete.");
 })();

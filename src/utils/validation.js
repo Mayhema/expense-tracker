@@ -117,87 +117,86 @@ export function addValidatedListener(selector, event, validationFn, callback) {
 }
 
 /**
- * Validates that row indices are within bounds
+ * Validates row indices for header and data rows
  * @param {Array<Array>} data - The file data
- * @param {string} headerRowInputId - ID of header row input element
- * @param {string} dataRowInputId - ID of data row input element
- * @returns {boolean} True if indices are valid
+ * @param {string} headerRowInputId - ID of header row input
+ * @param {string} dataRowInputId - ID of data row input
+ * @returns {boolean} Whether indices are valid
  */
 export function validateRowIndices(data, headerRowInputId = "headerRowInput", dataRowInputId = "dataRowInput") {
-  try {
-    if (!data || data.length === 0) return false;
+  const headerRowInput = document.getElementById(headerRowInputId);
+  const dataRowInput = document.getElementById(dataRowInputId);
 
-    const headerRowInput = document.getElementById(headerRowInputId);
-    const dataRowInput = document.getElementById(dataRowInputId);
-
-    if (!headerRowInput || !dataRowInput) return false;
-
-    const headerRowIndex = parseInt(headerRowInput.value, 10);
-    const dataRowIndex = parseInt(dataRowInput.value, 10);
-
-    // Check if values are valid numbers
-    if (isNaN(headerRowIndex) || isNaN(dataRowIndex)) {
-      showValidationError("Row indices must be numbers");
-      return false;
-    }
-
-    // Make sure indices are within bounds
-    if (headerRowIndex < 1 || headerRowIndex > data.length) {
-      showValidationError(`Header row must be between 1 and ${data.length}`);
-      return false;
-    }
-
-    if (dataRowIndex < 1 || dataRowIndex > data.length) {
-      showValidationError(`Data row must be between 1 and ${data.length}`);
-      return false;
-    }
-
-    // Allow same row for XML files or when needed - remove restriction that headerRowIndex != dataRowIndex
-    // This allows header and data to be the same row for XML files
-
-    return true;
-  } catch (error) {
-    console.error("Error validating row indices:", error);
+  if (!headerRowInput || !dataRowInput) {
+    console.error("Row input elements not found");
     return false;
   }
-}
 
-function showValidationError(message) {
-  console.warn("Validation error:", message);
+  const headerRow = parseInt(headerRowInput.value, 10);
+  const dataRow = parseInt(dataRowInput.value, 10);
 
-  // Import showToast dynamically to avoid circular dependencies
-  import("../ui/uiManager.js").then(module => {
-    if (typeof module.showToast === 'function') {
-      module.showToast(message, "warning");
-    }
-  }).catch(() => {
-    // Fallback if import fails
-    alert(message);
-  });
+  // Validate header row
+  if (isNaN(headerRow) || headerRow < 1 || headerRow > data.length) {
+    showValidationError(headerRowInput, `Header row must be between 1 and ${data.length}`);
+    return false;
+  }
+
+  // Validate data row
+  if (isNaN(dataRow) || dataRow < 1 || dataRow > data.length) {
+    showValidationError(dataRowInput, `Data row must be between 1 and ${data.length}`);
+    return false;
+  }
+
+  // Data row should be different from header row
+  if (headerRow === dataRow) {
+    showValidationError(dataRowInput, "Data row should be different from header row");
+    return false;
+  }
+
+  // Clear any previous validation errors
+  clearValidationError(headerRowInput);
+  clearValidationError(dataRowInput);
+
+  return true;
 }
 
 /**
- * Shows an error message for an input field
- * @param {HTMLElement} inputElement - The input element
+ * Show validation error on input element
+ * @param {HTMLElement} element - Input element
  * @param {string} message - Error message
  */
-function showFieldError(inputElement, message) {
-  if (!inputElement) return;
+function showValidationError(element, message) {
+  element.style.borderColor = '#dc3545';
+  element.title = message;
 
-  inputElement.setCustomValidity(message);
-  inputElement.reportValidity();
-  inputElement.classList.add("error");
+  // Show tooltip-like error
+  let errorDiv = element.parentNode.querySelector('.validation-error');
+  if (!errorDiv) {
+    errorDiv = document.createElement('div');
+    errorDiv.className = 'validation-error';
+    errorDiv.style.cssText = `
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: 2px;
+      display: block;
+    `;
+    element.parentNode.appendChild(errorDiv);
+  }
+  errorDiv.textContent = message;
 }
 
 /**
- * Clears error message from an input field
- * @param {HTMLElement} inputElement - The input element
+ * Clear validation error on input element
+ * @param {HTMLElement} element - Input element
  */
-function clearFieldError(inputElement) {
-  if (!inputElement) return;
+function clearValidationError(element) {
+  element.style.borderColor = '';
+  element.title = '';
 
-  inputElement.setCustomValidity("");
-  inputElement.classList.remove("error");
+  const errorDiv = element.parentNode.querySelector('.validation-error');
+  if (errorDiv) {
+    errorDiv.remove();
+  }
 }
 
 /**
@@ -233,4 +232,107 @@ export function validateData(data) {
     console.error("Validation error:", error);
     return { valid: false, error: `Validation failed: ${error.message}` };
   }
+}
+
+/**
+ * Validate email format
+ * @param {string} email - Email to validate
+ * @returns {boolean} Whether email is valid
+ */
+export function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Validate date format (YYYY-MM-DD)
+ * @param {string} dateString - Date string to validate
+ * @returns {boolean} Whether date is valid
+ */
+export function validateDate(dateString) {
+  if (!dateString) return false;
+
+  const date = new Date(dateString);
+  return date instanceof Date && !isNaN(date);
+}
+
+/**
+ * Validate currency amount
+ * @param {string|number} amount - Amount to validate
+ * @returns {boolean} Whether amount is valid
+ */
+export function validateAmount(amount) {
+  if (amount === null || amount === undefined || amount === '') {
+    return false;
+  }
+
+  const num = parseFloat(amount);
+  return !isNaN(num) && isFinite(num);
+}
+
+/**
+ * Validate category name
+ * @param {string} categoryName - Category name to validate
+ * @returns {Object} Validation result with isValid and message
+ */
+export function validateCategoryName(categoryName) {
+  if (!categoryName || typeof categoryName !== 'string') {
+    return { isValid: false, message: 'Category name is required' };
+  }
+
+  const trimmed = categoryName.trim();
+
+  if (trimmed.length === 0) {
+    return { isValid: false, message: 'Category name cannot be empty' };
+  }
+
+  if (trimmed.length > 50) {
+    return { isValid: false, message: 'Category name cannot exceed 50 characters' };
+  }
+
+  // Check for invalid characters
+  const invalidChars = /[<>:"/\\|?*]/;
+  if (invalidChars.test(trimmed)) {
+    return { isValid: false, message: 'Category name contains invalid characters' };
+  }
+
+  return { isValid: true, message: '' };
+}
+
+/**
+ * Validate file size
+ * @param {File} file - File to validate
+ * @param {number} maxSizeMB - Maximum size in MB
+ * @returns {Object} Validation result
+ */
+export function validateFileSize(file, maxSizeMB = 10) {
+  const maxBytes = maxSizeMB * 1024 * 1024;
+
+  if (file.size > maxBytes) {
+    return {
+      isValid: false,
+      message: `File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds limit of ${maxSizeMB}MB`
+    };
+  }
+
+  return { isValid: true, message: '' };
+}
+
+/**
+ * Validate file type
+ * @param {File} file - File to validate
+ * @param {Array<string>} allowedTypes - Allowed file extensions
+ * @returns {Object} Validation result
+ */
+export function validateFileType(file, allowedTypes = ['csv', 'xlsx', 'xls', 'xml']) {
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+
+  if (!allowedTypes.includes(fileExtension)) {
+    return {
+      isValid: false,
+      message: `File type '.${fileExtension}' is not supported. Allowed types: ${allowedTypes.join(', ')}`
+    };
+  }
+
+  return { isValid: true, message: '' };
 }

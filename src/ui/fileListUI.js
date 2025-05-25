@@ -1,140 +1,205 @@
 import { AppState, saveMergedFiles } from "../core/appState.js";
-import { updateTransactions } from "./transactionManager.js";
 import { showToast } from "./uiManager.js";
-import { getFileIcon } from "../utils/fileUtils.js";
+import { showModal } from "./modalManager.js";
+import { updateTransactions } from "./transactionManager.js";
 
 /**
- * Renders the merged files list in the UI
+ * Renders the merged files list in a modal
  */
-export function renderMergedFiles() {
-  const list = document.getElementById("mergedFilesList");
-  if (!list) return;
+export function showMergedFilesModal() {
+  console.log("Opening merged files modal");
 
-  list.innerHTML = "";
+  const modalContent = document.createElement("div");
+  modalContent.className = "merged-files-modal";
 
-  // Get collapsed state from localStorage
-  const isSectionCollapsed = localStorage.getItem("mergedFilesSectionCollapsed") === "true";
-  const listContainer = document.getElementById("mergedFilesListContainer");
+  modalContent.innerHTML = `
+    <div class="merged-files-section">
+      <h3>Merged Files (${AppState.mergedFiles?.length || 0})</h3>
+      <p>Files that have been processed and added to your transaction list.</p>
 
-  // Update toggle button appearance
-  const toggleButton = document.getElementById("toggleMergedBtn");
-  if (toggleButton) {
-    toggleButton.textContent = isSectionCollapsed ? "🔽" : "🔼";
-    toggleButton.title = isSectionCollapsed ? "Expand merged files" : "Collapse merged files";
-  }
+      <div id="mergedFilesSection" class="merged-files-list">
+        <!-- Files will be rendered here -->
+      </div>
 
-  // Show/hide list based on state
-  if (listContainer) {
-    listContainer.style.display = isSectionCollapsed ? "none" : "block";
-  }
-
-  if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    list.innerHTML = '<div class="empty-list-message" style="text-align: center; padding: 15px; color: #888;">No files merged yet</div>';
-    return;
-  }
-
-  // Create a more professional, table-like structure for merged files
-  let html = `
-  <div class="merged-files-container" style="max-height: 300px; overflow-y: auto; border-radius: 6px; border: 1px solid #eee;">
-    <table class="merged-files-table" style="width: 100%; border-collapse: collapse; background-color: #fff;">
-      <thead>
-        <tr style="position: sticky; top: 0; background-color: #f7f7f7; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-          <th style="text-align: left; padding: 12px; border-bottom: 1px solid #ddd;">File Name</th>
-          <th style="text-align: center; padding: 12px; border-bottom: 1px solid #ddd;">Rows</th>
-          <th style="text-align: center; padding: 12px; border-bottom: 1px solid #ddd;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
+      <div class="merged-files-actions" style="margin-top: 20px;">
+        <button id="refreshMergedFilesBtn" class="button">Refresh List</button>
+        <button id="clearAllFilesBtn" class="button danger">Clear All Files</button>
+      </div>
+    </div>
   `;
 
-  AppState.mergedFiles.forEach((file, i) => {
-    const rowCount = file.data ? file.data.length : 0;
-    const fileIcon = getFileIcon(file.fileName);
-
-    // Apply alternating row colors
-    const rowStyle = i % 2 === 0 ? 'background-color: #fafafa;' : 'background-color: #fff;';
-
-    html += `
-    <tr style="${rowStyle} transition: background-color 0.2s;">
-      <td style="padding: 12px; border-bottom: 1px solid #eee;">
-        <div style="display: flex; align-items: center;">
-          <span style="font-size: 18px; margin-right: 10px;">${fileIcon}</span>
-          <span style="font-weight: 500;">${file.fileName}</span>
-        </div>
-      </td>
-      <td style="text-align: center; padding: 12px; border-bottom: 1px solid #eee;">
-        <span class="badge" style="background-color: #e9f3ff; color: #0066cc; padding: 3px 8px; border-radius: 12px; font-size: 12px;">${rowCount}</span>
-      </td>
-      <td style="text-align: center; padding: 12px; border-bottom: 1px solid #eee;">
-        <button class="icon-button" onclick="window.removeMergedFile(${i})" title="Remove file"
-          style="background-color: #ffebeb; color: #cc0000; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer;">
-            🗑️
-        </button>
-      </td>
-    </tr>
-  `;
+  const modal = showModal({
+    title: "Merged Files Manager",
+    content: modalContent,
+    size: "large"
   });
 
-  html += `
-      </tbody>
-    </table>
-  </div>
-  `;
+  // Render the files
+  renderMergedFiles();
 
-  list.innerHTML = html;
-
-  // Make sure the removeMergedFile function is defined globally
-  if (!window.removeMergedFile) {
-    window.removeMergedFile = removeMergedFile;
-  }
+  // Add event listeners
+  setupMergedFilesEventListeners(modal);
 }
 
 /**
- * Toggles the visibility of the merged files section
+ * Renders the merged files list
  */
-export function toggleMergedFilesVisibility() {
-  const listContainer = document.getElementById("mergedFilesListContainer");
-  const toggleButton = document.getElementById("toggleMergedBtn");
+export function renderMergedFiles() {
+  console.log("Rendering merged files list");
 
-  // Get current state (default to not collapsed)
-  const isSectionCollapsed = localStorage.getItem("mergedFilesSectionCollapsed") === "true";
+  // Try to find the element in the modal first, then fallback to main page
+  let mergedFilesSection = document.getElementById("mergedFilesSection");
 
-  // Toggle state
-  const newState = !isSectionCollapsed;
-  localStorage.setItem("mergedFilesSectionCollapsed", newState);
-
-  // Update UI
-  if (listContainer) {
-    listContainer.style.display = newState ? "none" : "block";
+  if (!mergedFilesSection) {
+    console.warn("Merged files section not found in DOM");
+    // Create a temporary container for the modal
+    const modalContent = document.querySelector(".merged-files-modal");
+    if (modalContent) {
+      mergedFilesSection = modalContent.querySelector("#mergedFilesSection");
+    }
   }
 
-  if (toggleButton) {
-    toggleButton.textContent = newState ? "🔽" : "🔼";
-    toggleButton.title = newState ? "Expand merged files" : "Collapse merged files";
-    console.log(`Merged files section is now ${newState ? 'collapsed' : 'expanded'}`);
-  }
-}
-
-/**
- * Removes a merged file from the list
- * @param {number} index - Index of the file to remove
- */
-function removeMergedFile(index) {
-  if (index < 0 || index >= AppState.mergedFiles.length) {
-    console.error("Invalid file index:", index);
+  if (!mergedFilesSection) {
+    console.error("Could not find merged files section to render into");
     return;
   }
 
-  const filename = AppState.mergedFiles[index]?.fileName || "this file";
+  const mergedFiles = AppState.mergedFiles || [];
 
-  if (confirm(`Remove "${filename}"?\n\nWARNING: All transactions from this file will also be removed from the transaction list.`)) {
+  if (mergedFiles.length === 0) {
+    mergedFilesSection.innerHTML = `
+      <div class="no-files-message">
+        <p>No merged files yet. Upload transaction files to get started.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Generate file list HTML
+  const filesHtml = mergedFiles.map((file, index) => `
+    <div class="merged-file-item" data-index="${index}">
+      <div class="file-info">
+        <div class="file-name">
+          <span class="file-icon">${getFileIcon(file.fileName)}</span>
+          <strong>${file.fileName}</strong>
+        </div>
+        <div class="file-details">
+          <span class="file-rows">${file.data?.length || 0} rows</span>
+          <span class="file-currency">${file.currency || 'USD'}</span>
+          <span class="file-date">Added: ${formatDate(file.dateAdded)}</span>
+        </div>
+        <div class="file-mapping">
+          <small>Mapping: ${(file.headerMapping || []).filter(h => h !== '–').join(', ')}</small>
+        </div>
+      </div>
+      <div class="file-actions">
+        <label class="file-toggle">
+          <input type="checkbox" ${file.selected !== false ? 'checked' : ''}
+                 onchange="toggleFileSelection(${index}, this.checked)">
+          <span>Include in transactions</span>
+        </label>
+        <button class="remove-file-btn" onclick="removeFile(${index})" title="Remove file">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+
+  mergedFilesSection.innerHTML = `
+    <div class="merged-files-container">
+      ${filesHtml}
+    </div>
+  `;
+
+  // Add global functions for the onclick handlers
+  window.toggleFileSelection = toggleFileSelection;
+  window.removeFile = removeFile;
+}
+
+/**
+ * Setup event listeners for merged files modal
+ */
+function setupMergedFilesEventListeners(modal) {
+  const refreshBtn = document.getElementById("refreshMergedFilesBtn");
+  const clearAllBtn = document.getElementById("clearAllFilesBtn");
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      renderMergedFiles();
+      updateTransactions();
+      showToast("Merged files refreshed", "info");
+    });
+  }
+
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", () => {
+      if (confirm("Are you sure you want to remove all merged files? This cannot be undone.")) {
+        AppState.mergedFiles = [];
+        saveMergedFiles();
+        renderMergedFiles();
+        updateTransactions();
+        showToast("All merged files cleared", "success");
+      }
+    });
+  }
+}
+
+/**
+ * Toggle file selection
+ */
+function toggleFileSelection(index, selected) {
+  if (AppState.mergedFiles && AppState.mergedFiles[index]) {
+    AppState.mergedFiles[index].selected = selected;
+    saveMergedFiles();
+    updateTransactions();
+    showToast(`File ${selected ? 'included' : 'excluded'} from transactions`, "info");
+  }
+}
+
+/**
+ * Remove a file from merged files
+ */
+function removeFile(index) {
+  if (!AppState.mergedFiles || !AppState.mergedFiles[index]) return;
+
+  const fileName = AppState.mergedFiles[index].fileName;
+
+  if (confirm(`Remove "${fileName}" from merged files? This cannot be undone.`)) {
     AppState.mergedFiles.splice(index, 1);
     saveMergedFiles();
     renderMergedFiles();
     updateTransactions();
-    showToast("File and its transactions removed", "success");
+    showToast(`File "${fileName}" removed`, "success");
   }
 }
 
-// Ensure the function is available globally
-window.removeMergedFile = removeMergedFile;
+/**
+ * Get file icon based on extension
+ */
+function getFileIcon(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  switch (ext) {
+    case 'xlsx':
+    case 'xls':
+      return '📊';
+    case 'xml':
+      return '📋';
+    case 'csv':
+      return '📝';
+    default:
+      return '📄';
+  }
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(dateString) {
+  if (!dateString) return 'Unknown';
+
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  } catch (e) {
+    console.warn('Failed to format date:', dateString, e);
+    return 'Invalid date';
+  }
+}

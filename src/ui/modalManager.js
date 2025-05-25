@@ -47,8 +47,85 @@ export function showModal(options = {}) {
   // Determine size class
   const maxWidth = getModalWidth(size, width);
 
-  // Create modal HTML content
+  // Add improved button styles
+  const buttonStyles = `
+    <style>
+      /* Modal button styling */
+      .modal-container button {
+        padding: 8px 16px;
+        margin: 5px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid #ddd;
+        background-color: #f8f8f8;
+        color: #333;
+      }
+
+      .modal-container button:hover {
+        background-color: #f0f0f0;
+        border-color: #ccc;
+      }
+
+      .modal-container button.primary-btn {
+        background-color: #4CAF50;
+        color: white;
+        border: 1px solid #45a049;
+      }
+
+      .modal-container button.primary-btn:hover {
+        background-color: #45a049;
+      }
+
+      .modal-container button.danger-btn {
+        background-color: #f44336;
+        color: white;
+        border: 1px solid #d32f2f;
+      }
+
+      .modal-container button.danger-btn:hover {
+        background-color: #d32f2f;
+      }
+
+      .modal-container .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 15px;
+        margin-top: 15px;
+        border-top: 1px solid #eee;
+      }
+
+      /* Dark mode support */
+      .dark-mode .modal-container button {
+        background-color: #444;
+        border-color: #555;
+        color: #eee;
+      }
+
+      .dark-mode .modal-container button:hover {
+        background-color: #555;
+        border-color: #666;
+      }
+
+      .dark-mode .modal-container button.primary-btn {
+        background-color: #388e3c;
+        border-color: #2e7d32;
+      }
+
+      .dark-mode .modal-container button.primary-btn:hover {
+        background-color: #2e7d32;
+      }
+
+      .dark-mode .modal-container .modal-footer {
+        border-top-color: #444;
+      }
+    </style>
+  `;
+
+  // Create modal HTML content with improved styling
   modal.innerHTML = `
+    ${buttonStyles}
     <div class="modal-container" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); width: 90%; max-width: ${maxWidth}; max-height: 90vh; overflow-y: auto; position: relative;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 15px 20px;">
         <h2 class="modal-title" style="margin: 0; font-size: 1.25rem;">${title}</h2>
@@ -220,5 +297,22 @@ function getModalWidth(size, width) {
     case 'large': return '800px';
     case 'extra-large': return '1000px'; // Changed from "xlarge"
     default: return '600px';
+  }
+}
+
+// Add this helper function to ensure modals can close properly
+export function ensureModalCanClose(modal) {
+  if (!modal || !modal.element) return;
+
+  // Find close button in the modal
+  const closeBtn = modal.element.querySelector('.close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => modal.close());
+  }
+
+  // Make sure the content is visible
+  const content = modal.element.querySelector('.modal-content');
+  if (content) {
+    content.style.display = 'block';
   }
 }

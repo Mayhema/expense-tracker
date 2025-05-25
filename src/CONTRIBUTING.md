@@ -176,6 +176,12 @@ The application includes several debugging tools:
 - Limit chart data points (max 500)
 - Use pagination for large transaction lists
 
+## UI/Table Interactions
+
+- **Column Sorting**: For tables displaying data (e.g., transactions list, merged files list), implement column sorting to allow users to organize data as needed.
+- **Sticky Headers**: For long tables, use sticky headers (e.g., `position: sticky; top: 0;`) to keep column titles visible while scrolling. This is already implemented in some modals (like format mappings) and should be considered for other data tables.
+- **Filtering**: Provide robust filtering options for data tables.
+
 ## Common Issues and Solutions
 
 1. **Charts not rendering**: Check date formats and validate data

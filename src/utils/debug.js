@@ -5,69 +5,209 @@ import { showToast } from "../ui/uiManager.js";
 import { showModal } from "../ui/modalManager.js";
 
 /**
- * Debug function for transaction data
+ * Enhanced debug function for transaction data with detailed analysis
  */
 export function inspectTransactionData() {
-  console.log("Transaction inspection triggered", AppState.transactions);
-
-  // Create a modal to show transaction info
   const modalContent = document.createElement('div');
+  const transactions = AppState.transactions || [];
+  const transactionCount = transactions.length;
 
-  // Transaction summary
-  const transactionCount = AppState.transactions?.length || 0;
-  const incomeTotal = (AppState.transactions || [])
-    .reduce((sum, tx) => sum + (parseFloat(tx.income) || 0), 0).toFixed(2);
-  const expensesTotal = (AppState.transactions || [])
-    .reduce((sum, tx) => sum + (parseFloat(tx.expenses) || 0), 0).toFixed(2);
+  if (transactionCount === 0) {
+    modalContent.innerHTML = '<p>No transactions found to analyze.</p>';
+    showModal({
+      title: "Transaction Debug - No Data",
+      content: modalContent,
+      size: "medium"
+    });
+    return;
+  }
+
+  // Comprehensive analysis
+  const analysis = analyzeTransactions(transactions);
 
   modalContent.innerHTML = `
-    <div class="debug-info">
-      <h3>Transaction Summary</h3>
-      <p>Total Transactions: ${transactionCount}</p>
-      <p>Total Income: ${incomeTotal}</p>
-      <p>Total Expenses: ${expensesTotal}</p>
-
-      <h3>Transaction Details</h3>
-      <div class="transaction-detail-table" style="max-height:300px; overflow-y:auto;">
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Income</th>
-              <th>Expenses</th>
-              <th>Category</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(AppState.transactions || []).slice(0, 50).map(tx => `
-              <tr>
-                <td>${tx.date || ''}</td>
-                <td>${tx.description || ''}</td>
-                <td>${tx.income || ''}</td>
-                <td>${tx.expenses || ''}</td>
-                <td>${tx.category || ''}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        ${transactionCount > 50 ? `<p>Showing 50 of ${transactionCount} transactions</p>` : ''}
+    <div class="debug-info" style="max-height: 500px; overflow-y: auto;">
+      <div class="debug-section">
+        <h3>Transaction Summary</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <p><strong>Total Transactions:</strong> ${analysis.total}</p>
+            <p><strong>Date Range:</strong> ${analysis.dateRange}</p>
+            <p><strong>Total Income:</strong> ${analysis.totalIncome}</p>
+            <p><strong>Total Expenses:</strong> ${analysis.totalExpenses}</p>
+            <p><strong>Net Balance:</strong> ${analysis.netBalance}</p>
+          </div>
+          <div>
+            <p><strong>Currencies:</strong> ${analysis.currencies.join(', ')}</p>
+            <p><strong>Categories:</strong> ${analysis.categoryCount} unique</p>
+            <p><strong>Uncategorized:</strong> ${analysis.uncategorized}</p>
+            <p><strong>Average Transaction:</strong> ${analysis.avgAmount}</p>
+            <p><strong>Source Files:</strong> ${analysis.sourceFiles.length}</p>
+          </div>
+        </div>
       </div>
 
-      <h3>Transaction File Sources</h3>
-      <ul>
-        ${Array.from(new Set((AppState.transactions || []).map(tx => tx.fileName))).map(file =>
-    `<li>${file || 'Unknown file'}</li>`
-  ).join('')}
-      </ul>
+      <div class="debug-section">
+        <h3>Category Breakdown</h3>
+        <div style="max-height: 150px; overflow-y: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 5px; border: 1px solid #ddd;">Category</th>
+                <th style="padding: 5px; border: 1px solid #ddd;">Count</th>
+                <th style="padding: 5px; border: 1px solid #ddd;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(analysis.categoryBreakdown).map(([cat, data]) => `
+                <tr>
+                  <td style="padding: 5px; border: 1px solid #ddd;">${cat}</td>
+                  <td style="padding: 5px; border: 1px solid #ddd;">${data.count}</td>
+                  <td style="padding: 5px; border: 1px solid #ddd;">${data.amount.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="debug-section">
+        <h3>Data Quality Issues</h3>
+        <ul>
+          ${analysis.issues.map(issue => `<li style="color: #dc3545;">${issue}</li>`).join('')}
+          ${analysis.issues.length === 0 ? '<li style="color: #28a745;">No data quality issues found</li>' : ''}
+        </ul>
+      </div>
+
+      <div class="debug-section">
+        <h3>Sample Transactions (First 10)</h3>
+        <div style="max-height: 200px; overflow-y: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: #f5f5f5;">
+                <th style="padding: 4px; border: 1px solid #ddd;">Date</th>
+                <th style="padding: 4px; border: 1px solid #ddd;">Description</th>
+                <th style="padding: 4px; border: 1px solid #ddd;">Amount</th>
+                <th style="padding: 4px; border: 1px solid #ddd;">Category</th>
+                <th style="padding: 4px; border: 1px solid #ddd;">Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactions.slice(0, 10).map(tx => `
+                <tr>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${tx.date || 'N/A'}</td>
+                  <td style="padding: 4px; border: 1px solid #ddd; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${tx.description || ''}">${tx.description || 'N/A'}</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${(parseFloat(tx.income) || 0) - (parseFloat(tx.expenses) || 0)}</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${tx.category || 'Uncategorized'}</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${tx.currency || 'N/A'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   `;
 
   showModal({
-    title: "Transaction Inspection",
+    title: "Transaction Debug Analysis",
     content: modalContent,
     size: "large"
   });
+}
+
+/**
+ * Comprehensive transaction analysis
+ */
+function analyzeTransactions(transactions) {
+  const analysis = {
+    total: transactions.length,
+    totalIncome: 0,
+    totalExpenses: 0,
+    currencies: new Set(),
+    categories: new Set(),
+    sourceFiles: new Set(),
+    uncategorized: 0,
+    categoryBreakdown: {},
+    issues: [],
+    dates: []
+  };
+
+  transactions.forEach((tx, index) => {
+    // Financial totals
+    const income = parseFloat(tx.income) || 0;
+    const expenses = parseFloat(tx.expenses) || 0;
+    analysis.totalIncome += income;
+    analysis.totalExpenses += expenses;
+
+    // Track currencies
+    if (tx.currency) {
+      analysis.currencies.add(tx.currency);
+    }
+
+    // Track categories
+    const category = tx.category || 'Uncategorized';
+    analysis.categories.add(category);
+
+    if (!tx.category || tx.category.toLowerCase() === 'other') {
+      analysis.uncategorized++;
+    }
+
+    // Category breakdown
+    if (!analysis.categoryBreakdown[category]) {
+      analysis.categoryBreakdown[category] = { count: 0, amount: 0 };
+    }
+    analysis.categoryBreakdown[category].count++;
+    analysis.categoryBreakdown[category].amount += Math.abs(income - expenses);
+
+    // Track source files
+    if (tx.fileName) {
+      analysis.sourceFiles.add(tx.fileName);
+    }
+
+    // Track dates
+    if (tx.date) {
+      analysis.dates.push(new Date(tx.date));
+    }
+
+    // Data quality checks
+    if (!tx.date) {
+      analysis.issues.push(`Transaction ${index + 1}: Missing date`);
+    }
+    if (!tx.description || tx.description.trim() === '') {
+      analysis.issues.push(`Transaction ${index + 1}: Missing description`);
+    }
+    if (income === 0 && expenses === 0) {
+      analysis.issues.push(`Transaction ${index + 1}: Zero amount`);
+    }
+    if (income > 0 && expenses > 0) {
+      analysis.issues.push(`Transaction ${index + 1}: Both income and expense values present`);
+    }
+  });
+
+  // Finalize analysis
+  analysis.currencies = Array.from(analysis.currencies);
+  analysis.sourceFiles = Array.from(analysis.sourceFiles);
+  analysis.categoryCount = analysis.categories.size;
+  analysis.netBalance = (analysis.totalIncome - analysis.totalExpenses).toFixed(2);
+  analysis.avgAmount = transactions.length > 0 ?
+    ((analysis.totalIncome + analysis.totalExpenses) / transactions.length).toFixed(2) : '0.00';
+
+  // Date range
+  if (analysis.dates.length > 0) {
+    const sortedDates = analysis.dates.sort((a, b) => a - b);
+    const startDate = sortedDates[0].toLocaleDateString();
+    const endDate = sortedDates[sortedDates.length - 1].toLocaleDateString();
+    analysis.dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+  } else {
+    analysis.dateRange = 'No dates found';
+  }
+
+  // Format monetary values
+  analysis.totalIncome = analysis.totalIncome.toFixed(2);
+  analysis.totalExpenses = analysis.totalExpenses.toFixed(2);
+
+  return analysis;
 }
 
 /**
@@ -250,16 +390,7 @@ export function attachDebugFunctions() {
   window.debugSignatures = debugSignatures;
   window.resetApplication = resetApplication;
 
-  // Use less verbose logging in production - FIXED: removed process.env reference
-  if (isProduction()) {
-    console.log("Debug functions attached to window");
-  } else {
-    console.log("Debug functions attached to window", {
-      inspectTransactionData: Boolean(window.inspectTransactionData),
-      debugMergedFiles: Boolean(window.debugMergedFiles),
-      debugSignatures: Boolean(window.debugSignatures)
-    });
-  }
+  console.log("Debug functions attached to window");
 
   window.debugFunctionsAttached = true;
 
@@ -271,40 +402,153 @@ export function attachDebugFunctions() {
   }
 }
 
+/**
+ * Update the attachDebugButtonListeners function
+ */
 function attachDebugButtonListeners() {
   // Only attach once
   if (window.debugButtonsAttached) return;
 
-  // Debug files button
-  const debugFilesBtn = document.getElementById('debugFilesBtn');
-  if (debugFilesBtn) {
-    debugFilesBtn.addEventListener('click', debugMergedFiles);
-  }
+  console.log("Attaching debug button listeners...");
 
-  // Debug signatures button
-  const debugSignaturesBtn = document.getElementById('debugSignaturesBtn');
-  if (debugSignaturesBtn) {
-    debugSignaturesBtn.addEventListener('click', debugSignatures);
-  }
+  // Use a more reliable method to attach listeners after a longer delay
+  setTimeout(() => {
+    // Check if debug mode is enabled first
+    const isDebugMode = document.body.classList.contains('debug-mode');
 
-  // Debug transactions button
-  const debugTransactionBtn = document.getElementById('debugTransactionBtn');
-  if (debugTransactionBtn) {
-    debugTransactionBtn.addEventListener('click', inspectTransactionData);
-  }
+    if (!isDebugMode) {
+      console.log("Debug mode not active, deferring button listener attachment");
+      // Try again later if debug mode gets enabled
+      setTimeout(attachDebugButtonListeners, 2000);
+      return;
+    }
 
-  // Reset application button
-  const resetAppBtn = document.getElementById('resetAppBtn');
-  if (resetAppBtn) {
-    resetAppBtn.addEventListener('click', resetApplication);
-  }
+    // Debug files button
+    const debugFilesBtn = document.getElementById('debugFilesBtn');
+    if (debugFilesBtn) {
+      // Remove any existing listeners
+      const newBtn = debugFilesBtn.cloneNode(true);
+      debugFilesBtn.parentNode.replaceChild(newBtn, debugFilesBtn);
 
-  window.debugButtonsAttached = true;
+      newBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Debug files button clicked");
+        debugMergedFiles();
+      });
+      console.log("Debug files button listener attached");
+    } else {
+      console.warn("Debug files button not found - creating it");
+      createDebugButton('debugFilesBtn', '🗂️', 'Debug Files', debugMergedFiles);
+    }
 
-  // Use less verbose logging
-  if (!isProduction()) {
+    // Debug signatures button
+    const debugSignaturesBtn = document.getElementById('debugSignaturesBtn');
+    if (debugSignaturesBtn) {
+      // Remove any existing listeners
+      const newBtn = debugSignaturesBtn.cloneNode(true);
+      debugSignaturesBtn.parentNode.replaceChild(newBtn, debugSignaturesBtn);
+
+      newBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Debug signatures button clicked");
+        debugSignatures();
+      });
+      console.log("Debug signatures button listener attached");
+    } else {
+      console.warn("Debug signatures button not found - creating it");
+      createDebugButton('debugSignaturesBtn', '🔍', 'Debug Signatures', debugSignatures);
+    }
+
+    // Reset application button
+    const resetAppBtn = document.getElementById('resetAppBtn');
+    if (resetAppBtn) {
+      // Remove any existing listeners
+      const newBtn = resetAppBtn.cloneNode(true);
+      resetAppBtn.parentNode.replaceChild(newBtn, resetAppBtn);
+
+      newBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Reset application button clicked");
+        resetApplication();
+      });
+      console.log("Reset application button listener attached");
+    } else {
+      console.warn("Reset application button not found - creating it");
+      createDebugButton('resetAppBtn', '🔄', 'Reset App', resetApplication);
+    }
+
+    window.debugButtonsAttached = true;
     console.log("Debug button listeners attached");
+  }, 1000); // Increased delay to ensure DOM is ready
+}
+
+/**
+ * Create debug button if it doesn't exist
+ */
+function createDebugButton(id, icon, text, handler) {
+  // Find debug section or create it
+  let debugSection = document.getElementById('debugSection');
+  if (!debugSection) {
+    debugSection = createDebugSection();
   }
+
+  const actionButtons = debugSection.querySelector('.action-buttons');
+  if (actionButtons) {
+    const button = document.createElement('button');
+    button.id = id;
+    button.className = 'action-button debug-only';
+    if (id === 'resetAppBtn') {
+      button.style.backgroundColor = '#dc3545';
+    }
+
+    button.innerHTML = `
+      <span class="action-icon">${icon}</span>
+      <span class="action-text">${text}</span>
+    `;
+
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handler();
+    });
+
+    actionButtons.appendChild(button);
+    console.log(`Created debug button: ${id}`);
+  }
+}
+
+/**
+ * Create debug section if it doesn't exist
+ */
+function createDebugSection() {
+  const debugSection = document.createElement('div');
+  debugSection.className = 'section debug-only';
+  debugSection.id = 'debugSection';
+
+  debugSection.innerHTML = `
+    <div class="section-header">
+      <h2>Debug Tools</h2>
+    </div>
+    <div class="section-content">
+      <div class="action-buttons">
+        <!-- Debug buttons will be added here -->
+      </div>
+    </div>
+  `;
+
+  // Insert after the first section
+  const firstSection = document.querySelector('.section');
+  if (firstSection && firstSection.parentNode) {
+    firstSection.parentNode.insertBefore(debugSection, firstSection.nextSibling);
+  } else {
+    document.body.appendChild(debugSection);
+  }
+
+  console.log("Created debug section");
+  return debugSection;
 }
 
 // Helper function to detect production mode - FIXED: removed process.env reference

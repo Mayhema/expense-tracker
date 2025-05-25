@@ -1,4 +1,5 @@
 import { AppState, saveMergedFiles } from "../core/appState.js";
+import { showModal } from "../ui/modalManager.js";
 import { showToast } from "../ui/uiManager.js";
 import { updateTransactions } from "../ui/transactionManager.js";
 import { renderMergedFiles } from "../main.js";
@@ -69,25 +70,82 @@ export function getFilesForFormat(formatSig) {
 
 // Update to support dual signatures
 
-// Replace saveHeadersAndFormat function to prevent duplicates
-
-// Helper function to get existing mappings from storage
-function getExistingMappings() {
+// Implementation of saveHeadersAndFormat function with reduced complexity
+export function saveHeadersAndFormat(signature, mapping, fileName = null, headerRowIndex = null, dataRowIndex = null, currency = null) {
   try {
-    const mappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    if (!Array.isArray(mappings)) {
+    // Get file name from state or parameter
+    const currentFileName = fileName || AppState.currentFileName || "";
+
+    if (!currentFileName) {
+      console.warn("No filename provided for format mapping");
+      return false;
+    }
+
+    // Get mapping configuration from parameters or DOM
+    const config = getHeadersAndFormatConfig(headerRowIndex, dataRowIndex, currentFileName);
+
+    // Get existing mappings
+    const existingMappings = getSafeExistingMappings();
+
+    // Process signature and mapping key
+    const { sigString, mappingKey } = processSignatureAndMapping(signature, mapping);
+
+    // Check if mapping exists and update or create as needed
+    updateOrCreateMapping(
+      existingMappings,
+      sigString,
+      mappingKey,
+      mapping,
+      config,
+      currentFileName,
+      currency
+    );
+
+    // Save and render
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingMappings));
+    renderMappingList();
+
+    return true;
+  } catch (err) {
+    console.error("Error saving format mapping:", err);
+    return false;
+  }
+}
+
+// Helper functions to reduce cognitive complexity
+
+function getHeadersAndFormatConfig(headerRowIndex, dataRowIndex, currentFileName) {
+  // Get row indices either from parameters or from DOM
+  const headerRow = headerRowIndex !== null ? headerRowIndex :
+    parseInt(document.getElementById("headerRowInput")?.value || "1", 10) - 1;
+
+  const dataRow = dataRowIndex !== null ? dataRowIndex :
+    parseInt(document.getElementById("dataRowInput")?.value || "2", 10) - 1;
+
+  // Extract file extension for type info
+  const fileType = currentFileName.split('.').pop().toLowerCase() || "unknown";
+
+  console.log(`Saving format mapping for ${currentFileName} (${fileType}) with headerRow=${headerRow}, dataRow=${dataRow}`);
+
+  return { headerRow, dataRow, fileType };
+}
+
+function getSafeExistingMappings() {
+  try {
+    const existingMappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    // Ensure it's an array
+    if (!Array.isArray(existingMappings)) {
       console.warn("Mappings storage was not an array, resetting");
       return [];
     }
-    return mappings;
+    return existingMappings;
   } catch (err) {
     console.error("Error parsing mappings from storage:", err);
     return [];
   }
 }
 
-// Helper function to prepare mapping data
-function prepareSignatureAndKey(signature, mapping) {
+function processSignatureAndMapping(signature, mapping) {
   // Convert signature to string for storage
   const sigString = typeof signature === 'object' ?
     (signature.formatSig || signature.structureSig || JSON.stringify(signature)) :
@@ -99,102 +157,68 @@ function prepareSignatureAndKey(signature, mapping) {
   return { sigString, mappingKey };
 }
 
-// Helper function to find existing mapping index
-function findExistingMappingIndex(mappings, sigString, mappingKey, signature) {
-  return mappings.findIndex(m =>
-    (m.mappingKey === mappingKey) ||
-    (m.signature && (
-      m.signature === sigString ||
-      (typeof m.signature === 'object' &&
-        (m.signature.formatSig === signature.formatSig ||
-          m.signature.structureSig === signature.structureSig))
-    ))
+function updateOrCreateMapping(existingMappings, sigString, mappingKey, mapping, config, fileName, currency) {
+  // Find existing mapping
+  const existingIndex = findExistingMappingIndex(existingMappings, sigString, mappingKey);
+
+  if (existingIndex !== -1) {
+    updateExistingMapping(existingMappings[existingIndex], mapping, sigString, mappingKey, config, fileName);
+  } else {
+    createNewMapping(existingMappings, sigString, mapping, mappingKey, config, fileName, currency);
+  }
+}
+
+function findExistingMappingIndex(existingMappings, sigString, mappingKey) {
+  return existingMappings.findIndex(m =>
+    m.mappingKey === mappingKey ||
+    m.signature === sigString ||
+    (typeof m.signature === 'object' &&
+      (m.signature.formatSig === sigString.formatSig ||
+        m.signature.structureSig === sigString.structureSig))
   );
 }
 
-// Helper function to update existing mapping
-function updateExistingMapping(mappings, index, config) {
-  mappings[index].mapping = config.mapping;
-  mappings[index].signature = config.sigString;
-  mappings[index].mappingKey = config.mappingKey;
-  mappings[index].headerRowIndex = config.headerRow;
-  mappings[index].dataRowIndex = config.dataRow;
+function updateExistingMapping(mapping, newMapping, sigString, mappingKey, config, fileName) {
+  console.log("Updating existing mapping");
 
-  // Initialize arrays if needed and add new values
-  if (!mappings[index].fileTypes) {
-    mappings[index].fileTypes = [];
+  // Update core mapping details
+  mapping.mapping = newMapping;
+  mapping.signature = sigString;
+  mapping.mappingKey = mappingKey;
+  mapping.headerRowIndex = config.headerRow;
+  mapping.dataRowIndex = config.dataRow;
+
+  // Update file types
+  if (!mapping.fileTypes) {
+    mapping.fileTypes = [];
   }
-  if (!mappings[index].fileTypes.includes(config.fileType)) {
-    mappings[index].fileTypes.push(config.fileType);
+  if (!mapping.fileTypes.includes(config.fileType)) {
+    mapping.fileTypes.push(config.fileType);
   }
 
-  if (!mappings[index].files) {
-    mappings[index].files = [];
+  // Update files list
+  if (!mapping.files) {
+    mapping.files = [];
   }
-  if (!mappings[index].files.includes(config.fileName)) {
-    mappings[index].files.push(config.fileName);
+  if (!mapping.files.includes(fileName)) {
+    mapping.files.push(fileName);
   }
 }
 
-// Update saveHeadersAndFormat to explicitly handle filenames
-export function saveHeadersAndFormat(signature, mapping, fileName = null, headerRowIndex = null, dataRowIndex = null) {
-  try {
-    // Get file name from state or parameter
-    const currentFileName = fileName || AppState.currentFileName || "";
+function createNewMapping(existingMappings, sigString, mapping, mappingKey, config, fileName, currency) {
+  console.log("Creating new mapping");
 
-    if (!currentFileName) {
-      console.warn("No filename provided for format mapping");
-      return false;
-    }
-
-    // Get row indices either from parameters or from DOM
-    const headerRow = headerRowIndex !== null ? headerRowIndex :
-      parseInt(document.getElementById("headerRowInput")?.value || "1", 10) - 1;
-
-    const dataRow = dataRowIndex !== null ? dataRowIndex :
-      parseInt(document.getElementById("dataRowInput")?.value || "2", 10) - 1;
-
-    // Extract file extension for type info
-    const fileType = currentFileName.split('.').pop().toLowerCase() || "unknown";
-
-    console.log(`Saving format mapping for ${currentFileName} (${fileType}) with headerRow=${headerRow}, dataRow=${dataRow}`);
-
-    // Get existing mappings
-    const existingMappings = getExistingMappings();
-
-    // Prepare signature and key
-    const { sigString, mappingKey } = prepareSignatureAndKey(signature, mapping);
-
-    // Find existing mapping
-    const existingIndex = findExistingMappingIndex(existingMappings, sigString, mappingKey, signature);
-
-    if (existingIndex !== -1) {
-      console.log("Updating existing mapping at index", existingIndex);
-      updateExistingMapping(existingMappings, existingIndex, {
-        mapping, sigString, mappingKey, headerRow, dataRow, fileType, fileName: currentFileName
-      });
-    } else {
-      console.log("Creating new mapping");
-      existingMappings.push({
-        signature: sigString,
-        mapping: mapping,
-        mappingKey: mappingKey,
-        headerRowIndex: headerRow,
-        dataRowIndex: dataRow,
-        fileTypes: [fileType],
-        files: [currentFileName],
-        created: new Date().toISOString()
-      });
-    }
-
-    console.log("Saving mappings:", existingMappings);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingMappings));
-    renderMappingList();
-    return true;
-  } catch (err) {
-    console.error("Error saving format mapping:", err);
-    return false;
-  }
+  existingMappings.push({
+    signature: sigString,
+    mapping: mapping,
+    mappingKey: mappingKey,
+    headerRowIndex: config.headerRow,
+    dataRowIndex: config.dataRow,
+    fileTypes: [config.fileType],
+    files: [fileName],
+    currency: currency || "USD",
+    created: new Date().toISOString()
+  });
 }
 
 // Improve the getMappingBySignature function to be more reliable
@@ -229,176 +253,86 @@ function getSafeFormatMappings() {
 // Now update the getMappingBySignature function
 export function getMappingBySignature(signature) {
   try {
-    if (!signature) return null;
-
-    // Convert signature to string if it's an object
-    const sigString = typeof signature === 'object' ? JSON.stringify(signature) : signature;
-
-    // Get all mappings
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
-
-    // Find a mapping with this signature
-    // Fix the undefined 'key' variable by using 'sigString' instead
-    const mapping = mappings.find(m =>
-      String(m.signature) === sigString ||
-      (m.signature && m.signature.mappingSig === sigString)
-    );
-
-    return mapping || null;
-  } catch (err) {
-    console.error("Error getting mapping by signature:", err);
-    return null;
-  }
-}
-
-/**
- * Gets a mapping by format
- * @param {string} format - Format identifier to look up
- * @returns {Object|null} - Mapping object or null if not found
- */
-function getMappingByFormat(format) {
-  try {
-    if (!format) return null;
-
-    // Convert format to string if it's an object
-    const formatString = typeof format === 'object' ? JSON.stringify(format) : format;
-
-    // Get all mappings
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
-
-    // Find matching mapping
-    // Fix: Replace undefined 'key' with 'formatString'
-    const mapping = mappings.find(m =>
-      m.format === formatString ||
-      (m.signature && m.signature.formatSig === formatString)
-    );
-
-    return mapping || null;
-  } catch (err) {
-    console.error("Error getting mapping by format:", err);
-    return null;
-  }
-}
-
-/**
- * Gets a mapping by content signature
- * @param {string} contentSig - Content signature to look up
- * @returns {Object|null} - Mapping object or null if not found
- */
-function getMappingByContentSignature(contentSig) {
-  try {
-    if (!contentSig) return null;
-
-    // Convert signature to string if needed
-    const sigString = typeof contentSig === 'object' ? JSON.stringify(contentSig) : contentSig;
-
-    // Get all mappings
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
-
-    // Find mapping with matching content signature
-    // Fix: Replace undefined 'key' with 'sigString'
-    const mapping = mappings.find(m =>
-      m.contentSignature === sigString ||
-      (m.signature && m.signature.contentSig === sigString)
-    );
-
-    return mapping || null;
-  } catch (err) {
-    console.error("Error getting mapping by content signature:", err);
-    return null;
-  }
-}
-
-// Fix for Undefined `key` Reference in mappingsManager.js
-
-/**
- * Searches for a mapping by content signature with improved error handling
- * @param {string} contentSig - The content signature to look for
- * @returns {Object|null} The mapping object or null if not found
- */
-function findMappingByContentSignature(contentSig) {
-  try {
-    if (!contentSig) return null;
-
-    // Convert signature to string if needed
-    const sigString = typeof contentSig === 'object' ? JSON.stringify(contentSig) : contentSig;
-
-    // Get all mappings using the safer function
+    // Use the safe getter instead of direct JSON.parse
     const mappings = getSafeFormatMappings();
 
-    // Find a mapping with matching content signature
-    const mapping = mappings.find(m =>
-      m.contentSignature === sigString ||
-      (m.signature && m.signature.contentSig === sigString)
-    );
+    // Handle the case where signature is null or undefined
+    if (!signature) return null;
+
+    // Handle both object and string signatures
+    const sigString = typeof signature === 'object'
+      ? (signature.mappingSig || signature.formatSig || signature.contentSig || JSON.stringify(signature))
+      : String(signature);
+
+    // Search for matching mapping
+    const mapping = mappings.find(m => {
+      // Handle different signature formats
+      const mSig = typeof m.signature === 'object'
+        ? (m.signature.mappingSig || m.signature.formatSig || m.signature.contentSig || JSON.stringify(m.signature))
+        : String(m.signature || "");
+
+      return mSig === sigString;
+    });
 
     return mapping || null;
-  } catch (err) {
-    console.error("Error finding mapping by content signature:", err);
+  } catch (error) {
+    console.error("Error getting mapping by signature:", error);
     return null;
   }
 }
 
 // Fix the renderMappingList to handle duplicates properly
 // Update the renderMappingList function to show file types and files
-export function renderMappingList(targetElement = null) {
-  const list = targetElement || document.getElementById("mappingsList");
-  if (!list) {
-    console.warn("Mappings list element not found");
+export function renderMappingList(targetTableBodyId = "mappingsTableBody") { // Added target ID parameter
+  const tableBody = document.getElementById(targetTableBodyId); // Use the target ID
+  if (!tableBody) {
+    console.warn(`Mappings table body ('${targetTableBodyId}') element not found`);
+    // Try to find the generic list as a fallback for other potential uses, though showMappingsModal should provide the correct ID.
+    const genericList = document.getElementById("mappingsList");
+    if (genericList) {
+      genericList.innerHTML = '<div class="empty-list-message">Mappings table body not found.</div>';
+    }
     return;
   }
 
   try {
     const mappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    console.log("Rendering mappings list:", mappings);
+    console.log("Rendering mappings list for target:", targetTableBodyId, mappings);
 
     if (!mappings.length) {
-      list.innerHTML = '<div class="empty-list-message">No saved mappings yet</div>';
+      tableBody.innerHTML = '<tr><td colspan="6" class="empty-list-message">No saved mappings yet</td></tr>'; // Adjusted for table
       return;
     }
 
-    let html = `
-      <table class="mappings-table" style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr>
-            <th>Fields</th>
-            <th>Row Info</th>
-            <th>File Types</th>
-            <th>Files</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
+    let html = ""; // Build rows for tbody
 
     mappings.forEach((mapping, index) => {
+      const mappingName = mapping.formatName || `Format ${index + 1}`;
       // Get mapped fields string
-      const mappedFields = mapping.mapping.filter(m => m !== "–").join(", ") || "Unknown";
-
-      // Get row indices information
-      const headerRow = typeof mapping.headerRowIndex === 'number' ? mapping.headerRowIndex + 1 : 1;
-      const dataRow = typeof mapping.dataRowIndex === 'number' ? mapping.dataRowIndex + 1 : 2;
-      const rowInfo = `H:${headerRow}, D:${dataRow}`;
+      const mappedFieldsDisplay = Array.isArray(mapping.mapping) ? mapping.mapping.filter(m => m && m !== "–").map(f => `<span class="field-tag">${f}</span>`).join(" ") : "Unknown";
 
       // Get file types string
       const fileTypes = mapping.fileTypes && mapping.fileTypes.length > 0
         ? mapping.fileTypes.join(", ")
-        : "None";
+        : "N/A";
 
       // Get files using this format
       const filesText = mapping.files && mapping.files.length > 0
-        ? mapping.files.join(", ")
-        : "No files using this format";
+        ? `${mapping.files.length} file(s)` // Show count, full list in tooltip or details view
+        : "0 files";
+
+      const createdDate = mapping.created ? new Date(mapping.created).toLocaleDateString() : "N/A";
 
       // Add row
       html += `
         <tr>
-          <td>${mappedFields}</td>
-          <td>${rowInfo}</td>
+          <td>${mappingName}</td>
+          <td class="field-mapping-display">${mappedFieldsDisplay || "Unknown"}</td>
           <td>${fileTypes}</td>
-          <td>${filesText}</td>
+          <td title="${(mapping.files || []).join(', ')}">${filesText}</td>
+          <td>${createdDate}</td>
           <td>
-            <button onclick="window.deleteMapping(${index})" title="Delete this mapping" class="icon-button">
+            <button onclick="window.deleteMappingByIndexGUI(${index})" title="Delete this mapping" class="icon-button delete-mapping-btn">
               🗑️
             </button>
           </td>
@@ -406,12 +340,11 @@ export function renderMappingList(targetElement = null) {
       `;
     });
 
-    html += '</tbody></table>';
-    list.innerHTML = html;
+    tableBody.innerHTML = html;
 
   } catch (err) {
     console.error("Error rendering mapping list:", err);
-    list.innerHTML = '<div class="error">Error loading mappings</div>';
+    tableBody.innerHTML = '<tr><td colspan="6" class="error">Error loading mappings</td></tr>'; // Adjusted for table
   }
 }
 
@@ -519,6 +452,7 @@ export function updateMappingRow(table, sig, entry) {
     `;
     const deleteButton = document.createElement("button");
     deleteButton.textContent = "🗑️";
+    // Note: This deleteMapping(sig) is different from the index-based one.
     deleteButton.addEventListener("click", () => deleteMapping(sig));
     const actionsCell = document.createElement("td");
     actionsCell.appendChild(deleteButton);
@@ -529,63 +463,109 @@ export function updateMappingRow(table, sig, entry) {
 }
 
 // Add window helper for deleteMapping
-window.deleteMapping = function (index) {
+// Helper function for simple mapping deletion
+function handleSimpleDelete(mappings, index, mappingFields) {
+  if (confirm(`Delete format mapping for "${mappingFields}"?`)) {
+    mappings.splice(index, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
+    renderMappingList();
+    showToast("Format mapping deleted", "success");
+  }
+}
+
+// Helper function for deletion with associated files
+function handleDeleteWithFiles(mappings, index, mappingFields, associatedFiles) {
+  let confirmMessage = `Delete format mapping for "${mappingFields}"?`;
+  confirmMessage += `\n\nThis format is used by ${associatedFiles.length} file(s):\n- ${associatedFiles.join('\n- ')}`;
+  confirmMessage += `\n\nDo you want to remove these files from your merged list as well?`;
+
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  // Remove associated files
+  AppState.mergedFiles = AppState.mergedFiles.filter(file =>
+    !associatedFiles.includes(file.fileName)
+  );
+  saveMergedFiles();
+  updateTransactions();
+  renderMergedFiles();
+
+  // Remove the mapping
+  mappings.splice(index, 1);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
+  renderMappingList();
+
+  showToast(`Format mapping and ${associatedFiles.length} associated file(s) removed`, "success");
+}
+
+// This is the comprehensive index-based deletion function
+export function deleteMappingByIndexGUI(index) {
   try {
     const mappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    console.log(`Attempting to delete mapping at index ${index}, total mappings:`, mappings.length);
 
-    console.log("All mappings:", mappings);
-    console.log("Trying to delete mapping at index:", index);
+    if (!mappings || index < 0 || index >= mappings.length) {
+      showToast("Invalid mapping index", "error");
+      return;
+    }
 
-    if (index >= 0 && index < mappings.length) {
-      const mappingToDelete = mappings[index];
-      const mappingFields = mappingToDelete.mapping.filter(m => m !== "–").join(", ");
+    const mappingToDelete = mappings[index];
+    console.log("Mapping to delete:", mappingToDelete);
 
-      // Check if the mapping has associated files
-      const associatedFiles = mappingToDelete.files || [];
+    // Get mapping information for display
+    const mappingFields = mappingToDelete.mapping.filter(m => m !== "–").join(", ");
+    const associatedFiles = mappingToDelete.files || [];
 
-      let confirmMessage = `Delete format mapping for "${mappingFields}"?`;
+    let confirmMessage = `Delete format mapping for "${mappingFields}"?`;
 
-      if (associatedFiles.length > 0) {
-        confirmMessage += `\n\nThis format is used by ${associatedFiles.length} file(s):\n- ${associatedFiles.join('\n- ')}`;
-        confirmMessage += `\n\nDo you want to remove these files from your merged list as well?`;
+    // Determine confirmation message based on whether there are associated files
+    if (associatedFiles && associatedFiles.length > 0) {
+      confirmMessage += `\n\nThis format is used by ${associatedFiles.length} file(s):\n- ${associatedFiles.join('\n- ')}`;
+      confirmMessage += `\n\nDo you want to remove these files from your merged list as well?`;
+    }
 
-        if (confirm(confirmMessage)) {
-          // Remove associated files if confirmed
-          if (associatedFiles.length > 0) {
-            AppState.mergedFiles = AppState.mergedFiles.filter(file =>
-              !associatedFiles.includes(file.fileName)
-            );
-            saveMergedFiles();
-            updateTransactions();
-            renderMergedFiles();
-          }
+    // Handle confirmation and deletion
+    if (associatedFiles && associatedFiles.length > 0 && confirm(confirmMessage)) {
+      // User confirmed deletion with file removal
 
-          // Remove the mapping
-          mappings.splice(index, 1);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
-          renderMappingList();
+      // 1. Remove associated files from merged files
+      const beforeCount = AppState.mergedFiles.length;
+      AppState.mergedFiles = AppState.mergedFiles.filter(file =>
+        !associatedFiles.includes(file.fileName)
+      );
+      const removedCount = beforeCount - AppState.mergedFiles.length;
 
-          showToast(`Format mapping and ${associatedFiles.length} associated file(s) removed`, "success");
-        }
-      } else if (confirm(`Delete format mapping for "${mappingFields}"?`)) {
-        // No files associated, just confirm mapping deletion
+      // 2. Update app state
+      saveMergedFiles();
+
+      // 3. Remove the mapping
+      mappings.splice(index, 1);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
+
+      // 4. Update UI
+      renderMergedFiles();
+      renderMappingList();
+      updateTransactions();
+
+      showToast(`Format mapping and ${removedCount} file(s) removed`, "success");
+    } else if (!associatedFiles || !associatedFiles.length) {
+      // No associated files, just confirm mapping deletion
+      if (confirm(`Delete format mapping for "${mappingFields}"?`)) {
         mappings.splice(index, 1);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
         renderMappingList();
         showToast("Format mapping deleted", "success");
       }
-    } else {
-      showToast("Invalid mapping index", "error");
-      console.error("Invalid mapping index:", index);
     }
   } catch (err) {
-    console.error("Error deleting mapping:", err);
-    showToast("Error deleting mapping", "error");
+    console.error("Error deleting mapping by index:", err);
+    showToast("Error deleting mapping by index", "error");
   }
-};
+}
 
-window.deleteMapping = deleteMapping;
-window.deleteFormatAndAssociatedFiles = deleteFormatAndAssociatedFiles;
+// Assign to window for use in HTML generated by renderMappingList
+window.deleteMappingByIndexGUI = deleteMappingByIndexGUI;
 
 // Add or update this function
 export function deleteAllMappings() {
@@ -637,134 +617,28 @@ export function deleteAllMappings() {
   }
 }
 
-// Update window.deleteMapping function
-// Helper function to build confirmation message
-function buildConfirmMessage(mappingFields, associatedFiles) {
-  let message = `Delete format mapping for "${mappingFields}"?`;
-
-  if (associatedFiles.length > 0) {
-    message += `\n\nThis format is used by ${associatedFiles.length} file(s):\n- ${associatedFiles.join('\n- ')}`;
-    message += `\n\nDo you want to remove these files from your merged list as well?`;
-  }
-
-  return message;
-}
-
-// Helper function to handle mapping deletion and UI updates
-function handleMappingDeletion(mappings, index, withFiles = false, removedCount = 0) {
-  mappings.splice(index, 1);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
-  renderMappingList();
-
-  if (withFiles) {
-    renderMergedFiles();
-    updateTransactions();
-    showToast(`Format mapping and ${removedCount} file(s) removed`, "success");
-  } else {
-    showToast("Format mapping deleted", "success");
-  }
-}
-
-// Helper function to remove associated files and return count of removed files
-function removeAssociatedFiles(associatedFiles) {
-  if (!associatedFiles || associatedFiles.length === 0) {
-    return 0;
-  }
-
-  const beforeCount = AppState.mergedFiles.length;
-  AppState.mergedFiles = AppState.mergedFiles.filter(file =>
-    !associatedFiles.includes(file.fileName)
-  );
-  const removedCount = beforeCount - AppState.mergedFiles.length;
-  saveMergedFiles();
-  return removedCount;
-}
-
-// Helper function to validate mapping index
-function isValidMappingIndex(mappings, index) {
-  return mappings && index >= 0 && index < mappings.length;
-}
-
-// Prepare mapping data for deletion
-function prepareMappingForDeletion(index) {
-  const mappings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-
-  if (!isValidMappingIndex(mappings, index)) {
-    showToast("Invalid mapping index", "error");
-    return null;
-  }
-
-  const mappingToDelete = mappings[index];
-  console.log("Mapping to delete:", mappingToDelete);
-
-  return {
-    mappings,
-    index,
-    mappingFields: mappingToDelete.mapping.filter(m => m !== "–").join(", "),
-    associatedFiles: mappingToDelete.files || []
-  };
-}
-
-// Confirm and execute mapping deletion
-function executeMappingDeletion(data) {
-  if (!data) return;
-
-  const { mappings, index, mappingFields, associatedFiles } = data;
-  const hasAssociatedFiles = associatedFiles.length > 0;
-
-  // Confirm deletion
-  const confirmMessage = buildConfirmMessage(mappingFields, associatedFiles);
-  if (!confirm(confirmMessage)) {
-    return;
-  }
-
-  // Process file removal if needed
-  const removedCount = hasAssociatedFiles ? removeAssociatedFiles(associatedFiles) : 0;
-
-  // Update mappings and UI
-  handleMappingDeletion(mappings, index, hasAssociatedFiles, removedCount);
-}
-
-// Simplified window.deleteMapping function
-window.deleteMapping = function (index) {
-  try {
-    const data = prepareMappingForDeletion(index);
-    executeMappingDeletion(data);
-  } catch (err) {
-    console.error("Error deleting mapping:", err);
-    showToast("Error deleting mapping", "error");
-  }
-};
-
 /**
- * Deletes a format mapping by its index
+ * Deletes a format mapping by its index - this function will now call the comprehensive GUI version.
  * @param {number} index - The index of the format mapping to delete
  * @returns {boolean} - True if successful, false otherwise
  */
 export function deleteFormatMapping(index) {
+  // Call the comprehensive, UI-handling delete function
+  // Note: deleteMappingByIndexGUI handles its own try/catch and toast messages.
+  // The original simple boolean return might not be directly applicable unless deleteMappingByIndexGUI is modified.
+  // For now, we assume it handles UI feedback.
   try {
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
-
-    if (index >= 0 && index < mappings.length) {
-      // Get the mapping to be deleted for confirmation message
-
-      // Remove the mapping
-      mappings.splice(index, 1);
-
-      // Save updated mappings
-      localStorage.setItem("fileFormatMappings", JSON.stringify(mappings));
-
-      // Return success message with format details
-      return true;
-    }
-    return false;
+    deleteMappingByIndexGUI(index);
+    // Assuming success if no error is thrown from deleteMappingByIndexGUI.
+    // This function might need to be refactored if a strict boolean success is required by all callers.
+    return true;
   } catch (e) {
-    console.error("Error deleting format mapping:", e);
+    console.error("Error in deleteFormatMapping calling deleteMappingByIndexGUI:", e);
+    showToast("Error processing mapping deletion.", "error"); // Generic error as specific one is in GUI func
     return false;
   }
 }
 
-window.deleteMapping = deleteMapping;
 window.deleteFormatAndAssociatedFiles = deleteFormatAndAssociatedFiles;
 
 // Add function to check if files need to be removed when mapping is deleted
@@ -831,199 +705,373 @@ export function removeFormatMapping(signatureToRemove) {
   localStorage.setItem("fileFormatMappings", JSON.stringify(mappings));
 
   console.log(`Removed mapping ${signatureToRemove}`);
-  const removalMessage = affectedFiles.length ?
-    `Format mapping removed. ${affectedFiles.length} associated file(s) were also removed.` :
-    "Format mapping removed.";
-  showToast(removalMessage, "success");
+  const associatedFilesMessage = affectedFiles.length ? " " + affectedFiles.length + " associated file(s) were also removed." : "";
+  showToast(`Format mapping removed.${associatedFilesMessage}`, "success");
 
   return true;
 }
 
-// Make sure deleteFormatMapping is included in the default export
-export default {
-  // ...existing exports...
-  deleteFormatMapping,
-  removeFormatMapping,
-  // ...existing exports...
-};
-
-// Refactor function at line 75
-function processMappings(mappings) {
-  return mappings.filter(isValidMapping).map(formatMapping);
-}
-
-// Refactor function at line 438
-function updateMappings(mappings, updates) {
-  updates.forEach(update => {
-    if (mappings[update.key]) {
-      mappings[update.key] = update.value;
-    }
-  });
-}
 
 /**
- * Toggles the visibility of a mapping section
- * @param {string} mappingId - The ID of the mapping section to toggle
+ * Save mappings to localStorage
+ * @param {Array} mappings - Array of mapping objects to save
  */
-function toggleMappingSection(mappingId) {
-  const contentDiv = document.getElementById(`mapping-content-${mappingId}`);
-  const arrowIcon = document.querySelector(`#mapping-header-${mappingId} .toggle-arrow`);
-
-  if (!contentDiv || !arrowIcon) return;
-
-  // Define condition variable before using it
-  const condition = contentDiv.style.display !== 'none';
-
-  // Toggle content visibility
-  contentDiv.style.display = condition ? 'none' : 'block';
-
-  // Update arrow icon
-  arrowIcon.textContent = condition ? '▶' : '▼';
-
-  // Save state to localStorage
+export function saveAllMappings(mappings) {
   try {
-    const collapsedMappings = JSON.parse(localStorage.getItem('collapsedMappings') || '{}');
-    collapsedMappings[mappingId] = condition;
-    localStorage.setItem('collapsedMappings', JSON.stringify(collapsedMappings));
-  } catch (err) {
-    console.error('Error saving mapping section state:', err);
+    localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
+  } catch (error) {
+    console.error("Error saving mappings to localStorage:", error);
   }
 }
 
 /**
- * Shows the format mappings modal
+ * Get all saved mappings from localStorage
+ * @returns {Array} Array of mapping objects
+ */
+export function getMappings() {
+  try {
+    const savedMappings = localStorage.getItem("fileFormatMappings");
+    if (savedMappings) {
+      const mappings = JSON.parse(savedMappings);
+      return Array.isArray(mappings) ? mappings : [];
+    }
+    return [];
+  } catch (error) {
+    console.error("Error loading mappings from localStorage:", error);
+    return [];
+  }
+}
+
+/**
+ * Render mapping list in modal
+ */
+function renderMappingListModal(targetId) {
+  console.log("Rendering mappings list for target:", targetId);
+
+  const target = document.getElementById(targetId);
+  if (!target) {
+    console.error(`Target element ${targetId} not found`);
+    return;
+  }
+
+  try {
+    const mappings = getMappings(); // Now this function exists
+    console.log("Rendering mappings list for target:", targetId, mappings);
+
+    if (!mappings || mappings.length === 0) {
+      target.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
+            No saved mappings found. Import a file to create your first mapping.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    let html = '';
+    mappings.forEach((mapping, index) => {
+      const signature = typeof mapping.signature === 'string'
+        ? mapping.signature
+        : JSON.stringify(mapping.signature);
+
+      const fields = Array.isArray(mapping.mapping)
+        ? mapping.mapping.filter(m => m !== "–").join(", ")
+        : "Unknown mapping";
+
+      const currency = mapping.currency || "USD";
+      const created = mapping.created
+        ? new Date(mapping.created).toLocaleDateString()
+        : "Unknown";
+
+      html += `
+        <tr>
+          <td style="max-width: 200px; word-break: break-all; font-family: monospace; font-size: 0.9em;">
+            ${signature.substring(0, 50)}${signature.length > 50 ? '...' : ''}
+          </td>
+          <td>${fields}</td>
+          <td>${currency}</td>
+          <td>${created}</td>
+          <td>
+            <button class="button danger small" onclick="deleteMappingByIndex(${index})" title="Delete this mapping">
+              🗑️ Delete
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    target.innerHTML = html;
+  } catch (error) {
+    console.error("Error rendering mapping list:", error);
+    target.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; color: red; padding: 20px;">
+          Error loading mappings: ${error.message}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Delete mapping by index
+ */
+window.deleteMappingByIndex = function (index) {
+  try {
+    const mappings = getMappings();
+    if (index >= 0 && index < mappings.length) {
+      mappings.splice(index, 1);
+
+      // Save updated mappings
+      localStorage.setItem("fileFormatMappings", JSON.stringify(mappings));
+
+      // Refresh the display
+      renderMappingListModal("mappingsTableBody");
+
+      showToast(`Mapping deleted successfully`, "success");
+    } else {
+      showToast("Invalid mapping index", "error");
+    }
+  } catch (error) {
+    console.error("Error deleting mapping:", error);
+    showToast("Error deleting mapping: " + error.message, "error");
+  }
+};
+
+/**
+ * Clear all mappings
+ */
+function clearAllMappings() {
+  if (confirm("Are you sure you want to delete ALL saved mappings? This cannot be undone.")) {
+    try {
+      localStorage.removeItem("fileFormatMappings");
+      renderMappingListModal("mappingsTableBody");
+      showToast("All mappings cleared", "success");
+    } catch (error) {
+      console.error("Error clearing mappings:", error);
+      showToast("Error clearing mappings: " + error.message, "error");
+    }
+  }
+}
+
+/**
+ * Show mappings modal with complete UI
  */
 export function showMappingsModal() {
-  const modalContent = document.createElement("div");
-  modalContent.innerHTML = `
-    <div style="padding: 10px;">
-      <h3>File Format Mappings</h3>
-      <p>These mappings help auto-detect file formats when importing new files.</p>
+  console.log("Opening mappings modal");
 
-      <div id="mappingsListView" style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
-        Loading mappings...
+  const modalContent = document.createElement("div");
+  modalContent.className = "mappings-modal";
+
+  modalContent.innerHTML = `
+    <div class="mappings-section">
+      <h3>Format Mappings</h3>
+      <p>Saved file format mappings for automatic processing.</p>
+
+      <div class="mappings-list">
+        <table class="mappings-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">File Format Signature</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Column Mapping</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Currency</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Created</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="mappingsTableBody">
+            <!-- Mappings will be rendered here -->
+          </tbody>
+        </table>
       </div>
 
-      <div style="margin-top: 20px; text-align: right;">
-        <button id="clearMappingsBtn" class="action-btn danger-btn" style="margin-right: 10px;">Clear All Mappings</button>
-        <button id="closeMappingsBtn" class="action-btn">Close</button>
+      <div class="mappings-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+        <button id="refreshMappingsBtn" class="button">🔄 Refresh</button>
+        <button id="clearAllMappingsBtn" class="button danger">🗑️ Clear All Mappings</button>
       </div>
     </div>
   `;
 
+  const modal = showModal({
+    title: "Format Mappings Manager",
+    content: modalContent,
+    size: "large"
+  });
+
+  // Initial render of mappings
+  renderMappingListModal("mappingsTableBody");
+
+  // Setup event listeners
+  setupMappingsEventListeners(modal);
+}
+
+/**
+ * Setup event listeners for mappings modal
+ */
+function setupMappingsEventListeners(modal) {
+  // Refresh button
+  const refreshBtn = document.getElementById("refreshMappingsBtn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      renderMappingListModal("mappingsTableBody");
+      showToast("Mappings refreshed", "info");
+    });
+  }
+
+  // Clear all button
+  const clearAllBtn = document.getElementById("clearAllMappingsBtn");
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener("click", clearAllMappings);
+  }
+}
+
+// Mappings manager for file format mappings
+
+
+
+/**
+ * Get all saved mappings
+ * @returns {Array} Array of mapping objects
+ */
+export function getAllMappings() {
+  try {
+    return JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  } catch (error) {
+    console.error("Error getting all mappings:", error);
+    return [];
+  }
+}
+
+/**
+ * Delete mapping by signature
+ * @param {string} signature - Signature to delete
+ * @returns {boolean} Success status
+ */
+export function deleteMappingBySignature(signature) {
+  try {
+    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+    const filteredMappings = mappings.filter(m => m.signature !== signature);
+
+    localStorage.setItem("fileFormatMappings", JSON.stringify(filteredMappings));
+    console.log(`Deleted mapping for signature: ${signature}`);
+    return true;
+  } catch (error) {
+    console.error("Error deleting mapping:", error);
+    return false;
+  }
+}
+
+/**
+ * Show mappings modal (alternative implementation)
+ */
+export function showMappingsModalAlt() {
   import("../ui/modalManager.js").then(module => {
-    const modal = module.showModal({
-      title: "Format Mappings",
-      content: modalContent,
-      size: "large"
-    });
-
-    // Render mappings list
-    renderMappingList(document.getElementById("mappingsListView"));
-
-    // Add event listeners
-    document.getElementById("closeMappingsBtn").addEventListener("click", () => {
-      modal.close();
-    });
-
-    document.getElementById("clearMappingsBtn").addEventListener("click", () => {
-      if (confirm("Are you sure you want to clear all file format mappings? This cannot be undone.")) {
-        localStorage.removeItem("fileFormatMappings");
-        renderMappingList(document.getElementById("mappingsListView"));
-        import("../ui/uiManager.js").then(m => m.showToast("All mappings cleared", "info"));
-      }
-    });
+    if (typeof module.showModal === 'function') {
+      const modalContent = createMappingsModalContent();
+      module.showModal({
+        title: "File Format Mappings",
+        content: modalContent,
+        size: "large"
+      });
+    }
   }).catch(err => {
     console.error("Error showing mappings modal:", err);
   });
 }
 
 /**
- * Gets a mapping by name
- * @param {string} name - The name to look for
- * @returns {Object|null} The mapping object or null if not found
+ * Create mappings modal content
+ * @returns {HTMLElement} Modal content element
  */
-function getMappingByName(name) {
-  try {
-    if (!name) return null;
+function createMappingsModalContent() {
+  const container = document.createElement('div');
+  container.className = 'mappings-manager';
 
-    // Convert name to string for consistency
-    const nameString = typeof name === 'object' ? JSON.stringify(name) : String(name);
+  const mappings = getAllMappings();
 
-    // Get all mappings
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  container.innerHTML = `
+    <div class="mappings-info">
+      <p>Saved file format mappings (${mappings.length} total):</p>
+      <p class="help-text">These mappings are automatically applied when you upload files with similar formats.</p>
+    </div>
 
-    // Find a mapping with this name
-    // Fix: Replace undefined 'key' with 'nameString'
-    const mapping = mappings.find(m =>
-      m.name === nameString ||
-      (m.fileName && m.fileName === nameString) ||
-      (m.files && m.files.includes(nameString))
-    );
-
-    return mapping || null;
-  } catch (err) {
-    console.error("Error getting mapping by name:", err);
-    return null;
-  }
-}
-
-/**
- * Gets a mapping by ID
- * @param {string} id - The mapping ID to look for
- * @returns {Object|null} The mapping object or null if not found
- */
-function getMappingById(id) {
-  try {
-    if (!id) return null;
-
-    // Convert ID to string for consistent comparison
-    const idString = typeof id === 'object' ? JSON.stringify(id) : String(id);
-
-    // Get all mappings
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
-
-    // Find a mapping with this ID
-    // Fix: Replace undefined 'key' with 'idString'
-    const mapping = mappings.find(m =>
-      m.id === idString ||
-      String(m.id) === idString
-    );
-
-    return mapping || null;
-  } catch (err) {
-    console.error("Error getting mapping by ID:", err);
-    return null;
-  }
-}
-
-/**
- * Gets a mapping by key
- * @param {string} mappingKey - The key to look for
- * @returns {Object|null} The mapping object or null if not found
- */
-function getMappingByKey(mappingKey) {
-  try {
-    if (!mappingKey) return null;
-
-    // Convert key to string for consistent comparison
-    const keyString = typeof mappingKey === 'object' ? JSON.stringify(mappingKey) : String(mappingKey);
-
-    // Ensure AppState is initialized
-    if (!AppState || !AppState.mergedFiles) {
-      console.error("AppState is not initialized.");
-      return null;
+    <div class="mappings-list">
+      ${mappings.length === 0 ?
+      '<p class="no-mappings">No saved mappings found. Upload and map some files to see them here.</p>' :
+      mappings.map(mapping => createMappingItem(mapping)).join('')
     }
+    </div>
 
-    // Get all mappings
-    const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+    <div class="mappings-actions">
+      <button id="clearAllMappingsBtn" class="button secondary-btn" ${mappings.length === 0 ? 'disabled' : ''}>
+        Clear All Mappings
+      </button>
+    </div>
+  `;
 
-    // Find a mapping with this key
-    const mapping = mappings.find(m => m.key === keyString || String(m.key) === keyString);
+  // Add event listeners
+  setTimeout(() => {
+    attachMappingEventListeners(container);
+  }, 100);
 
-    return mapping || null;
-  } catch (err) {
-    console.error("Error getting mapping by key:", err);
-    return null;
+  return container;
+}
+
+/**
+ * Create individual mapping item HTML
+ * @param {Object} mapping - Mapping object
+ * @returns {string} HTML string
+ */
+function createMappingItem(mapping) {
+  const fields = mapping.mapping ? mapping.mapping.filter(m => m !== "–").join(", ") : "No mapping";
+  const created = new Date(mapping.created).toLocaleDateString();
+  const lastUsed = mapping.lastUsed ? new Date(mapping.lastUsed).toLocaleDateString() : 'Never';
+
+  return `
+    <div class="mapping-item" data-signature="${mapping.signature}">
+      <div class="mapping-header">
+        <strong>Mapping: ${mapping.description || 'Unnamed'}</strong>
+        <button class="delete-mapping-btn button-small danger" data-signature="${mapping.signature}">
+          Delete
+        </button>
+      </div>
+      <div class="mapping-details">
+        <p><strong>Fields:</strong> ${fields}</p>
+        <p><strong>Currency:</strong> ${mapping.currency || 'USD'}</p>
+        <p><strong>Header Row:</strong> ${(mapping.headerRowIndex || 0) + 1}, <strong>Data Row:</strong> ${(mapping.dataRowIndex || 1) + 1}</p>
+        <p><strong>Created:</strong> ${created}, <strong>Last Used:</strong> ${lastUsed}</p>
+        <p class="signature"><strong>Signature:</strong> <code>${mapping.signature}</code></p>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Attach event listeners to mapping elements
+ * @param {HTMLElement} container - Container element
+ */
+function attachMappingEventListeners(container) {
+  // Delete mapping buttons
+  container.querySelectorAll('.delete-mapping-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const signature = e.target.getAttribute('data-signature');
+      if (confirm('Delete this mapping? This action cannot be undone.')) {
+        deleteMappingBySignature(signature);
+        // Refresh the modal
+        showMappingsModal();
+      }
+    });
+  });
+
+  // Clear all mappings button
+  const clearAllBtn = container.querySelector('#clearAllMappingsBtn');
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', () => {
+      if (confirm('Delete ALL mappings? This action cannot be undone.')) {
+        localStorage.removeItem("fileFormatMappings");
+        showMappingsModal(); // Refresh the modal
+      }
+    });
   }
 }

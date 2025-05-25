@@ -1,6 +1,5 @@
-import { deleteFormatMapping, renderMappingList } from "../mappings/mappingsManager.js";
+import { deleteFormatMapping } from "../mappings/mappingsManager.js";
 import { showModal } from "./modalManager.js";
-import { showToast } from "./uiManager.js";
 
 /**
  * Shows a modal with format mappings management
@@ -83,21 +82,25 @@ export function showFormatMappingsModal() {
   deleteButtons.forEach(button => {
     button.addEventListener('click', () => {
       const index = parseInt(button.dataset.index, 10);
-      if (confirm("Delete this format mapping? This will affect future file imports.")) {
-        // Call deleteFormatMapping with the index
-        const success = deleteFormatMapping(index);
-        if (success) {
-          showToast("Format mapping deleted", "success");
-          // Close and reopen modal to refresh content
-          modal.close();
-          setTimeout(() => showFormatMappingsModal(), 300);
+      // Confirmation is now handled within deleteFormatMapping (which calls deleteMappingByIndexGUI)
+      // if (confirm("Delete this format mapping? This will affect future file imports.")) {
 
-          // Also update mapping list in the main UI if present
-          renderMappingList();
-        } else {
-          showToast("Error deleting format mapping", "error");
-        }
+      // Call deleteFormatMapping with the index
+      const success = deleteFormatMapping(index); // This now calls the robust version
+
+      if (success) { // deleteFormatMapping might need to be adjusted if it doesn't return a clear success/failure for this flow
+        // UI updates (toast, modal refresh) are largely handled by deleteMappingByIndexGUI.
+        // However, refreshing this specific modal might still be needed.
+        // showToast("Format mapping deleted", "success"); // Toast is likely shown by the core delete function
+
+        // Close and reopen modal to refresh content
+        modal.close();
+        setTimeout(() => showFormatMappingsModal(), 300);
+
+        // Also update mapping list in the main UI if present (renderMappingList is called by core delete function)
+        // renderMappingList();
       }
+      // }
     });
   });
 

@@ -267,6 +267,15 @@ function handleDuplicateMapping(value, index) {
 function updateCurrentMapping(index, value) {
   // Update the current mapping
   AppState.currentSuggestedMapping[index] = value;
+  // If AppState.currentFileId is available, you could also update the specific file here
+  // For example:
+  // if (AppState.currentFileId && AppState.mergedFiles) {
+  //   const file = AppState.mergedFiles.find(f => f.id === AppState.currentFileId);
+  //   if (file) {
+  //     // This part is tricky as currentSuggestedMapping is an array of header names,
+  //     // not the direct file.headerMapping. This needs to be set on "Save Headers".
+  //   }
+  // }
 }
 
 function updateSaveButtonState() {
@@ -759,3 +768,52 @@ const regex = /[a-zA-Z0-9]/; // No duplicate character ranges
 
 // Fix other regex with similar issues
 const currencyRegex = /[$€£¥₪]/ // No duplicates
+
+// Assuming there's a function that sets up the currency dropdown,
+// let's say it's part of createHeaderMappingUI or similar.
+// We need to find where the currency dropdown's event listener is added.
+// If it's in createHeaderMappingUI, it might look like this:
+
+// Example of where to modify if currency select is in createHeaderMappingUI
+// This is a conceptual change. The actual implementation depends on how createHeaderMappingUI is structured.
+
+// Search for where the currency dropdown (e.g., an element with id like 'fileCurrencySelect')
+// has its 'change' event listener attached.
+
+// Let's assume a function setupCurrencyChangeListener exists or is part of a larger UI setup function:
+export function setupCurrencyChangeListener(currencySelectElement, fileId) {
+  if (!currencySelectElement) return;
+
+  currencySelectElement.addEventListener('change', async (event) => {
+    const newCurrency = event.target.value;
+    if (AppState.mergedFiles && fileId) {
+      const file = AppState.mergedFiles.find(f => f.id === fileId || f.fileName === fileId); // Assuming fileId could be name or an actual ID
+      if (file) {
+        if (file.currency !== newCurrency) {
+          file.currency = newCurrency;
+          try {
+            const { saveMergedFiles } = await import('../core/appState.js');
+            saveMergedFiles(); // Save changes to AppState and localStorage
+
+            const { showToast } = await import('./uiManager.js');
+            showToast(`Currency for ${file.fileName} updated to ${newCurrency}. Transactions will update.`, "info");
+
+            // Optionally, reprocess or update transactions if currency change affects display immediately
+            const { updateTransactions } = await import('./transactionManager.js');
+            updateTransactions(); // This will re-process and re-render
+          } catch (error) {
+            console.error("Error auto-saving currency:", error);
+            const { showToast } = await import('./uiManager.js');
+            showToast(`Error saving currency change for ${file.fileName}.`, "error");
+          }
+        }
+      } else {
+        console.warn(`File with ID/name ${fileId} not found for currency update.`);
+      }
+    }
+  });
+}
+
+// You would call setupCurrencyChangeListener(document.getElementById('yourCurrencyDropdownId'), currentFile.id)
+// when the header mapping UI is created for a specific file.
+// The 'saveHeadersBtn' would still be responsible for saving the header column mappings themselves.

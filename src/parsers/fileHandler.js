@@ -1,7 +1,7 @@
 // Directory: /src/parsers/fileHandler.js
 
 // Update imports
-import { AppState, saveMergedFiles } from "../core/appState.js";
+import { AppState } from "../core/appState.js";
 
 console.log("XLSX object:", XLSX);
 
@@ -51,252 +51,201 @@ function validateFileData(data) {
  * @returns {Promise<Array<Array>>} Parsed data as a 2D array
  */
 export async function handleFileUpload(file) {
+  console.log(`Processing file: ${file.name}`);
+
   if (!file) {
-    return Promise.reject(new Error("No file provided"));
+    throw new Error("No file provided");
   }
 
-  const fileName = file.name.toLowerCase();
-  console.log(`Uploading file: ${file.name} File type: ${fileName.split('.').pop()}`);
+  const fileExtension = file.name.split('.').pop().toLowerCase();
 
-  try {
-    // Handle XML files
-    if (fileName.endsWith('.xml')) {
-      return await parseXMLFile(file);
-    }
-    // Handle Excel files
-    else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      return await parseExcelFile(file);
-    }
-    // Handle CSV files
-    else if (fileName.endsWith('.csv')) {
-      return await parseCSVFile(file);
-    }
-    else {
-      return Promise.reject(new Error("Unsupported file type. Please upload XML, Excel, or CSV files."));
-    }
-  } catch (error) {
-    console.error("Error handling file:", error);
-    return Promise.reject(new Error(`Error processing file: ${error.message}`));
-  }
-}
-
-// Update XML file handling with better detection
-async function parseXMLFile(file) {
-  try {
-    const text = await file.text();
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(text, "application/xml");
-
-    // Check for parse errors
-    const parseError = xmlDoc.querySelector('parsererror');
-    if (parseError) {
-      throw new Error("Invalid XML format");
-    }
-
-    // Improved automatic row detection - preserves ALL rows including empty ones
-    const possibleRows = [
-      Array.from(xmlDoc.getElementsByTagName("row")),
-      Array.from(xmlDoc.getElementsByTagName("entry")),
-      Array.from(xmlDoc.getElementsByTagName("transaction")),
-      Array.from(xmlDoc.getElementsByTagName("record"))
-    ];
-
-    // Find the first valid row set
-    let rows = [];
-    for (const rowSet of possibleRows) {
-      if (rowSet.length > 0) {
-        rows = rowSet.map(row => {
-          return Array.from(row.children).map(cell => cell.textContent.trim());
-        });
-        console.log(`Found ${rows.length} rows in XML using ${rowSet[0].tagName} tags`);
-        break;
-      }
-    }
-
-    // If no common patterns found, use a more general approach
-    if (rows.length === 0) {
-      // Find repeating elements that likely represent rows
-      const allElements = xmlDoc.getElementsByTagName("*");
-      const tagCounts = {};
-
-      // Count occurrences of each tag
-      for (const element of allElements) {
-        const tag = element.tagName;
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      }
-
-      // Find tags with multiple occurrences (likely rows)
-      const repeatingTags = Object.entries(tagCounts)
-        .filter(([tag, count]) => count > 1 && count < 100) // Avoid too few or too many
-        .sort((a, b) => b[1] - a[1]); // Sort by frequency
-
-      if (repeatingTags.length > 0) {
-        const mostLikelyRowTag = repeatingTags[0][0];
-        const rowElements = xmlDoc.getElementsByTagName(mostLikelyRowTag);
-
-        rows = Array.from(rowElements).map(elem => {
-          // Get all immediate children as cells
-          return Array.from(elem.children).map(child => child.textContent.trim());
-        });
-        console.log(`Found ${rows.length} rows in XML using ${mostLikelyRowTag} tags (general approach)`);
-      }
-    }
-
-    // IMPORTANT: Don't filter out empty rows here
-    console.log("Parsed XML data:", rows);
-    return rows; // Return all rows, including potentially empty ones
-  } catch (error) {
-    console.error("Error parsing XML file:", error);
-    throw new Error(`XML parsing error: ${error.message}`);
-  }
-}
-
-// Replace the parseExcelFile function with this improved version
-
-async function parseExcelFile(file) {
-  try {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, {
-      type: "array",
-      cellDates: true,
-      dateNF: 'yyyy-mm-dd'
-    });
-
-    // Get the first sheet
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-
-    // Convert to JSON with better options for international text and date handling
-    const rows = XLSX.utils.sheet_to_json(sheet, {
-      header: 1,
-      raw: false,
-      dateNF: 'yyyy-mm-dd',
-      defaultValue: '',  // Use empty string for empty cells
-      // This ensures proper encoding for non-Latin characters like Hebrew
-      codepage: 65001  // UTF-8
-    });
-
-    // Remove empty rows but keep empty cells
-    const cleanedRows = rows.filter(row =>
-      row && row.length > 0 && row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')
-    );
-
-    // Process Excel dates and improve Hebrew text handling
-    const processedRows = cleanedRows.map(row =>
-      row.map(cell => {
-        // Always convert to string first for text operations
-        const cellStr = String(cell || '');
-
-        // Trim and normalize whitespace
-        const trimmedCell = cellStr.trim().replace(/\s+/g, ' ');
-
-        // Handle Excel date values
-        if (typeof cell === 'number' && cell > 35000 && cell < 50000) {
-          try {
-            const jsDate = new Date((cell - 25569) * 86400 * 1000);
-            return jsDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-          } catch (e) {
-            console.warn(`Failed to convert Excel date value: ${cell}`, e);
-            return trimmedCell; // Keep original if conversion fails
-          }
-        }
-
-        // Special handling for RTL text (like Hebrew)
-        if (/[\u0590-\u05FF\u0600-\u06FF]/.test(trimmedCell)) {
-          // Add RTL mark for better rendering
-          return '\u200F' + trimmedCell;
-        }
-
-        return trimmedCell;
-      })
-    );
-
-    console.log("Parsed Excel data:", processedRows);
-    return processedRows;
-  } catch (error) {
-    console.error("Error parsing Excel file:", error);
-    throw new Error(`Excel parsing error: ${error.message}`);
+  switch (fileExtension) {
+    case 'csv':
+      return await parseCSV(file);
+    case 'xlsx':
+    case 'xls':
+      return await parseExcel(file);
+    case 'xml':
+      return await parseXML(file);
+    default:
+      throw new Error(`Unsupported file type: ${fileExtension}`);
   }
 }
 
 /**
- * Parses a CSV file into a 2D array
+ * Parse CSV file
+ * @param {File} file - The CSV file
+ * @returns {Promise<Array<Array>>} Parsed data
  */
-async function parseCSVFile(file) {
-  try {
-    const text = await file.text();
+async function parseCSV(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
 
-    // Simple CSV parser
-    const lines = text.split(/\r?\n/);
-    const data = lines.map(line => {
-      // Handle quoted values containing commas
-      const result = [];
-      let inQuote = false;
-      let currentValue = '';
+    reader.onload = function (e) {
+      try {
+        const text = e.target.result;
+        const rows = text.split('\n').map(row => {
+          // Simple CSV parsing - handles quoted fields
+          return parseCSVRow(row);
+        }).filter(row => row.length > 0);
 
-      for (const char of line) {
-        if (char === '"') {
-          inQuote = !inQuote;
-        } else if (char === ',' && !inQuote) {
-          result.push(currentValue);
-          currentValue = '';
-        } else {
-          currentValue += char;
-        }
+        console.log(`Parsed CSV: ${rows.length} rows`);
+        resolve(rows);
+      } catch (error) {
+        reject(new Error(`CSV parsing error: ${error.message}`));
       }
+    };
 
-      // Add the last value
-      result.push(currentValue);
-      return result;
-    });
-
-    // Filter out empty rows
-    const filteredData = data.filter(row => row.some(cell => cell !== ''));
-
-    console.log("Parsed CSV data:", filteredData);
-    return filteredData;
-  } catch (error) {
-    console.error("CSV parsing error:", error);
-    throw new Error(`CSV parsing error: ${error.message}`);
-  }
+    reader.onerror = () => reject(new Error("Failed to read CSV file"));
+    reader.readAsText(file);
+  });
 }
 
-// Modify addMergedFile to ensure we're using a string signature
-export function addMergedFile(data, headerMapping, fileName, signature) {
-  // Make sure signature is a string
-  const sigString = typeof signature === 'object' ?
-    (signature.mappingSig || signature.formatSig || signature.contentSig || JSON.stringify(signature)) :
-    signature;
-
-  console.log("Saving file with signature:", sigString);
-
-  if (AppState.mergedFiles.some(f => f.signature === sigString)) {
-    console.log("File with the same structure already exists:", sigString);
-    return;
+/**
+ * Parse Excel file using SheetJS
+ * @param {File} file - The Excel file
+ * @returns {Promise<Array<Array>>} Parsed data
+ */
+async function parseExcel(file) {
+  // Check if XLSX library is available
+  if (typeof XLSX === 'undefined') {
+    // Try to load XLSX dynamically
+    try {
+      await loadXLSXLibrary();
+    } catch (error) {
+      console.error("Failed to load XLSX library:", error);
+      throw new Error(`Excel parsing requires XLSX library. Load failed: ${error.message}`);
+    }
   }
 
-  const merged = {
-    fileName,
-    headerMapping,
-    data,
-    headerRow: dataRow,
-    dataRow,
-    selected: true,
-    signature: sigString,  // Ensure it's a string
-  };
-  AppState.mergedFiles.push(merged);
-  saveMergedFiles();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      try {
+        const data = e.target.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        // Get first worksheet
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert to array of arrays
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        console.log(`Parsed Excel: ${jsonData.length} rows from sheet "${sheetName}"`);
+        resolve(jsonData);
+      } catch (error) {
+        reject(new Error(`Excel parsing error: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read Excel file"));
+    reader.readAsArrayBuffer(file);
+  });
 }
 
-// Update the generateFileSignature function
+/**
+ * Parse XML file
+ * @param {File} file - The XML file
+ * @returns {Promise<Array<Array>>} Parsed data
+ */
+async function parseXML(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      try {
+        const text = e.target.result;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, "text/xml");
+
+        // Basic XML parsing - you might need to customize this based on your XML structure
+        const rows = parseXMLToRows(xmlDoc);
+
+        console.log(`Parsed XML: ${rows.length} rows`);
+        resolve(rows);
+      } catch (error) {
+        reject(new Error(`XML parsing error: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read XML file"));
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Parse a single CSV row handling quoted fields
+ * @param {string} row - CSV row string
+ * @returns {Array<string>} Parsed fields
+ */
+function parseCSVRow(row) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < row.length) {
+    const char = row[i];
+
+    if (char === '"') {
+      if (inQuotes && row[i + 1] === '"') {
+        // Escaped quote
+        current += '"';
+        i += 2; // Skip both quotes
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+        i++;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Field separator
+      result.push(current.trim());
+      current = '';
+      i++;
+    } else {
+      current += char;
+      i++;
+    }
+  }
+
+  // Add last field
+  result.push(current.trim());
+
+  return result.filter(field => field !== '');
+}
+
+/**
+ * Parse XML document to rows
+ * @param {Document} xmlDoc - Parsed XML document
+ * @returns {Array<Array>} Parsed rows
+ */
+function parseXMLToRows(xmlDoc) {
+  // This is a basic implementation - customize based on your XML structure
+  const rows = [];
+  const elements = xmlDoc.getElementsByTagName('*');
+
+  // Simple approach: treat each element as a potential row
+  for (const element of elements) {
+    if (element.children.length === 0 && element.textContent.trim()) {
+      // Leaf element with text content
+      rows.push([element.tagName, element.textContent.trim()]);
+    }
+  }
+
+  return rows;
+}
+
 /**
  * Generates a signature for a file based on its structure
  * @param {string} fileName - The file name
  * @param {Array<Array>} data - File data as 2D array
  * @param {Array<string>} [mapping] - Optional column mapping
+ * @param {string} currency - File currency (optional)
  * @returns {Object} File signature
  */
-export function generateFileSignature(fileName, data, mapping = null) {
+export function generateFileSignature(fileName, data, mapping = null, currency = null) {
   if (!data || !data[0]) {
     return { formatSig: "empty" };
   }
@@ -551,4 +500,31 @@ function processFileContent(content) {
     console.error("Error processing file content:", error);
     throw new Error(`Content processing failed: ${error.message}`);
   }
+}
+
+/**
+ * Load XLSX library dynamically
+ * @returns {Promise} Promise that resolves when library is loaded
+ */
+async function loadXLSXLibrary() {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if (typeof XLSX !== 'undefined') {
+      resolve();
+      return;
+    }
+
+    // Create script element
+    const script = document.createElement('script');
+    script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+    script.onload = () => {
+      console.log("XLSX library loaded successfully");
+      resolve();
+    };
+    script.onerror = () => {
+      reject(new Error("Failed to load XLSX library"));
+    };
+
+    document.head.appendChild(script);
+  });
 }

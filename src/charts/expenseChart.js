@@ -1,8 +1,11 @@
-import { destroyChart, validateChartData, createSafeChart } from './chartCore.js';
+import { destroyChart, validateChartData, createSafeChart, calculateCategoryTotals, getChartColors } from './chartCore.js';
 import { AppState } from '../core/appState.js';
 
 let pieChart = null;
 let showSubcategories = false;
+
+// Store chart instance
+let expenseCategoryChart = null;
 
 /**
  * Groups transactions by category or subcategory
@@ -121,6 +124,41 @@ function createChartConfig(categories, categoryTotals) {
   };
 }
 
+/**
+ * Helper function to clear canvas
+ * @param {HTMLCanvasElement} canvas - The canvas to clear
+ */
+function clearCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  return false;
+}
+
+/**
+ * Helper function to handle error display
+ * @param {Error} error - The error that occurred
+ */
+function handleChartError(error) {
+  console.error("Error creating expense chart:", error);
+
+  // Fall back to canvas rendering
+  const canvas = document.getElementById('expenseChart');
+  if (!canvas) return;
+
+  try {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Error creating expense chart', canvas.width / 2, canvas.height / 2);
+  } catch (fallbackError) {
+    console.error("Error creating fallback display:", fallbackError);
+  }
+}
+
 export function updateExpenseChart(transactions) {
   console.log(`Updating expense chart with ${transactions.length} transactions`);
 
@@ -137,23 +175,15 @@ export function updateExpenseChart(transactions) {
 
     // Validate data
     const validTransactions = validateChartData(transactions);
-
-    // If no valid transactions, show no message (just empty chart)
     if (!validTransactions.length) {
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      return false;
+      return clearCanvas(canvas);
     }
 
     // Group by category or subcategory based on toggle
     const categoryTotals = groupTransactionsByCategory(validTransactions);
-
-    // If no categories with expenses, show empty chart
     const categories = Object.keys(categoryTotals);
     if (!categories.length) {
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      return false;
+      return clearCanvas(canvas);
     }
 
     // Sort categories by amount
@@ -162,70 +192,11 @@ export function updateExpenseChart(transactions) {
     // Create chart configuration
     const config = createChartConfig(categories, categoryTotals);
 
-    // Ensure layout properties are properly defined
-    const finalConfig = {
-      type: 'pie',
-      data: config.data,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: {
-            top: 20,
-            right: 20,
-            bottom: 20,
-            left: 20
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              boxWidth: 15,
-              padding: 10
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                const value = context.raw || 0;
-                return '$' + value.toLocaleString('en-US', {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 2
-                });
-              }
-            }
-          },
-          title: {
-            display: true,
-            text: showSubcategories ? 'Expenses by Subcategory' : 'Expenses by Category'
-          }
-        }
-      }
-    };
-
     // Use createSafeChart for reliable chart creation
-    window.expenseChart = createSafeChart('expenseChart', finalConfig);
+    window.expenseChart = createSafeChart('expenseChart', config);
 
   } catch (error) {
-    console.error("Error creating expense chart:", error);
-
-    // Fall back to canvas rendering
-    const canvas = document.getElementById('expenseChart');
-    if (canvas) {
-      try {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Error creating expense chart', canvas.width / 2, canvas.height / 2);
-      } catch (fallbackError) {
-        console.error("Error creating fallback display:", fallbackError);
-      }
-    }
+    handleChartError(error);
   }
 }
 
@@ -342,4 +313,128 @@ function showEmptyStateChart() {
       }
     }
   });
+}
+
+/**
+ * Destroy existing expense category chart instance
+ */
+export function destroyExpenseChart() {
+  if (expenseCategoryChart) {
+    expenseCategoryChart.destroy();
+    expenseCategoryChart = null;
+    console.log("Expense category chart destroyed");
+  }
+}
+
+/**
+ * Create expense category chart using the new registration system
+ */
+export function createExpenseCategoryChart(transactions, createChartFn) {
+  try {
+    console.log("Creating expense category chart...");
+
+    if (!transactions || transactions.length === 0) {
+      return null;
+    }
+
+    const categoryTotals = calculateCategoryTotals(transactions);
+    const colors = getChartColors(document.body.classList.contains('dark-mode'));
+
+    if (Object.keys(categoryTotals).length === 0) {
+      return null;
+    }
+
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+
+    const config = {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors.categories.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: colors.background
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: colors.text,
+              padding: 15,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const value = context.parsed;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${context.label}: ${value.toFixed(2)} (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    return createChartFn('expenseCategoryChart', config);
+  } catch (error) {
+    console.error("Error creating expense category chart:", error);
+    return null;
+  }
+}
+
+// Keep the old function for backwards compatibility
+export function updateExpenseCategoryChart(transactions) {
+  return createExpenseCategoryChart(transactions, (canvasId, config) => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    return new Chart(ctx, config);
+  });
+}
+
+/**
+ * Clear the expense category chart
+ */
+export function clearExpenseCategoryChart() {
+  if (expenseCategoryChart) {
+    try {
+      expenseCategoryChart.destroy();
+      expenseCategoryChart = null;
+      console.log("Expense category chart cleared");
+    } catch (error) {
+      console.error("Error clearing expense category chart:", error);
+    }
+  }
+}
+
+// Helper function to display no data message
+function displayNoDataMessage(canvas, message) {
+  const ctx = canvas.getContext('2d');
+
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Set text properties
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '14px Arial';
+
+  // Determine text color based on theme
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  ctx.fillStyle = isDarkMode ? '#aaaaaa' : '#666666';
+
+  // Draw message in center of canvas
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }
