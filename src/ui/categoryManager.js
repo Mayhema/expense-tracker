@@ -26,8 +26,12 @@ function handleRegexEditorClick(modal) {
   import("../ui/RegexRuleEditor.js").then(module => {
     handleRegexRuleEditorModule(module);
   }).catch(err => {
-    console.error("Error loading regex rule editor:", err);
-    showToast("Error loading rule editor", "error");
+    console.error("Error loading RegexRuleEditor:", err);
+    import("../ui/uiManager.js").then(uiModule => {
+      if (uiModule.showToast) {
+        uiModule.showToast("Error loading regex rule editor", "error");
+      }
+    });
   });
 }
 
@@ -36,11 +40,14 @@ function handleRegexEditorClick(modal) {
  */
 function handleRegexRuleEditorModule(module) {
   if (typeof module.openRegexRuleEditor === 'function') {
-    setTimeout(() => {
-      module.openRegexRuleEditor();
-    }, 100);
+    module.openRegexRuleEditor();
   } else {
-    showToast("Regex rule editor not available", "error");
+    console.error("openRegexRuleEditor function not found in RegexRuleEditor module");
+    import("../ui/uiManager.js").then(uiModule => {
+      if (uiModule.showToast) {
+        uiModule.showToast("Regex editor not available", "error");
+      }
+    });
   }
 }
 
@@ -65,7 +72,9 @@ function setupCategoryManagerEventListeners(modal, modalContent) {
   // IMPORTANT FIX: Make sure Edit Rules button opens the correct modal
   const openRegexEditorBtnCM = document.getElementById("openRegexEditorBtnCM");
   if (openRegexEditorBtnCM) {
-    openRegexEditorBtnCM.addEventListener("click", () => handleRegexEditorClick(modal));
+    openRegexEditorBtnCM.addEventListener("click", () => {
+      handleRegexEditorClick(modal);
+    });
   }
 
   // Add close button
@@ -75,7 +84,9 @@ function setupCategoryManagerEventListeners(modal, modalContent) {
   closeBtn.style = "margin-top: 20px; float: right;";
   modalContent.appendChild(closeBtn);
   closeBtn.addEventListener("click", () => {
-    modal.close();
+    if (modal && typeof modal.close === 'function') {
+      modal.close();
+    }
   });
 }
 
@@ -87,13 +98,16 @@ function handleAddCategoryClick(nameInput, colorInput, modalContent) {
   const color = colorInput.value;
 
   if (name) {
-    addCategory(name, color);
-    nameInput.value = ""; // Clear the input
-    renderCategoryUI(modalContent);
+    if (addCategory(name, color)) {
+      nameInput.value = '';
+      colorInput.value = '#cccccc';
+      // Re-render the category UI to show the new category
+      renderCategoryUI(modalContent);
+    }
   } else {
     import("../ui/uiManager.js").then(module => {
-      if (typeof module.showToast === 'function') {
-        module.showToast("Please enter a category name", "warning");
+      if (module.showToast) {
+        module.showToast("Please enter a category name", "error");
       }
     });
   }
@@ -104,9 +118,8 @@ export function initializeCategories() {
   // AppState.categories should be initialized by appState.js's IIFE before this is called.
   // categoriesInitialized.value will be true if appState.js has run.
   if (!categoriesInitialized.value) {
-    console.warn("categoryManager.js: initializeCategories called before AppState categories were fully initialized. This might indicate an order issue.");
-    // As a fallback, wait a bit and try again, or rely on AppState eventually being correct.
-    // For now, proceed, assuming AppState will be correct.
+    console.warn("categoryManager.js: Categories not yet initialized by appState.js. Waiting...");
+    return;
   }
 
   console.log("categoryManager.js: Initializing categories UI aspects. Current AppState categories:", Object.keys(AppState.categories || {}).length);
@@ -124,15 +137,15 @@ function initializeCategoryOrder() {
   if (savedOrder) {
     try {
       categoryOrder = JSON.parse(savedOrder);
-    } catch (err) {
-      console.error("Error parsing saved category order:", err);
+    } catch (e) {
+      console.error("Error parsing saved category order:", e);
       categoryOrder = [];
     }
   }
 
   // If no saved order or invalid, create from current categories
   if (!Array.isArray(categoryOrder) || categoryOrder.length === 0) {
-    categoryOrder = Object.keys(AppState.categories || {}).sort(); // Add guard for AppState.categories
+    categoryOrder = Object.keys(AppState.categories || {});
     saveCategoryOrder();
   }
 }
@@ -149,15 +162,10 @@ function saveCategoryOrder() {
  */
 function attachCategoryEventListeners() {
   document.addEventListener('DOMContentLoaded', () => {
-    const editCategoriesBtn = document.getElementById("editCategoriesSidebarBtn");
+    const editCategoriesBtn = document.getElementById("editCategoriesBtn");
     if (editCategoriesBtn) {
       editCategoriesBtn.addEventListener("click", showCategoryManagerModal);
     }
-
-    // Add event listener for the RegexRuleEditor
-    document.getElementById("openRegexEditorBtn")?.addEventListener("click", () => {
-      import("./RegexRuleEditor.js").then(m => m.openRegexRuleEditor());
-    });
   });
 }
 
@@ -166,14 +174,15 @@ function attachCategoryEventListeners() {
  */
 export function addCategory(name, color) {
   if (!name) {
+    console.error("Category name is required");
     return false;
   }
 
   // Make sure name is unique
   if (AppState.categories[name]) {
     import("../ui/uiManager.js").then(module => {
-      if (typeof module.showToast === 'function') {
-        module.showToast(`Category '${name}' already exists`, "error");
+      if (module.showToast) {
+        module.showToast(`Category "${name}" already exists`, "error");
       }
     });
     return false;
@@ -193,7 +202,7 @@ export function addCategory(name, color) {
   updateCategoryUIComponents();
 
   import("../ui/uiManager.js").then(module => {
-    if (typeof module.showToast === 'function') {
+    if (module.showToast) {
       module.showToast(`Category '${name}' added`, "success");
     }
   });
@@ -208,7 +217,11 @@ export function updateCategory(oldName, newName, newColor) {
 
   // Check if the new name already exists (unless it's the same name)
   if (oldName !== newName && AppState.categories[newName]) {
-    showToast(`Category '${newName}' already exists`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Category "${newName}" already exists`, "error");
+      }
+    });
     return false;
   }
 
@@ -218,11 +231,10 @@ export function updateCategory(oldName, newName, newColor) {
   // Handle complex vs. simple category format
   let updatedValue;
   if (typeof currentValue === 'object') {
-    // Preserve subcategories if present
-    updatedValue = { ...currentValue, color: newColor };
+    updatedValue = { ...currentValue };
+    if (newColor) updatedValue.color = newColor;
   } else {
-    // Simple format - just color
-    updatedValue = newColor;
+    updatedValue = newColor || currentValue;
   }
 
   // If name changed, delete old and add new
@@ -230,14 +242,17 @@ export function updateCategory(oldName, newName, newColor) {
     delete AppState.categories[oldName];
     AppState.categories[newName] = updatedValue;
 
-    // Update any mappings that used this category
-    updateCategoryNameInMappings(oldName, newName);
+    // Update category order
+    const orderIndex = categoryOrder.indexOf(oldName);
+    if (orderIndex !== -1) {
+      categoryOrder[orderIndex] = newName;
+      saveCategoryOrder();
+    }
 
-    showToast(`Category renamed to '${newName}'`, "success");
+    // Update category mappings
+    updateCategoryNameInMappings(oldName, newName);
   } else {
-    // Just update the color
     AppState.categories[oldName] = updatedValue;
-    showToast(`Category '${oldName}' updated`, "success");
   }
 
   // Update UI components that use categories
@@ -263,7 +278,11 @@ export function deleteCategory(name) {
   // Update UI components that use categories
   updateCategoryUIComponents();
 
-  showToast(`Category '${name}' deleted`, "success");
+  import("../ui/uiManager.js").then(module => {
+    if (module.showToast) {
+      module.showToast(`Category '${name}' deleted`, "success");
+    }
+  });
   return true;
 }
 
@@ -275,18 +294,18 @@ export function addSubcategory(parentName, subName, subColor) {
 
   // Make sure parent exists
   if (!AppState.categories[parentName]) {
-    showToast(`Parent category '${parentName}' doesn't exist`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Parent category "${parentName}" not found`, "error");
+      }
+    });
     return false;
   }
 
   // Convert simple category to complex if needed
   let parentCategory = AppState.categories[parentName];
   if (typeof parentCategory === 'string') {
-    // Convert from string color to object with color
-    parentCategory = {
-      color: parentCategory,
-      subcategories: {}
-    };
+    parentCategory = { color: parentCategory, subcategories: {} };
     AppState.categories[parentName] = parentCategory;
   }
 
@@ -297,7 +316,11 @@ export function addSubcategory(parentName, subName, subColor) {
 
   // Check if subcategory already exists
   if (parentCategory.subcategories[subName]) {
-    showToast(`Subcategory '${subName}' already exists`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Subcategory "${subName}" already exists`, "error");
+      }
+    });
     return false;
   }
 
@@ -308,7 +331,11 @@ export function addSubcategory(parentName, subName, subColor) {
   // Update UI components that use categories
   updateCategoryUIComponents();
 
-  showToast(`Subcategory '${subName}' added`, "success");
+  import("../ui/uiManager.js").then(module => {
+    if (module.showToast) {
+      module.showToast(`Subcategory '${subName}' added`, "success");
+    }
+  });
   return true;
 }
 
@@ -321,36 +348,44 @@ export function updateSubcategory(parentName, oldSubName, newSubName, newSubColo
   // Make sure parent exists
   const parentCategory = AppState.categories[parentName];
   if (!parentCategory || typeof parentCategory !== 'object' || !parentCategory.subcategories) {
-    showToast(`Parent category '${parentName}' not found or has no subcategories`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Parent category "${parentName}" not found or has no subcategories`, "error");
+      }
+    });
     return false;
   }
 
   // Check if the old subcategory exists
   if (!parentCategory.subcategories[oldSubName]) {
-    showToast(`Subcategory '${oldSubName}' not found`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Subcategory "${oldSubName}" not found`, "error");
+      }
+    });
     return false;
   }
 
   // Check if the new name already exists (unless it's the same name)
   if (oldSubName !== newSubName && parentCategory.subcategories[newSubName]) {
-    showToast(`Subcategory '${newSubName}' already exists`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Subcategory "${newSubName}" already exists`, "error");
+      }
+    });
     return false;
   }
 
   // Update subcategory
   if (oldSubName !== newSubName) {
-    // Rename - delete old and add new
+    const oldColor = parentCategory.subcategories[oldSubName];
     delete parentCategory.subcategories[oldSubName];
-    parentCategory.subcategories[newSubName] = newSubColor;
+    parentCategory.subcategories[newSubName] = newSubColor || oldColor;
 
-    // Update any mappings that used this subcategory
+    // Update subcategory mappings
     updateSubcategoryNameInMappings(parentName, oldSubName, newSubName);
-
-    showToast(`Subcategory renamed to '${newSubName}'`, "success");
   } else {
-    // Just update the color
-    parentCategory.subcategories[oldSubName] = newSubColor;
-    showToast(`Subcategory '${oldSubName}' updated`, "success");
+    parentCategory.subcategories[oldSubName] = newSubColor || parentCategory.subcategories[oldSubName];
   }
 
   // Update UI components that use categories
@@ -369,13 +404,21 @@ export function deleteSubcategory(parentName, subName) {
   // Make sure parent exists
   const parentCategory = AppState.categories[parentName];
   if (!parentCategory || typeof parentCategory !== 'object' || !parentCategory.subcategories) {
-    showToast(`Parent category '${parentName}' not found or has no subcategories`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Parent category "${parentName}" not found or has no subcategories`, "error");
+      }
+    });
     return false;
   }
 
   // Check if the subcategory exists
   if (!parentCategory.subcategories[subName]) {
-    showToast(`Subcategory '${subName}' not found`, "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast(`Subcategory "${subName}" not found`, "error");
+      }
+    });
     return false;
   }
 
@@ -386,7 +429,11 @@ export function deleteSubcategory(parentName, subName) {
   // Update UI components that use categories
   updateCategoryUIComponents();
 
-  showToast(`Subcategory '${subName}' deleted`, "success");
+  import("../ui/uiManager.js").then(module => {
+    if (module.showToast) {
+      module.showToast(`Subcategory '${subName}' deleted`, "success");
+    }
+  });
   return true;
 }
 
@@ -397,8 +444,7 @@ export function showCategoryManagerModal() {
   // Check if a modal is already open and close it first
   const existingModal = document.querySelector('.modal-backdrop');
   if (existingModal) {
-    const modalContainer = document.getElementById('modalContainer');
-    if (modalContainer) modalContainer.innerHTML = '';
+    existingModal.remove();
   }
 
   const modalContent = document.createElement("div");
@@ -476,7 +522,7 @@ export function showCategoryManagerModal() {
   `;
 
   import("../ui/modalManager.js").then(module => {
-    if (module.showModal) {
+    if (typeof module.showModal === 'function') {
       const modal = module.showModal({
         title: "Category Manager",
         content: modalContent,
@@ -484,10 +530,16 @@ export function showCategoryManagerModal() {
       });
 
       setupCategoryManagerEventListeners(modal, modalContent);
+    } else {
+      console.error("showModal function not found in modalManager");
     }
   }).catch(err => {
     console.error("Error loading modal manager:", err);
-    showToast("Error opening category manager", "error");
+    import("../ui/uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast("Error opening category manager", "error");
+      }
+    });
   });
 }
 
@@ -650,7 +702,23 @@ function buildCategoryManagerContent() {
 }
 
 /**
- * Render the category UI in the given container
+ * Get category counts from transactions
+ */
+function getCategoryCounts() {
+  const counts = {};
+
+  if (AppState.transactions && Array.isArray(AppState.transactions)) {
+    AppState.transactions.forEach(transaction => {
+      const category = transaction.category || 'Uncategorized';
+      counts[category] = (counts[category] || 0) + 1;
+    });
+  }
+
+  return counts;
+}
+
+/**
+ * Render the category UI with improved subcategory toggle and drag-and-drop ordering
  */
 function renderCategoryUI(container) {
   const categoriesList = container.querySelector("#categoriesList");
@@ -802,7 +870,11 @@ function updateCategoryOrder(newOrder) {
       detail: { newOrder }
     }));
 
-    showToast("Category order updated", "success", 1500);
+    import("./uiManager.js").then(module => {
+      if (module.showToast) {
+        module.showToast("Category order updated", "success", 1500);
+      }
+    });
   }, 100);
 }
 
@@ -912,4 +984,38 @@ function getDragAfterElement(container, y) {
       return closest;
     }
   }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+/**
+ * Updates all UI components that display categories
+ */
+function updateCategoryUIComponents() {
+  console.log("Updating category UI components...");
+
+  try {
+    // Update category buttons (this works)
+    import("./transactionManager.js").then(module => {
+      if (typeof module.renderCategoryButtons === 'function') {
+        module.renderCategoryButtons();
+        console.log("Category buttons updated");
+      }
+    }).catch(err => {
+      console.error("Error updating category buttons:", err);
+    });
+
+    // Update charts if available
+    if (typeof window.updateChartsWithCurrentData === 'function') {
+      setTimeout(() => {
+        window.updateChartsWithCurrentData();
+      }, 100);
+    }
+
+    // Trigger any category change events
+    document.dispatchEvent(new CustomEvent('categoriesUpdated', {
+      detail: { categories: AppState.categories }
+    }));
+
+  } catch (error) {
+    console.error("Error updating category UI components:", error);
+  }
 }

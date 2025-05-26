@@ -1,4 +1,4 @@
-import { destroyChart, calculateIncomeExpenseTotals, getChartColors } from './chartCore.js';
+import { createChart, destroyChart, updateChartData, getChartColors } from './chartCore.js';
 
 // Store chart instance
 let incomeExpenseChart = null;
@@ -130,4 +130,77 @@ function showNoDataMessage(canvas, message) {
  */
 export function cleanupIncomeExpenseChart() {
   incomeExpenseChart = destroyChart(incomeExpenseChart);
+}
+
+/**
+ * Initialize income vs expense chart with error handling
+ */
+export function initializeIncomeExpenseChart() {
+  const canvas = document.getElementById('incomeExpenseChart');
+  if (!canvas) {
+    console.warn("Income expense chart canvas not found - charts section may not be loaded yet");
+
+    // Try again after a delay
+    setTimeout(() => {
+      const retryCanvas = document.getElementById('incomeExpenseChart');
+      if (retryCanvas) {
+        console.log("Found income expense chart canvas on retry, initializing...");
+        initializeIncomeExpenseChartWithCanvas(retryCanvas);
+      } else {
+        console.error("Income expense chart canvas still not found after retry. Check if charts section exists in HTML.");
+      }
+    }, 1000);
+    return;
+  }
+
+  initializeIncomeExpenseChartWithCanvas(canvas);
+}
+
+/**
+ * Initialize chart with canvas element
+ */
+function initializeIncomeExpenseChartWithCanvas(canvas) {
+  // Get colors for income and expense
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  const colors = getChartColors(2, isDarkMode);
+
+  const config = {
+    type: 'bar',
+    data: {
+      labels: ['Total'],
+      datasets: [{
+        label: 'Income',
+        data: [0],
+        backgroundColor: colors[0],
+        borderColor: colors[0],
+        borderWidth: 1
+      }, {
+        label: 'Expenses',
+        data: [0],
+        backgroundColor: colors[1],
+        borderColor: colors[1],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: false // Title handled by HTML h3
+        },
+        legend: {
+          position: 'top'
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  };
+
+  createChart(canvas, 'bar', config.data, config.options);
+  console.log("Income expense chart initialized successfully");
 }

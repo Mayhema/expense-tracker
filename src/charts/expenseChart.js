@@ -1,4 +1,4 @@
-import { destroyChart, validateChartData, createSafeChart, calculateCategoryTotals, getChartColors } from './chartCore.js';
+import { createChart, destroyChart, updateChartData, getCategoryColors } from './chartCore.js';
 import { AppState } from '../core/appState.js';
 
 let pieChart = null;
@@ -159,45 +159,110 @@ function handleChartError(error) {
   }
 }
 
-export function updateExpenseChart(transactions) {
-  console.log(`Updating expense chart with ${transactions.length} transactions`);
+/**
+ * Initialize expense chart with proper error handling
+ */
+export function initializeExpenseChart() {
+  const canvas = document.getElementById('expenseChart');
+  if (!canvas) {
+    console.warn("Expense chart canvas not found - charts section may not be loaded yet");
 
-  try {
-    // Get the canvas
-    const canvas = document.getElementById("expenseChart");
-    if (!canvas) {
-      console.error("Expense chart canvas not found");
-      return false;
-    }
-
-    // Clean up existing chart
-    pieChart = destroyChart(pieChart);
-
-    // Validate data
-    const validTransactions = validateChartData(transactions);
-    if (!validTransactions.length) {
-      return clearCanvas(canvas);
-    }
-
-    // Group by category or subcategory based on toggle
-    const categoryTotals = groupTransactionsByCategory(validTransactions);
-    const categories = Object.keys(categoryTotals);
-    if (!categories.length) {
-      return clearCanvas(canvas);
-    }
-
-    // Sort categories by amount
-    categories.sort((a, b) => categoryTotals[b] - categoryTotals[a]);
-
-    // Create chart configuration
-    const config = createChartConfig(categories, categoryTotals);
-
-    // Use createSafeChart for reliable chart creation
-    window.expenseChart = createSafeChart('expenseChart', config);
-
-  } catch (error) {
-    handleChartError(error);
+    // Try again after a delay to allow DOM to load
+    setTimeout(() => {
+      const retryCanvas = document.getElementById('expenseChart');
+      if (retryCanvas) {
+        console.log("Found expense chart canvas on retry, initializing...");
+        initializeExpenseChartWithCanvas(retryCanvas);
+      } else {
+        console.error("Expense chart canvas still not found after retry. Check if charts section exists in HTML.");
+      }
+    }, 1000);
+    return;
   }
+
+  initializeExpenseChartWithCanvas(canvas);
+}
+
+/**
+ * Initialize chart with canvas element
+ */
+function initializeExpenseChartWithCanvas(canvas) {
+  const config = {
+    type: 'doughnut',
+    data: {
+      labels: ['No Data'],
+      datasets: [{
+        data: [1],
+        backgroundColor: ['#e0e0e0'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: false // Title is handled by HTML h3
+        },
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 15,
+            usePointStyle: true
+          }
+        }
+      }
+    }
+  };
+
+  createChart(canvas, 'doughnut', config.data, config.options);
+  console.log("Expense chart initialized successfully");
+}
+
+/**
+ * Update expense chart with transaction data
+ */
+export function updateExpenseChart(transactions) {
+  if (!transactions || transactions.length === 0) {
+    console.log("No transactions for expense chart");
+    return;
+  }
+
+  // Group expenses by category
+  const categoryTotals = {};
+  transactions.forEach(tx => {
+    const expense = parseFloat(tx.expenses) || 0;
+    if (expense > 0) {
+      const category = tx.category || 'Uncategorized';
+      categoryTotals[category] = (categoryTotals[category] || 0) + expense;
+    }
+  });
+
+  const categories = Object.keys(categoryTotals);
+  const amounts = Object.values(categoryTotals);
+
+  if (categories.length === 0) {
+    console.log("No expense categories found");
+    return;
+  }
+
+  // Get category colors from AppState or use chart colors
+  import('../core/appState.js').then(module => {
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    const colors = getCategoryColors(categories, module.AppState.categories, isDarkMode);
+
+    const chartData = {
+      labels: categories,
+      datasets: [{
+        data: amounts,
+        backgroundColor: colors,
+        borderWidth: 1
+      }]
+    };
+
+    updateChartData('expenseChart', chartData);
+    console.log(`Updated expense chart with ${categories.length} categories`);
+  });
 }
 
 /**

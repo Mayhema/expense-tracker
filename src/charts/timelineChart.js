@@ -1,5 +1,5 @@
 import { AppState } from "../core/appState.js";
-import { destroyChart, validateChartData, processTimelineData, getChartColors } from './chartCore.js';
+import { createChart, destroyChart, updateChartData, getChartColors } from './chartCore.js';
 
 /**
  * Creates and updates the timeline chart
@@ -11,44 +11,21 @@ export function updateTimelineChart(transactions) {
 
     if (!validateChartData(transactions)) {
       clearTimelineChart();
-      return null;
+      return false;
     }
 
     const timelineData = processTimelineData(transactions);
-    const colors = getChartColors(document.body.classList.contains('dark-mode'));
 
     if (timelineData.labels.length === 0) {
       clearTimelineChart();
-      return null;
+      return false;
     }
 
-    const chartData = {
-      labels: timelineData.labels,
-      datasets: [
-        {
-          label: 'Income',
-          data: timelineData.incomeData,
-          borderColor: colors.income,
-          backgroundColor: colors.income + '20',
-          tension: 0.1,
-          fill: false
-        },
-        {
-          label: 'Expenses',
-          data: timelineData.expenseData,
-          borderColor: colors.expenses,
-          backgroundColor: colors.expenses + '20',
-          tension: 0.1,
-          fill: false
-        }
-      ]
-    };
-
-    const chartInstance = initializeTimelineChart(chartData, colors);
-    return chartInstance;
+    initializeTimelineChart();
+    return true;
   } catch (error) {
     console.error("Error updating timeline chart:", error);
-    return null;
+    return false;
   }
 }
 
@@ -141,60 +118,78 @@ let timelineChart = null;
 let timelineChartInstance = null;
 
 /**
- * Initialize timeline chart with better canvas management
+ * Initialize timeline chart with error handling
  */
-function initializeTimelineChart(data, colors) {
-  const canvas = document.getElementById("timelineChart");
+export function initializeTimelineChart() {
+  const canvas = document.getElementById('timelineChart');
   if (!canvas) {
-    console.error("Timeline chart canvas not found");
-    return null;
+    console.warn("Timeline chart canvas not found - charts section may not be loaded yet");
+
+    // Try again after a delay
+    setTimeout(() => {
+      const retryCanvas = document.getElementById('timelineChart');
+      if (retryCanvas) {
+        console.log("Found timeline chart canvas on retry, initializing...");
+        initializeTimelineChartWithCanvas(retryCanvas);
+      } else {
+        console.error("Timeline chart canvas still not found after retry. Check if charts section exists in HTML.");
+      }
+    }, 1000);
+    return;
   }
 
-  // Get clean context - canvas should already be cleaned by chartManager
-  const ctx = canvas.getContext('2d');
+  initializeTimelineChartWithCanvas(canvas);
+}
 
-  try {
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: data,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: colors.grid
-            },
-            ticks: {
-              color: colors.text
-            }
-          },
-          x: {
-            grid: {
-              color: colors.grid
-            },
-            ticks: {
-              color: colors.text
-            }
-          }
+/**
+ * Initialize chart with canvas element
+ */
+function initializeTimelineChartWithCanvas(canvas) {
+  // Get colors for the chart
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  const colors = getChartColors(2, isDarkMode);
+
+  const config = {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Income',
+        data: [],
+        borderColor: colors[0],
+        backgroundColor: colors[0] + '20',
+        tension: 0.1,
+        fill: false
+      }, {
+        label: 'Expenses',
+        data: [],
+        borderColor: colors[1],
+        backgroundColor: colors[1] + '20',
+        tension: 0.1,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: false // Title handled by HTML h3
         },
-        plugins: {
-          legend: {
-            labels: {
-              color: colors.text
-            }
-          }
+        legend: {
+          position: 'top'
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
         }
       }
-    });
+    }
+  };
 
-    console.log("Timeline chart initialized successfully");
-    return chart;
-  } catch (error) {
-    console.error("Error creating timeline chart:", error);
-    return null;
-  }
+  createChart(canvas, 'line', config.data, config.options);
+  console.log("Timeline chart initialized successfully");
 }
 
 /**
@@ -245,7 +240,11 @@ function updateTimelineChartInternal() {
     }
 
     // Initialize new chart
-    timelineChartInstance = initializeTimelineChart();
+    initializeTimelineChart();
+
+    // Get the chart instance from the canvas
+    const canvas = document.getElementById('timelineChart');
+    timelineChartInstance = canvas ? Chart.getChart(canvas) : null;
 
     if (!timelineChartInstance) {
       console.error("Could not initialize timeline chart");
@@ -389,7 +388,11 @@ function showEmptyStateChart() {
 
   try {
     // Create empty chart
-    timelineChartInstance = initializeTimelineChart();
+    initializeTimelineChart();
+
+    // Get the chart instance from the canvas
+    const canvas = document.getElementById('timelineChart');
+    timelineChartInstance = canvas ? Chart.getChart(canvas) : null;
 
     if (timelineChartInstance) {
       timelineChartInstance.data.labels = ['No Data'];

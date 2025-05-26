@@ -128,53 +128,49 @@
   <!-- Main Content -->
   <main class="main-content" id="mainContent">
     <!-- Charts Section -->
-    <div class="section" id="chartsSection">
+    <div class="section">
       <div class="section-header">
-        <h2>Financial Overview</h2>
-        <div class="chart-controls">
-          <div class="chart-filters">
-            <select id="chartPeriodSelect" class="filter-select">
-              <option value="all">All Time</option>
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
-            </select>
-            <select id="chartCurrencySelect" class="filter-select">
-              <option value="all">All Currencies</option>
-            </select>
-          </div>
-
-          <div class="chart-toggles debug-only">
-            <button id="toggleIncomeExpenseChart" class="chart-toggle-btn active" data-chart="incomeExpenseChart">
-              Income/Expense
+        <h2>📊 Financial Overview</h2>
+        <div class="section-actions">
+          <div class="chart-controls">
+            <button class="chart-toggle-btn active" data-chart="expense" title="Toggle Expense Chart">
+              <span class="action-icon">🥧</span>
+              <span class="action-text">Expenses</span>
             </button>
-            <button id="toggleExpenseCategoryChart" class="chart-toggle-btn active" data-chart="expenseCategoryChart">
-              Categories
+            <button class="chart-toggle-btn active" data-chart="incomeExpense" title="Toggle Income/Expense Chart">
+              <span class="action-icon">📊</span>
+              <span class="action-text">Overview</span>
             </button>
-            <button id="toggleTimelineChart" class="chart-toggle-btn active" data-chart="timelineChart">
-              Timeline
+            <button class="chart-toggle-btn active" data-chart="timeline" title="Toggle Timeline Chart">
+              <span class="action-icon">📈</span>
+              <span class="action-text">Timeline</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div class="charts-grid">
-        <!-- Income vs Expenses Chart -->
-        <div class="chart-wrapper income-expense-chart" id="incomeExpenseChartWrapper">
-          <h3>Income vs Expenses</h3>
-          <canvas id="incomeExpenseChart" width="400" height="300"></canvas>
-        </div>
+      <div class="section-content">
+        <div class="charts-section">
+          <div id="expenseChartWrapper" class="chart-wrapper">
+            <h3>Expenses by Category</h3>
+            <div class="chart-container">
+              <canvas id="expenseChart"></canvas>
+            </div>
+          </div>
 
-        <!-- Expense Category Chart -->
-        <div class="chart-wrapper expense-category-chart" id="expenseCategoryChartWrapper">
-          <h3>Expense Categories</h3>
-          <canvas id="expenseCategoryChart" width="400" height="300"></canvas>
-        </div>
+          <div id="incomeExpenseChartWrapper" class="chart-wrapper">
+            <h3>Income vs Expenses</h3>
+            <div class="chart-container">
+              <canvas id="incomeExpenseChart"></canvas>
+            </div>
+          </div>
 
-        <!-- Timeline Chart -->
-        <div class="chart-wrapper timeline-chart" id="timelineChartWrapper">
-          <h3>Financial Timeline</h3>
-          <canvas id="timelineChart" width="800" height="400"></canvas>
+          <div id="timelineChartWrapper" class="chart-wrapper">
+            <h3>Financial Timeline</h3>
+            <div class="chart-container">
+              <canvas id="timelineChart"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -182,28 +178,16 @@
     <!-- Transactions Section -->
     <div class="section" id="transactionsSection">
       <div class="section-header">
-        <h2>Transactions</h2>
+        <h2>💰 Transactions</h2>
         <div class="section-actions">
-          <button id="editCategoriesBtn" class="button secondary-btn debug-only" title="Manage expense categories">
-            <span class="button-icon">🏷️</span>
-            Manage Categories
-          </button>
+          <!-- Export functionality is available through the sidebar export button -->
         </div>
       </div>
 
       <div class="section-content">
-        <!-- Category Filter Buttons -->
-        <div class="category-filter-section">
-          <h3>Filter by Category</h3>
-          <div id="categoryButtons" class="category-buttons-container">
-            <!-- Category buttons will be rendered here -->
-          </div>
-        </div>
-
         <!-- Transaction Table Container -->
         <div id="transactionTableContainer" class="transaction-table-container">
-          <!-- Filter section will be added here dynamically -->
-          <!-- Transaction table will be rendered here -->
+          <!-- Transactions will be rendered here -->
         </div>
       </div>
     </div>
