@@ -217,6 +217,14 @@ function createChartWithRegistration(canvasId, config) {
   }
 
   try {
+    // Ensure Chart.js is available
+    if (!window.Chart) {
+      console.error('Chart.js is not available');
+      return null;
+    }
+
+    const Chart = window.Chart;
+
     // Add a small delay to ensure canvas is ready
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -245,103 +253,87 @@ function createChartWithRegistration(canvasId, config) {
 }
 
 /**
- * Updates all charts with current transaction data - improved version
+ * Updates charts with current transaction data
  */
 export async function updateChartsWithCurrentData() {
-  // Prevent concurrent updates
-  if (isUpdating) {
-    console.log("Chart update already in progress, skipping");
-    return;
-  }
+  console.log("Updating charts with current data...");
 
-  // Prevent concurrent updates from main.js
-  if (chartUpdateInProgress) {
-    console.log("Chart update in progress (from chartUpdateInProgress flag), skipping");
-    return;
-  }
+  const transactions = AppState.transactions || [];
+  console.log(`Processing ${transactions.length} transactions for charts`);
 
-  isUpdating = true;
-  chartUpdateInProgress = true;
+  // Track chart creation results
+  const chartResults = await Promise.allSettled([
+    createIncomeExpenseChartSafely(transactions),
+    createExpenseCategoryChartSafely(transactions),
+    createTimelineChartSafely(transactions)
+  ]);
 
-  try {
-    console.log("Updating charts with current data...");
+  // Analyze results
+  const successful = chartResults.filter(result => result.status === 'fulfilled').length;
+  const failed = chartResults.filter(result => result.status === 'rejected').length;
 
-    const transactions = AppState.transactions || [];
-    if (transactions.length === 0) {
-      console.log("No transactions to chart");
-      await clearAllCharts();
-      return;
+  // Log failed charts with details
+  chartResults.forEach((result, index) => {
+    const chartNames = ['income/expense', 'expense category', 'timeline'];
+    if (result.status === 'rejected') {
+      console.error(`Failed to create ${chartNames[index]} chart:`, result.reason);
+    } else {
+      console.log(`✓ ${chartNames[index]} chart created successfully`);
     }
+  });
 
-    const filteredTransactions = filterTransactionsForCharts(transactions);
-    console.log(`Updating charts with ${filteredTransactions.length} transactions`);
+  // Only show success message if all charts were created successfully
+  if (failed === 0) {
+    console.log(`✓ All ${successful} charts updated successfully`);
+  } else {
+    console.warn(`⚠️ Chart update completed: ${successful} successful, ${failed} failed`);
+  }
 
-    // Clear existing charts first and wait for completion
-    await clearAllCharts();
+  return chartResults;
+}
 
-    // Create charts with better error handling and delays
-    const chartPromises = [
-      createIncomeExpenseChartSafely(filteredTransactions),
-      createExpenseCategoryChartSafely(filteredTransactions),
-      createTimelineChartSafely(filteredTransactions)
-    ];
-
-    // Wait for all charts to be created
-    await Promise.allSettled(chartPromises);
-
-    console.log("All charts updated successfully");
-
+/**
+ * Safely creates income/expense chart with error handling
+ */
+async function createIncomeExpenseChartSafely(transactions) {
+  try {
+    console.log("Creating income/expense chart...");
+    const { createIncomeExpenseChart } = await import('./incomeExpenseChart.js');
+    await createIncomeExpenseChart(transactions);
+    return { success: true, chart: 'income-expense' };
   } catch (error) {
-    console.error("Error in updateChartsWithCurrentData:", error);
-  } finally {
-    isUpdating = false;
-    chartUpdateInProgress = false;
+    console.error("Error creating income/expense chart:", error);
+    throw error; // Re-throw so Promise.allSettled can catch it
   }
 }
 
-// Helper functions for safe chart creation
-async function createIncomeExpenseChartSafely(filteredTransactions) {
+/**
+ * Safely creates expense category chart with error handling
+ */
+async function createExpenseCategoryChartSafely(transactions) {
   try {
-    await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
-    const incomeExpenseModule = await import("./incomeExpenseChart.js");
-    if (typeof incomeExpenseModule.createIncomeExpenseChart === 'function') {
-      const chartInstance = incomeExpenseModule.createIncomeExpenseChart(filteredTransactions, createChartWithRegistration);
-      if (chartInstance) {
-        console.log("Income/expense chart created successfully");
-      }
-    }
+    console.log("Creating expense category chart...");
+    const { createExpenseCategoryChart } = await import('./expenseChart.js');
+    await createExpenseCategoryChart(transactions);
+    return { success: true, chart: 'expense-category' };
   } catch (error) {
-    console.error("Error updating Income/Expense Chart:", error);
+    console.error("Error creating expense category chart:", error);
+    throw error; // Re-throw so Promise.allSettled can catch it
   }
 }
 
-async function createExpenseCategoryChartSafely(filteredTransactions) {
+/**
+ * Safely creates timeline chart with error handling
+ */
+async function createTimelineChartSafely(transactions) {
   try {
-    await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
-    const expenseModule = await import("./expenseChart.js");
-    if (typeof expenseModule.createExpenseCategoryChart === 'function') {
-      const chartInstance = expenseModule.createExpenseCategoryChart(filteredTransactions, createChartWithRegistration);
-      if (chartInstance) {
-        console.log("Expense category chart created successfully");
-      }
-    }
+    console.log("Creating timeline chart...");
+    const { createTimelineChart } = await import('./timelineChart.js');
+    await createTimelineChart(transactions);
+    return { success: true, chart: 'timeline' };
   } catch (error) {
-    console.error("Error updating Expense Category Chart:", error);
-  }
-}
-
-async function createTimelineChartSafely(filteredTransactions) {
-  try {
-    await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
-    const timelineModule = await import("./timelineChart.js");
-    if (typeof timelineModule.createTimelineChart === 'function') {
-      const chartInstance = timelineModule.createTimelineChart(filteredTransactions, createChartWithRegistration);
-      if (chartInstance) {
-        console.log("Timeline chart created successfully");
-      }
-    }
-  } catch (error) {
-    console.error("Error updating Timeline Chart:", error);
+    console.error("Error creating timeline chart:", error);
+    throw error; // Re-throw so Promise.allSettled can catch it
   }
 }
 

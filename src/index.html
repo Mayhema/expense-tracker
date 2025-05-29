@@ -4,13 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expense Tracker</title>
+  <title>Personal Expense Tracker - Manage Your Finances</title>
 
-  <!-- Main styles first -->
-  <link rel="stylesheet" href="styles.css">
-
-  <!-- Dark theme overrides loaded after main styles -->
-  <link rel="stylesheet" href="styles/dark-theme.css">
+  <!-- Updated CSS paths - use single main stylesheet -->
+  <link rel="stylesheet" href="styles/styles.css">
 
   <!-- Load XLSX library for Excel file support -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -18,12 +15,20 @@
 </head>
 
 <body>
-  <!-- Hamburger Menu Button - Fixed structure -->
-  <button class="hamburger-menu" id="hamburgerMenu">
-    <div class="hamburger-line"></div>
-    <div class="hamburger-line"></div>
-    <div class="hamburger-line"></div>
-  </button>
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="app-title">
+      <h1>Personal Expense Tracker</h1>
+      <p class="app-subtitle">Manage your finances locally and securely</p>
+    </div>
+
+    <!-- Hamburger Menu Button - Moved inside header -->
+    <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle menu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </button>
+  </header>
 
   <!-- Sidebar Overlay -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -52,7 +57,7 @@
 
         <button id="editCategoriesSidebarBtn" class="action-button" title="Manage Categories">
           <span class="action-icon">🏷️</span>
-          <span class="action-text">Edit Categories</span>
+          <span class="action-text">Categories</span>
         </button>
 
         <button id="exportBtn" class="action-button" title="Export Data">
@@ -68,7 +73,7 @@
         <div class="toggle-item">
           <label for="darkModeToggle">Dark Mode</label>
           <div class="toggle-switch">
-            <input type="checkbox" id="darkModeToggle">
+            <input type="checkbox" id="darkModeToggle" />
             <span class="slider"></span>
           </div>
         </div>
@@ -76,7 +81,7 @@
         <div class="toggle-item">
           <label for="debugModeToggle">Debug Mode</label>
           <div class="toggle-switch">
-            <input type="checkbox" id="debugModeToggle">
+            <input type="checkbox" id="debugModeToggle" />
             <span class="slider"></span>
           </div>
         </div>
@@ -87,27 +92,27 @@
         <h3>Debug Tools</h3>
 
         <div class="debug-action-buttons">
-          <button id="debugFilesBtn" class="debug-action-button">
+          <button id="debugFilesBtn" class="debug-action-button" title="Debug Files">
             <span class="action-icon">🗂️</span>
             <span class="action-text">Debug Files</span>
           </button>
 
-          <button id="debugSignaturesBtn" class="debug-action-button">
+          <button id="debugSignaturesBtn" class="debug-action-button" title="Debug Signatures">
             <span class="action-icon">🔍</span>
             <span class="action-text">Debug Signatures</span>
           </button>
 
-          <button id="debugTransactionsBtn" class="debug-action-button">
+          <button id="debugTransactionsBtn" class="debug-action-button" title="Debug Transactions">
             <span class="action-icon">📊</span>
             <span class="action-text">Debug Transactions</span>
           </button>
 
-          <button id="saveLogBtn" class="debug-action-button">
+          <button id="saveLogBtn" class="debug-action-button" title="Save Debug Log">
             <span class="action-icon">💾</span>
             <span class="action-text">Save Log</span>
           </button>
 
-          <button id="resetAppBtn" class="debug-action-button danger">
+          <button id="resetAppBtn" class="debug-action-button danger" title="Reset Application">
             <span class="action-icon">🔄</span>
             <span class="action-text">Reset App</span>
           </button>
@@ -132,16 +137,19 @@
       <div class="section-header">
         <h2>📊 Financial Overview</h2>
         <div class="section-actions">
-          <div class="chart-controls">
+          <!-- Chart controls -->
+          <div class="chart-controls debug-only">
             <button class="chart-toggle-btn active" data-chart="expense" title="Toggle Expense Chart">
               <span class="action-icon">🥧</span>
               <span class="action-text">Expenses</span>
             </button>
-            <button class="chart-toggle-btn active" data-chart="incomeExpense" title="Toggle Income/Expense Chart">
-              <span class="action-icon">📊</span>
-              <span class="action-text">Overview</span>
+
+            <button class="chart-toggle-btn" data-chart="income" title="Toggle Income Chart">
+              <span class="action-icon">💰</span>
+              <span class="action-text">Income vs Expenses</span>
             </button>
-            <button class="chart-toggle-btn active" data-chart="timeline" title="Toggle Timeline Chart">
+
+            <button class="chart-toggle-btn" data-chart="timeline" title="Toggle Timeline Chart">
               <span class="action-icon">📈</span>
               <span class="action-text">Timeline</span>
             </button>
@@ -151,24 +159,29 @@
 
       <div class="section-content">
         <div class="charts-section">
-          <div id="expenseChartWrapper" class="chart-wrapper">
-            <h3>Expenses by Category</h3>
-            <div class="chart-container">
-              <canvas id="expenseChart"></canvas>
+          <div class="charts-grid">
+            <!-- Expense Chart -->
+            <div class="chart-wrapper" id="expenseChartWrapper">
+              <h3>📊 Expenses by Category</h3>
+              <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+              </div>
             </div>
-          </div>
 
-          <div id="incomeExpenseChartWrapper" class="chart-wrapper">
-            <h3>Income vs Expenses</h3>
-            <div class="chart-container">
-              <canvas id="incomeExpenseChart"></canvas>
+            <!-- Income vs Expense Chart -->
+            <div class="chart-wrapper" id="incomeExpenseChartWrapper">
+              <h3>💰 Income vs Expenses</h3>
+              <div class="chart-container">
+                <canvas id="incomeExpenseChart"></canvas>
+              </div>
             </div>
-          </div>
 
-          <div id="timelineChartWrapper" class="chart-wrapper">
-            <h3>Financial Timeline</h3>
-            <div class="chart-container">
-              <canvas id="timelineChart"></canvas>
+            <!-- Timeline Chart -->
+            <div class="chart-wrapper" id="timelineChartWrapper">
+              <h3>📈 Spending Timeline</h3>
+              <div class="chart-container">
+                <canvas id="timelineChart"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -180,14 +193,14 @@
       <div class="section-header">
         <h2>💰 Transactions</h2>
         <div class="section-actions">
-          <!-- Export functionality is available through the sidebar export button -->
+          <!-- Transaction action buttons will be added here -->
         </div>
       </div>
 
       <div class="section-content">
         <!-- Transaction Table Container -->
         <div id="transactionTableContainer" class="transaction-table-container">
-          <!-- Transactions will be rendered here -->
+          <p class="no-transactions">No transactions to display</p>
         </div>
       </div>
     </div>

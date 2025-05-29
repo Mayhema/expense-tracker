@@ -1,30 +1,30 @@
 /**
- * UI Bundle - Consolidates UI-related functionality
+ * UI Bundle - Consolidates all UI-related functionality
  * This reduces the number of separate HTTP requests
  */
 
 // Import the new revertTransaction functionality
 import '../ui/revertTransaction.js';
 
-// Import from individual UI modules
-
-// Re-export UI functionality
+// Re-export UI functionality - no CSS imports
 export { initializeUI, showToast, hideElement, showElement } from '../ui/uiManager.js';
-export { setupSidebarManager } from '../ui/sidebarManager.js'; // Corrected export
+export { setupSidebarManager } from '../ui/sidebarManager.js';
 export {
   updateTransactions,
   renderTransactions,
   renderCategoryButtons
 } from '../ui/transactionManager.js';
-export { showModal, closeModal } from '../ui/modalManager.js';
+export { showModal, closeAllModals } from '../ui/modalManager.js';
 export { revertTransaction } from '../ui/revertTransaction.js';
 
 // Re-export file handling UI
 export {
-  onFileUpload
-  // renderHeaderPreview was incorrectly sourced from fileUpload.js
+  onFileUpload,
+  clearPreview,
+  createNewFileInput,
+  onSaveHeaders
 } from '../ui/fileUpload.js';
-export { renderHeaderPreview } from '../ui/headerMapping.js'; // Correctly source renderHeaderPreview
+export { renderHeaderPreview, suggestMapping, updateHeaderMapping } from '../ui/headerMapping.js';
 export { renderMergedFiles } from '../ui/fileListUI.js';
 
 /**
@@ -51,17 +51,14 @@ export async function initializeAllUI() {
 }
 
 /**
- * Initialize theme settings
+ * Initialize theme settings - uses CSS classes defined in styles folder
  */
 export function initializeTheme() {
   // Get stored preference
   const isDarkMode = localStorage.getItem("darkMode") === "true";
 
-  // Apply to body class
+  // Apply to body class - CSS is defined in styles/dark-theme.css
   document.body.classList.toggle("dark-mode", isDarkMode);
-
-  // Immediately update meta theme color
-  updateMetaThemeColor(isDarkMode);
 
   // Update chart theme if Chart.js is loaded
   if (isDarkMode && window.Chart && window.Chart.defaults) {
@@ -69,19 +66,6 @@ export function initializeTheme() {
   }
 
   console.log(`Theme initialized: ${isDarkMode ? "dark" : "light"} mode`);
-}
-
-/**
- * Updates the meta theme-color for mobile devices
- */
-function updateMetaThemeColor(isDark) {
-  let meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) {
-    meta = document.createElement("meta");
-    meta.name = "theme-color";
-    document.head.appendChild(meta);
-  }
-  meta.content = isDark ? "#121212" : "#ffffff";
 }
 
 /**
@@ -93,3 +77,49 @@ function updateChartTheme(isDarkMode) {
     window.Chart.defaults.borderColor = isDarkMode ? "#444444" : "#dddddd";
   }
 }
+
+// Global UI utilities
+export const UIUtils = {
+  /**
+   * Show a modal with enhanced configuration
+   */
+  showEnhancedModal: (config) => {
+    return showModal({
+      ...config,
+      className: `enhanced-modal ${config.className || ''}`,
+      closeOnClickOutside: config.closeOnClickOutside !== false
+    });
+  },
+
+  /**
+   * Close all modals safely
+   */
+  closeAllModals: () => {
+    try {
+      closeAllModals();
+    } catch (error) {
+      console.error("Error closing modals:", error);
+    }
+  },
+
+  /**
+   * Show success toast
+   */
+  showSuccess: (message) => {
+    showToast(message, "success");
+  },
+
+  /**
+   * Show error toast
+   */
+  showError: (message) => {
+    showToast(message, "error");
+  },
+
+  /**
+   * Show warning toast
+   */
+  showWarning: (message) => {
+    showToast(message, "warning");
+  }
+};

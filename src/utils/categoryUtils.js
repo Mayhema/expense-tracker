@@ -14,7 +14,7 @@ export function getCategoryColor(categoryName, subcategoryName = null) {
   if (!categoryName) return '#cccccc';
 
   // Use the centralized DEFAULT_CATEGORIES if AppState isn't available
-  const categories = window.AppState?.categories || DEFAULT_CATEGORIES;
+  const categories = AppState?.categories || DEFAULT_CATEGORIES;
 
   const categoryValue = categories[categoryName];
   if (!categoryValue) return '#cccccc';
@@ -71,25 +71,29 @@ export function hasSubcategories(categoryName) {
  * Gets all categories as a flat list including subcategories
  * @returns {Array} Array of {id, name, color, parent} objects
  */
-export function getFlatCategoryList() {
+export function getAllCategoriesFlat() {
+  const categories = AppState.categories || {};
   const result = [];
 
-  Object.entries(AppState.categories).forEach(([categoryName, value]) => {
+  Object.keys(categories).forEach(categoryName => {
+    const categoryValue = categories[categoryName];
+    const color = getCategoryColor(categoryName);
+
     // Add main category
     result.push({
       id: categoryName,
       name: categoryName,
-      color: typeof value === 'string' ? value : (value.color || "#CCCCCC"),
+      color: color,
       parent: null
     });
 
-    // Add subcategories if any
-    if (typeof value === 'object' && value.subcategories) {
-      Object.entries(value.subcategories).forEach(([subName, subColor]) => {
+    // Add subcategories if they exist
+    if (typeof categoryValue === 'object' && categoryValue.subcategories) {
+      Object.keys(categoryValue.subcategories).forEach(subName => {
         result.push({
           id: `${categoryName}:${subName}`,
           name: subName,
-          color: subColor,
+          color: categoryValue.subcategories[subName],
           parent: categoryName
         });
       });
@@ -99,10 +103,34 @@ export function getFlatCategoryList() {
   return result;
 }
 
+/**
+ * Validates if a category exists
+ * @param {string} categoryName - The category name to validate
+ * @returns {boolean} True if category exists
+ */
+export function categoryExists(categoryName) {
+  if (!categoryName || !AppState.categories) return false;
+  return Object.hasOwn(AppState.categories, categoryName);
+}
+
+/**
+ * Gets category display name (handles subcategories)
+ * @param {string} category - Main category
+ * @param {string} subcategory - Optional subcategory
+ * @returns {string} Display name
+ */
+export function getCategoryDisplayName(category, subcategory = null) {
+  if (!category) return 'Uncategorized';
+  if (subcategory) return `${category} > ${subcategory}`;
+  return category;
+}
+
 export default {
   getCategoryColor,
   getDefaultCategories,
   getSubcategories,
   hasSubcategories,
-  getFlatCategoryList
+  getAllCategoriesFlat,
+  categoryExists,
+  getCategoryDisplayName
 };

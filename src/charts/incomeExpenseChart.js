@@ -1,4 +1,4 @@
-import { createChart, destroyChart, updateChartData, getChartColors } from './chartCore.js';
+import { createChart, destroyChart, getChartColors } from './chartCore.js';
 
 // Store chart instance
 let incomeExpenseChart = null;
@@ -15,65 +15,84 @@ export function destroyIncomeExpenseChart() {
 }
 
 /**
- * Create income vs expense chart using the new registration system
+ * Creates the income vs expense chart
  */
-export function createIncomeExpenseChart(transactions, createChartFn) {
+export async function createIncomeExpenseChart(transactions) {
+  console.log('Creating income/expense chart...');
+
   try {
-    console.log("Creating income/expense chart...");
+    // Dynamic import Chart.js
+    const ChartJS = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js');
+    const Chart = ChartJS.default || ChartJS.Chart;
 
-    if (!transactions || transactions.length === 0) {
+    if (!Chart) {
+      throw new Error('Chart.js failed to load');
+    }
+
+    const canvas = document.getElementById('incomeExpenseChart');
+    if (!canvas) {
+      console.warn('Income expense chart canvas not found');
       return null;
     }
 
-    const totals = calculateIncomeExpenseTotals(transactions);
-    const colors = getChartColors(document.body.classList.contains('dark-mode'));
+    // Destroy existing chart
+    if (window.incomeExpenseChartInstance) {
+      window.incomeExpenseChartInstance.destroy();
+    }
 
-    if (totals.income === 0 && totals.expenses === 0) {
+    // Get chart data
+    const data = getIncomeExpenseData(transactions);
+
+    if (!data || (data.income === 0 && data.expenses === 0)) {
+      showNoDataMessage(canvas);
       return null;
     }
 
-    const config = {
+    // Create the chart
+    const chartInstance = new Chart(canvas, {
       type: 'doughnut',
       data: {
         labels: ['Income', 'Expenses'],
         datasets: [{
-          data: [totals.income, totals.expenses],
-          backgroundColor: [colors.income, colors.expenses],
+          data: [data.income, data.expenses],
+          backgroundColor: ['#4CAF50', '#f44336'],
           borderWidth: 2,
-          borderColor: colors.background
+          borderColor: '#fff'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false
-        },
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
-              color: colors.text,
-              padding: 20
+              padding: 20,
+              usePointStyle: true
             }
           },
           tooltip: {
             callbacks: {
               label: function (context) {
                 const value = context.parsed;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const total = data.income + data.expenses;
                 const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                return `${context.label}: ${value.toFixed(2)} (${percentage}%)`;
+                return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
               }
             }
           }
         }
       }
-    };
+    });
 
-    return createChartFn('incomeExpenseChart', config);
+    // Store reference
+    window.incomeExpenseChartInstance = chartInstance;
+
+    console.log('✓ income/expense chart created successfully');
+    return chartInstance;
+
   } catch (error) {
-    console.error("Error creating income/expense chart:", error);
+    console.error('❌ Error creating income/expense chart:', error);
     return null;
   }
 }
@@ -82,12 +101,7 @@ export function createIncomeExpenseChart(transactions, createChartFn) {
  * Update the income vs expense chart
  */
 export function updateIncomeExpenseChart(transactions) {
-  return createIncomeExpenseChart(transactions, (canvasId, config) => {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return null;
-    const ctx = canvas.getContext('2d');
-    return new Chart(ctx, config);
-  });
+  return createIncomeExpenseChart(transactions);
 }
 
 /**
@@ -105,24 +119,22 @@ export function clearIncomeExpenseChart() {
   }
 }
 
-// Helper function to display no data message - renamed to avoid conflict
-function showNoDataMessage(canvas, message) {
-  const ctx = canvas.getContext('2d');
+/**
+ * Get income and expense data from transactions
+ */
+function getIncomeExpenseData(transactions) {
+  const totals = { income: 0, expenses: 0 };
 
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!transactions || !Array.isArray(transactions)) {
+    return totals;
+  }
 
-  // Set text properties
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '14px Arial';
+  transactions.forEach(tx => {
+    totals.income += parseFloat(tx.income || 0);
+    totals.expenses += parseFloat(tx.expenses || 0);
+  });
 
-  // Determine text color based on theme
-  const isDarkMode = document.body.classList.contains('dark-mode');
-  ctx.fillStyle = isDarkMode ? '#aaaaaa' : '#666666';
-
-  // Draw message in center of canvas
-  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+  return totals;
 }
 
 /**
@@ -203,4 +215,30 @@ function initializeIncomeExpenseChartWithCanvas(canvas) {
 
   createChart(canvas, 'bar', config.data, config.options);
   console.log("Income expense chart initialized successfully");
+}
+
+/**
+ * Calculate income and expense totals from transactions
+ * @param {Array} transactions - Array of transactions
+ * @returns {Object} Object with income and expense totals
+ */
+function calculateIncomeExpenseTotals(transactions) {
+  const totals = {
+    income: 0,
+    expenses: 0
+  };
+
+  if (!transactions || !Array.isArray(transactions)) {
+    return totals;
+  }
+
+  transactions.forEach(transaction => {
+    const income = parseFloat(transaction.income || 0);
+    const expenses = parseFloat(transaction.expenses || 0);
+
+    totals.income += income;
+    totals.expenses += expenses;
+  });
+
+  return totals;
 }

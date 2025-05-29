@@ -18,9 +18,6 @@ export const AppState = {
   savePromptShown: false,
 };
 
-// Update imports - make sure this comes after AppState definition
-import { getMappingBySignature } from '../mappings/mappingsManager.js';
-
 export function saveCategories() {
   localStorage.setItem("expenseCategories", JSON.stringify(AppState.categories));
 }
@@ -75,16 +72,22 @@ export function loadMergedFiles() {
         if (!file.headerMapping) {
           console.warn(`Missing headerMapping for ${file.fileName}, attempting to restore`);
 
-          // Try to restore mapping from signature
-          const mappingObj = getMappingBySignature(file.signature);
-          if (mappingObj && mappingObj.mapping) {
-            file.headerMapping = mappingObj.mapping;
-            console.log(`Restored mapping for ${file.fileName} from signature`);
-          } else {
-            // Create minimal header mapping based on data
+          // Try to restore mapping from signature with error handling
+          import('../mappings/mappingsManager.js').then(module => {
+            if (module.getMappingBySignature) {
+              const mappingObj = module.getMappingBySignature(file.signature);
+              if (mappingObj && mappingObj.mapping) {
+                file.headerMapping = mappingObj.mapping;
+                console.log(`Restored mapping for ${file.fileName} from signature`);
+              } else {
+                file.headerMapping = ['Date', 'Description', 'Expenses'];
+                console.log(`Created default mapping for ${file.fileName}`);
+              }
+            }
+          }).catch(err => {
+            console.warn("Could not load mappings manager:", err);
             file.headerMapping = ['Date', 'Description', 'Expenses'];
-            console.log(`Created default mapping for ${file.fileName}`);
-          }
+          });
         }
 
         // Ensure signature is a string
@@ -279,3 +282,201 @@ function logIfVerbose(message, verboseLogging) {
 
   console.log("appState.js: AppState initialization complete.");
 })();
+
+/**
+ * Ensure default categories exist in AppState
+ */
+export function ensureDefaultCategories() {
+  if (!AppState.categories || Object.keys(AppState.categories).length === 0) {
+    console.log("No categories found, initializing with defaults...");
+    AppState.categories = { ...DEFAULT_CATEGORIES };
+    saveCategories();
+    console.log("Default categories initialized:", Object.keys(AppState.categories));
+  }
+}
+
+/**
+ * Load categories from localStorage or use defaults
+ */
+function loadCategories() {
+  try {
+    const saved = localStorage.getItem('expenseTrackerCategories');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      console.log('✅ Categories loaded from localStorage:', Object.keys(parsed).length, 'categories');
+      return parsed;
+    } else {
+      console.log('📂 No saved categories found, using defaults');
+      return { ...DEFAULT_CATEGORIES };
+    }
+  } catch (error) {
+    console.error('❌ Error loading categories:', error);
+    return { ...DEFAULT_CATEGORIES };
+  }
+}
+
+/**
+ * Initialize the application state
+ * This function sets up the initial state and loads saved data
+ */
+export function initializeAppState() {
+  console.log("🚀 Initializing AppState...");
+
+  try {
+    // Load saved data from localStorage
+    loadTransactions();
+    loadMergedFiles();
+    loadCategories();
+
+    console.log("✅ AppState initialized successfully");
+    console.log("📊 Current state:", {
+      transactions: AppState.transactions?.length || 0,
+      mergedFiles: AppState.mergedFiles?.length || 0,
+      categories: Object.keys(AppState.categories || {}).length
+    });
+
+    return Promise.resolve();
+  } catch (error) {
+    console.error("❌ Error initializing AppState:", error);
+    return Promise.reject(error);
+  }
+}
+
+/**
+ * Load application state from localStorage
+ */
+export function loadAppState() {
+  console.log("Loading application state...");
+
+  try {
+    // Load merged files
+    const savedFiles = localStorage.getItem('mergedFiles');
+    if (savedFiles) {
+      AppState.mergedFiles = JSON.parse(savedFiles);
+      console.log(`Loaded ${AppState.mergedFiles.length} merged files`);
+    }
+
+    // Load categories
+    const savedCategories = localStorage.getItem('categories');
+    if (savedCategories) {
+      AppState.categories = JSON.parse(savedCategories);
+      console.log(`Loaded ${Object.keys(AppState.categories).length} categories`);
+    }
+
+    // Load settings
+    const savedSettings = localStorage.getItem('appSettings');
+    if (savedSettings) {
+      AppState.settings = { ...AppState.settings, ...JSON.parse(savedSettings) };
+      console.log("Loaded application settings");
+    }
+
+    // Load format mappings
+    const savedMappings = localStorage.getItem('formatMappings');
+    if (savedMappings) {
+      AppState.formatMappings = JSON.parse(savedMappings);
+      console.log(`Loaded ${Object.keys(AppState.formatMappings).length} format mappings`);
+    }
+
+    console.log("Application state loaded successfully");
+    return true;
+  } catch (error) {
+    console.error("Error loading application state:", error);
+    // Reset to defaults on error
+    initializeDefaultState();
+    return false;
+  }
+}
+
+// Remove any CSS imports if they exist
+// CSS files should only be loaded via HTML link tags, not ES6 imports
+
+/**
+ * Initialize the application state (alternative implementation)
+ */
+export async function initializeAppStateAlternative() {
+  console.log('Initializing app state...');
+
+  try {
+    // Load existing data from localStorage
+    loadAppState();
+
+    // Initialize default categories if none exist
+    initializeCategories();
+
+    // Validate and clean up any corrupted data
+    validateAndCleanAppState();
+
+    console.log('App state initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('Error initializing app state:', error);
+
+    // Try to recover by resetting to defaults
+    try {
+      resetToDefaults();
+      console.log('App state reset to defaults due to error');
+      return true;
+    } catch (resetError) {
+      console.error('Failed to reset app state:', resetError);
+      throw new Error('Unable to initialize application state');
+    }
+  }
+}
+
+/**
+ * Initialize categories in AppState
+ */
+export function initializeCategories() {
+  try {
+    // Load categories from localStorage
+    const saved = localStorage.getItem('expenseCategories');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      AppState.categories = parsed;
+      console.log('✅ Categories loaded from localStorage:', Object.keys(parsed).length, 'categories');
+    } else {
+      console.log('📂 No saved categories found, using defaults');
+      AppState.categories = { ...DEFAULT_CATEGORIES };
+      saveCategories();
+    }
+
+    // Normalize categories
+    AppState.categories = normalizeCategories(AppState.categories);
+    saveCategories();
+
+    console.log("Categories initialized:", Object.keys(AppState.categories));
+    return true;
+  } catch (error) {
+    console.error('❌ Error loading categories:', error);
+    AppState.categories = { ...DEFAULT_CATEGORIES };
+    saveCategories();
+    return false;
+  }
+}
+
+/**
+ * Initialize the application state
+ */
+export function initialize() {
+  console.log("appState.js: Initializing AppState...");
+
+  try {
+    // Initialize categories
+    initializeCategories();
+
+    // Load merged files
+    loadMergedFiles();
+
+    // Load transactions
+    loadTransactions();
+
+    console.log("appState.js: AppState initialization complete.");
+    return true;
+  } catch (error) {
+    console.error("Error during AppState initialization:", error);
+    return false;
+  }
+}
+
+// Make initialize available on AppState object
+AppState.initialize = initialize;

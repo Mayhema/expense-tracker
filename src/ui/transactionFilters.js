@@ -19,31 +19,36 @@ export function convertDateFormat(dateStr, fromFormat = 'iso', toFormat = 'local
       date = new Date(dateStr);
     } else if (fromFormat === 'local') {
       // Local format: DD/MM/YYYY
-      const [day, month, year] = dateStr.split('/');
-      date = new Date(year, month - 1, day);
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        date = new Date(parts[2], parts[1] - 1, parts[0]);
+      } else {
+        throw new Error('Invalid local date format');
+      }
     } else {
-      // Try to parse as is
-      date = new Date(dateStr);
+      throw new Error('Unsupported fromFormat');
     }
 
-    if (isNaN(date.getTime())) return dateStr;
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date');
+    }
 
     // Format output date
     if (toFormat === 'iso') {
       // ISO format: YYYY-MM-DD
-      return date.toISOString().split('T')[0];
+      return date.toISOString().slice(0, 10);
     } else if (toFormat === 'local') {
       // Local format: DD/MM/YYYY
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
+    } else {
+      throw new Error('Unsupported toFormat');
     }
-
-    return dateStr;
-  } catch (e) {
-    console.error(`Error converting date format for "${dateStr}":`, e);
-    return dateStr;
+  } catch (error) {
+    console.error('Date conversion error:', error);
+    return dateStr; // Return original string if conversion fails
   }
 }
 
@@ -140,4 +145,28 @@ export function initializeDateFilters() {
       }
     });
   }
+}
+
+/**
+ * Validates if a string is a valid date format
+ * @param {string} dateStr - The date string to validate
+ * @param {string} format - The expected format ('iso' or 'local')
+ * @returns {boolean} True if valid date format
+ */
+export function isValidDateFormat(dateStr, format = 'iso') {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+
+  if (format === 'iso') {
+    const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+    return isoRegex.test(dateStr) && !isNaN(new Date(dateStr).getTime());
+  } else if (format === 'local') {
+    const localRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!localRegex.test(dateStr)) return false;
+
+    const parts = dateStr.split('/');
+    const date = new Date(parts[2], parts[1] - 1, parts[0]);
+    return !isNaN(date.getTime());
+  }
+
+  return false;
 }

@@ -1,8 +1,8 @@
-import { AppState, saveMergedFiles } from "../core/appState.js";
-import { showModal } from "../ui/modalManager.js";
+import { AppState } from "../core/appState.js";
 import { showToast } from "../ui/uiManager.js";
 import { updateTransactions } from "../ui/transactionManager.js";
-import { renderMergedFiles } from "../main.js";
+import { renderMergedFiles } from "../ui/fileListUI.js"; // Fixed: Import from correct file
+import { showModal } from "../ui/modalManager.js";
 
 const STORAGE_KEY = "fileFormatMappings";
 
@@ -166,6 +166,8 @@ function updateOrCreateMapping(existingMappings, sigString, mappingKey, mapping,
   } else {
     createNewMapping(existingMappings, sigString, mapping, mappingKey, config, fileName, currency);
   }
+
+  return existingMappings;
 }
 
 function findExistingMappingIndex(existingMappings, sigString, mappingKey) {

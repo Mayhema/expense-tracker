@@ -1,6 +1,5 @@
-import { AppState } from "../core/appState.js";
-import { showToast } from "./uiManager.js";
-import { HEADERS } from "../core/constants.js";
+import { AppState } from '../core/appState.js';
+import { showToast } from './uiManager.js';
 
 /**
  * Suggests mapping for headers based on naming
@@ -56,6 +55,23 @@ function processHeaderCell(cell, state) {
   return "–";
 }
 
+// Helper functions for header detection
+function isDateHeader(text) {
+  return /date|day|time|תאריך|день/i.test(text);
+}
+
+function isDescriptionHeader(text) {
+  return /desc|note|memo|text|detail|תאור|פרטים|descrip/i.test(text);
+}
+
+function isExpenseHeader(text) {
+  return /expense|debit|cost|payment|out|חובה|gasto|ausgabe/i.test(text);
+}
+
+function isIncomeHeader(text) {
+  return /income|credit|deposit|revenue|in|זכות|ingreso|einkommen/i.test(text);
+}
+
 function processDateHeader(headerText, state) {
   if (!state.dateColumnFound) {
     state.dateColumnFound = true;
@@ -95,6 +111,67 @@ export function analyzeDataContent(initialMapping, data, state) {
   identifyMonetaryColumns(initialMapping, data, state);
 
   return initialMapping;
+}
+
+// Helper functions for data analysis
+function getSampleRows(data) {
+  // Get first 5 data rows (skip header)
+  return data.slice(1, 6);
+}
+
+function getColumnValues(rows, columnIndex) {
+  return rows.map(row => row[columnIndex]).filter(val => val !== null && val !== undefined && val !== '');
+}
+
+function isExcelDateColumn(values) {
+  // Check if values look like Excel date numbers
+  return values.every(val => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num > 35000 && num < 50000; // Excel date range
+  });
+}
+
+function isDateColumn(values) {
+  // Check if values look like dates
+  return values.some(val => {
+    try {
+      const date = new Date(val);
+      return !isNaN(date.getTime()) && date.getFullYear() > 1900;
+    } catch {
+      return false;
+    }
+  });
+}
+
+function isDescriptionColumn(values) {
+  // Check if values are text-like
+  return values.some(val => {
+    return typeof val === 'string' && val.length > 5 && /[a-zA-Z]/.test(val);
+  });
+}
+
+function isMonetaryColumn(values) {
+  // Check if values are numeric
+  return values.some(val => {
+    const num = parseFloat(val);
+    return !isNaN(num) && num !== 0;
+  });
+}
+
+function classifyMonetaryColumn(values, state) {
+  // Simple heuristic: positive values are income, negative are expenses
+  const hasPositive = values.some(val => parseFloat(val) > 0);
+  const hasNegative = values.some(val => parseFloat(val) < 0);
+
+  if (hasNegative && !hasPositive && !state.expensesColumnFound) {
+    state.expensesColumnFound = true;
+    return "Expenses";
+  } else if (hasPositive && !state.incomeColumnFound) {
+    state.incomeColumnFound = true;
+    return "Income";
+  } else if (!state.expensesColumnFound)
+
+    return "–";
 }
 
 // Helper functions to reduce complexity
@@ -236,55 +313,35 @@ function isDuplicateMapping(value, index) {
   ) !== -1;
 }
 
-function handleDuplicateMapping(value, index) {
-  // Handle duplicate mapping resolution
+function handleDuplicateMapping(newValue, index) {
+  // Find the other column with this mapping
   const existingIndex = AppState.currentSuggestedMapping.findIndex(
-    (val, i) => i !== index && val === value
+    (val, i) => i !== index && val === newValue
   );
 
-  // If this header type already exists elsewhere, reset the other one
   if (existingIndex !== -1) {
-    // Create a visual indication
-    const existingDropdown = document.querySelector(`.header-map[data-index="${existingIndex}"]`);
-    if (existingDropdown) {
-      // Flash the element to show it was changed
-      existingDropdown.style.backgroundColor = "#ffecec";
-      existingDropdown.value = "–";
+    // Clear the existing mapping
+    AppState.currentSuggestedMapping[existingIndex] = "–";
 
-      // Reset after animation
-      setTimeout(() => {
-        existingDropdown.style.backgroundColor = "";
-      }, 1000);
+    // Update the UI for the affected dropdown
+    const existingSelect = document.querySelector(`select[data-column-index="${existingIndex}"]`);
+    if (existingSelect) {
+      existingSelect.value = "–";
     }
 
-    // Update the mapping
-    AppState.currentSuggestedMapping[existingIndex] = "–";
-    console.log(`Reset duplicate mapping at column ${existingIndex} to –`);
-    showToast(`Only one column can be mapped as "${value}". Previous selection reset.`, "info");
+    showToast(`Moved ${newValue} mapping from column ${existingIndex + 1} to column ${index + 1}`, 'info');
   }
 }
 
-function updateCurrentMapping(index, value) {
-  // Update the current mapping
-  AppState.currentSuggestedMapping[index] = value;
-  // If AppState.currentFileId is available, you could also update the specific file here
-  // For example:
-  // if (AppState.currentFileId && AppState.mergedFiles) {
-  //   const file = AppState.mergedFiles.find(f => f.id === AppState.currentFileId);
-  //   if (file) {
-  //     // This part is tricky as currentSuggestedMapping is an array of header names,
-  //     // not the direct file.headerMapping. This needs to be set on "Save Headers".
-  //   }
-  // }
+function updateCurrentMapping(index, newValue) {
+  AppState.currentSuggestedMapping[index] = newValue;
 }
 
 function updateSaveButtonState() {
-  // Check if we have valid required fields for saving
   const hasDate = AppState.currentSuggestedMapping.includes("Date");
   const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
     AppState.currentSuggestedMapping.includes("Expenses");
 
-  // Enable/disable save button
   const saveButton = document.getElementById("saveHeadersBtn");
   if (saveButton) {
     saveButton.disabled = !(hasDate && hasAmount);
@@ -294,526 +351,94 @@ function updateSaveButtonState() {
   }
 }
 
-/**
- * Renders the header preview table
- * @param {Array<Array>} data - The data to preview
- * @param {string} targetElementId - ID of element to render into (default: "previewTable")
- * @param {string} headerRowInputId - ID of header row input (default: "headerRowInput")
- * @param {string} dataRowInputId - ID of data row input (default: "dataRowInput")
- */
-export function renderHeaderPreview(data, targetElementId = "previewTable", headerRowInputId = "headerRowInput", dataRowInputId = "dataRowInput") {
-  if (!validatePreviewData(data)) return;
-
-  // Get row data based on input fields
-  const rowData = getRowData(data, headerRowInputId, dataRowInputId);
-  if (!rowData) return;
-
-  const { headerRow, dataRow, headerRowIndex, dataRowIndex } = rowData;
-
-  console.log("Rendering header preview with header row:", headerRow);
-  console.log("Data sample row:", dataRow);
-
-  // Ensure we have a valid mapping
-  ensureValidMapping(data, headerRow);
-
-  // Generate the preview HTML
-  const html = generatePreviewHtml(headerRow, dataRow, headerRowIndex, dataRowIndex);
-
-  // Update the DOM with generated HTML
-  updatePreviewDOM(html, targetElementId, headerRow);
+function checkForDuplicateHeaders() {
+  // This function can be implemented if needed to highlight duplicate mappings
+  // For now, we handle duplicates in handleDuplicateMapping
 }
 
 /**
- * Validates the data for preview
- * @param {Array<Array>} data - Data to validate
- * @returns {boolean} Whether data is valid
+ * Renders header preview for file upload modal
+ * @param {Array<Array>} data - The file data
+ * @param {string} containerId - ID of container to render into
+ * @param {string} headerInputId - ID of header row input
+ * @param {string} dataInputId - ID of data row input
  */
-function validatePreviewData(data) {
-  if (!data || data.length === 0) {
-    console.error("No data to render for header preview");
-    return false;
-  }
-  return true;
-}
-
-/**
- * Gets row data based on input fields
- * @param {Array<Array>} data - The data source
- * @param {string} headerRowInputId - ID of header row input
- * @param {string} dataRowInputId - ID of data row input
- * @returns {Object|null} Row data object or null if invalid
- */
-function getRowData(data, headerRowInputId, dataRowInputId) {
-  // Get header and data row indices from input fields
-  const headerRowInput = document.getElementById(headerRowInputId);
-  const dataRowInput = document.getElementById(dataRowInputId);
-
-  if (!headerRowInput || !dataRowInput) {
-    console.error("Header row or data row input fields not found");
-    return null;
-  }
-
-  const headerRowIndex = parseInt(headerRowInput.value, 10) - 1; // Convert to 0-based
-  const dataRowIndex = parseInt(dataRowInput.value, 10) - 1; // Convert to 0-based
-
-  // Validate indices
-  if (headerRowIndex < 0 || headerRowIndex >= data.length) {
-    console.error("Header row index out of range");
-    return null;
-  }
-
-  if (dataRowIndex < 0 || dataRowIndex >= data.length) {
-    console.error("Data row index out of range");
-    return null;
-  }
-
-  const headerRow = data[headerRowIndex];
-  const dataRow = data[dataRowIndex];
-
-  if (!headerRow || !dataRow) {
-    console.error("Header or data row not found");
-    return null;
-  }
-
-  return { headerRow, dataRow, headerRowIndex, dataRowIndex };
-}
-
-/**
- * Ensures we have a valid mapping for the data
- * @param {Array<Array>} data - The data
- * @param {Array} headerRow - The header row
- */
-function ensureValidMapping(data, headerRow) {
-  // Check if we have an existing mapping
-  if (!AppState.currentSuggestedMapping ||
-    AppState.currentSuggestedMapping.length !== headerRow.length) {
-    // Generate a new mapping suggestion
-    AppState.currentSuggestedMapping = suggestMapping(data);
-  }
-}
-
-/**
- * Generates the HTML for the preview table
- * @param {Array} headerRow - The header row data
- * @param {Array} dataRow - The data row
- * @param {number} headerRowIndex - Index of header row
- * @param {number} dataRowIndex - Index of data row
- * @returns {string} Generated HTML
- */
-function generatePreviewHtml(headerRow, dataRow, headerRowIndex, dataRowIndex) {
-  let html = '<table class="preview-table" style="width: 100%; margin-top: 20px;">';
-
-  // File format info
-  const fileExt = AppState.currentFileName ? AppState.currentFileName.split('.').pop().toLowerCase() : 'unknown';
-  html += `<tr><td colspan="${headerRow.length + 1}" style="text-align:left; padding:5px;">
-    <strong>File Type:</strong> ${fileExt.toUpperCase()} |
-    <strong>Header Row:</strong> ${headerRowIndex + 1} |
-    <strong>Data Row:</strong> ${dataRowIndex + 1}
-  </td></tr>`;
-
-  // Header row with labels
-  html += '<tr><th>Column</th>';
-  headerRow.forEach((_, i) => html += `<th>${i + 1}</th>`);
-  html += '</tr>';
-
-  // Original header row
-  html += '<tr><td>Header</td>';
-  headerRow.forEach(header => html += `<td>${header || "<em>empty</em>"}</td>`);
-  html += '</tr>';
-
-  // Add mapping dropdowns
-  html += '<tr><td>Map To</td>';
-  headerRow.forEach((_, i) => {
-    const selected = AppState.currentSuggestedMapping && AppState.currentSuggestedMapping[i] ?
-      AppState.currentSuggestedMapping[i] : "–";
-    html += `
-      <td>
-        <select class="header-map" data-index="${i}">
-          ${HEADERS.map(header =>
-      `<option value="${header}" ${header === selected ? 'selected' : ''}>${header}</option>`
-    ).join('')}
-        </select>
-      </td>`;
-  });
-  html += '</tr>';
-
-  // Sample data row
-  html += '<tr><td>Sample</td>';
-  dataRow.forEach(cell => html += `<td>${cell || "<em>empty</em>"}</td>`);
-  html += '</tr></table>';
-
-  // Add mapping hint
-  html += `
-    <div class="mapping-hint">
-      <p>Map columns to: <strong>Date</strong> (required), <strong>Income</strong> or <strong>Expenses</strong> (at least one required),
-      and optionally <strong>Description</strong>. Use "–" for columns to ignore.</p>
-
-      <p class="file-format-note" style="font-size:0.9em; color:#666;">
-        <strong>Note for ${fileExt.toUpperCase()} files:</strong>
-        ${getFileFormatNote(fileExt)}
-      </p>
-    </div>
-  `;
-
-  return html;
-}
-
-/**
- * Updates the DOM with the preview HTML and sets up event handlers
- * @param {string} html - The HTML to insert
- * @param {string} targetElementId - ID of target element
- * @param {Array} headerRow - The header row data for calculating modal width
- */
-function updatePreviewDOM(html, targetElementId, headerRow) {
-  const targetElement = document.getElementById(targetElementId);
-  if (!targetElement) {
-    console.error(`Target element ${targetElementId} not found`);
+export function renderHeaderPreview(data, containerId, headerInputId, dataInputId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`Container ${containerId} not found`);
     return;
   }
 
-  targetElement.innerHTML = html;
+  // Get row indices
+  const headerRowInput = document.getElementById(headerInputId);
+  const dataRowInput = document.getElementById(dataInputId);
 
-  // Attach event listeners to each select
-  document.querySelectorAll(`#${targetElementId} .header-map`).forEach(select => {
-    select.addEventListener('change', (e) => {
-      const index = parseInt(e.target.getAttribute('data-index'), 10);
-      updateHeaderMapping(e.target, index);
-    });
-  });
+  const headerRowIndex = headerRowInput ? parseInt(headerRowInput.value, 10) - 1 : 0;
+  const dataRowIndex = dataRowInput ? parseInt(dataRowInput.value, 10) - 1 : 1;
 
-  updateSaveButtonState();
-  showHeaderMappingUI();
-  adjustModalWidth(headerRow.length);
-}
-
-/**
- * Shows the header mapping UI elements
- */
-function showHeaderMappingUI() {
-  const rowSelectionPanel = document.getElementById("rowSelectionPanel");
-  const saveHeadersBtn = document.getElementById("saveHeadersBtn");
-  const clearPreviewBtn = document.getElementById("clearPreviewBtn");
-
-  if (rowSelectionPanel) rowSelectionPanel.style.display = "block";
-  if (saveHeadersBtn) saveHeadersBtn.style.display = "inline-block";
-  if (clearPreviewBtn) clearPreviewBtn.style.display = "inline-block";
-}
-
-/**
- * Adjusts the modal width based on column count
- * @param {number} columnCount - Number of columns
- */
-function adjustModalWidth(columnCount) {
-  const modalContent = document.querySelector(".modal-content");
-  if (modalContent) {
-    // Set width based on column count, but no wider than 90% of viewport
-    const baseWidth = 600; // Base width
-    const columnWidth = 100; // Width per column
-    const maxWidth = Math.min(window.innerWidth * 0.9, baseWidth + columnCount * columnWidth);
-    modalContent.style.maxWidth = `${maxWidth}px`;
-    modalContent.style.width = "90%";
+  // Validate indices
+  if (headerRowIndex < 0 || headerRowIndex >= data.length ||
+    dataRowIndex < 0 || dataRowIndex >= data.length) {
+    container.innerHTML = '<p>Invalid row selection</p>';
+    return;
   }
-}
 
-/**
- * Checks for duplicate header mappings
- */
-export function checkForDuplicateHeaders() {
-  if (!AppState.currentSuggestedMapping) return;
+  const headerRow = data[headerRowIndex] || [];
+  const dataRow = data[dataRowIndex] || [];
 
-  // Count occurrences of each header type
-  const headerCounts = {};
-  AppState.currentSuggestedMapping.forEach(header => {
-    if (header !== "–" && header !== "Description") {
-      headerCounts[header] = (headerCounts[header] || 0) + 1;
-    }
-  });
+  // Generate mapping suggestions
+  const suggestedMapping = suggestMapping(data);
 
-  // Check for duplicates
-  let hasDuplicates = false;
+  // Create preview table
+  let html = `
+    <div class="preview-info">
+      <p>Map columns to the required fields below. At minimum, you need Date and either Income or Expenses.</p>
+    </div>
+    <div class="preview-table-container">
+      <table class="preview-table" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Column</th>
+          ${headerRow.map((_, i) => `<th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">${i + 1}</th>`).join('')}
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Header</td>
+          ${headerRow.map(header => `<td style="padding: 8px; border: 1px solid #ddd;">${header || "<em>empty</em>"}</td>`).join('')}
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Map To</td>
+          ${headerRow.map((_, i) => {
+    const selected = suggestedMapping && suggestedMapping[i] ? suggestedMapping[i] : "–";
+    return `
+              <td style="padding: 8px; border: 1px solid #ddd;">
+                <select class="header-map" data-column-index="${i}" style="width: 100%;">
+                  <option value="–" ${selected === "–" ? 'selected' : ''}>–</option>
+                  <option value="Date" ${selected === "Date" ? 'selected' : ''}>Date</option>
+                  <option value="Description" ${selected === "Description" ? 'selected' : ''}>Description</option>
+                  <option value="Income" ${selected === "Income" ? 'selected' : ''}>Income</option>
+                  <option value="Expenses" ${selected === "Expenses" ? 'selected' : ''}>Expenses</option>
+                </select>
+              </td>
+            `;
+  }).join('')}
+        </tr>
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Sample</td>
+          ${dataRow.map(cell => `<td style="padding: 8px; border: 1px solid #ddd;">${cell || "<em>empty</em>"}</td>`).join('')}
+        </tr>
+      </table>
+    </div>
+  `;
 
-  for (const [header, count] of Object.entries(headerCounts)) {
-    if (count > 1) {
-      // Mark all instances of this header with red border
-      AppState.currentSuggestedMapping.forEach((mapping, i) => {
-        if (mapping === header) {
-          const dropdown = document.querySelector(`.header-map[data-index="${i}"]`);
-          if (dropdown) {
-            dropdown.style.borderColor = "red";
-          }
-        }
+  container.innerHTML = html;
+
+  // Add event listeners to dropdowns
+  setTimeout(() => {
+    const selects = container.querySelectorAll('.header-map');
+    selects.forEach((select, index) => {
+      select.addEventListener('change', (e) => {
+        updateHeaderMapping(e.target, index);
       });
-      hasDuplicates = true;
-    }
-  }
-
-  // Enable/disable save button based on duplicates
-  const saveButton = document.getElementById("saveHeadersBtn");
-  if (saveButton) {
-    saveButton.disabled = hasDuplicates;
-    if (hasDuplicates) {
-      saveButton.title = "Please resolve duplicate header mappings";
-      showToast("Found duplicate header mappings. Please assign unique headers.", "warning");
-    }
-  }
+    });
+  }, 100);
 }
-
-// Helper functions
-function isDateHeader(headerText) {
-  const dateKeywords = ["date", "day", "time", "תאריך", "день"];
-  return dateKeywords.some(keyword => headerText.includes(keyword));
-}
-
-function isExpenseHeader(headerText) {
-  const expenseKeywords = ["expense", "debit", "cost", "payment", "out", "חובה", "gasto", "ausgabe"];
-  return expenseKeywords.some(keyword => headerText.includes(keyword));
-}
-
-function isIncomeHeader(headerText) {
-  const incomeKeywords = ["income", "credit", "deposit", "revenue", "in", "זכות", "ingreso", "einkommen"];
-  return incomeKeywords.some(keyword => headerText.includes(keyword));
-}
-
-function isDescriptionHeader(headerText) {
-  const descKeywords = ["desc", "note", "memo", "text", "detail", "תאור", "פרטים", "descrip"];
-  return descKeywords.some(keyword => headerText.includes(keyword));
-}
-
-function getSampleRows(data) {
-  // Skip header row (index 0) and take a few samples
-  const MAX_SAMPLES = 5;
-  const samples = [];
-
-  // Start from row 1 (skip header)
-  for (let i = 1; i < Math.min(data.length, MAX_SAMPLES + 1); i++) {
-    if (data[i] && data[i].length > 0) {
-      samples.push(data[i]);
-    }
-  }
-
-  // If we couldn't get samples (maybe there's only a header row),
-  // still return at least the header as a fallback
-  if (samples.length === 0 && data.length > 0) {
-    samples.push(data[0]);
-  }
-
-  return samples;
-}
-
-/**
- * Helper function to extract column values from sample rows
- * @param {Array<Array>} samples - Sample rows of data
- * @param {number} colIndex - Column index to extract
- * @returns {Array} Values from the specified column
- */
-function getColumnValues(samples, colIndex) {
-  if (!samples || !Array.isArray(samples)) return [];
-
-  const values = [];
-  for (const row of samples) {
-    if (Array.isArray(row) && colIndex < row.length && row[colIndex] !== undefined) {
-      values.push(row[colIndex]);
-    }
-  }
-  return values;
-}
-
-/**
- * Check if a column contains date values including Excel date numbers
- */
-function isDateColumn(values) {
-  // Check if column contains date-like values
-  let dateCount = 0;
-
-  for (const val of values) {
-    if (!val) continue;
-    const str = String(val).trim();
-
-    // Check for Excel date numbers (large numbers around 40000-45000)
-    const num = parseFloat(str);
-    if (!isNaN(num) && num > 35000 && num < 50000) {
-      dateCount++;
-      console.log(`Found potential Excel date: ${str}`);
-      continue;
-    }
-
-    // Check for various date formats (YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY etc.)
-    const hasDateSeparators = /[-/.]/g.test(str);
-    const matchesCommonDatePattern = /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$/.test(str);
-    const containsFourDigitYear = /\b\d{4}\b/.test(str);
-
-    if (matchesCommonDatePattern || (hasDateSeparators && containsFourDigitYear)) {
-      dateCount++;
-    }
-  }
-
-  // If most values look like dates, return true
-  return dateCount > values.length * 0.4;
-}
-
-function isMonetaryColumn(values) {
-  // Check if column contains numeric/currency values
-  const numericValues = values.filter(val => {
-    if (!val) return false;
-    const str = String(val).trim();
-
-    // Remove currency symbols and commas
-    const cleaned = str.replace(/[$,€£₪]/g, '');
-
-    // Check if it's a number
-    const num = parseFloat(cleaned);
-    return !isNaN(num);
-  });
-
-  // If most values are numeric, it's likely a monetary column
-  return numericValues.length > values.length * 0.5;
-}
-
-function classifyMonetaryColumn(values, state) {
-  // Count positive and negative values
-  let positives = 0, negatives = 0;
-
-  values.forEach(val => {
-    if (!val) return;
-    const str = String(val).trim();
-
-    // Remove currency symbols and commas
-    const cleaned = str.replace(/[$,€£₪]/g, '');
-
-    // Check if it's a number
-    const num = parseFloat(cleaned);
-    if (isNaN(num)) return;
-
-    if (num > 0 || (!num && !str.includes('-'))) positives++;
-    if (num < 0 || str.includes('-')) negatives++;
-  });
-
-  // If we haven't found income column yet and there are more positive values
-  if (!state.incomeColumnFound && positives >= negatives) {
-    state.incomeColumnFound = true;
-    return "Income";
-  } else {
-    state.expensesColumnFound = true;
-    return "Expenses";
-  }
-}
-
-/**
- * Specifically checks for Excel date numbers
- */
-function isExcelDateColumn(values) {
-  // Count Excel date-like values (numbers between 35000-50000)
-  let excelDateCount = 0;
-
-  for (const val of values) {
-    if (!val) continue;
-
-    // Check for numeric value
-    const num = parseFloat(String(val).trim());
-    if (!isNaN(num) && num >= 35000 && num <= 50000) {
-      excelDateCount++;
-    }
-  }
-
-  // If majority of values look like Excel dates, return true
-  return excelDateCount > values.length * 0.5;
-}
-
-/**
- * Improved check for description columns - text-heavy content
- */
-function isDescriptionColumn(values) {
-  // Check if column contains mostly text descriptions
-  const textValues = values.filter(val => {
-    if (!val) return false;
-    const str = String(val).trim();
-
-    // More aggressive checks for text content
-    // 1. Check for multiple words
-    const wordCount = str.split(/\s+/).length;
-    if (wordCount > 1) return true;
-
-    // 2. Check for text with letters (not just numbers)
-    const hasLetters = /[a-z]/i.test(str);
-    const hasSpecialChars = /[^\w\s]/i.test(str);
-    const isLongString = str.length > 6;
-
-    // 3. Not just a pure number
-    const isNotPureNumber = hasLetters || hasSpecialChars ||
-      isNaN(parseFloat(str)) || (!/^\d+([.,]\d+)?$/.test(str));
-
-    return (hasLetters && isNotPureNumber) || (isLongString && isNotPureNumber);
-  });
-
-  // If most values are text-like, it's likely a description column
-  return textValues.length > values.length * 0.4;
-}
-
-// Replaced nested ternary with clear function
-function getFileFormatNote(fileExt) {
-  if (fileExt === 'xml') {
-    return 'XML files may use the same row index for both header and data if each row contains field names.';
-  } else if (fileExt === 'xlsx' || fileExt === 'xls') {
-    return 'Excel files typically have headers in row 1 and data starting from row 2.';
-  } else {
-    return 'Make sure header row contains column names and data row contains actual transaction data.';
-  }
-}
-
-// Fix character class duplicates in regex around line 669
-// Change:
-// const regex = /[a-zA-Z0-9a-zA-Z]/;
-// To:
-const regex = /[a-zA-Z0-9]/; // No duplicate character ranges
-
-// Fix other regex with similar issues
-const currencyRegex = /[$€£¥₪]/ // No duplicates
-
-// Assuming there's a function that sets up the currency dropdown,
-// let's say it's part of createHeaderMappingUI or similar.
-// We need to find where the currency dropdown's event listener is added.
-// If it's in createHeaderMappingUI, it might look like this:
-
-// Example of where to modify if currency select is in createHeaderMappingUI
-// This is a conceptual change. The actual implementation depends on how createHeaderMappingUI is structured.
-
-// Search for where the currency dropdown (e.g., an element with id like 'fileCurrencySelect')
-// has its 'change' event listener attached.
-
-// Let's assume a function setupCurrencyChangeListener exists or is part of a larger UI setup function:
-export function setupCurrencyChangeListener(currencySelectElement, fileId) {
-  if (!currencySelectElement) return;
-
-  currencySelectElement.addEventListener('change', async (event) => {
-    const newCurrency = event.target.value;
-    if (AppState.mergedFiles && fileId) {
-      const file = AppState.mergedFiles.find(f => f.id === fileId || f.fileName === fileId); // Assuming fileId could be name or an actual ID
-      if (file) {
-        if (file.currency !== newCurrency) {
-          file.currency = newCurrency;
-          try {
-            const { saveMergedFiles } = await import('../core/appState.js');
-            saveMergedFiles(); // Save changes to AppState and localStorage
-
-            const { showToast } = await import('./uiManager.js');
-            showToast(`Currency for ${file.fileName} updated to ${newCurrency}. Transactions will update.`, "info");
-
-            // Optionally, reprocess or update transactions if currency change affects display immediately
-            const { updateTransactions } = await import('./transactionManager.js');
-            updateTransactions(); // This will re-process and re-render
-          } catch (error) {
-            console.error("Error auto-saving currency:", error);
-            const { showToast } = await import('./uiManager.js');
-            showToast(`Error saving currency change for ${file.fileName}.`, "error");
-          }
-        }
-      } else {
-        console.warn(`File with ID/name ${fileId} not found for currency update.`);
-      }
-    }
-  });
-}
-
-// You would call setupCurrencyChangeListener(document.getElementById('yourCurrencyDropdownId'), currentFile.id)
-// when the header mapping UI is created for a specific file.
-// The 'saveHeadersBtn' would still be responsible for saving the header column mappings themselves.

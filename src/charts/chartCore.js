@@ -4,6 +4,7 @@
 
 // Global chart instances to prevent memory leaks
 const chartInstances = new Map();
+const registeredCharts = new Map(); // Add this missing declaration
 
 /**
  * Default chart configuration with fixed dimensions
@@ -68,67 +69,73 @@ export const defaultChartConfig = {
  * @returns {Chart} The created chart instance
  */
 export function createChart(canvas, type, data, options = {}) {
-  if (!canvas) {
-    console.error("Cannot create chart: canvas element not found");
-    return null;
-  }
-
-  // CRITICAL: Set fixed canvas dimensions to prevent expansion
-  const container = canvas.parentElement;
-  if (container) {
-    // Set container dimensions explicitly
-    container.style.width = '100%';
-    container.style.height = '400px'; // Fixed height
-    container.style.maxWidth = '100%';
-    container.style.maxHeight = '400px';
-    container.style.overflow = 'hidden'; // Prevent overflow
-
-    // Set canvas dimensions
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.maxWidth = '100%';
-    canvas.style.maxHeight = '100%';
-
-    // Set actual canvas size attributes
-    canvas.width = container.clientWidth || 800;
-    canvas.height = 400;
-  }
-
-  // Destroy existing chart if it exists
-  destroyChart(canvas.id);
-
-  // Merge options with defaults
-  const finalOptions = {
-    ...defaultChartConfig,
-    ...options,
-    // CRITICAL: Override responsive settings to prevent infinite expansion
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      ...defaultChartConfig.plugins,
-      ...options.plugins
-    }
-  };
-
   try {
-    const chart = new Chart(canvas.getContext('2d'), {
-      type,
-      data: data || getEmptyChartData(type),
-      options: finalOptions
+    if (!canvas) {
+      console.error("Canvas element is required for chart creation");
+      return null;
+    }
+
+    const canvasId = canvas.id || `chart-${Date.now()}`;
+    console.log(`Creating chart: ${canvasId} (${type})`);
+
+    // Destroy existing chart if it exists
+    destroyChart(canvasId);
+
+    // Create new chart
+    const chart = new Chart(canvas, {
+      type: type,
+      data: data,
+      options: { ...defaultChartConfig, ...options }
     });
 
-    // Store chart instance for cleanup
-    chartInstances.set(canvas.id, chart);
+    // Register the chart
+    registeredCharts.set(canvasId, chart);
+    console.log(`Chart registered: ${canvasId}`);
 
-    // CRITICAL: Add resize observer with debouncing to prevent infinite loops
-    addResizeHandler(canvas, chart);
-
-    console.log(`Chart created: ${canvas.id} (${type})`);
     return chart;
   } catch (error) {
-    console.error(`Error creating chart ${canvas.id}:`, error);
+    console.error("Error creating chart:", error);
     return null;
   }
+}
+
+/**
+ * Global resize handler with error protection
+ */
+function setupGlobalResizeHandler() {
+  let resizeTimeout;
+
+  const handleResize = () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      try {
+        registeredCharts.forEach((chartInstance, canvasId) => {
+          // Check if chart and canvas still exist in DOM
+          if (chartInstance && chartInstance.canvas && chartInstance.canvas.ownerDocument) {
+            const canvas = document.getElementById(canvasId);
+            if (canvas && canvas.isConnected) {
+              chartInstance.resize();
+            } else {
+              // Chart canvas is no longer in DOM, clean it up
+              console.log(`Cleaning up disconnected chart: ${canvasId}`);
+              destroyChart(canvasId);
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Error in resize handler:", error);
+        // Don't let resize errors break the app
+      }
+    }, 150);
+  };
+
+  window.addEventListener('resize', handleResize);
+
+  // Return cleanup function
+  return () => {
+    clearTimeout(resizeTimeout);
+    window.removeEventListener('resize', handleResize);
+  };
 }
 
 /**
@@ -136,16 +143,24 @@ export function createChart(canvas, type, data, options = {}) {
  * @param {string} canvasId - The canvas ID
  */
 export function destroyChart(canvasId) {
-  const existingChart = chartInstances.get(canvasId);
-  if (existingChart) {
+  const chartInstance = registeredCharts.get(canvasId);
+
+  if (chartInstance) {
     try {
-      existingChart.destroy();
-      chartInstances.delete(canvasId);
+      // Check if chart is still valid before destroying
+      if (chartInstance.canvas && chartInstance.canvas.ownerDocument) {
+        chartInstance.destroy();
+      }
+      registeredCharts.delete(canvasId);
       console.log(`Chart destroyed: ${canvasId}`);
     } catch (error) {
       console.error(`Error destroying chart ${canvasId}:`, error);
+      // Force removal from registry even if destroy fails
+      registeredCharts.delete(canvasId);
     }
   }
+
+  return null;
 }
 
 /**
@@ -236,7 +251,7 @@ function addResizeHandler(canvas, chart) {
  * @param {Object} newData - New chart data
  */
 export function updateChartData(canvasId, newData) {
-  const chart = chartInstances.get(canvasId);
+  const chart = registeredCharts.get(canvasId);
   if (!chart) {
     console.warn(`Chart not found: ${canvasId}`);
     return;
@@ -260,9 +275,9 @@ export function updateChartData(canvasId, newData) {
  * Cleanup all charts and observers
  */
 export function cleanupAllCharts() {
-  console.log(`Cleaning up ${chartInstances.size} chart instances`);
+  console.log(`Cleaning up ${registeredCharts.size} chart instances`);
 
-  chartInstances.forEach((chart, id) => {
+  registeredCharts.forEach((chart, id) => {
     try {
       // Cleanup resize observer
       const canvas = document.getElementById(id);
@@ -278,7 +293,7 @@ export function cleanupAllCharts() {
     }
   });
 
-  chartInstances.clear();
+  registeredCharts.clear();
 }
 
 /**
@@ -369,3 +384,32 @@ export function getCategoryColors(categories, categoryColors = {}, isDarkMode = 
     return getChartColor(index, isDarkMode);
   });
 }
+
+/**
+ * Handle window resize events and trigger chart resizes
+ */
+let resizeTimeout;
+function handleResize() {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    try {
+      registeredCharts.forEach((chart, canvasId) => {
+        // Check if chart and its canvas still exist in DOM
+        if (!chart || !chart.canvas || !chart.canvas.ownerDocument) {
+          console.warn(`Chart ${canvasId} canvas no longer in DOM, removing from tracking`);
+          registeredCharts.delete(canvasId);
+          return;
+        }
+
+        if (typeof chart.resize === 'function') {
+          chart.resize();
+        }
+      });
+    } catch (error) {
+      console.error("Error in resize handler:", error);
+    }
+  }, 100);
+}
+
+// Attach resize handler to window resize events
+window.addEventListener('resize', handleResize);

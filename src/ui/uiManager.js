@@ -1,22 +1,23 @@
 // Directory: /src/ui/uiManager.js
+import { AppState } from '../core/appState.js';
 
 let activeToast = null;
 
 export function showElement(id) {
   const el = document.getElementById(id);
-  if (!el) return console.error(`Element #${id} not found.`);
+  if (!el) return;
   el.style.display = 'block';
 }
 
 export function hideElement(id) {
   const el = document.getElementById(id);
-  if (!el) return console.error(`Element #${id} not found.`);
+  if (!el) return;
   el.style.display = 'none';
 }
 
 export function clearElement(id) {
   const el = document.getElementById(id);
-  if (!el) return console.error(`Element #${id} not found.`);
+  if (!el) return;
   el.innerHTML = '';
 }
 
@@ -24,61 +25,87 @@ export function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
   const isDarkMode = document.body.classList.contains("dark-mode");
   localStorage.setItem("darkMode", isDarkMode);
+
+  // Update the toggle icon state
+  updateDarkModeToggle(isDarkMode);
+
   showToast(`Dark mode ${isDarkMode ? "enabled" : "disabled"}`, "info");
 }
 
 /**
- * Shows a simple toast notification at the top of the screen
- * @param {string} message - The message to display
- * @param {string} type - The type of toast (success, error, warning, info)
- * @param {number} duration - How long to show the toast (in milliseconds)
+ * Updates the dark mode toggle icon state
+ * @param {boolean} isDarkMode - Whether dark mode is enabled
  */
-export function showToast(message, type = "info", duration = 2000) {
-  // Get or create toast container
-  let container = document.getElementById("toastContainer");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "toastContainer";
-    container.className = "toast-container";
-    document.body.appendChild(container);
-  }
-
-  // Create simple toast element
-  const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-
-  // Add to container
-  container.appendChild(toast);
-
-  // Auto-remove after duration
-  setTimeout(() => {
-    removeToast(toast);
-  }, duration);
-
-  // Limit number of toasts (keep only 2 most recent)
-  const toasts = container.querySelectorAll('.toast');
-  if (toasts.length > 2) {
-    removeToast(toasts[0]);
+function updateDarkModeToggle(isDarkMode) {
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  if (darkModeToggle) {
+    const icon = darkModeToggle.querySelector('.toggle-icon');
+    if (icon) {
+      icon.textContent = isDarkMode ? '🌙' : '☀️';
+    }
+    darkModeToggle.classList.toggle('active', isDarkMode);
   }
 }
 
 /**
+ * Shows a simple toast notification at the top of the screen
+ */
+export function showToast(message, type = 'info', duration = 3000) {
+  try {
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+      <span class="toast-message">${message}</span>
+      <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.remove();
+      }
+    }, duration);
+
+  } catch (error) {
+    console.error('Error showing toast:', error);
+    // Fallback to console log
+    console.log(`Toast ${type}: ${message}`);
+  }
+}
+
+/**
+ * Creates toast container if it doesn't exist
+ */
+function createToastContainer() {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
+/**
  * Removes a toast with animation
- * @param {HTMLElement} toast - Toast element to remove
  */
 function removeToast(toast) {
-  if (!toast || !toast.parentNode) return;
+  if (!toast || !document.body.contains(toast)) return;
 
-  // Add removing class for exit animation
-  toast.classList.add('removing');
-
-  // Remove after animation completes
+  toast.style.transform = 'translateX(400px)';
   setTimeout(() => {
-    if (toast.parentNode) {
-      toast.parentNode.removeChild(toast);
+    if (document.body.contains(toast)) {
+      document.body.removeChild(toast);
     }
-  }, 200);
+    if (activeToast === toast) {
+      activeToast = null;
+    }
+  }, 300);
 }
 
 export function handleError(error, userMessage = "An error occurred.") {
@@ -87,56 +114,54 @@ export function handleError(error, userMessage = "An error occurred.") {
 }
 
 export function initializeDragAndDrop(onFileUpload) {
-  const dropZone = document.getElementById("fileUploadSection");
-  if (!dropZone) return;
+  const dropZone = document.body;
 
-  dropZone.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    dropZone.style.backgroundColor = "#f0f0f0";
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   });
 
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.style.backgroundColor = "white"; // Or initial color
-  });
-
-  dropZone.addEventListener("drop", (event) => {
-    event.preventDefault();
-    dropZone.style.backgroundColor = "white"; // Or initial color
-
-    const files = event.dataTransfer.files;
-    if (files && files.length > 0) {
-      // Pass the FileList directly to onFileUpload
-      onFileUpload({ target: { files: files } });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && onFileUpload) {
+      onFileUpload({ target: { files } });
     }
   });
 }
 
-// Add these functions to show loading states
-
-
-
 /**
  * Updates UI elements based on debug mode state
- * @param {boolean} isDebugMode - Whether debug mode is enabled
  */
 export function updateDebugModeUI(isDebugMode) {
-  const debugTools = document.querySelectorAll('.debug-tools');
-
-  debugTools.forEach(tool => {
-    tool.style.display = isDebugMode ? 'inline-block' : 'none';
+  const debugActions = document.querySelectorAll('.debug-action');
+  debugActions.forEach(action => {
+    action.style.display = isDebugMode ? 'flex' : 'none';
   });
 
   // Save the debug mode state
   localStorage.setItem('debugMode', isDebugMode);
 
-  // Toggle debug class on body
-  document.body.classList.toggle('debug-mode', isDebugMode);
+  // Update the toggle icon state
+  updateDebugModeToggle(isDebugMode);
+}
 
-  // Show/hide chart controls based on debug mode
-  const chartControls = document.querySelectorAll('.chart-controls');
-  chartControls.forEach(control => {
-    control.style.display = isDebugMode ? 'inline-block' : 'none';
-  });
+/**
+ * Updates the debug mode toggle icon state
+ */
+function updateDebugModeToggle(isDebugMode) {
+  const debugToggle = document.getElementById('debugToggle');
+  if (debugToggle) {
+    const icon = debugToggle.querySelector('.toggle-icon');
+    if (icon) {
+      icon.textContent = isDebugMode ? '🐛' : '🔧';
+    }
+    debugToggle.classList.toggle('active', isDebugMode);
+  }
+
+  // Update debug mode UI elements
+  document.body.classList.toggle('debug-mode', isDebugMode);
+  localStorage.setItem('debugMode', isDebugMode);
 
   console.log(`Debug mode ${isDebugMode ? 'enabled' : 'disabled'}`);
 }
@@ -145,343 +170,290 @@ export function updateDebugModeUI(isDebugMode) {
  * Initialize all UI components
  */
 export function initializeUI() {
-  console.log("Initializing UI components...");
+  console.log('Initializing UI components...');
 
-  // Initialize sidebar controls first
-  initializeSidebarControls();
+  try {
+    // Set up sidebar functionality
+    setupSidebar();
 
-  // Initialize other UI components
-  initializeTooltips();
-  initializeResponsiveFeatures();
+    // Set up all UI event listeners
+    setupUIEventListeners();
 
-  console.log("UI components initialized");
+    // Initialize dark mode from localStorage
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    }
+    updateDarkModeToggle(savedDarkMode);
+
+    // Initialize debug mode from localStorage
+    const savedDebugMode = localStorage.getItem('debugMode') === 'true';
+    updateDebugModeUI(savedDebugMode);
+
+    // Initialize dark mode toggle functionality
+    initializeDarkModeToggle();
+
+    // Initialize debug action buttons
+    initializeDebugActionButtons();
+
+    console.log('UI components initialized successfully');
+  } catch (error) {
+    console.error('Error initializing UI components:', error);
+  }
 }
-
 
 /**
  * Shows a loading indicator on an element
- * @param {string} elementId - ID of element to show loading on
- * @param {string} message - Optional loading message
  */
 export function showLoading(elementId, message = 'Loading...') {
   const element = document.getElementById(elementId);
   if (!element) return;
 
-  // Store original content
-  element.dataset.originalContent = element.innerHTML;
+  const originalContent = element.innerHTML;
+  element.dataset.originalContent = originalContent;
 
-  // Create loading indicator
-  const loadingHtml = `
-    <div class="loading-container">
-      <div class="loading-spinner"></div>
-      <div class="loading-message">${message}</div>
+  element.innerHTML = `
+    <div class="loading-indicator">
+      <div class="spinner"></div>
+      <span>${message}</span>
     </div>
   `;
-
-  element.innerHTML = loadingHtml;
 }
 
 /**
  * Hides the loading indicator and restores original content
- * @param {string} elementId - ID of element with loading indicator
  */
 export function hideLoading(elementId) {
   const element = document.getElementById(elementId);
   if (!element) return;
 
-  // Restore original content if available
-  if (element.dataset.originalContent) {
-    element.innerHTML = element.dataset.originalContent;
+  const originalContent = element.dataset.originalContent;
+  if (originalContent) {
+    element.innerHTML = originalContent;
     delete element.dataset.originalContent;
   }
 }
 
 /**
  * Shows a loading overlay for the entire page
- * @param {string} message - Loading message to display
- * @returns {Object} Object with a close() method to hide the overlay
  */
 export function showPageLoadingOverlay(message = 'Loading...') {
-  // Create overlay element
   const overlay = document.createElement('div');
   overlay.className = 'page-loading-overlay';
-  Object.assign(overlay.style, {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 9999,
-    flexDirection: 'column'
-  });
-
-  // Add spinner and message
   overlay.innerHTML = `
-    <div class="loading-spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3;
-      border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-    <div style="color: white; margin-top: 15px; font-weight: bold;">${message}</div>
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <p>${message}</p>
+    </div>
   `;
 
-  // Add keyframe animation for spinner
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Add to document
   document.body.appendChild(overlay);
 
-  // Return object with close method
   return {
-    close: function () {
-      document.body.removeChild(overlay);
-    },
-    updateMessage: function (newMessage) {
-      overlay.querySelector('div:nth-child(2)').textContent = newMessage;
+    close: () => {
+      if (document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
     }
   };
 }
 
-
 export function updateCurrencyFilters() {
-  const chartCurrencySelect = document.getElementById('chartCurrencySelect');
-  if (!chartCurrencySelect) return;
+  // Update currency filters based on current transactions
+  const currencyFilter = document.getElementById('currencyFilter');
+  if (!currencyFilter) return;
 
-  // Clear existing options except "All Currencies"
-  const firstOption = chartCurrencySelect.querySelector('option[value="all"]');
-  chartCurrencySelect.innerHTML = '';
-
-  if (firstOption) {
-    chartCurrencySelect.appendChild(firstOption);
-  } else {
-    const allOption = document.createElement('option');
-    allOption.value = 'all';
-    allOption.textContent = 'All Currencies';
-    chartCurrencySelect.appendChild(allOption);
-  }
-
-  // Get unique currencies from transactions
+  const transactions = AppState.transactions || [];
   const currencies = new Set();
-  if (AppState.transactions) {
-    AppState.transactions.forEach(tx => {
-      if (tx.currency) {
-        currencies.add(tx.currency);
-      }
-    });
+
+  transactions.forEach(tx => {
+    if (tx.currency) {
+      currencies.add(tx.currency);
+    }
+  });
+
+  // Clear existing options except "All"
+  const allOption = currencyFilter.querySelector('option[value=""]');
+  currencyFilter.innerHTML = '';
+  if (allOption) {
+    currencyFilter.appendChild(allOption);
+  } else {
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'All Currencies';
+    currencyFilter.appendChild(defaultOption);
   }
 
   // Add currency options
-  currencies.forEach(currency => {
+  Array.from(currencies).sort().forEach(currency => {
     const option = document.createElement('option');
-    option.value = currency; // Fixed: This line was causing the error
+    option.value = currency;
     option.textContent = currency;
-    chartCurrencySelect.appendChild(option);
+    currencyFilter.appendChild(option);
   });
 }
 
 /**
- * Initialize sidebar controls and toggle functionality
+ * Set up sidebar functionality
  */
-function initializeSidebarControls() {
-  console.log("Initializing sidebar controls...");
-
-  // Menu button to open sidebar
-  const menuBtn = document.getElementById('menuBtn');
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-  const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-
-  if (menuBtn && sidebar && overlay) {
-    // Clean up any existing listeners
-    const newMenuBtn = menuBtn.cloneNode(true);
-    menuBtn.parentNode.replaceChild(newMenuBtn, menuBtn);
-
-    newMenuBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("Menu button clicked - opening sidebar");
-      openSidebar();
-    });
-  }
-
-  if (closeSidebarBtn) {
-    const newCloseBtn = closeSidebarBtn.cloneNode(true);
-    closeSidebarBtn.parentNode.replaceChild(newCloseBtn, closeSidebarBtn);
-
-    newCloseBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("Close button clicked - closing sidebar");
-      closeSidebar();
-    });
-  }
-
-  if (overlay) {
-    const newOverlay = overlay.cloneNode(true);
-    overlay.parentNode.replaceChild(newOverlay, overlay);
-
-    newOverlay.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("Overlay clicked - closing sidebar");
-      closeSidebar();
-    });
-  }
-
-  console.log("Sidebar controls initialized");
-}
-
-/**
- * Open the sidebar
- */
-function openSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-
-  if (sidebar && overlay) {
-    sidebar.classList.add('open');
-    overlay.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Prevent body scrolling
-    console.log("Sidebar opened");
-  }
-}
-
-/**
- * Close the sidebar
- */
-function closeSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-
-  if (sidebar && overlay) {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
-    document.body.style.overflow = ''; // Restore body scrolling
-    console.log("Sidebar closed");
-  }
-}
-
-/**
- * Initialize tooltips for UI elements
- */
-function initializeTooltips() {
-  // Add tooltips to buttons and interactive elements
-  const elementsWithTitles = document.querySelectorAll('[title]');
-
-  elementsWithTitles.forEach(element => {
-    // Simple tooltip functionality - browser native titles work fine
-    // Could be enhanced with custom tooltip library later
-    element.addEventListener('mouseenter', function () {
-      // Optional: Add custom tooltip styling or behavior
-    });
-  });
-
-  console.log(`Initialized tooltips for ${elementsWithTitles.length} elements`);
-}
-
-/**
- * Initialize responsive features for mobile/tablet support
- */
-function initializeResponsiveFeatures() {
-  // Handle responsive table scrolling
-  initializeResponsiveTables();
-
-  // Handle responsive modal sizing
-  initializeResponsiveModals();
-
-  // Handle responsive chart containers
-  initializeResponsiveCharts();
-
-  console.log("Responsive features initialized");
-}
-
-/**
- * Make tables responsive on smaller screens
- */
-function initializeResponsiveTables() {
-  const tables = document.querySelectorAll('.transactions-table, .preview-table');
-
-  tables.forEach(table => {
-    // Wrap tables in scrollable containers if not already wrapped
-    if (!table.closest('.table-responsive')) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'table-responsive';
-      wrapper.style.overflowX = 'auto';
-      wrapper.style.marginBottom = '20px';
-
-      table.parentNode.insertBefore(wrapper, table);
-      wrapper.appendChild(table);
+function setupSidebar() {
+  // Import and initialize sidebar manager
+  import('./sidebarManager.js').then(module => {
+    if (module.setupSidebarManager) {
+      module.setupSidebarManager();
     }
+  }).catch(error => {
+    console.error('Error loading sidebar manager:', error);
   });
 }
 
 /**
- * Initialize responsive modal behavior
+ * Set up all UI event listeners
  */
-function initializeResponsiveModals() {
-  // Listen for window resize to adjust modal sizes
-  window.addEventListener('resize', () => {
-    const modals = document.querySelectorAll('.modal-content');
-    modals.forEach(modal => {
-      // Adjust modal width for small screens
-      if (window.innerWidth < 768) {
-        modal.style.width = '95%';
-        modal.style.maxWidth = '95%';
-      } else {
-        // Reset to original sizing
-        modal.style.width = '';
-        modal.style.maxWidth = '';
+function setupUIEventListeners() {
+  // Set up hamburger menu
+  const hamburgerMenu = document.getElementById('hamburgerMenu');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+  if (hamburgerMenu && sidebar) {
+    hamburgerMenu.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      if (sidebarOverlay) {
+        sidebarOverlay.classList.toggle('active');
       }
     });
-  });
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('active');
+    });
+  }
+
+  console.log('UI event listeners set up');
+}
+
+
+/**
+ * Initialize theme based on saved preferences
+ */
+function initializeTheme() {
+  const isDarkMode = localStorage.getItem('darkMode') === 'true';
+  document.body.classList.toggle('dark-mode', isDarkMode);
+
+  // Update toggle state if it exists
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  if (darkModeToggle) {
+    darkModeToggle.checked = isDarkMode;
+  }
+}
+
+
+/**
+ * Hide element utility (overloaded to accept element object or id string)
+ */
+export function hideElementByObject(element) {
+  if (element) {
+    element.style.display = 'none';
+  }
 }
 
 /**
- * Initialize responsive chart containers
+ * Show element utility (overloaded to accept element object or id string)
  */
-function initializeResponsiveCharts() {
-  // Ensure chart containers are responsive
-  const chartContainers = document.querySelectorAll('.chart-wrapper, .charts-container');
+export function showElementByObject(element) {
+  if (element) {
+    element.style.display = 'block';
+  }
+}
 
-  chartContainers.forEach(container => {
-    // Add responsive classes if not present
-    if (!container.classList.contains('responsive-chart')) {
-      container.classList.add('responsive-chart');
-    }
-  });
-
-  // Handle chart resize on window resize
-  window.addEventListener('resize', debounce(() => {
-    // Trigger chart resize if Chart.js is available
-    if (window.Chart && window.Chart.instances) {
-      Object.values(window.Chart.instances).forEach(chart => {
-        if (chart && typeof chart.resize === 'function') {
-          chart.resize();
+/**
+ * Initialize debug action buttons
+ */
+function initializeDebugActionButtons() {
+  const clearDataBtn = document.getElementById('clearDataBtn');
+  if (clearDataBtn) {
+    clearDataBtn.addEventListener('click', () => {
+      if (confirm('This will clear all your data. Are you sure?')) {
+        try {
+          localStorage.clear();
+          location.reload();
+        } catch (error) {
+          console.error('Error clearing data:', error);
+          showToast('Error clearing data', 'error');
         }
-      });
-    }
-  }, 250));
+      }
+    });
+  }
+
+  const exportDebugBtn = document.getElementById('exportDebugBtn');
+  if (exportDebugBtn) {
+    exportDebugBtn.addEventListener('click', () => {
+      try {
+        const debugData = {
+          localStorage: { ...localStorage },
+          appState: window.AppState || {},
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        };
+
+        const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `expense-tracker-debug-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showToast('Debug data exported', 'success');
+      } catch (error) {
+        console.error('Error exporting debug data:', error);
+        showToast('Error exporting debug data', 'error');
+      }
+    });
+  }
 }
 
 /**
- * Debounce utility function for resize events
+ * Initialize dark mode toggle functionality
  */
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
+function initializeDarkModeToggle() {
+  const darkModeToggle = document.getElementById('darkModeToggle');
+
+  if (!darkModeToggle) {
+    console.warn("Dark mode toggle not found");
+    return;
+  }
+
+  // Set initial state
+  const isDarkMode = localStorage.getItem('darkMode') === 'true';
+  darkModeToggle.checked = isDarkMode;
+  document.body.classList.toggle('dark-mode', isDarkMode);
+
+  // Add event listener
+  darkModeToggle.addEventListener('change', (e) => {
+    const isEnabled = e.target.checked;
+    document.body.classList.toggle('dark-mode', isEnabled);
+    localStorage.setItem('darkMode', isEnabled.toString());
+
+    // Show toast notification
+    showToast(`Dark mode ${isEnabled ? 'enabled' : 'disabled'}`, 'info');
+  });
+
+  console.log("Dark mode toggle initialized successfully");
+}
+
+/**
+ * Toggle debug mode
+ */
+function toggleDebugMode() {
+  const currentDebugMode = localStorage.getItem('debugMode') === 'true';
+  const newDebugMode = !currentDebugMode;
+
+  updateDebugModeUI(newDebugMode);
+  showToast(`Debug mode ${newDebugMode ? "enabled" : "disabled"}`, "info");
+
+  console.log(`Debug mode toggled: ${newDebugMode}`);
 }

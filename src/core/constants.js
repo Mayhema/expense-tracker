@@ -1,4 +1,39 @@
 /**
+ * Currency definitions
+ */
+export const CURRENCIES = {
+  USD: { name: "US Dollar", symbol: "$" },
+  EUR: { name: "Euro", symbol: "€" },
+  GBP: { name: "British Pound", symbol: "£" },
+  JPY: { name: "Japanese Yen", symbol: "¥" },
+  CAD: { name: "Canadian Dollar", symbol: "C$" },
+  AUD: { name: "Australian Dollar", symbol: "A$" },
+  CHF: { name: "Swiss Franc", symbol: "CHF" },
+  CNY: { name: "Chinese Yuan", symbol: "¥" },
+  INR: { name: "Indian Rupee", symbol: "₹" },
+  KRW: { name: "South Korean Won", symbol: "₩" },
+  BRL: { name: "Brazilian Real", symbol: "R$" },
+  RUB: { name: "Russian Ruble", symbol: "₽" },
+  MXN: { name: "Mexican Peso", symbol: "$" },
+  ZAR: { name: "South African Rand", symbol: "R" },
+  SGD: { name: "Singapore Dollar", symbol: "S$" },
+  HKD: { name: "Hong Kong Dollar", symbol: "HK$" },
+  NOK: { name: "Norwegian Krone", symbol: "kr" },
+  SEK: { name: "Swedish Krona", symbol: "kr" },
+  DKK: { name: "Danish Krone", symbol: "kr" },
+  PLN: { name: "Polish Zloty", symbol: "zł" },
+  ILS: { name: "Israeli Shekel", symbol: "₪" },
+  TRY: { name: "Turkish Lira", symbol: "₺" },
+  AED: { name: "UAE Dirham", symbol: "د.إ" },
+  SAR: { name: "Saudi Riyal", symbol: "﷼" }
+};
+
+/**
+ * Default currency
+ */
+export const DEFAULT_CURRENCY = "USD";
+
+/**
  * Header mapping options for file import
  */
 export const HEADERS = [
@@ -13,16 +48,16 @@ export const HEADERS = [
  * Default expense categories with colors
  */
 export const DEFAULT_CATEGORIES = {
-  "Food": "#4CAF50",
-  "Transportation": "#2196F3",
-  "Entertainment": "#FF9800",
-  "Shopping": "#E91E63",
-  "Bills": "#F44336",
-  "Healthcare": "#9C27B0",
-  "Education": "#607D8B",
-  "Travel": "#00BCD4",
-  "Savings": "#4CAF50"
-  // "Other" completely removed - uncategorized transactions will be handled separately
+  "Food & Dining": "#ff6b35",
+  "Transportation": "#4ecdc4",
+  "Shopping": "#45b7d1",
+  "Entertainment": "#96ceb4",
+  "Bills & Utilities": "#feca57",
+  "Healthcare": "#ff9ff3",
+  "Education": "#54a0ff",
+  "Travel": "#5f27cd",
+  "Income": "#00d2d3",
+  "Other": "#ddd"
 };
 
 /**
@@ -31,60 +66,46 @@ export const DEFAULT_CATEGORIES = {
 export const SUPPORTED_FILE_TYPES = ['.csv', '.xlsx', '.xls', '.xml'];
 
 /**
- * Chart configuration constants
+ * Maximum file size (5MB)
  */
-export const CHART_COLORS = {
-  income: '#4CAF50',
-  expenses: '#F44336',
-  primary: '#2196F3',
-  secondary: '#FF9800',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  error: '#F44336',
-  info: '#2196F3'
+export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+/**
+ * Date format patterns
+ */
+export const DATE_PATTERNS = [
+  /^\d{4}-\d{2}-\d{2}$/,      // YYYY-MM-DD
+  /^\d{2}\/\d{2}\/\d{4}$/,    // DD/MM/YYYY or MM/DD/YYYY
+  /^\d{1,2}\/\d{1,2}\/\d{4}$/, // D/M/YYYY or M/D/YYYY
+  /^\d{2}-\d{2}-\d{4}$/,      // DD-MM-YYYY or MM-DD-YYYY
+  /^\d{1,2}-\d{1,2}-\d{4}$/   // D-M-YYYY or M-D-YYYY
+];
+
+/**
+ * Excel date range (common business dates)
+ */
+export const EXCEL_DATE_RANGE = {
+  MIN: 1,      // 1900-01-01
+  MAX: 100000, // ~2173
+  BUSINESS_MIN: 35000, // ~1995
+  BUSINESS_MAX: 50000  // ~2037
 };
 
 /**
- * Date format constants
+ * Application metadata
  */
-export const DATE_FORMATS = {
-  ISO: 'YYYY-MM-DD',
-  US: 'MM/DD/YYYY',
-  EU: 'DD/MM/YYYY',
-  DISPLAY: 'DD/MM/YYYY'
-};
+export const APP_VERSION = "1.0.0";
+export const APP_NAME = "Personal Expense Tracker";
 
 /**
- * Application settings
- */
-export const APP_SETTINGS = {
-  maxFileSize: 10 * 1024 * 1024, // 10MB
-  maxTransactions: 50000,
-  defaultCurrency: 'USD',
-  dateFormat: DATE_FORMATS.DISPLAY,
-  autoSave: true,
-  debugMode: false
-};
-
-/**
- * Local storage keys
+ * Storage keys
  */
 export const STORAGE_KEYS = {
-  transactions: 'transactions',
-  categories: 'expenseCategories',
-  mergedFiles: 'mergedFiles',
-  mappings: 'fileFormatMappings',
-  settings: 'appSettings',
-  darkMode: 'darkMode',
-  debugMode: 'debugMode'
-};
-
-/**
- * Export constants for validation
- */
-export const VALIDATION = {
-  minDate: new Date('1900-01-01'),
-  maxDate: new Date('2100-12-31'),
-  maxDescriptionLength: 500,
-  maxCategoryLength: 100
+  TRANSACTIONS: 'expenseTrackerTransactions',
+  MERGED_FILES: 'expenseTrackerMergedFiles',
+  CATEGORIES: 'expenseTrackerCategories',
+  CATEGORY_ORDER: 'categoryOrder',
+  DARK_MODE: 'darkMode',
+  DEBUG_MODE: 'debugMode',
+  USER_PREFERENCES: 'userPreferences'
 };

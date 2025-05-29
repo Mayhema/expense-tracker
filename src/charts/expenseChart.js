@@ -7,6 +7,21 @@ let showSubcategories = false;
 // Store chart instance
 let expenseCategoryChart = null;
 
+// Define chart colors at module level
+const CHART_COLORS = [
+  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+  '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+  '#4BC0C0', '#FF6384', '#36A2EB', '#FFCE56'
+];
+
+function getChartColors(count) {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    colors.push(CHART_COLORS[i % CHART_COLORS.length]);
+  }
+  return colors;
+}
+
 /**
  * Groups transactions by category or subcategory
  * @param {Array} transactions - The transactions to process
@@ -392,49 +407,59 @@ export function destroyExpenseChart() {
 }
 
 /**
- * Create expense category chart using the new registration system
+ * Creates the expense category chart
  */
-export function createExpenseCategoryChart(transactions, createChartFn) {
+export async function createExpenseCategoryChart() {
+  console.log('Creating expense category chart...');
+
   try {
-    console.log("Creating expense category chart...");
+    // Dynamic import Chart.js
+    const ChartJS = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js');
+    const Chart = ChartJS.default || ChartJS.Chart;
 
-    if (!transactions || transactions.length === 0) {
+    if (!Chart) {
+      throw new Error('Chart.js failed to load');
+    }
+
+    const canvas = document.getElementById('expenseCategoryChart');
+    if (!canvas) {
+      console.warn('Expense category chart canvas not found');
       return null;
     }
 
-    const categoryTotals = calculateCategoryTotals(transactions);
-    const colors = getChartColors(document.body.classList.contains('dark-mode'));
+    // Destroy existing chart
+    if (window.expenseCategoryChartInstance) {
+      window.expenseCategoryChartInstance.destroy();
+    }
 
-    if (Object.keys(categoryTotals).length === 0) {
+    // Get chart data
+    const data = getExpenseCategoryData();
+
+    if (!data || data.labels.length === 0) {
+      showNoDataMessage(canvas);
       return null;
     }
 
-    const labels = Object.keys(categoryTotals);
-    const data = Object.values(categoryTotals);
-
-    const config = {
+    // Create the chart
+    const chartInstance = new Chart(canvas, {
       type: 'pie',
       data: {
-        labels: labels,
+        labels: data.labels,
         datasets: [{
-          data: data,
-          backgroundColor: colors.categories.slice(0, labels.length),
+          data: data.values,
+          backgroundColor: getChartColors(data.labels.length),
           borderWidth: 2,
-          borderColor: colors.background
+          borderColor: '#fff'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false
-        },
         plugins: {
           legend: {
-            position: 'right',
+            position: 'bottom',
             labels: {
-              color: colors.text,
-              padding: 15,
+              padding: 20,
               usePointStyle: true
             }
           },
@@ -442,31 +467,26 @@ export function createExpenseCategoryChart(transactions, createChartFn) {
             callbacks: {
               label: function (context) {
                 const value = context.parsed;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const total = data.values.reduce((sum, val) => sum + val, 0);
                 const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                return `${context.label}: ${value.toFixed(2)} (${percentage}%)`;
+                return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
               }
             }
           }
         }
       }
-    };
+    });
 
-    return createChartFn('expenseCategoryChart', config);
+    // Store reference
+    window.expenseCategoryChartInstance = chartInstance;
+
+    console.log('✓ expense category chart created successfully');
+    return chartInstance;
+
   } catch (error) {
-    console.error("Error creating expense category chart:", error);
+    console.error('❌ Error creating expense category chart:', error);
     return null;
   }
-}
-
-// Keep the old function for backwards compatibility
-export function updateExpenseCategoryChart(transactions) {
-  return createExpenseCategoryChart(transactions, (canvasId, config) => {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return null;
-    const ctx = canvas.getContext('2d');
-    return new Chart(ctx, config);
-  });
 }
 
 /**
@@ -484,7 +504,43 @@ export function clearExpenseCategoryChart() {
   }
 }
 
-// Helper function to display no data message
+/**
+ * Get expense category data for chart
+ */
+function getExpenseCategoryData() {
+  const transactions = AppState.transactions || [];
+  const categoryTotals = calculateCategoryTotals(transactions);
+
+  return {
+    labels: Object.keys(categoryTotals),
+    values: Object.values(categoryTotals)
+  };
+}
+
+/**
+ * Create safe chart with error handling
+ */
+function createSafeChart(canvas, config) {
+  try {
+    return new Chart(canvas, config);
+  } catch (error) {
+    console.error('Error creating chart:', error);
+    return null;
+  }
+}
+
+/**
+ * Show no data message
+ */
+function showNoDataMessage(canvas, message = 'No expense data available') {
+  displayNoDataMessage(canvas, message);
+}
+
+/**
+ * Helper function to display no data message
+ * @param {HTMLCanvasElement} canvas - The canvas to display the message on
+ * @param {string} message - The message to display
+ */
 function displayNoDataMessage(canvas, message) {
   const ctx = canvas.getContext('2d');
 
@@ -502,4 +558,28 @@ function displayNoDataMessage(canvas, message) {
 
   // Draw message in center of canvas
   ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+}
+
+/**
+ * Calculate category totals from transactions
+ * @param {Array} transactions - Array of transactions
+ * @returns {Object} Object with category totals
+ */
+function calculateCategoryTotals(transactions) {
+  const totals = {};
+
+  if (!transactions || !Array.isArray(transactions)) {
+    return totals;
+  }
+
+  transactions.forEach(transaction => {
+    const category = transaction.category || 'Uncategorized';
+    const amount = parseFloat(transaction.expenses || 0);
+
+    if (amount > 0) {
+      totals[category] = (totals[category] || 0) + amount;
+    }
+  });
+
+  return totals;
 }

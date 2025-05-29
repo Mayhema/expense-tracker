@@ -1,198 +1,72 @@
-console.log("Executing main.js - Version: 2024-07-29_01"); // Diagnostic log
-// Import from consolidated bundles instead of individual files
-import { initializeCore as initializeCoreServices } from './bundles/coreBundle.js';
-import { initializeUI, showToast } from './ui/uiManager.js';
-import { setupSidebarManager } from './ui/sidebarManager.js'; // Changed import
+console.log("Executing main.js - Version: 2024-07-29_01");
+
+// Import only JavaScript modules - all CSS is loaded via HTML
+import { AppState, initialize } from './core/appState.js';
 import { initializeFileUpload } from './ui/fileUpload.js';
-import { renderTransactions, renderCategoryButtons } from './ui/transactionManager.js'; // REMOVED: updateCategoryFilterDropdown
-import { AppState } from './core/appState.js';
-import { descriptionCategoryMap } from './ui/categoryMapping.js'; // Import for direct init
-
-// Single global initialization flag
-let appInitialized = false;
-
-// Entry point - Main application initialization
-document.addEventListener("DOMContentLoaded", () => {
-  // Prevent multiple initializations
-  if (appInitialized) {
-    console.log("App already initialized, skipping");
-    return;
-  }
-
-  console.log("Initializing Expense Tracker...");
-  appInitialized = true;
-
-  try {
-    // Service worker registration for better performance and offline capabilities
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(registration => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(error => {
-          console.error('Service Worker registration failed:', error);
-        });
-    }
-
-    // Use a more efficient initialization sequence with bundled modules
-    initializeApp();
-  } catch (error) {
-    console.error("Error during initialization:", error);
-  }
-});
+import { initializeUI } from './ui/uiManager.js';
+import { initializeCharts } from './ui/charts.js';
+import { updateTransactions } from './ui/transactionManager.js';
 
 /**
- * Initializes the app in the correct sequence with proper dependency handling
+ * Initialize the entire application
  */
 async function initializeApp() {
   try {
-    console.log("Main.js: Initializing application - Version: 2024-07-29_01");
+    console.log("🔧 Initializing AppState...");
 
-    // 1. Initialize core services
-    await initializeCoreServices();
-    console.log("Main.js: Core services initialized. AppState should be ready.");
-
-    // 2. Initialize category description mappings
-    if (descriptionCategoryMap && typeof descriptionCategoryMap.init === 'function') {
-      descriptionCategoryMap.init();
-      console.log("Main.js: Category description mappings initialized.");
-    } else {
-      console.error("Main.js: CRITICAL - descriptionCategoryMap.init is NOT available!");
-      showToast("Critical error: Category mapping system failed to load.", "error");
+    // Initialize AppState first
+    const stateInitialized = initialize(); // Use the imported function directly
+    if (!stateInitialized) {
+      throw new Error("Failed to initialize AppState");
     }
 
-    // 3. Initialize UI components
+    console.log("🎨 Initializing UI components...");
     initializeUI();
 
-    // 4. Initialize sidebar with increased delay and error handling
-    setTimeout(() => {
-      try {
-        setupSidebarManager();
-        console.log("Main.js: Sidebar manager initialized successfully");
-      } catch (error) {
-        console.error("Main.js: Error initializing sidebar manager:", error);
-        showToast("Warning: Sidebar features may not work properly", "warning");
-      }
-    }, 500);
-
+    console.log("📁 Initializing file upload...");
     initializeFileUpload();
 
-    // 5. Initialize charts FIRST before rendering transactions
-    await import("./bundles/chartBundle.js").then(module => {
-      if (typeof module.initializeCharts === 'function') {
-        module.initializeCharts();
-        console.log("Main.js: Charts initialized.");
-      }
-    }).catch(err => {
-      console.error("Error initializing charts:", err);
-    });
+    console.log("📊 Initializing charts...");
+    await initializeCharts();
 
-    // 6. Render initial UI state WITHOUT triggering immediate chart updates
-    renderTransactions(AppState.transactions || [], false);
-    // REMOVED: updateCategoryFilterDropdown() - function no longer exists
-    renderCategoryButtons();
+    // Add small delay before transaction rendering to ensure DOM is ready
+    console.log("💾 Loading and rendering transactions...");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    updateTransactions();
 
-    // 7. Initialize transaction event listeners
-    import("./ui/transactionManager.js").then(module => {
-      if (typeof module.initializeTransactionEventListeners === 'function') {
-        module.initializeTransactionEventListeners();
-        console.log("Main.js: Transaction event listeners initialized.");
-      }
-    }).catch(err => {
-      console.error("Error initializing transaction event listeners:", err);
-    });
-
-    console.log("Main.js: Application fully initialized.");
-    showToast("Application loaded successfully!", "success");
-
+    console.log("✅ Application initialized successfully!");
+    return true;
   } catch (error) {
-    console.error("Main.js: Failed to initialize application -", error);
-    showToast("Error initializing application. Some features may not work.", "error");
+    console.error("❌ Failed to initialize application:", error);
+
+    // Show user-friendly error message
+    import('./ui/uiManager.js').then((uiModule) => {
+      if (uiModule.showToast) {
+        uiModule.showToast("Failed to initialize application. Please refresh the page.", "error");
+      }
+    });
+
+    return false;
   }
 }
 
-// Helper function to update charts - using the bundle import
-function updateCharts() {
-  import("./bundles/chartBundle.js")
-    .then((chartModule) => {
-      if (typeof chartModule.updateChartsWithCurrentData === "function") {
-        chartModule.updateChartsWithCurrentData();
-      }
-    })
-    .catch((error) => {
-      console.error("Error updating charts:", error);
-    });
+// Start the application when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  initializeApp();
 }
 
-// Helper function to load transactions and update charts
-function loadTransactionsAndCharts() {
-  import("./bundles/uiBundle.js")
-    .then((uiModule) => {
-      if (typeof uiModule.updateTransactions === "function") {
-        uiModule.updateTransactions();
+// Make AppState available globally for debugging
+window.AppState = AppState;
 
-        // Update charts after transactions are loaded
-        setTimeout(updateCharts, 100);
-      }
-    })
-    .catch((error) => {
-      console.error("Error loading transaction manager:", error);
-    });
-}
-
-// Global error handler for unhandled promise rejections
-window.addEventListener('unhandledrejection', function (event) {
-  console.error('Main.js: Unhandled promise rejection -', event.reason);
-  showToast(`An unexpected error occurred: ${event.reason.message || event.reason}`, "error");
+// Add error handler for unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+  event.preventDefault(); // Prevent default browser error handling
 });
 
-// Initialize console history capture
-(function initConsoleCapture() {
-  window.consoleHistory = [];
-  window.recentErrors = [];
-
-  const originalConsole = {
-    log: console.log,
-    warn: console.warn,
-    error: console.error,
-    info: console.info
-  };
-
-  ['log', 'warn', 'error', 'info'].forEach(level => {
-    console[level] = function (...args) {
-      // Call original console method
-      originalConsole[level].apply(console, args);
-
-      // Store in history (limit to last 100 entries)
-      window.consoleHistory.push({
-        level,
-        timestamp: new Date().toISOString(),
-        message: args.join(' '),
-        args: args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg))
-      });
-
-      if (window.consoleHistory.length > 100) {
-        window.consoleHistory.shift();
-      }
-
-      // Store errors separately
-      if (level === 'error') {
-        window.recentErrors.push({
-          timestamp: new Date().toISOString(),
-          message: args.join(' '),
-          stack: args[0]?.stack || 'No stack trace'
-        });
-
-        if (window.recentErrors.length > 20) {
-          window.recentErrors.shift();
-        }
-      }
-    };
-  });
-})();
-
-// Export essential functions that need to be globally accessible
-export { addMergedFile } from "./bundles/coreBundle.js";
-// renderMergedFiles is still exported by uiBundle.js if needed elsewhere,
-// but not called directly from main.js init.
-export { renderMergedFiles } from "./bundles/uiBundle.js";
+// Add error handler for general JavaScript errors
+window.addEventListener('error', (event) => {
+  console.error('JavaScript error:', event.error);
+});

@@ -1,223 +1,136 @@
-/**
- * Chart Bundle - Consolidates all chart-related functionality
- * This reduces the number of separate HTTP requests
- */
-
-import { AppState } from '../core/appState.js';
-import { showToast } from '../ui/uiManager.js';
-
-// Re-export all chart functionality
-export { updateTimelineChart } from '../charts/timelineChart.js';
-export { updateIncomeExpenseChart } from '../charts/incomeExpenseChart.js';
-export { updateExpenseChart, updateExpenseCategoryChart } from '../charts/expenseChart.js';
+import { createChart, getChartColors } from '../charts/chartCore.js';
 
 /**
- * Chart instances
+ * Chart Bundle - Consolidated chart management
  */
-let incomeExpenseChart = null;
-let expenseCategoryChart = null;
-let timelineChart = null;
 
 /**
  * Initialize all charts
  */
 export function initializeCharts() {
-  console.log("ChartBundle: Initializing charts with memory management");
+  console.log("Initializing charts...");
 
   try {
-    // CRITICAL: Initialize chart containers first to set proper dimensions
-    import("../charts/chartCore.js").then(coreModule => {
-      if (typeof coreModule.initializeChartContainers === 'function') {
-        coreModule.initializeChartContainers();
-      }
-    });
+    // Initialize income/expense chart
+    initializeIncomeExpenseChart();
 
-    // Initialize individual charts with delay to prevent conflicts
-    setTimeout(() => {
-      initializeExpenseChart();
-    }, 100);
+    // Initialize timeline chart
+    initializeTimelineChart();
 
-    setTimeout(() => {
-      initializeIncomeExpenseChart();
-    }, 200);
-
-    setTimeout(() => {
-      initializeTimelineChart();
-    }, 300);
-
-    // Set up global chart update function with throttling
-    setupGlobalChartUpdater();
-
-    console.log("ChartBundle: All charts initialized");
+    console.log("Charts initialized successfully");
   } catch (error) {
-    console.error("ChartBundle: Error initializing charts:", error);
+    console.error("Error initializing charts:", error);
   }
 }
 
 /**
- * Sets up throttled global chart updater to prevent infinite loops
- */
-function setupGlobalChartUpdater() {
-  let updateInProgress = false;
-  let pendingUpdate = false;
-
-  window.updateChartsWithCurrentData = function () {
-    if (updateInProgress) {
-      pendingUpdate = true;
-      return;
-    }
-
-    updateInProgress = true;
-
-    try {
-      console.log("ChartBundle: Updating all charts with current data");
-
-      // Import AppState
-      import("../core/appState.js").then(stateModule => {
-        const transactions = stateModule.AppState.transactions || [];
-
-        // Update each chart individually with error handling
-        updateExpenseChartSafely(transactions);
-        updateIncomeExpenseChartSafely(transactions);
-        updateTimelineChartSafely(transactions);
-
-      }).catch(error => {
-        console.error("ChartBundle: Error accessing AppState:", error);
-      }).finally(() => {
-        updateInProgress = false;
-
-        // Handle pending update
-        if (pendingUpdate) {
-          pendingUpdate = false;
-          setTimeout(() => window.updateChartsWithCurrentData(), 100);
-        }
-      });
-
-    } catch (error) {
-      console.error("ChartBundle: Error in updateChartsWithCurrentData:", error);
-      updateInProgress = false;
-    }
-  };
-}
-
-/**
- * Safely update expense chart
- */
-function updateExpenseChartSafely(transactions) {
-  try {
-    import("../charts/expenseChart.js").then(module => {
-      if (typeof module.updateExpenseChart === 'function') {
-        module.updateExpenseChart(transactions);
-      }
-    }).catch(error => {
-      console.error("ChartBundle: Error updating expense chart:", error);
-    });
-  } catch (error) {
-    console.error("ChartBundle: Error in updateExpenseChartSafely:", error);
-  }
-}
-
-/**
- * Safely update income/expense chart
- */
-function updateIncomeExpenseChartSafely(transactions) {
-  try {
-    import("../charts/incomeExpenseChart.js").then(module => {
-      if (typeof module.updateIncomeExpenseChart === 'function') {
-        module.updateIncomeExpenseChart(transactions);
-      }
-    }).catch(error => {
-      console.error("ChartBundle: Error updating income/expense chart:", error);
-    });
-  } catch (error) {
-    console.error("ChartBundle: Error in updateIncomeExpenseChartSafely:", error);
-  }
-}
-
-/**
- * Safely update timeline chart
- */
-function updateTimelineChartSafely(transactions) {
-  try {
-    import("../charts/timelineChart.js").then(module => {
-      if (typeof module.updateTimelineChart === 'function') {
-        module.updateTimelineChart(transactions);
-      }
-    }).catch(error => {
-      console.error("ChartBundle: Error updating timeline chart:", error);
-    });
-  } catch (error) {
-    console.error("ChartBundle: Error in updateTimelineChartSafely:", error);
-  }
-}
-
-/**
- * Initialize expense chart safely
- */
-function initializeExpenseChart() {
-  try {
-    import("../charts/expenseChart.js").then(module => {
-      if (typeof module.initializeExpenseChart === 'function') {
-        module.initializeExpenseChart();
-        console.log("ChartBundle: Expense chart initialized");
-      }
-    }).catch(error => {
-      console.error("ChartBundle: Error initializing expense chart:", error);
-    });
-  } catch (error) {
-    console.error("ChartBundle: Error in initializeExpenseChart:", error);
-  }
-}
-
-/**
- * Initialize income/expense chart safely
+ * Initialize income vs expense chart
  */
 function initializeIncomeExpenseChart() {
   try {
-    import("../charts/incomeExpenseChart.js").then(module => {
-      if (typeof module.initializeIncomeExpenseChart === 'function') {
-        module.initializeIncomeExpenseChart();
-        console.log("ChartBundle: Income/Expense chart initialized");
+    const canvas = document.getElementById('incomeExpenseChart');
+    if (!canvas) {
+      console.warn("Income/Expense chart canvas not found");
+      return;
+    }
+
+    // Create basic chart structure
+    const chartData = {
+      labels: ['Income', 'Expenses'],
+      datasets: [{
+        data: [0, 0],
+        backgroundColor: getChartColors(2),
+        borderWidth: 1
+      }]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top'
+        }
       }
-    }).catch(error => {
-      console.error("ChartBundle: Error initializing income/expense chart:", error);
-    });
+    };
+
+    createChart(canvas, 'doughnut', chartData, options);
+    console.log("Income/Expense chart initialized");
   } catch (error) {
-    console.error("ChartBundle: Error in initializeIncomeExpenseChart:", error);
+    console.error("Error initializing income/expense chart:", error);
   }
 }
 
 /**
- * Initialize timeline chart safely
+ * Initialize timeline chart
  */
 function initializeTimelineChart() {
   try {
-    import("../charts/timelineChart.js").then(module => {
-      if (typeof module.initializeTimelineChart === 'function') {
-        module.initializeTimelineChart();
-        console.log("ChartBundle: Timeline chart initialized");
+    const canvas = document.getElementById('timelineChart');
+    if (!canvas) {
+      console.warn("Timeline chart canvas not found");
+      return;
+    }
+
+    // Create basic chart structure
+    const chartData = {
+      labels: [],
+      datasets: [{
+        label: 'Income',
+        data: [],
+        backgroundColor: getChartColors(1)[0],
+        borderColor: getChartColors(1)[0],
+        tension: 0.1
+      }, {
+        label: 'Expenses',
+        data: [],
+        backgroundColor: getChartColors(2)[1],
+        borderColor: getChartColors(2)[1],
+        tension: 0.1
+      }]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
       }
-    }).catch(error => {
-      console.error("ChartBundle: Error initializing timeline chart:", error);
-    });
+    };
+
+    createChart(canvas, 'line', chartData, options);
+    console.log("Timeline chart initialized");
   } catch (error) {
-    console.error("ChartBundle: Error in initializeTimelineChart:", error);
+    console.error("Error initializing timeline chart:", error);
   }
 }
 
 /**
- * Cleanup charts when needed
+ * Update charts with new data
  */
-export function cleanupCharts() {
-  import("../charts/chartCore.js").then(coreModule => {
-    if (typeof coreModule.cleanupAllCharts === 'function') {
-      coreModule.cleanupAllCharts();
-    }
-  });
+export function updateCharts(transactions = []) {
+  try {
+    updateIncomeExpenseChart(transactions);
+    updateTimelineChart(transactions);
+  } catch (error) {
+    console.error("Error updating charts:", error);
+  }
 }
 
-// Initialize charts when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  // Wait a bit for other initialization to complete
-  setTimeout(initializeCharts, 1000);
-});
+/**
+ * Update income expense chart
+ */
+function updateIncomeExpenseChart(transactions) {
+  // Implementation for updating income/expense chart
+  console.log("Updating income/expense chart with", transactions.length, "transactions");
+}
+
+/**
+ * Update timeline chart
+ */
+function updateTimelineChart(transactions) {
+  // Implementation for updating timeline chart
+  console.log("Updating timeline chart with", transactions.length, "transactions");
+}

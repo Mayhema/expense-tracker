@@ -1,143 +1,90 @@
-"use strict";
-let __createBinding = (Object.create ? (function (o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    let desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function () { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function (o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-let __setModuleDefault = (Object.create ? (function (o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function (o, v) {
-    o["default"] = v;
-});
-let __importStar = (function () {
-    let ownKeys = function (o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            const ar = [];
-            for (const k in o) if (Object.hasOwn(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        const result = {};
-        if (mod != null) for (const k of ownKeys(mod)) if (k !== "default") __createBinding(result, mod, k);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.XmlParser = void 0;
-const xml2js = __importStar(require("xml2js"));
-const uuid_1 = require("uuid");
-class XmlParser {
-    parse(xmlData) {
-        try {
-            if (!this.validate(xmlData)) {
-                console.error('XML validation failed.');
-                return [];
+/**
+ * XML Parser for transaction data
+ */
+
+/**
+ * Parse XML content to extract transaction data
+ * @param {string} xmlContent - Raw XML content
+ * @returns {Array<Array>} 2D array of parsed data
+ */
+export function parseXML(xmlContent) {
+    try {
+        console.log("Parsing XML content...");
+
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+
+        // Check for parsing errors
+        const parseError = xmlDoc.querySelector('parsererror');
+        if (parseError) {
+            throw new Error('XML parsing failed: ' + parseError.textContent);
+        }
+
+        // Find transaction elements (try different common element names)
+        const transactionSelectors = ['transaction', 'Transaction', 'record', 'Record', 'row', 'Row'];
+        let transactions = [];
+        let elementName = '';
+
+        for (const selector of transactionSelectors) {
+            transactions = xmlDoc.querySelectorAll(selector);
+            if (transactions.length > 0) {
+                elementName = selector;
+                break;
             }
-            let transactions = [];
-            xml2js.parseString(xmlData, (err, result) => {
-                if (err) {
-                    console.error('Error parsing XML:', err);
-                    return;
-                }
-                if (result && result.transactions && result.transactions.transaction) {
-                    transactions = result.transactions.transaction.map((item) => ({
-                        id: (0, uuid_1.v4)(),
-                        date: item.date[0],
-                        description: item.description[0],
-                        amount: parseFloat(item.amount[0]),
-                    }));
-                }
+        }
+
+        if (transactions.length === 0) {
+            console.warn("No transaction elements found. Trying to parse all child elements...");
+            const rootElement = xmlDoc.documentElement;
+            if (rootElement && rootElement.children.length > 0) {
+                transactions = rootElement.children;
+                elementName = 'child elements';
+            }
+        }
+
+        console.log(`Found transactions using element name: ${elementName}`);
+        console.log(`Found ${transactions.length} transaction elements`);
+
+        if (transactions.length === 0) {
+            throw new Error('No transaction data found in XML file');
+        }
+
+        // Extract field names from the first transaction
+        const firstTransaction = transactions[0];
+        const fieldNames = Array.from(firstTransaction.children).map(child => child.tagName.toLowerCase());
+        console.log(`Detected field names:`, fieldNames);
+
+        // Convert transactions to 2D array format
+        const result = [];
+
+        // Add header row
+        result.push(fieldNames);
+        console.log(`Added header row: [${fieldNames.join(', ')}]`);
+
+        // Add transaction data rows
+        for (const transaction of transactions) {
+            const row = fieldNames.map(fieldName => {
+                const element = transaction.querySelector(fieldName);
+                return element ? element.textContent.trim() : '';
             });
-            return transactions;
-        }
-        catch (error) {
-            console.error('Error reading or parsing XML file:', error);
-            return [];
-        }
-    }
-    validate(xmlData) {
-        return xmlData && xmlData.length > 0 ? xmlData.trim().startsWith('<transactions>') : false;
-    }
-
-    /**
-     * Parses XML data into a 2D array format compatible with the file handler
-     * @param {string} xmlData - Raw XML string
-     * @returns {Array<Array>} 2D array of table-like data
-     */
-    parseToArray(xmlData) {
-        if (!this.validate(xmlData)) {
-            console.error('XML validation failed.');
-            return [];
+            result.push(row);
         }
 
-        try {
-            // Try to find transaction elements
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlData, "application/xml");
+        console.log(`Extracted ${result.length} rows of data (including header)`);
+        console.log(`Transaction rows: ${result.length - 1}`);
+        console.log(`Sample data:`, result.slice(0, 3));
 
-            // Check for parse errors
-            const parseError = xmlDoc.querySelector('parsererror');
-            if (parseError) {
-                throw new Error("Invalid XML format");
-            }
+        return result;
 
-            // Try multiple tag types that might represent rows
-            const possibleRowTags = ['transaction', 'row', 'entry', 'record', 'item'];
-            let rowElements = null;
-
-            for (const tag of possibleRowTags) {
-                const elements = xmlDoc.getElementsByTagName(tag);
-                if (elements.length > 0) {
-                    rowElements = elements;
-                    break;
-                }
-            }
-
-            if (!rowElements || rowElements.length === 0) {
-                return [];
-            }
-
-            // Extract field names from the first element
-            const firstElement = rowElements[0];
-            const fieldNames = Array.from(firstElement.children).map(child => child.tagName);
-
-            // Create the 2D array with header row first
-            const result = [fieldNames];
-
-            // Add data rows
-            for (const rowElement of rowElements) {
-                const dataRow = [];
-
-                // For each field in our field names, extract the value
-                for (const field of fieldNames) {
-                    const fieldElement = rowElement.getElementsByTagName(field)[0];
-                    dataRow.push(fieldElement ? fieldElement.textContent.trim() : '');
-                }
-
-                result.push(dataRow);
-            }
-
-            return result;
-        } catch (error) {
-            console.error('Error converting XML to array:', error);
-            return [];
-        }
+    } catch (error) {
+        console.error('Error parsing XML:', error);
+        throw new Error(`XML parsing failed: ${error.message}`);
     }
 }
 
-// Replace usage of Object.prototype.hasOwnProperty with Object.hasOwn
-if (Object.hasOwn(obj, key)) {
-    // Property exists
-}
-
-exports.XmlParser = XmlParser;
+/**
+ * Default export for compatibility
+ */
+export default {
+    parseXML
+};

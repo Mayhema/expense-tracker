@@ -1,24 +1,605 @@
-import { AppState, resetFileState, saveMergedFiles } from "../core/appState.js";
-import { handleFileUpload, isDuplicateFile, generateFileSignature } from "../parsers/fileHandler.js";
-import { showToast, hideElement } from "./uiManager.js";
-import { renderHeaderPreview } from "./headerMapping.js";
-import { validateRowIndices } from "../utils/validation.js";
-import { saveHeadersAndFormat } from "../mappings/mappingsManager.js";
-import { addMergedFile } from "../core/fileManager.js"; // New import
-import { renderMergedFiles } from "./fileListUI.js"; // renderMergedFiles is likely here or in main
-import { updateTransactions } from "./transactionManager.js";
-import { showModal } from "./modalManager.js";
-import { CURRENCIES, DEFAULT_CURRENCY } from "../constants/currencies.js";
+import { AppState, resetFileState } from '../core/appState.js';
+import { addMergedFile } from '../core/fileManager.js';
+import { renderMergedFiles } from './fileListUI.js';
+import { showToast, hideElement } from './uiManager.js';
+import { showModal } from './modalManager.js';
+import { renderHeaderPreview } from './headerMapping.js';
+import { updateTransactions } from './transactionManager.js';
+
+// Global flag to prevent multiple file inputs
+let fileInputInProgress = false;
 
 /**
- * Clears the file preview area and ensures temporary data is removed
+ * Cleanup any existing file input elements to prevent duplicates
+ */
+function cleanupExistingFileInputs() {
+  const existingInputs = document.querySelectorAll('input[type="file"][id^="fileInput"]');
+  existingInputs.forEach(input => {
+    if (input.parentNode) {
+      input.parentNode.removeChild(input);
+    }
+  });
+}
+
+/**
+ * Initialize file upload functionality
+ */
+export function initializeFileUpload() {
+  console.log("Initializing file upload functionality");
+
+  // Prevent multiple initializations
+  if (fileInputInProgress) {
+    console.log("File upload already initializing, skipping");
+    return;
+  }
+
+  try {
+    cleanupExistingFileInputs();
+
+    const fileUploadBtn = document.getElementById('fileUploadBtn');
+    if (fileUploadBtn) {
+      // Remove existing listeners to prevent duplicates
+      const newBtn = fileUploadBtn.cloneNode(true);
+      fileUploadBtn.parentNode.replaceChild(newBtn, fileUploadBtn);
+
+      // Add single click listener
+      newBtn.addEventListener('click', handleFileUploadClick);
+      console.log("File upload button initialized");
+    } else {
+      console.warn("File upload button not found");
+    }
+  } catch (error) {
+    console.error("Error initializing file upload:", error);
+  }
+}
+
+/**
+ * Handle file upload button click
+ */
+function handleFileUploadClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Prevent rapid clicking
+  if (fileInputInProgress) {
+    console.log("File upload already in progress");
+    showToast("File upload already in progress", "warning");
+    return;
+  }
+
+  console.log("Creating new file input...");
+  createNewFileInput();
+}
+
+/**
+ * Creates a new file input element
+ */
+export function createNewFileInput() {
+  // Prevent multiple file inputs
+  if (fileInputInProgress) {
+    console.log("File input already in progress");
+    return;
+  }
+
+  fileInputInProgress = true;
+
+  try {
+    // Clean up any existing file inputs first
+    cleanupExistingFileInputs();
+
+    // Create file input
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".csv,.xlsx,.xls,.xml";
+    fileInput.id = `fileInput_${Date.now()}`;
+    fileInput.style.display = "none";
+
+    // Add to DOM temporarily
+    document.body.appendChild(fileInput);
+
+    // Add event listener
+    fileInput.addEventListener("change", (event) => {
+      handleFileSelection(event);
+      // Clean up after use
+      setTimeout(() => {
+        if (fileInput.parentNode) {
+          fileInput.parentNode.removeChild(fileInput);
+        }
+        fileInputInProgress = false;
+      }, 100);
+    });
+
+    // Handle user cancellation
+    setTimeout(() => {
+      if (fileInput.parentNode && !fileInput.files.length) {
+        fileInput.parentNode.removeChild(fileInput);
+        fileInputInProgress = false;
+      }
+    }, 10000); // 10 second timeout
+
+    // Trigger file picker
+    fileInput.click();
+
+  } catch (error) {
+    console.error("Error creating file input:", error);
+    showToast("Error opening file picker", "error");
+    fileInputInProgress = false;
+  }
+}
+
+/**
+ * Handle file selection with proper error handling
+ */
+function handleFileSelection(event) {
+  const file = event.target.files[0];
+  if (!file) {
+    console.log("No file selected");
+    return;
+  }
+
+  console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
+
+  try {
+    // Import and use file handler
+    import('../parsers/fileHandler.js').then(module => {
+      module.handleFileUpload(file);
+    }).catch(error => {
+      console.error("Error loading file handler:", error);
+      showToast("Error processing file", "error");
+    });
+  } catch (error) {
+    console.error("Error handling file selection:", error);
+    showToast("Error processing file", "error");
+  }
+}
+
+/**
+ * Process file upload and render preview
+ */
+export function onFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) {
+    console.log("No file selected");
+    fileInputInProgress = false;
+    return;
+  }
+
+  console.log("Processing file:", file.name);
+  handleFileUploadProcess(file);
+}
+
+/**
+ * Handle file upload process
+ */
+function handleFileUploadProcess(file) {
+  // Store file name in AppState
+  AppState.currentFileName = file.name;
+
+  console.log(`Processing upload for: ${file.name}`);
+
+  // Check for duplicate file
+  if (checkForDuplicateFile(file)) {
+    handleDuplicateFile(file);
+    return;
+  }
+
+  // Show loading state
+  showToast("Processing file...", "info");
+
+  // Process the file based on its type
+  const fileExt = file.name.split('.').pop().toLowerCase();
+
+  if (fileExt === 'csv') {
+    handleCSVFile(file);
+  } else if (['xlsx', 'xls'].includes(fileExt)) {
+    handleExcelFile(file);
+  } else if (fileExt === 'xml') {
+    handleXMLFile(file);
+  } else {
+    showToast("Unsupported file format. Please use CSV, Excel, or XML files.", "error");
+    resetFileState();
+    fileInputInProgress = false;
+  }
+}
+
+/**
+ * Handle CSV file upload
+ */
+function handleCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const content = e.target.result;
+      import('../parser/csvParser.js').then(module => {
+        const data = module.parseCSV(content);
+        processUploadedData(file, data);
+      }).catch(error => {
+        console.error('Error loading CSV parser:', error);
+        showToast("Error processing CSV file", "error");
+        resetFileState();
+        fileInputInProgress = false;
+      });
+    } catch (error) {
+      handleFileUploadError(error);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/**
+ * Handle Excel file upload
+ */
+function handleExcelFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const content = e.target.result;
+      import('../parser/excelParser.js').then(module => {
+        const parser = new module.default();
+        parser.parse(content).then(data => {
+          processUploadedData(file, data);
+        }).catch(error => {
+          handleFileUploadError(error);
+        });
+      }).catch(error => {
+        console.error('Error loading Excel parser:', error);
+        showToast("Error processing Excel file", "error");
+        resetFileState();
+        fileInputInProgress = false;
+      });
+    } catch (error) {
+      handleFileUploadError(error);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Handle XML file upload
+ */
+function handleXMLFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const content = e.target.result;
+      import('../parser/xmlParser.js').then(module => {
+        const data = module.parseXML(content);
+        processUploadedData(file, data);
+      }).catch(error => {
+        console.error('Error loading XML parser:', error);
+        showToast("Error processing XML file", "error");
+        resetFileState();
+        fileInputInProgress = false;
+      });
+    } catch (error) {
+      handleFileUploadError(error);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/**
+ * Process uploaded data
+ */
+function processUploadedData(file, data) {
+  if (!data || data.length === 0) {
+    showToast("File appears to be empty or invalid", "error");
+    resetFileState();
+    fileInputInProgress = false;
+    return;
+  }
+
+  // Store data and show preview
+  storeFileDataInState(file, data);
+  showFilePreviewModal(data);
+  showToast(`File loaded: ${data.length} rows found`, "success");
+  fileInputInProgress = false;
+}
+
+/**
+ * Handle file upload errors
+ */
+function handleFileUploadError(error) {
+  console.error("File upload error:", error);
+  showToast(`Error processing file: ${error.message}`, "error");
+  resetFileState();
+  fileInputInProgress = false;
+}
+
+/**
+ * Store file data in AppState
+ */
+function storeFileDataInState(file, data) {
+  AppState.currentPreviewData = data;
+  AppState.currentFileName = file.name;
+  console.log(`Stored file data: ${file.name} with ${data.length} rows`);
+}
+
+/**
+ * Check for duplicate file
+ */
+function checkForDuplicateFile(file) {
+  const existingFiles = AppState.mergedFiles || [];
+  return existingFiles.some(f => f.fileName === file.name);
+}
+
+/**
+ * Handle duplicate file
+ */
+function handleDuplicateFile(file) {
+  showToast(`File "${file.name}" already exists. Please rename the file or remove the existing one.`, "warning");
+  resetFileState();
+  fileInputInProgress = false;
+}
+
+/**
+ * Show file preview modal
+ */
+function showFilePreviewModal(data) {
+  // Get file extension for specific handling
+  const fileExt = AppState.currentFileName ? AppState.currentFileName.split('.').pop().toLowerCase() : '';
+  const isXmlFile = fileExt === 'xml';
+
+  // Create modal content with enhanced structure
+  const modalContent = document.createElement("div");
+  modalContent.className = "file-preview-modal";
+
+  // Set default row values based on file type
+  const defaultHeaderRow = 1;
+  const defaultDataRow = isXmlFile ? 1 : 2;
+
+  // Calculate estimated values for display
+  const estimatedTransactions = Math.max(0, data.length - defaultDataRow);
+
+  modalContent.innerHTML = `
+    <div class="file-info-section">
+      <h3>📄 ${AppState.currentFileName}</h3>
+      <div class="file-stats">
+        <span class="stat">📊 ${data.length} rows</span>
+        <span class="stat">📑 ${data[0]?.length || 0} columns</span>
+        <span class="stat">📁 ${fileExt.toUpperCase()}</span>
+        <span class="stat">📈 ~${estimatedTransactions} transactions</span>
+      </div>
+    </div>
+
+    <div class="currency-section">
+      <label for="modalFileCurrency">💰 Currency for this file:</label>
+      <select id="modalFileCurrency" class="currency-select">
+        <option value="USD" selected>$ USD</option>
+        <option value="EUR">€ EUR</option>
+        <option value="GBP">£ GBP</option>
+        <option value="CAD">$ CAD</option>
+        <option value="AUD">$ AUD</option>
+      </select>
+    </div>
+
+    <div class="row-selection-section">
+      <h4>📋 Data Structure</h4>
+      <div class="row-inputs">
+        <div class="input-group">
+          <label for="modalHeaderRowInput">Header Row:</label>
+          <input type="number" id="modalHeaderRowInput" min="1" value="${defaultHeaderRow}" max="${data.length}">
+          <span class="hint">Row containing column names</span>
+        </div>
+        <div class="input-group">
+          <label for="modalDataRowInput">Data Starts at Row:</label>
+          <input type="number" id="modalDataRowInput" min="1" value="${defaultDataRow}" max="${data.length}">
+          <span class="hint">First row with transaction data</span>
+        </div>
+      </div>
+
+      ${isXmlFile ? `
+        <div class="xml-notice">
+          <strong>Note:</strong> XML files typically use the same row for both header and data since each row is self-describing.
+        </div>
+      ` : ''}
+    </div>
+
+    <div class="preview-section">
+      <h4>📋 File Preview & Column Mapping</h4>
+      <div id="modalPreviewTable" class="preview-table-container">
+        <!-- Preview will be rendered here -->
+      </div>
+    </div>
+  `;
+
+  // Show the modal
+  const modal = showModal({
+    title: `Import: ${AppState.currentFileName}`,
+    content: modalContent,
+    size: "xlarge",
+    closeOnClickOutside: false,
+    className: "file-preview-modal"
+  });
+
+  // Store the modal in AppState for later access
+  AppState.currentPreviewModal = modal;
+
+  // Add footer buttons
+  const footerDiv = document.createElement("div");
+  footerDiv.className = "modal-footer";
+  footerDiv.innerHTML = `
+    <button id="modalCancelBtn" class="button cancel-btn">Cancel</button>
+    <button id="modalSaveHeadersBtn" class="button primary-btn">Save Mapping & Import File</button>
+  `;
+
+  modalContent.appendChild(footerDiv);
+
+  // Set up event listeners
+  setupModalEventListeners(modal, data, fileExt);
+
+  // Initial preview render
+  setTimeout(() => {
+    renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
+  }, 150);
+}
+
+/**
+ * Set up modal event listeners
+ */
+function setupModalEventListeners(modal, data, fileExt) {
+  console.log("Setting up modal event listeners");
+
+  // Wait for elements to be in DOM
+  setTimeout(() => {
+    const headerRowInput = document.getElementById("modalHeaderRowInput");
+    const dataRowInput = document.getElementById("modalDataRowInput");
+    const cancelBtn = document.getElementById("modalCancelBtn");
+    const saveBtn = document.getElementById("modalSaveHeadersBtn");
+
+    if (!headerRowInput || !dataRowInput) {
+      console.error("Required input elements not found");
+      return;
+    }
+
+    // Debounced update function
+    let updateTimeout;
+    const debouncedUpdate = () => {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(() => {
+        renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
+      }, 300);
+    };
+
+    // Add input listeners
+    headerRowInput.addEventListener("input", debouncedUpdate);
+    dataRowInput.addEventListener("input", debouncedUpdate);
+
+    // Button listeners
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        modal.close();
+        resetFileState();
+      });
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", () => {
+        onSaveHeaders(modal);
+      });
+    }
+
+    console.log("Modal event listeners set up successfully");
+  }, 100);
+}
+
+/**
+ * Handle saving headers and merging the file
+ */
+export async function onSaveHeaders(modal) {
+  try {
+    console.log("Saving headers and merging file...");
+
+    // Validate that we have the necessary data
+    if (!AppState.currentPreviewData || !AppState.currentFileName) {
+      showToast("No file data to save", "error");
+      return;
+    }
+
+    // Get the current mapping from the modal
+    const headerMapping = getCurrentMapping();
+    if (!headerMapping) {
+      showToast("Please configure column mappings", "error");
+      return;
+    }
+
+    // Check if required mappings are present
+    const hasDate = headerMapping.includes("Date");
+    const hasAmount = headerMapping.includes("Income") || headerMapping.includes("Expenses");
+
+    if (!hasDate || !hasAmount) {
+      showToast("Please map at least one Date column and one Income or Expenses column", "error");
+      return;
+    }
+
+    // Get row settings
+    const headerRowInput = document.getElementById("modalHeaderRowInput");
+    const dataRowInput = document.getElementById("modalDataRowInput");
+    const currencySelect = document.getElementById("modalFileCurrency");
+
+    const headerRow = parseInt(headerRowInput.value) - 1;
+    const dataRow = parseInt(dataRowInput.value) - 1;
+    const currency = currencySelect ? currencySelect.value : 'USD';
+
+    // Generate file signature for mapping reuse
+    const signature = generateFileSignature(AppState.currentPreviewData, headerMapping);
+
+    // Call addMergedFile with correct parameters
+    addMergedFile(
+      AppState.currentPreviewData,  // fileData
+      headerMapping,                // headerMapping
+      AppState.currentFileName,     // fileName
+      signature,                    // signature
+      headerRow,                    // headerRowIndex
+      dataRow,                      // dataRowIndex
+      currency                      // currency
+    );
+
+    // Update UI
+    updateTransactions();
+    renderMergedFiles();
+
+    // Close modal and reset state
+    modal.close();
+    resetFileState();
+
+    showToast(`File "${AppState.currentFileName}" imported successfully!`, "success");
+
+  } catch (error) {
+    console.error("Error saving headers:", error);
+    showToast("Error importing file", "error");
+  }
+}
+
+/**
+ * Get current mapping from the modal
+ */
+function getCurrentMapping() {
+  const selects = document.querySelectorAll('#modalPreviewTable .header-map');
+  if (selects.length === 0) {
+    console.error("No header mapping selects found");
+    return null;
+  }
+
+  return Array.from(selects).map(select => select.value);
+}
+
+/**
+ * Generate file signature for mapping identification
+ */
+function generateFileSignature(data, headerMapping) {
+  if (!data || !headerMapping) return 'unknown';
+
+  // Create a simple signature based on file structure
+  const columnCount = data[0]?.length || 0;
+  const rowCount = data.length;
+  const mappingString = headerMapping.join('-');
+
+  return `${columnCount}col_${rowCount}row_${mappingString}`;
+}
+
+/**
+ * Save merged files to localStorage
+ */
+function saveMergedFiles() {
+  try {
+    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
+  } catch (error) {
+    console.error('Error saving merged files:', error);
+  }
+}
+
+/**
+ * Clear preview and reset state
  */
 export function clearPreview() {
   console.log("Clearing preview and all temporary data");
 
   // Clear preview area
   const previewTable = document.getElementById("previewTable");
-  if (previewTable) previewTable.innerHTML = "";
+  if (previewTable) {
+    previewTable.innerHTML = '';
+  }
 
   // Hide UI controls
   hideElement("rowSelectionPanel");
@@ -33,539 +614,5 @@ export function clearPreview() {
 
   // Reset state
   resetFileState();
-}
-
-/**
- * Shows the file preview in a modal instead of inline
- */
-function showFilePreviewModal(data) {
-  // Create modal content
-  const modalContent = document.createElement("div");
-  modalContent.className = "file-preview-modal";
-
-  // Calculate appropriate width based on columns
-  const columnCount = data[0]?.length || 0;
-  const baseWidth = 600; // Base width
-  const columnWidth = 70; // Width per column
-  const recommendedWidth = Math.min(window.innerWidth * 0.9, baseWidth + columnCount * columnWidth);
-
-  // Add currency selector at the top
-  modalContent.innerHTML = `
-    <div class="currency-selector" style="margin-bottom: 20px;">
-      <label for="fileCurrency"><strong>File Currency:</strong></label>
-      <select id="fileCurrency" class="currency-select" style="margin-left: 10px; padding: 5px;">
-        ${Object.entries(CURRENCIES).map(([code, curr]) =>
-    `<option value="${code}" ${code === DEFAULT_CURRENCY ? 'selected' : ''}>${curr.name} (${curr.symbol})</option>`
-  ).join('')}
-      </select>
-      <p style="margin-top: 5px; font-size: 0.9em; color: #666;">
-        This currency will be applied to all monetary values in this file.
-      </p>
-    </div>
-
-    <div class="row-selection-panel" style="margin-bottom: 20px;">
-      <div style="display: flex; gap: 20px; align-items: center;">
-        <div>
-          <label for="modalHeaderRowInput">Header Row:</label>
-          <input type="number" id="modalHeaderRowInput" min="1" value="1" style="width: 60px;">
-        </div>
-        <div>
-          <label for="modalDataRowInput">Data Starts at Row:</label>
-          <input type="number" id="modalDataRowInput" min="1" value="2" style="width: 60px;">
-        </div>
-      </div>
-    </div>
-
-    <div id="modalPreviewTable" class="preview-table-wrapper" style="max-height: 400px; overflow-y: auto;"></div>
-  `;
-
-  // Show the modal with recommended width
-  const modal = showModal({
-    title: `Preview: ${AppState.currentFileName}`,
-    content: modalContent,
-    size: "custom", // Use custom size
-    width: recommendedWidth,
-    closeOnClickOutside: false
-  });
-
-  // Store the modal in AppState for later access
-  AppState.currentPreviewModal = modal;
-
-  // Render the header preview in the modal
-  renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
-
-  // Add save and cancel buttons to the modal footer
-  const footerDiv = document.createElement("div");
-  footerDiv.className = "modal-footer";
-  footerDiv.innerHTML = `
-    <button id="modalSaveHeadersBtn" class="button primary-btn">Save Mapping & Merge File</button>
-    <button id="modalCancelBtn" class="button">Cancel</button>
-  `;
-
-  modalContent.appendChild(footerDiv);
-
-  // Add event listeners to the buttons
-  document.getElementById("modalSaveHeadersBtn").addEventListener("click", () => {
-    onSaveHeaders(modal);
-  });
-
-  document.getElementById("modalCancelBtn").addEventListener("click", () => {
-    modal.close();
-    resetFileState();
-  });
-
-  // Add change listener to input fields - automatically update preview when changed
-  document.getElementById("modalHeaderRowInput").addEventListener("input", () => {
-    if (validateRowIndices(data, "modalHeaderRowInput", "modalDataRowInput")) {
-      // Reset suggested mapping to force recalculation with new header row
-      AppState.currentSuggestedMapping = null;
-      renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
-    }
-  });
-
-  document.getElementById("modalDataRowInput").addEventListener("input", () => {
-    if (validateRowIndices(data, "modalHeaderRowInput", "modalDataRowInput")) {
-      renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
-    }
-  });
-}
-
-/**
- * Processes file upload and renders preview
- * @param {Event} event - The file upload event
- */
-export function onFileUpload(event) {
-  try {
-    // Extract file safely without any DOM manipulation
-    const file = event?.target?.files?.[0];
-
-    if (!file) {
-      showToast("No file selected", "error");
-      return;
-    }
-
-    console.log("Uploading file:", file.name);
-
-    // Process the file - break into smaller functions
-    handleFileUploadProcess(file);
-  } catch (err) {
-    console.error("Error in file upload handler:", err);
-    showToast("File upload failed: " + (err.message || "Unknown error"), "error");
-  }
-}
-
-// Break down complex function into smaller parts
-function handleFileUploadProcess(file) {
-  handleFileUpload(file)
-    .then(data => processUploadedData(file, data))
-    .catch(handleFileUploadError);
-}
-
-function processUploadedData(file, data) {
-  if (!data || data.length === 0) {
-    showToast("No valid data found in the file", "error");
-    return;
-  }
-
-  // Store data in AppState
-  storeFileDataInState(file, data);
-
-  // Check for duplicates
-  if (checkForDuplicateFile(file)) {
-    return;
-  }
-
-  // Handle file format mapping
-  handleFormatMapping(file, data);
-}
-
-/**
- * Handles errors during file upload
- * @param {Error} error - The error object
- */
-function handleFileUploadError(error) {
-  console.error("Error during file upload:", error);
-  showToast("File upload failed: " + (error.message || "Unknown error"), "error");
-}
-
-/**
- * Stores file data in AppState
- * @param {File} file - The uploaded file
- * @param {Array<Array>} data - The parsed file data
- */
-function storeFileDataInState(file, data) {
-  if (!AppState || !AppState.mergedFiles) {
-    console.error("AppState is not initialized.");
-    return;
-  }
-
-  AppState.currentFileData = data;
-  AppState.currentFileName = file.name;
-
-  // Generate signature but ONLY store in memory (not localStorage)
-  const tempSignature = generateFileSignature(file.name, data);
-  AppState.currentFileSignature = tempSignature;
-
-  // IMPORTANT FIX: Do NOT store in localStorage at all during previewing
-  // This ensures signatures are never persisted until explicit save
-  console.log("File data stored in memory only (not saved to storage)");
-}
-
-function checkForDuplicateFile(file) {
-  const exactNameDuplicate = AppState.mergedFiles.find(f => f.fileName === file.name);
-  if (exactNameDuplicate) {
-    return handleDuplicateFile(file);
-  }
-  return false;
-}
-
-function handleDuplicateFile(file) {
-  if (confirm(`A file named "${file.name}" already exists. Do you want to replace it?`)) {
-    AppState.mergedFiles = AppState.mergedFiles.filter(f => f.fileName !== file.name);
-    saveMergedFiles();
-    return false;
-  }
-  resetFileState();
-  return true;
-}
-
-// Fixed handleFormatMapping function (no unused variables)
-function handleFormatMapping(file, data) {
-  if (file.name.toLowerCase().endsWith('.xml')) {
-    const mapping = findXmlMapping(data);
-    if (mapping) {
-      applyMapping(mapping, file, data);
-      return;
-    }
-  }
-
-  const standardMapping = findStandardMapping(data);
-  if (standardMapping) {
-    applyMapping(standardMapping, file, data);
-  } else {
-    showFilePreviewModal(data);
-  }
-}
-
-// Fix the stub functions that were returning an undefined variable
-function isXmlFile(file) {
-  return file.name.toLowerCase().endsWith('.xml');
-}
-
-function findXmlMapping(data) {
-  return null;
-}
-
-function findStandardMapping(data) {
-  // Standard mapping lookup logic
-  return null;
-}
-
-/**
- * Adds validation to row selection inputs
- * @param {Array<Array>} data - The file data
- */
-function addRowInputValidation(data) {
-  // First make sure the elements exist
-  if (!ensureRowSelectionUI()) {
-    console.error("Cannot add validation - UI elements not found");
-    return false;
-  }
-
-  // Now add the event listeners - with careful null checks
-  const headerRowInput = document.getElementById("headerRowInput");
-  if (headerRowInput) {
-    headerRowInput.addEventListener("input", () => {
-      if (validateRowIndices(data)) {
-        renderHeaderPreview(data); // Re-render whenever header row changes
-      }
-    });
-  }
-
-  const dataRowInput = document.getElementById("dataRowInput");
-  if (dataRowInput) {
-    dataRowInput.addEventListener("input", () => {
-      if (validateRowIndices(data)) {
-        renderHeaderPreview(data); // Re-render whenever data row changes
-      }
-    });
-  }
-
-  return true;
-}
-
-
-/**
- * Global flag to prevent multiple file inputs from being created simultaneously
- */
-let fileInputInProgress = false;
-
-/**
- * Ensure the file upload button works correctly
- */
-export function initializeFileUpload() {
-  console.log("Initializing file upload functionality");
-
-  // Remove all file inputs first
-  cleanupAllFileInputs();
-
-  const fileUploadBtn = document.getElementById("fileUploadBtn");
-  if (!fileUploadBtn) {
-    console.error("File upload button not found in DOM");
-    return;
-  }
-
-  // CRITICAL FIX: Use a more reliable approach for the upload button
-  // First completely remove and recreate the button
-  const newBtn = document.createElement("button");
-  newBtn.id = "fileUploadBtn";
-  newBtn.className = fileUploadBtn.className || 'action-button';
-  newBtn.title = fileUploadBtn.title || 'Upload Transaction File';
-  newBtn.innerHTML = fileUploadBtn.innerHTML || '<span class="action-icon">📤</span><span class="action-text">Upload</span>';
-
-  if (fileUploadBtn.parentNode) {
-    fileUploadBtn.parentNode.replaceChild(newBtn, fileUploadBtn);
-  }
-
-  // Add a single click handler with protection against multiple calls
-  newBtn.addEventListener("click", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Prevent rapid clicking
-    if (fileInputInProgress) {
-      console.log("File input already in progress, ignoring click");
-      return;
-    }
-
-    fileInputInProgress = true;
-    console.log("File upload button clicked");
-
-    // First clean up any existing file inputs
-    cleanupAllFileInputs();
-
-    // Create a new file input with unique ID
-    const uniqueId = `fileInput_${Date.now()}`;
-    const input = document.createElement("input");
-    input.type = "file";
-    input.id = uniqueId;
-    input.accept = ".csv,.xlsx,.xls,.xml";
-    input.style.display = "none";
-
-    // Add the event listener before adding to DOM
-    input.addEventListener("change", handleFileSelection);
-
-    // Add to DOM and trigger click
-    document.body.appendChild(input);
-    input.click();
-
-    // Reset flag if user cancels dialog
-    setTimeout(() => {
-      fileInputInProgress = false;
-    }, 5000);
-  });
-
-  console.log("File upload button initialized with clean event handlers");
-}
-
-/**
- * One-time handler for file selection
- */
-function handleFileSelection(event) {
-  // Remove this handler immediately to prevent double processing
-  event.target.removeEventListener("change", handleFileSelection);
-
-  // Process file
-  onFileUpload(event);
-
-  // Remove the input element after a short delay
-  setTimeout(() => {
-    if (event.target.parentNode) {
-      event.target.parentNode.removeChild(event.target);
-    }
-    fileInputInProgress = false;
-  }, 100);
-}
-
-/**
- * Remove ALL file inputs from the document
- */
-function cleanupAllFileInputs() {
-  // Get all file inputs
-  document.querySelectorAll('input[type="file"]').forEach(input => {
-    // Remove from DOM to ensure garbage collection of event handlers
-    if (input.parentNode) {
-      input.parentNode.removeChild(input);
-    }
-  });
-  console.log("Cleaned up all file inputs");
-}
-
-/**
- * Creates a new file input element with guaranteed uniqueness
- * @returns {HTMLInputElement} The newly created file input element
- */
-export function createNewFileInput() {
-  try {
-    // Clean up any existing file inputs to prevent memory leaks
-    cleanupAllFileInputs();
-
-    // Create a new file input element with a unique ID
-    const uniqueId = `fileInput_${Date.now()}`;
-    const input = document.createElement("input");
-    input.type = "file";
-    input.id = uniqueId;
-    input.accept = ".csv,.xlsx,.xls,.xml";
-    input.style.display = "none";
-
-    // Add to body first, then add event listener
-    document.body.appendChild(input);
-
-    // Add event listener for the change event
-    input.addEventListener("change", function oneTimeHandler(event) {
-      // Remove the handler immediately to prevent double-firing
-      input.removeEventListener("change", oneTimeHandler);
-
-      // Process the file
-      onFileUpload(event);
-
-      // Clean up the input element after processing
-      setTimeout(() => {
-        if (document.body.contains(input)) {
-          document.body.removeChild(input);
-        }
-      }, 100);
-    });
-
-    console.log("New file input created with id:", uniqueId);
-    return input;
-  } catch (error) {
-    console.error("Error creating file input:", error);
-    return null;
-  }
-}
-
-/**
- * Handles saving header mapping and merging the file
- */
-export function onSaveHeaders(modal) {
-  try {
-    console.log("onSaveHeaders called");
-
-    // Get selects from the correct context (modal or main page)
-    let selects;
-    if (modal && modal.element) {
-      // If a modal is provided and has an element property
-      selects = modal.element.querySelectorAll(".header-map");
-    } else {
-      // Fall back to querying the document
-      selects = document.querySelectorAll(".header-map");
-    }
-
-    if (!selects || selects.length === 0) {
-      // If we still don't have selects, try the modal content
-      selects = document.querySelectorAll(".modal-content .header-map");
-    }
-
-    if (!selects || selects.length === 0) {
-      // Last resort - log the issue and check for any select with header-map class
-      console.error("Could not find header mapping selects");
-      showToast("Error: Could not find header mappings", "error");
-      return;
-    }
-
-    console.log(`Found ${selects.length} select elements for mapping`);
-
-    // Debug the selects and their values
-    const mapping = Array.from(selects).map(sel => {
-      console.log(`Select: value=${sel.value}, options=${sel.options.length}`);
-      return sel.value;
-    });
-
-    console.log("Mapping:", mapping);
-
-    // Validate required fields
-    const hasDate = mapping.includes("Date");
-    const hasAmount = mapping.includes("Income") || mapping.includes("Expenses");
-
-    console.log(`Validation: hasDate=${hasDate}, hasAmount=${hasAmount}`);
-
-    if (!hasDate || !hasAmount) {
-      showToast("You must map at least Date and either Income or Expenses fields", "error");
-      return;
-    }
-
-    // Get row indices from the modal or regular inputs
-    const headerRowInput = document.getElementById("modalHeaderRowInput") || document.getElementById("headerRowInput");
-    const dataRowInput = document.getElementById("modalDataRowInput") || document.getElementById("dataRowInput");
-
-    if (!headerRowInput || !dataRowInput) {
-      showToast("Could not find header or data row inputs", "error");
-      return;
-    }
-
-    const headerRowIndex = parseInt(headerRowInput.value, 10) - 1;
-    const dataRowIndex = parseInt(dataRowInput.value, 10) - 1;
-
-    // Get selected currency
-    const currencySelect = document.getElementById("fileCurrency");
-    const currency = currencySelect ? currencySelect.value : DEFAULT_CURRENCY;
-
-    // Generate the signature with currency
-    const finalSignature = generateFileSignature(
-      AppState.currentFileName,
-      AppState.currentFileData,
-      mapping,
-      currency
-    );
-
-    // Get signature string
-    const sigString = typeof finalSignature === 'object' ?
-      (finalSignature.mappingSig || finalSignature.formatSig || finalSignature.contentSig || JSON.stringify(finalSignature)) :
-      finalSignature;
-
-    // Check for duplicate files
-    const duplicateFile = isDuplicateFile(AppState.currentFileName, sigString);
-
-    if (duplicateFile) {
-      const confirmMerge = confirm(
-        `A file with the same name or format "${duplicateFile.fileName}" is already in your merged list.\n\n` +
-        `Adding this file might create duplicate transactions. Do you still want to add it?`
-      );
-
-      if (!confirmMerge) {
-        showToast("File merge cancelled", "info");
-        return;
-      }
-    }
-
-    // Save the mapping with row indices and currency
-    saveHeadersAndFormat(finalSignature, mapping, null, headerRowIndex, dataRowIndex, currency);
-
-    // Call addMergedFile with explicit row indices and currency
-    addMergedFile(
-      AppState.currentFileData,
-      mapping,
-      AppState.currentFileName,
-      sigString,
-      headerRowIndex,
-      dataRowIndex,
-      currency // Add currency parameter
-    );
-
-    // Close the modal
-    if (modal && typeof modal.close === 'function') {
-      modal.close();
-    }
-
-    // Reset state
-    resetFileState();
-
-    showToast("File saved and merged successfully", "success");
-    renderMergedFiles(); // Ensure this is called to update the UI
-    updateTransactions();
-  } catch (error) {
-    console.error("Error saving headers:", error);
-    showToast("Failed to save mapping: " + error.message, "error");
-  }
+  fileInputInProgress = false;
 }

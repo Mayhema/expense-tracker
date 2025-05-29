@@ -1,338 +1,238 @@
 /**
- * Validation and defensive programming helpers
+ * Validation utilities for the expense tracker application
  */
 
 /**
- * Safely gets a property from an object, returning a default if not found
- * @param {Object} obj - The object to access
- * @param {string|Array} path - Property path (e.g., 'user.name' or ['user', 'name'])
- * @param {any} defaultValue - Default value if property doesn't exist
- * @returns {any} The property value or default
+ * Validates row indices for file preview
+ * @param {Array<Array>} data - The data array to validate against
+ * @param {string} headerInputId - ID of header row input element
+ * @param {string} dataInputId - ID of data row input element
+ * @returns {boolean} True if row indices are valid
  */
-export function safeGet(obj, path, defaultValue = null) {
-  if (obj === null || obj === undefined) {
-    return defaultValue;
-  }
+export function validateRowIndices(data, headerInputId = "headerRowInput", dataInputId = "dataRowInput") {
+  const headerInput = document.getElementById(headerInputId);
+  const dataInput = document.getElementById(dataInputId);
 
-  const keys = Array.isArray(path) ? path : path.split('.');
-  let result = obj;
-
-  for (const key of keys) {
-    if (result === null || result === undefined || !Object.hasOwn(result, key)) {
-      return defaultValue;
-    }
-    result = result[key];
-  }
-
-  return result === undefined ? defaultValue : result;
-}
-
-/**
- * Ensures a value is an array
- * @param {any} value - Value to check
- * @returns {Array} Original array or wrapped value in array
- */
-export function ensureArray(value) {
-  if (value === null || value === undefined) return [];
-  return Array.isArray(value) ? value : [value];
-}
-
-/**
- * Validates a transaction object
- * @param {Object} tx - Transaction to validate
- * @returns {Object} Object with {valid: boolean, errors: string[]}
- */
-export function validateTransaction(tx) {
-  const errors = [];
-  let valid = true;
-
-  // Required fields
-  if (!tx) {
-    return { valid: false, errors: ['Transaction is null or undefined'] };
-  }
-
-  // Check date
-  if (!tx.date) {
-    errors.push('Missing date');
-    valid = false;
-  } else {
-    // Verify date is parsable
-    try {
-      const date = new Date(tx.date);
-      if (isNaN(date.getTime())) {
-        errors.push('Invalid date format');
-        valid = false;
-      }
-    } catch (e) {
-      errors.push(`Invalid date: ${e.message}`);
-      valid = false;
-    }
-  }
-
-  // Check amount fields
-  if (!tx.income && !tx.expenses) {
-    errors.push('Missing income or expenses');
-    valid = false;
-  }
-
-  // Validate numeric fields
-  if (tx.income && (isNaN(parseFloat(tx.income)) || !isFinite(tx.income))) {
-    errors.push('Income must be a valid number');
-    valid = false;
-  }
-
-  if (tx.expenses && (isNaN(parseFloat(tx.expenses)) || !isFinite(tx.expenses))) {
-    errors.push('Expenses must be a valid number');
-    valid = false;
-  }
-
-  return { valid, errors };
-}
-
-/**
- * Adds validation to element event listeners
- * @param {string} selector - CSS selector for elements
- * @param {string} event - Event name (e.g., 'input', 'change')
- * @param {Function} validationFn - Function that returns {valid, message}
- * @param {Function} callback - Callback to run on valid input
- */
-export function addValidatedListener(selector, event, validationFn, callback) {
-  const elements = document.querySelectorAll(selector);
-
-  elements.forEach(el => {
-    el.addEventListener(event, (e) => {
-      const result = validationFn(e.target.value, e.target);
-
-      if (result.valid) {
-        el.style.borderColor = '';
-        el.setCustomValidity('');
-        if (callback) callback(e);
-      } else {
-        el.style.borderColor = 'red';
-        el.setCustomValidity(result.message);
-        el.reportValidity();
-      }
-    });
-  });
-}
-
-/**
- * Validates row indices for header and data rows
- * @param {Array<Array>} data - The file data
- * @param {string} headerRowInputId - ID of header row input
- * @param {string} dataRowInputId - ID of data row input
- * @returns {boolean} Whether indices are valid
- */
-export function validateRowIndices(data, headerRowInputId = "headerRowInput", dataRowInputId = "dataRowInput") {
-  const headerRowInput = document.getElementById(headerRowInputId);
-  const dataRowInput = document.getElementById(dataRowInputId);
-
-  if (!headerRowInput || !dataRowInput) {
+  if (!headerInput || !dataInput) {
     console.error("Row input elements not found");
     return false;
   }
 
-  const headerRow = parseInt(headerRowInput.value, 10);
-  const dataRow = parseInt(dataRowInput.value, 10);
+  const headerRow = parseInt(headerInput.value, 10) - 1;
+  const dataRow = parseInt(dataInput.value, 10) - 1;
 
-  // Validate header row
-  if (isNaN(headerRow) || headerRow < 1 || headerRow > data.length) {
-    showValidationError(headerRowInput, `Header row must be between 1 and ${data.length}`);
+  const isHeaderValid = headerRow >= 0 && headerRow < data.length;
+  const isDataValid = dataRow >= 0 && dataRow < data.length;
+
+  if (!isHeaderValid) {
+    console.warn(`Header row ${headerRow + 1} is out of range (1-${data.length})`);
+    showValidationError(headerInput, `Row must be between 1 and ${data.length}`);
     return false;
   }
 
-  // Validate data row
-  if (isNaN(dataRow) || dataRow < 1 || dataRow > data.length) {
-    showValidationError(dataRowInput, `Data row must be between 1 and ${data.length}`);
-    return false;
-  }
-
-  // Data row should be different from header row
-  if (headerRow === dataRow) {
-    showValidationError(dataRowInput, "Data row should be different from header row");
+  if (!isDataValid) {
+    console.warn(`Data row ${dataRow + 1} is out of range (1-${data.length})`);
+    showValidationError(dataInput, `Row must be between 1 and ${data.length}`);
     return false;
   }
 
   // Clear any previous validation errors
-  clearValidationError(headerRowInput);
-  clearValidationError(dataRowInput);
+  clearValidationError(headerInput);
+  clearValidationError(dataInput);
 
   return true;
 }
 
 /**
- * Show validation error on input element
- * @param {HTMLElement} element - Input element
+ * Shows validation error on an input element
+ * @param {HTMLElement} input - Input element
  * @param {string} message - Error message
  */
-function showValidationError(element, message) {
-  element.style.borderColor = '#dc3545';
-  element.title = message;
+export function showValidationError(input, message) {
+  if (!input) return;
 
-  // Show tooltip-like error
-  let errorDiv = element.parentNode.querySelector('.validation-error');
-  if (!errorDiv) {
-    errorDiv = document.createElement('div');
-    errorDiv.className = 'validation-error';
-    errorDiv.style.cssText = `
-      color: #dc3545;
-      font-size: 12px;
-      margin-top: 2px;
-      display: block;
-    `;
-    element.parentNode.appendChild(errorDiv);
+  input.style.borderColor = '#dc3545';
+  input.title = message;
+
+  // Remove any existing error message
+  const existingError = input.parentNode.querySelector('.validation-error');
+  if (existingError) {
+    existingError.remove();
   }
-  errorDiv.textContent = message;
+
+  // Add error message
+  const errorSpan = document.createElement('span');
+  errorSpan.className = 'validation-error';
+  errorSpan.style.color = '#dc3545';
+  errorSpan.style.fontSize = '0.8em';
+  errorSpan.textContent = message;
+
+  input.parentNode.appendChild(errorSpan);
 }
 
 /**
- * Clear validation error on input element
- * @param {HTMLElement} element - Input element
+ * Clears validation error from an input element
+ * @param {HTMLElement} input - Input element
  */
-function clearValidationError(element) {
-  element.style.borderColor = '';
-  element.title = '';
+export function clearValidationError(input) {
+  if (!input) return;
 
-  const errorDiv = element.parentNode.querySelector('.validation-error');
-  if (errorDiv) {
-    errorDiv.remove();
-  }
-}
+  input.style.borderColor = '';
+  input.title = '';
 
-/**
- * Validates an object against required fields
- * @param {Object} obj - The object to validate
- * @param {Array} requiredFields - Array of required field names
- * @returns {boolean} True if validation passed
- */
-export function validateObject(obj, requiredFields) {
-  if (!obj || typeof obj !== 'object') {
-    return false;
-  }
-
-  for (const field of requiredFields) {
-    if (!Object.hasOwn(obj, field)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// Fix exception handling
-export function validateData(data) {
-  try {
-    if (!data) {
-      return { valid: false, error: "No data provided" };
-    }
-
-    // More validation logic here
-    return { valid: true, data };
-  } catch (error) {
-    console.error("Validation error:", error);
-    return { valid: false, error: `Validation failed: ${error.message}` };
+  const errorSpan = input.parentNode.querySelector('.validation-error');
+  if (errorSpan) {
+    errorSpan.remove();
   }
 }
 
 /**
- * Validate email format
- * @param {string} email - Email to validate
- * @returns {boolean} Whether email is valid
+ * Validates transaction data
+ * @param {Object} transaction - Transaction object to validate
+ * @returns {Object} Validation result with isValid and errors
  */
-export function validateEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
+export function validateTransaction(transaction) {
+  const errors = [];
 
-/**
- * Validate date format (YYYY-MM-DD)
- * @param {string} dateString - Date string to validate
- * @returns {boolean} Whether date is valid
- */
-export function validateDate(dateString) {
-  if (!dateString) return false;
-
-  const date = new Date(dateString);
-  return date instanceof Date && !isNaN(date);
-}
-
-/**
- * Validate currency amount
- * @param {string|number} amount - Amount to validate
- * @returns {boolean} Whether amount is valid
- */
-export function validateAmount(amount) {
-  if (amount === null || amount === undefined || amount === '') {
-    return false;
+  if (!transaction) {
+    errors.push("Transaction object is required");
+    return { isValid: false, errors };
   }
+
+  if (!transaction.date) {
+    errors.push("Transaction date is required");
+  }
+
+  if (!transaction.description || transaction.description.trim() === '') {
+    errors.push("Transaction description is required");
+  }
+
+  const hasIncome = transaction.income && parseFloat(transaction.income) > 0;
+  const hasExpenses = transaction.expenses && parseFloat(transaction.expenses) > 0;
+
+  if (!hasIncome && !hasExpenses) {
+    errors.push("Transaction must have either income or expense amount");
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Validates if a string is a valid date
+ * @param {string} dateStr - Date string to validate
+ * @returns {boolean} True if valid date
+ */
+function isValidDate(dateStr) {
+  if (!dateStr) return false;
+
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Validates if a value is a valid monetary amount
+ * @param {any} amount - Amount to validate
+ * @returns {boolean} True if valid amount
+ */
+function isValidAmount(amount) {
+  if (amount === null || amount === undefined || amount === '') return false;
 
   const num = parseFloat(amount);
   return !isNaN(num) && isFinite(num);
 }
 
 /**
- * Validate category name
- * @param {string} categoryName - Category name to validate
- * @returns {Object} Validation result with isValid and message
+ * Validates file upload data
+ * @param {Array<Array>} data - File data to validate
+ * @returns {Object} Validation result
  */
-export function validateCategoryName(categoryName) {
-  if (!categoryName || typeof categoryName !== 'string') {
-    return { isValid: false, message: 'Category name is required' };
+export function validateFileData(data) {
+  const errors = [];
+
+  if (!data || !Array.isArray(data)) {
+    errors.push('Data must be an array');
+    return { isValid: false, errors };
   }
 
-  const trimmed = categoryName.trim();
-
-  if (trimmed.length === 0) {
-    return { isValid: false, message: 'Category name cannot be empty' };
+  if (data.length === 0) {
+    errors.push('File appears to be empty');
+    return { isValid: false, errors };
   }
 
-  if (trimmed.length > 50) {
-    return { isValid: false, message: 'Category name cannot exceed 50 characters' };
+  if (data.length < 2) {
+    errors.push('File must contain at least a header row and one data row');
+    return { isValid: false, errors };
   }
 
-  // Check for invalid characters
-  const invalidChars = /[<>:"/\\|?*]/;
-  if (invalidChars.test(trimmed)) {
-    return { isValid: false, message: 'Category name contains invalid characters' };
+  // Check if rows have consistent column counts
+  const columnCount = data[0]?.length || 0;
+  if (columnCount === 0) {
+    errors.push('Header row appears to be empty');
   }
 
-  return { isValid: true, message: '' };
+  let inconsistentRows = 0;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i]?.length !== columnCount) {
+      inconsistentRows++;
+    }
+  }
+
+  if (inconsistentRows > data.length * 0.1) { // Allow up to 10% inconsistent rows
+    errors.push(`Too many rows with inconsistent column counts (${inconsistentRows} out of ${data.length - 1})`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings: inconsistentRows > 0 ? [`${inconsistentRows} rows have inconsistent column counts`] : []
+  };
 }
 
 /**
- * Validate file size
- * @param {File} file - File to validate
- * @param {number} maxSizeMB - Maximum size in MB
+ * Validates header mapping
+ * @param {Array<string>} mapping - Header mapping array
  * @returns {Object} Validation result
  */
-export function validateFileSize(file, maxSizeMB = 10) {
-  const maxBytes = maxSizeMB * 1024 * 1024;
+export function validateHeaderMapping(mapping) {
+  const errors = [];
+  const warnings = [];
 
-  if (file.size > maxBytes) {
-    return {
-      isValid: false,
-      message: `File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds limit of ${maxSizeMB}MB`
-    };
+  if (!mapping || !Array.isArray(mapping)) {
+    errors.push('Mapping must be an array');
+    return { isValid: false, errors, warnings };
   }
 
-  return { isValid: true, message: '' };
-}
+  // Check for required fields
+  const hasDate = mapping.includes('Date');
+  const hasAmount = mapping.includes('Income') || mapping.includes('Expenses');
 
-/**
- * Validate file type
- * @param {File} file - File to validate
- * @param {Array<string>} allowedTypes - Allowed file extensions
- * @returns {Object} Validation result
- */
-export function validateFileType(file, allowedTypes = ['csv', 'xlsx', 'xls', 'xml']) {
-  const fileExtension = file.name.split('.').pop().toLowerCase();
-
-  if (!allowedTypes.includes(fileExtension)) {
-    return {
-      isValid: false,
-      message: `File type '.${fileExtension}' is not supported. Allowed types: ${allowedTypes.join(', ')}`
-    };
+  if (!hasDate) {
+    errors.push('At least one Date column must be mapped');
   }
 
-  return { isValid: true, message: '' };
+  if (!hasAmount) {
+    errors.push('At least one Income or Expenses column must be mapped');
+  }
+
+  // Check for duplicates (excluding "–" which means "ignore")
+  const mappedFields = mapping.filter(field => field !== '–');
+  const uniqueFields = new Set(mappedFields);
+
+  if (mappedFields.length !== uniqueFields.size) {
+    errors.push('Duplicate field mappings detected');
+  }
+
+  // Warnings for optional fields
+  if (!mapping.includes('Description')) {
+    warnings.push('No Description column mapped - transactions may be harder to identify');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
 }

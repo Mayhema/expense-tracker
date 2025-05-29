@@ -1,108 +1,135 @@
-import { deleteFormatMapping } from "../mappings/mappingsManager.js";
-import { showModal } from "./modalManager.js";
+import { showModal } from './modalManager.js';
+import { getMappings, deleteFormatMapping } from '../mappings/mappingsManager.js';
+import { showToast } from './uiManager.js';
 
 /**
- * Shows a modal with format mappings management
+ * Show format mappings modal
  */
 export function showFormatMappingsModal() {
   const modalContent = document.createElement('div');
+  modalContent.className = 'format-mappings-modal';
 
-  // Get format mappings from localStorage
-  const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  modalContent.innerHTML = `
+    <div class="mappings-info">
+      <h3>📋 Saved Format Mappings</h3>
+      <p>These mappings are automatically applied when you upload files with similar formats.</p>
+    </div>
+
+    <div class="mappings-list" id="formatMappingsList">
+      <!-- Mappings will be rendered here -->
+    </div>
+
+    <div class="mappings-actions">
+      <button id="refreshMappingsBtn" class="button secondary">🔄 Refresh</button>
+      <button id="clearAllMappingsBtn" class="button danger">🗑️ Clear All</button>
+    </div>
+  `;
+
+  showModal({
+    title: 'Format Mappings',
+    content: modalContent,
+    size: 'large',
+    closeOnClickOutside: true
+  });
+
+  // Initial render
+  renderMappingsList();
+
+  // Event listeners
+  document.getElementById('refreshMappingsBtn').addEventListener('click', () => {
+    renderMappingsList();
+    showToast('Mappings refreshed', 'info');
+  });
+
+  document.getElementById('clearAllMappingsBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to delete ALL format mappings?')) {
+      localStorage.removeItem('fileFormatMappings');
+      renderMappingsList();
+      showToast('All format mappings cleared', 'success');
+    }
+  });
+}
+
+/**
+ * Render the mappings list
+ */
+function renderMappingsList() {
+  const container = document.getElementById('formatMappingsList');
+  if (!container) return;
+
+  const mappings = getMappings();
 
   if (mappings.length === 0) {
-    modalContent.innerHTML = `
-      <div class="empty-mappings">
-        <p>No format mappings saved yet.</p>
-        <p>When you upload files and map their columns, the formats will be saved here for future use.</p>
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>No saved format mappings found.</p>
+        <p>Upload and map some files to see them here.</p>
       </div>
     `;
-  } else {
-    modalContent.innerHTML = `
-      <div class="mappings-container">
-        <p>The following file formats are recognized automatically:</p>
-        <div style="max-height: 400px; overflow-y: auto;">
-          <table class="mappings-table" style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th style="text-align: left; padding: 10px;">Format</th>
-                <th style="text-align: left; padding: 10px;">Fields</th>
-                <th style="text-align: center; padding: 10px;">Files</th>
-                <th style="text-align: center; padding: 10px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${Array.isArray(mappings) ? mappings.map((mapping, index) => {
-      // Get the field mappings, filtering out placeholders
-      const fields = mapping.mapping && Array.isArray(mapping.mapping)
-        ? mapping.mapping.filter(m => m !== "–").join(", ")
-        : "Unknown";
-
-      // Get file count or list of files
-      const fileCount = (mapping.files?.length || 0);
-      const fileTypes = mapping.fileTypes && Array.isArray(mapping.fileTypes)
-        ? mapping.fileTypes.join(", ")
-        : "Unknown";
-
-      return `
-                  <tr>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                      ${mapping.formatName || "Format " + (index + 1)}
-                      <div style="font-size: 0.8em; color: #666;">${fileTypes} format</div>
-                    </td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${fields}</td>
-                    <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">
-                      ${fileCount} file${fileCount !== 1 ? 's' : ''}
-                    </td>
-                    <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">
-                      <button class="delete-mapping-btn"
-                        data-index="${index}"
-                        style="background-color: #ffebeb; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer;">
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                `;
-    }).join('') : '<tr><td colspan="4">Error: Invalid mapping data format</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
+    return;
   }
 
-  const modal = showModal({
-    title: "Format Mappings",
-    content: modalContent,
-    size: "large"
+  let html = `
+    <table class="mappings-table" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #f5f5f5;">
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Format Signature</th>
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Column Mapping</th>
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Currency</th>
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Created</th>
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  mappings.forEach((mapping, index) => {
+    const signature = typeof mapping.signature === 'string'
+      ? mapping.signature
+      : JSON.stringify(mapping.signature);
+
+    const fields = Array.isArray(mapping.mapping)
+      ? mapping.mapping.filter(m => m !== "–").join(", ")
+      : "Unknown mapping";
+
+    const currency = mapping.currency || "USD";
+    const created = mapping.created
+      ? new Date(mapping.created).toLocaleDateString()
+      : "Unknown";
+
+    html += `
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; word-break: break-all; max-width: 200px;">
+          ${signature.substring(0, 50)}${signature.length > 50 ? '...' : ''}
+        </td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${fields}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${currency}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${created}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">
+          <button onclick="deleteMappingAtIndex(${index})" class="button danger small" title="Delete this mapping">
+            🗑️
+          </button>
+        </td>
+      </tr>
+    `;
   });
 
-  // Add event listeners to delete buttons
-  const deleteButtons = modalContent.querySelectorAll('.delete-mapping-btn');
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const index = parseInt(button.dataset.index, 10);
-      // Confirmation is now handled within deleteFormatMapping (which calls deleteMappingByIndexGUI)
-      // if (confirm("Delete this format mapping? This will affect future file imports.")) {
+  html += `
+      </tbody>
+    </table>
+  `;
 
-      // Call deleteFormatMapping with the index
-      const success = deleteFormatMapping(index); // This now calls the robust version
-
-      if (success) { // deleteFormatMapping might need to be adjusted if it doesn't return a clear success/failure for this flow
-        // UI updates (toast, modal refresh) are largely handled by deleteMappingByIndexGUI.
-        // However, refreshing this specific modal might still be needed.
-        // showToast("Format mapping deleted", "success"); // Toast is likely shown by the core delete function
-
-        // Close and reopen modal to refresh content
-        modal.close();
-        setTimeout(() => showFormatMappingsModal(), 300);
-
-        // Also update mapping list in the main UI if present (renderMappingList is called by core delete function)
-        // renderMappingList();
-      }
-      // }
-    });
-  });
-
-  return modal;
+  container.innerHTML = html;
 }
+
+/**
+ * Delete mapping by index
+ */
+window.deleteMappingAtIndex = function (index) {
+  if (deleteFormatMapping(index)) {
+    renderMappingsList();
+    showToast('Format mapping deleted', 'success');
+  } else {
+    showToast('Error deleting format mapping', 'error');
+  }
+};

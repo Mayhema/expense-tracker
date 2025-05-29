@@ -1,6 +1,4 @@
 import { AppState } from "../core/appState.js";
-import { DEFAULT_CATEGORIES } from "../core/constants.js";
-// FIXED: Removed unused imports
 import { showToast } from "../ui/uiManager.js";
 import { showModal } from "../ui/modalManager.js";
 
@@ -524,13 +522,28 @@ function createDebugButton(id, icon, text, handler) {
  * Create debug section if it doesn't exist
  */
 function createDebugSection() {
-  const debugSection = document.createElement('div');
-  debugSection.className = 'section debug-only';
+  // Check if debug section already exists
+  let debugSection = document.getElementById('debugSection');
+  if (debugSection) {
+    console.log("Debug section already exists");
+    return debugSection;
+  }
+
+  // Find the main content area
+  let mainContent = document.querySelector('.main-content');
+  if (!mainContent) {
+    console.error("Main content area not found for debug section");
+    return null;
+  }
+
+  // Create debug section
+  debugSection = document.createElement('div');
   debugSection.id = 'debugSection';
+  debugSection.className = 'section debug-only';
 
   debugSection.innerHTML = `
     <div class="section-header">
-      <h2>Debug Tools</h2>
+      <h2>🐛 Debug Tools</h2>
     </div>
     <div class="section-content">
       <div class="action-buttons">
@@ -539,64 +552,70 @@ function createDebugSection() {
     </div>
   `;
 
-  // Insert after the first section
-  const firstSection = document.querySelector('.section');
-  if (firstSection && firstSection.parentNode) {
-    firstSection.parentNode.insertBefore(debugSection, firstSection.nextSibling);
-  } else {
-    document.body.appendChild(debugSection);
-  }
+  // Insert at the end of main content
+  mainContent.appendChild(debugSection);
+  console.log("Debug section created successfully");
 
-  console.log("Created debug section");
   return debugSection;
 }
 
-// Helper function to detect production mode - FIXED: removed process.env reference
-function isProduction() {
-  // Browser-safe environment detection (no process.env)
-  return location.hostname !== 'localhost' &&
-    location.hostname !== '127.0.0.1' &&
-    !location.hostname.includes('.local');
-}
-
 /**
- * Reset application function
+ * Reset application function with improved error handling
  */
-function resetApplication() {
+export function resetApplication() {
   console.log("Reset application triggered");
 
-  // Show confirmation dialog
-  if (confirm("Reset the entire application? This will delete ALL your data and cannot be undone.")) {
-    try {
-      // Clear localStorage
-      localStorage.removeItem("mergedFiles");
-      localStorage.removeItem("fileFormatMappings");
-      localStorage.removeItem("expenseCategories");
-      localStorage.removeItem("transactions");
-      localStorage.removeItem("categoryMappings");
+  if (!confirm("Are you sure you want to reset the application? This will clear all data and cannot be undone.")) {
+    return;
+  }
 
-      // Reset AppState
-      if (AppState) {
-        AppState.mergedFiles = [];
-        AppState.transactions = [];
-        AppState.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  try {
+    // Clear localStorage
+    const keysToRemove = [
+      'transactions',
+      'mergedFiles',
+      'expenseCategories',
+      'categoryMappings',
+      'fileFormatMappings',
+      'darkMode',
+      'debugMode'
+    ];
+
+    keysToRemove.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn(`Could not remove ${key} from localStorage:`, e);
       }
+    });
 
-      // Provide visual feedback
-      showToast("Application reset. Reloading...", "info");
+    // Clear AppState
+    AppState.transactions = [];
+    AppState.mergedFiles = [];
+    AppState.categories = {};
+    AppState.currentFileData = null;
+    AppState.currentFileName = null;
+    AppState.currentFileSignature = null;
 
-      // Actually reload the page after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (err) {
-      console.error("Error during application reset:", err);
-      showToast("Error resetting application: " + err.message, "error");
+    // Clear any global variables
+    if (window.tempFileSignature) {
+      delete window.tempFileSignature;
     }
-  } else {
-    console.log("Application reset cancelled by user");
+
+    console.log("Application reset completed");
+
+    // Show success message and reload
+    showToast("Application reset successfully. Reloading page...", "success");
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+
+  } catch (error) {
+    console.error("Error during application reset:", error);
+    showToast("Error during reset. Please refresh the page manually.", "error");
   }
 }
 
-// Call attachDebugFunctions immediately
+// Call attachDebugFunctions immediately when module loads
 attachDebugFunctions();

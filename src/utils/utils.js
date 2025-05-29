@@ -10,8 +10,118 @@
  * @return {boolean} True if the value appears to be an Excel date
  */
 export function isExcelDate(value) {
+  if (!value && value !== 0) return false;
+
   const num = parseFloat(value);
-  return !isNaN(num) && num > 35000 && num < 50000;
+  if (isNaN(num)) return false;
+
+  // Excel dates are typically between 1 (1900-01-01) and ~50000 (2037+)
+  // Most business data falls between 35000-50000 (1995-2037)
+  return num >= 1 && num <= 100000 && Number.isInteger(num);
+}
+
+/**
+ * Converts an Excel date serial number to a JavaScript Date
+ * @param {number} excelDate - Excel date serial number
+ * @returns {Date|null} JavaScript Date object or null if invalid
+ */
+export function excelDateToJSDate(excelDate) {
+  if (!isExcelDate(excelDate)) return null;
+
+  // Excel's epoch is 1900-01-01, but Excel incorrectly treats 1900 as a leap year
+  // So we need to account for this
+  const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
+  const msPerDay = 24 * 60 * 60 * 1000;
+
+  // Subtract 2 days to account for Excel's leap year bug and 0-based indexing
+  const jsDate = new Date(excelEpoch.getTime() + (excelDate - 2) * msPerDay);
+
+  return jsDate;
+}
+
+/**
+ * Formats an Excel date for preview display
+ * @param {any} value - The value to format
+ * @returns {string} Formatted date string
+ */
+export function formatExcelDateForPreview(value) {
+  if (!isExcelDate(value)) return String(value);
+
+  const jsDate = excelDateToJSDate(value);
+  if (!jsDate) return String(value);
+
+  // Format as YYYY-MM-DD for consistency
+  const year = jsDate.getFullYear();
+  const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+  const day = String(jsDate.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day} (Excel: ${value})`;
+}
+
+/**
+ * Detects if a column contains Excel date values
+ * @param {Array} columnValues - Array of values from a column
+ * @returns {boolean} True if column appears to contain Excel dates
+ */
+export function isExcelDateColumn(columnValues) {
+  if (!columnValues || columnValues.length === 0) return false;
+
+  let excelDateCount = 0;
+  let totalValidValues = 0;
+
+  for (const value of columnValues) {
+    if (value !== null && value !== undefined && value !== '') {
+      totalValidValues++;
+      if (isExcelDate(value)) {
+        excelDateCount++;
+      }
+    }
+  }
+
+  // If at least 60% of non-empty values are Excel dates, consider it an Excel date column
+  return totalValidValues > 0 && (excelDateCount / totalValidValues) >= 0.6;
+}
+
+/**
+ * Enhanced date detection that includes Excel dates
+ * @param {Array} columnValues - Array of values from a column
+ * @returns {boolean} True if column contains date-like values
+ */
+export function isDateColumn(columnValues) {
+  if (!columnValues || columnValues.length === 0) return false;
+
+  // First check for Excel dates
+  if (isExcelDateColumn(columnValues)) {
+    return true;
+  }
+
+  // Then check for standard date formats
+  let dateCount = 0;
+  let totalValidValues = 0;
+
+  for (const value of columnValues) {
+    if (value !== null && value !== undefined && value !== '') {
+      totalValidValues++;
+
+      const str = String(value).trim();
+
+      // Check for various date formats
+      const datePatterns = [
+        /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/,        // YYYY-MM-DD, YYYY/MM/DD
+        /^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/,        // DD-MM-YYYY, MM/DD/YYYY
+        /^\d{1,2}[-/]\d{1,2}[-/]\d{2}$/,        // DD-MM-YY, MM/DD/YY
+        /^\d{4}\d{2}\d{2}$/,                     // YYYYMMDD
+        /^\d{2}\d{2}\d{4}$/                      // DDMMYYYY or MMDDYYYY
+      ];
+
+      if (datePatterns.some(pattern => pattern.test(str))) {
+        dateCount++;
+      }
+    }
+  }
+
+  // If at least 50% of non-empty values are dates, consider it a date column
+  return totalValidValues > 0 && (dateCount / totalValidValues) >= 0.5;
 }
 
 /**

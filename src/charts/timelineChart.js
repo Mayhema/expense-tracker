@@ -1,11 +1,55 @@
-import { AppState } from "../core/appState.js";
-import { createChart, destroyChart, updateChartData, getChartColors } from './chartCore.js';
+import { AppState } from '../core/appState.js';
+import { createChart, destroyChart, getChartColors } from './chartCore.js';
+
+/**
+ * Validates chart data before processing
+ * @param {Array} data - Chart data to validate
+ * @returns {boolean} True if data is valid
+ */
+function validateChartData(data) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    console.log("Timeline chart: No valid data to display");
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Hides the timeline chart when there's no data
+ */
+function hideTimelineChart() {
+  const chartWrapper = document.getElementById('timelineChartWrapper');
+  const chartContainer = document.getElementById('timelineChart');
+
+  if (chartWrapper) {
+    chartWrapper.style.display = 'none';
+  }
+
+  if (chartContainer) {
+    // Clear any existing chart
+    const canvas = chartContainer.querySelector('canvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    chartContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No transaction data available for timeline chart</p>';
+  }
+
+  console.log("Timeline chart hidden - no data available");
+}
 
 /**
  * Creates and updates the timeline chart
  * @param {Array} transactions - Array of transaction objects
  */
-export function updateTimelineChart(transactions) {
+export function updateTimelineChart(transactions = []) {
+  if (!validateChartData(transactions)) {
+    hideTimelineChart();
+    return;
+  }
+
   try {
     console.log("Updating timeline chart...");
 
@@ -831,84 +875,92 @@ function formatPeriodDisplayLabel(periodKey, periodOption) {
 }
 
 /**
- * Create timeline chart using the new registration system
+ * Creates the timeline chart
  */
-export function createTimelineChart(transactions, createChartFn) {
+export async function createTimelineChart() {
+  console.log('Creating timeline chart...');
+
   try {
-    console.log("Creating timeline chart...");
+    // Dynamic import Chart.js
+    const ChartJS = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js');
+    const Chart = ChartJS.default || ChartJS.Chart;
 
-    if (!validateChartData(transactions)) {
+    if (!Chart) {
+      throw new Error('Chart.js failed to load');
+    }
+
+    const canvas = document.getElementById('timelineChart');
+    if (!canvas) {
+      console.warn('Timeline chart canvas not found');
       return null;
     }
 
-    const timelineData = processTimelineData(transactions);
-    const colors = getChartColors(document.body.classList.contains('dark-mode'));
+    // Destroy existing chart
+    if (window.timelineChartInstance) {
+      window.timelineChartInstance.destroy();
+    }
 
-    if (timelineData.labels.length === 0) {
+    // Get chart data
+    const data = getTimelineData();
+
+    if (!data || data.labels.length === 0) {
+      showNoDataMessage(canvas);
       return null;
     }
 
-    const config = {
+    // Create the chart
+    const chartInstance = new Chart(canvas, {
       type: 'line',
       data: {
-        labels: timelineData.labels,
+        labels: data.labels,
         datasets: [
           {
             label: 'Income',
-            data: timelineData.incomeData,
-            borderColor: colors.income,
-            backgroundColor: colors.income + '20',
-            tension: 0.1,
-            fill: false
+            data: data.income,
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            fill: false,
+            tension: 0.4
           },
           {
             label: 'Expenses',
-            data: timelineData.expenseData,
-            borderColor: colors.expenses,
-            backgroundColor: colors.expenses + '20',
-            tension: 0.1,
-            fill: false
+            data: data.expenses,
+            borderColor: '#f44336',
+            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+            fill: false,
+            tension: 0.4
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false
+        plugins: {
+          legend: {
+            position: 'top'
+          }
         },
         scales: {
           y: {
             beginAtZero: true,
-            grid: {
-              color: colors.grid
-            },
             ticks: {
-              color: colors.text
-            }
-          },
-          x: {
-            grid: {
-              color: colors.grid
-            },
-            ticks: {
-              color: colors.text
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            labels: {
-              color: colors.text
+              callback: function (value) {
+                return '$' + value.toFixed(0);
+              }
             }
           }
         }
       }
-    };
+    });
 
-    return createChartFn('timelineChart', config);
+    // Store reference
+    window.timelineChartInstance = chartInstance;
+
+    console.log('✓ timeline chart created successfully');
+    return chartInstance;
+
   } catch (error) {
-    console.error("Error creating timeline chart:", error);
+    console.error('❌ Error creating timeline chart:', error);
     return null;
   }
 }
@@ -953,4 +1005,105 @@ function safeFormatNumber(value) {
     // Fallback to basic string conversion
     return String(value);
   }
+}
+
+/**
+ * Process timeline data from transactions
+ * @param {Array} transactions - Array of transactions
+ * @returns {Object} Processed timeline data
+ */
+function processTimelineData(transactions) {
+  const timelineData = {
+    labels: [],
+    incomeData: [],
+    expenseData: []
+  };
+
+  if (!transactions || !Array.isArray(transactions)) {
+    return timelineData;
+  }
+
+  // Group transactions by date
+  const dailyTotals = {};
+
+  transactions.forEach(transaction => {
+    const date = transaction.date;
+    if (!date) return;
+
+    if (!dailyTotals[date]) {
+      dailyTotals[date] = { income: 0, expenses: 0 };
+    }
+
+    const income = parseFloat(transaction.income || 0);
+    const expenses = parseFloat(transaction.expenses || 0);
+
+    dailyTotals[date].income += income;
+    dailyTotals[date].expenses += expenses;
+  });
+
+  // Sort dates and prepare data arrays
+  const sortedDates = Object.keys(dailyTotals).sort();
+
+  timelineData.labels = sortedDates;
+  timelineData.incomeData = sortedDates.map(date => dailyTotals[date].income);
+  timelineData.expenseData = sortedDates.map(date => dailyTotals[date].expenses);
+
+  return timelineData;
+}
+
+/**
+ * Get current chart period from UI
+ */
+function getChartPeriod() {
+  const periodSelect = document.getElementById('timelineChartPeriod');
+  return periodSelect ? periodSelect.value : 'month';
+}
+
+/**
+ * Calculate timeline data for given period
+ */
+function calculateTimelineData(period) {
+  const transactions = AppState.transactions || [];
+
+  if (!transactions.length) {
+    return { hasData: false, labels: [], income: [], expenses: [] };
+  }
+
+  const data = processTimelineData(transactions);
+  return {
+    hasData: data.labels.length > 0,
+    labels: data.labels,
+    income: data.incomeData,
+    expenses: data.expenseData
+  };
+}
+
+/**
+ * Store chart instance safely
+ */
+function storeChartInstance(chartType, instance) {
+  if (chartType === 'timeline') {
+    timelineChart = instance;
+  }
+}
+
+/**
+ * Get timeline data for chart
+ */
+function getTimelineData() {
+  const transactions = AppState.transactions || [];
+  return processTimelineData(transactions);
+}
+
+/**
+ * Show no data message on canvas
+ */
+function showNoDataMessage(canvas, message = 'No data available') {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#666';
+  ctx.font = '14px Arial';
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }

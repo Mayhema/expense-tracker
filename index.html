@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💰 Expense Tracker</title>
+
+  <!-- Fixed CSS paths to point to styles folder -->
+  <link rel="stylesheet" href="src/styles/main.css">
+  <link rel="stylesheet" href="src/styles/components.css">
+  <link rel="stylesheet" href="src/styles/modals.css">
+  <link rel="stylesheet" href="src/styles/sidebar.css">
+  <link rel="stylesheet" href="src/styles/transactions.css">
+  <link rel="stylesheet" href="src/styles/dark-theme.css">
+
+  <!-- Load XLSX library for Excel file support -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>💰 Expense Tracker</h1>
+    </div>
+
+    <div class="action-buttons">
+      <button class="action-button" id="fileUploadBtn" title="Upload Transaction File">
+        <span class="action-icon">📤</span>
+        <span class="action-text">Upload</span>
+      </button>
+
+      <button class="action-button" id="categoryManagerBtn" title="Manage Categories">
+        <span class="action-icon">🏷️</span>
+        <span class="action-text">Categories</span>
+      </button>
+
+      <button class="action-button" id="exportBtn" title="Export Data">
+        <span class="action-icon">💾</span>
+        <span class="action-text">Export</span>
+      </button>
+
+      <button class="action-button debug-action" id="formatMappingsBtn" title="Format Mappings" style="display: none;">
+        <span class="action-icon">🗂️</span>
+        <span class="action-text">Mappings</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-content">
+      <h3>Navigation</h3>
+      <ul class="sidebar-nav">
+        <li>
+          <button class="nav-button" id="darkModeToggle">
+            <span class="toggle-icon">☀️</span>
+            <span>Dark Mode</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-button" id="debugToggle">
+            <span class="toggle-icon">🔧</span>
+            <span>Debug Mode</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-button" id="mergeFilesBtn">
+            <span class="toggle-icon">📁</span>
+            <span>View Files</span>
+          </button>
+        </li>
+      </ul>
+
+      <!-- Debug Actions -->
+      <div class="debug-actions" style="margin-top: 30px;">
+        <h4>Debug Actions</h4>
+        <ul class="sidebar-nav">
+          <li class="debug-action" style="display: none;">
+            <button class="nav-button" id="clearDataBtn">
+              <span class="toggle-icon">🗑️</span>
+              <span>Clear All Data</span>
+            </button>
+          </li>
+          <li class="debug-action" style="display: none;">
+            <button class="nav-button" id="exportDebugBtn">
+              <span class="toggle-icon">🐛</span>
+              <span>Export Debug</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Main Content -->
+  <div class="main-content" id="mainContent">
+    <!-- Welcome Section -->
+    <div class="section" id="welcomeSection">
+      <div class="section-header">
+        <h2>👋 Welcome to Expense Tracker</h2>
+      </div>
+      <div class="section-content">
+        <p>Upload your transaction files (CSV, Excel, or XML) to get started tracking your expenses and income.</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <button class="button primary-btn" onclick="document.getElementById('fileUploadBtn').click()">
+            📤 Upload Your First File
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="section" id="chartsSection" style="display: none;">
+      <div class="section-header">
+        <h2>📊 Financial Overview</h2>
+        <div class="chart-controls debug-action" style="display: none;">
+          <select id="chartCurrencySelect">
+            <option value="all">All Currencies</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-content">
+        <div class="charts-container">
+          <div class="chart-wrapper">
+            <canvas id="categoryChart"></canvas>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="monthlyChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions will be dynamically inserted here -->
+
+    <!-- Merged Files will be dynamically inserted here -->
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="src/main.js"></script>
+</body>
+
+</html>
