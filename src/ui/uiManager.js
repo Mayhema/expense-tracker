@@ -55,18 +55,20 @@ export function showToast(message, type = 'info', duration = 3000) {
     const toastContainer = document.getElementById('toastContainer') || createToastContainer();
 
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <span class="toast-message">${message}</span>
-      <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-    `;
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-message">${message}</span>`;
 
     toastContainer.appendChild(toast);
 
     // Auto-remove after duration
     setTimeout(() => {
       if (toast.parentElement) {
-        toast.remove();
+        toast.classList.add('removing');
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 300);
       }
     }, duration);
 
@@ -311,27 +313,7 @@ function setupSidebar() {
  * Set up all UI event listeners
  */
 function setupUIEventListeners() {
-  // Set up hamburger menu
-  const hamburgerMenu = document.getElementById('hamburgerMenu');
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-  if (hamburgerMenu && sidebar) {
-    hamburgerMenu.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
-      if (sidebarOverlay) {
-        sidebarOverlay.classList.toggle('active');
-      }
-    });
-  }
-
-  if (sidebarOverlay) {
-    sidebarOverlay.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      sidebarOverlay.classList.remove('active');
-    });
-  }
-
+  // Remove this hamburger menu setup - it's handled in sidebarManager
   console.log('UI event listeners set up');
 }
 
@@ -456,4 +438,40 @@ function toggleDebugMode() {
   showToast(`Debug mode ${newDebugMode ? "enabled" : "disabled"}`, "info");
 
   console.log(`Debug mode toggled: ${newDebugMode}`);
+}
+
+/**
+ * Updates UI elements based on debug mode state
+ */
+export function updateDebugVisibility(isDebugMode) {
+  const debugElements = document.querySelectorAll('.debug-only');
+  console.log(`Found ${debugElements.length} debug elements to ${isDebugMode ? 'show' : 'hide'}`);
+
+  debugElements.forEach(element => {
+    if (isDebugMode) {
+      // Show the element with proper display type
+      if (element.classList.contains('inline-element')) {
+        element.style.display = 'inline-block';
+      } else if (element.classList.contains('flex-element')) {
+        element.style.display = 'flex';
+      } else {
+        element.style.display = 'block';
+      }
+      element.style.visibility = 'visible';
+      element.style.opacity = '1';
+    } else {
+      // Hide the element
+      element.style.display = 'none';
+      element.style.visibility = 'hidden';
+      element.style.opacity = '0';
+    }
+  });
+
+  // Update console logs button visibility
+  const saveButton = document.querySelector('button[onclick*="saveLogs"]');
+  if (saveButton) {
+    saveButton.style.display = isDebugMode ? 'block' : 'none';
+  }
+
+  console.log(`Debug visibility updated: ${isDebugMode ? 'shown' : 'hidden'} for ${debugElements.length} elements`);
 }

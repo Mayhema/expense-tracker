@@ -274,7 +274,7 @@ export function updateHeaderMapping(select, index) {
   const newValue = select.value;
 
   if (newValue === "–") {
-    handlePlaceholderSelection(index);
+    handlePlaceholderSelection(select, newValue);
     return;
   }
 
@@ -288,29 +288,30 @@ export function updateHeaderMapping(select, index) {
 }
 
 // Helper functions to break down complexity
-function handlePlaceholderSelection(index) {
-  AppState.currentSuggestedMapping[index] = "–";
+function handlePlaceholderSelection(selectElement, selectedValue) {
+  const columnIndex = Array.from(selectElement.closest('tr').children).indexOf(selectElement.closest('td'));
 
-  // Check if we have valid required fields for saving
-  const hasDate = AppState.currentSuggestedMapping.includes("Date");
-  const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
-    AppState.currentSuggestedMapping.includes("Expenses");
+  console.log(`Handling placeholder selection: ${selectedValue} for column ${columnIndex}`);
 
-  // Enable/disable save button
-  const saveButton = document.getElementById("saveHeadersBtn");
-  if (saveButton) {
-    saveButton.disabled = !(hasDate && hasAmount);
-    saveButton.title = hasDate && hasAmount ?
-      "Save this mapping" :
-      "You need at least Date and either Income or Expenses columns";
+  // Update the current mapping array
+  if (!currentMapping) {
+    currentMapping = new Array(document.querySelectorAll('.header-select').length).fill('–');
   }
+  if (columnIndex >= 0 && columnIndex < currentMapping.length) {
+    currentMapping[columnIndex] = selectedValue;
+  }
+
+  console.log("Updated mapping:", currentMapping);
 }
 
-function isDuplicateMapping(value, index) {
-  // Check if mapping already exists elsewhere
-  return AppState.currentSuggestedMapping.findIndex(
-    (val, i) => i !== index && val === value
-  ) !== -1;
+function isDuplicateMapping(selectedValue, currentColumnIndex) {
+  if (!currentMapping || !Array.isArray(currentMapping)) {
+    return false;
+  }
+
+  return currentMapping.findIndex((mapping, index) => {
+    return mapping === selectedValue && index !== currentColumnIndex;
+  }) !== -1;
 }
 
 function handleDuplicateMapping(newValue, index) {

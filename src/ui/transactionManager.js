@@ -1,5 +1,18 @@
 import { AppState } from '../core/appState.js';
-import { showToast } from './uiManager.js';
+
+/**
+ * Helper function to get and update category counts
+ */
+function updateCategoryCounts(transactions) {
+  const categoryCounts = {};
+
+  transactions.forEach(tx => {
+    const category = tx.category || 'Uncategorized';
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  return categoryCounts;
+}
 
 /**
  * Filters transactions by category
@@ -9,281 +22,443 @@ function filterByCategory(category) {
   console.log(`Filtering by category: "${category}"`);
 
   try {
-    const allTransactions = AppState.transactions || [];
-    let filteredTransactions;
+    // Set the current filter in AppState
+    AppState.currentCategoryFilter = category;
 
-    if (!category || category === '') {
-      filteredTransactions = allTransactions;
-    } else {
-      filteredTransactions = allTransactions.filter(tx => {
-        const txCategory = tx.category || 'Uncategorized';
-        return txCategory === category;
-      });
-    }
-
-    // Re-render with filtered transactions
-    renderTransactions(filteredTransactions, false);
-
-    console.log(`Filtered to ${filteredTransactions.length} transactions for category: ${category}`);
+    // Apply the filter and re-render
+    renderTransactions(AppState.transactions || [], false);
   } catch (error) {
-    console.error('Error filtering by category:', error);
-    showToast('Error filtering transactions', 'error');
+    console.error("Error filtering by category:", error);
   }
 }
 
-
 /**
- * Renders transactions with proper container management - FIXED duplicate content
+ * FIXED: Main render function with improved container management
  */
 export function renderTransactions(transactions = [], updateCharts = true) {
-  // Fix: Ensure transactions is always an array
-  const transactionArray = Array.isArray(transactions) ? transactions : [];
+  console.log(`CRITICAL: renderTransactions called with ${transactions.length} transactions`);
 
-  console.log(`Rendering ${transactionArray.length} transactions`);
+  // FIXED: Always use AppState.transactions if no transactions passed
+  const actualTransactions = transactions.length > 0 ? transactions : (AppState.transactions || []);
+  console.log(`CRITICAL: Using ${actualTransactions.length} transactions for rendering`);
 
-  // Ensure container exists
-  let container = createTransactionTableContainer();
+  // FIXED: Ensure main container exists first AND remove any duplicates
+  let container = ensureTransactionContainer();
   if (!container) {
-    console.error("Could not create or find transaction table container");
+    console.error('CRITICAL: Could not create transaction container');
     return;
   }
 
-  // Apply filters to transactions
-  const filteredTransactions = applyFilters(transactionArray);
+  // Apply filters to get display transactions
+  const filteredTransactions = applyFilters(actualTransactions);
+  console.log(`CRITICAL: Filtered to ${filteredTransactions.length} transactions for display`);
 
-  // Update transaction summary
+  // Update summary
   updateTransactionSummary(filteredTransactions);
 
-  // Update filters section - ensure it exists first
-  let filtersContainer = container.querySelector('#transactionFilters');
-  if (filtersContainer) {
-    filtersContainer.innerHTML = createFilterSection();
-    // Initialize filters after adding HTML
-    setTimeout(() => initializeFilters(), 100);
-  }
+  // FIXED: Render filters section
+  renderFiltersSection(container, actualTransactions);
 
-  // Generate and render transaction table first
-  const tableContainer = container.querySelector('#transactionTable');
-  if (tableContainer) {
-    tableContainer.innerHTML = generateTransactionTableHTML(filteredTransactions);
-  }
+  // FIXED: Render transaction table with proper structure
+  renderTransactionTable(container, filteredTransactions);
 
-  // Update currency filter dropdown
-  updateCurrencyFilter(transactionArray);
-
-  // Render category buttons AFTER DOM is updated - increased delay
+  // Render category buttons
   setTimeout(() => {
-    const categoryContainer = createCategoryButtonsContainer();
-    if (categoryContainer) {
-      renderCategoryButtons();
-    } else {
-      console.warn("Category buttons container still not ready, trying again...");
-      setTimeout(() => renderCategoryButtons(), 300);
-    }
-  }, 200);
+    renderCategoryButtons();
+  }, 100);
 
-  // Update charts if requested and available
+  // Update charts if requested
   if (updateCharts) {
-    import('./charts.js').then(module => {
-      if (module.updateCharts && typeof module.updateCharts === 'function') {
-        module.updateCharts(filteredTransactions);
-      }
-    }).catch(error => {
-      console.log('Charts module not available:', error.message);
-    });
+    setTimeout(() => {
+      import('./charts.js').then(module => {
+        if (module.updateCharts) {
+          module.updateCharts();
+        }
+      }).catch(error => {
+        console.log('Charts module not available:', error.message);
+      });
+    }, 300);
   }
 
-  console.log(`Transaction rendering complete: ${filteredTransactions.length} transactions displayed`);
+  console.log(`CRITICAL: Transaction rendering complete - displayed ${filteredTransactions.length} transactions`);
 }
 
 /**
- * Creates the transaction table container if it doesn't exist
+ * FIXED: Ensure transaction container exists with proper structure AND remove duplicates
  */
-function createTransactionTableContainer() {
-  let container = document.getElementById("transactionTableContainer");
+function ensureTransactionContainer() {
+  // CRITICAL FIX: Remove ALL existing transaction sections first
+  const existingSections = document.querySelectorAll('.transactions-section, #transactionsSection, [id*="transaction"]');
+  existingSections.forEach(section => {
+    console.log('CRITICAL: Removing duplicate transaction section:', section.className, section.id);
+    section.remove();
+  });
 
-  if (!container) {
-    console.log("Creating transaction table container...");
+  const mainContent = document.querySelector('.main-content');
+  if (!mainContent) {
+    console.error('CRITICAL: Main content not found');
+    return null;
+  }
 
-    // Find or create the main content area
-    let mainContent = document.querySelector('.main-content');
-    if (!mainContent) {
-      // Create main content if it doesn't exist
-      mainContent = document.createElement('div');
-      mainContent.className = 'main-content';
-      document.body.appendChild(mainContent);
-      console.log("Created main content area");
-    }
-
-    // Find existing transactions section or create it
-    let transactionsSection = document.getElementById('transactionsSection');
-    if (!transactionsSection) {
-      transactionsSection = document.createElement('div');
-      transactionsSection.id = 'transactionsSection';
-      transactionsSection.className = 'section';
-      mainContent.appendChild(transactionsSection);
-      console.log("Created transactions section");
-    }
-
-    // Create the container with proper structure - FIXED
-    container = document.createElement("div");
-    container.id = "transactionTableContainer";
-    container.className = "transaction-container";
-
-    // Create the complete structure with section-content - PROPER STRUCTURE
-    container.innerHTML = `
-      <div class="section-header">
-        <h2>📊 Transactions</h2>
-        <div class="transaction-summary" id="transactionSummary">
-          <!-- Summary will be updated dynamically -->
-        </div>
+  // Create ONE clean transaction section
+  const section = document.createElement('div');
+  section.className = 'section transactions-section';
+  section.id = 'transactionsSection'; // Give it a unique ID to prevent duplicates
+  section.innerHTML = `
+    <div class="section-header">
+      <h2>💰 Transactions</h2>
+      <div class="transaction-summary" id="transactionSummary">
+        <!-- Summary will be updated dynamically -->
       </div>
-      <div class="section-content">
-        <!-- Filters will be added here -->
-        <div id="transactionFilters" class="transaction-filters"></div>
-        <!-- Category buttons will be added here -->
-        <div id="categoryButtons" class="category-buttons"></div>
-        <!-- Transaction table will be added here -->
-        <div id="transactionTable" class="transaction-table-wrapper">
-          <div class="no-transactions">
-            <p>No transactions found. Upload a file to get started!</p>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Replace the content of transactions section instead of appending
-    transactionsSection.innerHTML = '';
-    transactionsSection.appendChild(container);
-    console.log("Created transaction table container with proper structure");
-  }
-
-  return container;
-}
-
-/**
- * Creates the category buttons container if it doesn't exist
- * @returns {HTMLElement|null} The category buttons container
- */
-function createCategoryButtonsContainer() {
-  const transactionContainer = document.getElementById("transactionTableContainer");
-  if (!transactionContainer) {
-    console.error("Failed to find transaction container");
-    return null;
-  }
-
-  let container = document.getElementById('categoryButtons');
-  if (container) {
-    return container;
-  }
-
-  console.log("Creating category buttons container...");
-  const sectionContent = findOrCreateSectionContent(transactionContainer);
-  if (!sectionContent) {
-    return null;
-  }
-
-  return findOrCreateCategoryContainer(sectionContent);
-}
-
-/**
- * Finds or creates the section content within the transaction container
- * @param {HTMLElement} transactionContainer - The main transaction container
- * @returns {HTMLElement|null} The section content element
- */
-function findOrCreateSectionContent(transactionContainer) {
-  let sectionContent = transactionContainer.querySelector('.section-content');
-  if (sectionContent) {
-    return sectionContent;
-  }
-
-  const parentSection = transactionContainer.closest('.section');
-  if (!parentSection) {
-    console.error("Could not find parent section for category buttons");
-    return null;
-  }
-
-  sectionContent = document.createElement('div');
-  sectionContent.className = 'section-content';
-  sectionContent.innerHTML = createSectionContentHTML();
-  parentSection.appendChild(sectionContent);
-  console.log("Created section-content with proper structure");
-
-  return sectionContent;
-}
-
-/**
- * Creates the HTML structure for section content
- * @returns {string} The HTML structure
- */
-function createSectionContentHTML() {
-  return `
-    <div id="transactionFilters" class="transaction-filters"></div>
-    <div id="categoryButtons" class="category-buttons"></div>
-    <div id="transactionTable" class="transaction-table-wrapper">
-      <div class="no-transactions">
-        <p>No transactions found. Upload a file to get started!</p>
+    </div>
+    <div class="section-content">
+      <div id="transactionFilters" class="transaction-filters"></div>
+      <div id="categoryButtons" class="category-buttons-container"></div>
+      <div id="transactionTableWrapper" class="transaction-table-wrapper">
+        <!-- Table will be rendered here -->
       </div>
     </div>
   `;
+
+  mainContent.appendChild(section);
+  console.log('CRITICAL: Created single clean transaction section');
+
+  return section;
 }
 
 /**
- * Finds or creates the category buttons container within section content
- * @param {HTMLElement} sectionContent - The section content element
- * @returns {HTMLElement} The category buttons container
+ * FIXED: Render filters section
  */
-function findOrCreateCategoryContainer(sectionContent) {
-  let container = sectionContent.querySelector('#categoryButtons');
-  if (container) {
-    return container;
+function renderFiltersSection(container, transactions) {
+  const filtersContainer = container.querySelector('#transactionFilters');
+  if (!filtersContainer) return;
+
+  filtersContainer.innerHTML = createFilterSection();
+
+  // Initialize filter controls
+  initializeFilters();
+
+  // Update currency filter with actual data
+  updateCurrencyFilter(transactions);
+
+  console.log('CRITICAL: Filters section rendered');
+}
+
+/**
+ * FIXED: Render transaction table with guaranteed structure
+ */
+function renderTransactionTable(container, transactions) {
+  const tableWrapper = container.querySelector('#transactionTableWrapper');
+  if (!tableWrapper) {
+    console.error('CRITICAL: Table wrapper not found');
+    return;
   }
 
-  container = document.createElement('div');
-  container.id = 'categoryButtons';
-  container.className = 'category-buttons';
+  console.log(`CRITICAL: Rendering table for ${transactions.length} transactions`);
 
-  insertCategoryContainer(sectionContent, container);
-  return container;
+  if (transactions.length === 0) {
+    tableWrapper.innerHTML = `
+      <div class="no-transactions">
+        <div class="empty-state-content">
+          <h3>📄 No Transactions Available</h3>
+          <p>Import transaction files using the "Upload File" button in the sidebar to see your data here.</p>
+          <p>Supported formats: CSV, Excel (.xlsx, .xls), XML</p>
+        </div>
+      </div>
+    `;
+    console.log('CRITICAL: Rendered empty state');
+    return;
+  }
+
+  // FIXED: Generate proper table HTML
+  const tableHTML = generateTransactionTableHTML(transactions);
+  tableWrapper.innerHTML = tableHTML;
+
+  // FIXED: Attach event listeners after DOM update
+  setTimeout(() => {
+    attachTransactionEventListeners();
+    console.log('CRITICAL: Event listeners attached');
+  }, 50);
+
+  console.log(`CRITICAL: Transaction table rendered with ${transactions.length} rows`);
 }
 
 /**
- * Inserts the category container in the appropriate position
- * @param {HTMLElement} sectionContent - The section content element
- * @param {HTMLElement} container - The category container to insert
+ * FIXED: Generate proper transaction table HTML
  */
-function insertCategoryContainer(sectionContent, container) {
-  const filtersContainer = sectionContent.querySelector('#transactionFilters');
-  const tableContainer = sectionContent.querySelector('#transactionTable');
+function generateTransactionTableHTML(transactions) {
+  console.log(`CRITICAL: Generating table HTML for ${transactions.length} transactions`);
 
-  if (filtersContainer && tableContainer) {
-    sectionContent.insertBefore(container, tableContainer);
-    console.log("Category buttons container created and inserted between filters and table");
-  } else if (filtersContainer) {
-    filtersContainer.after(container);
-    console.log("Category buttons container created and inserted after filters");
-  } else {
-    sectionContent.appendChild(container);
-    console.log("Category buttons container created and appended to section content");
+  let html = `
+    <div class="transaction-table-header">
+      <h4>📋 Transaction Data (${transactions.length} transactions)</h4>
+      <div class="table-info">
+        <span>Click on any field to edit • Changes are saved automatically</span>
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="transaction-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Income</th>
+            <th>Expenses</th>
+            <th>Currency</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  transactions.forEach((tx, index) => {
+    // FIXED: Properly handle transaction data
+    const date = tx.date || '';
+    const description = tx.description || '';
+    const category = tx.category || '';
+    const income = parseFloat(tx.income) || 0;
+    const expenses = parseFloat(tx.expenses) || 0;
+    const currency = tx.currency || 'USD';
+
+    html += `
+      <tr data-transaction-index="${index}" class="transaction-row">
+        <td class="date-cell">
+          <input type="date"
+                 class="edit-field date-field"
+                 value="${date}"
+                 data-field="date"
+                 data-index="${index}"
+                 data-original="${date}">
+        </td>
+        <td class="description-cell">
+          <input type="text"
+                 class="edit-field description-field"
+                 value="${description.replace(/"/g, '&quot;')}
+                 data-field="description"
+                 data-index="${index}"
+                 data-original="${description.replace(/"/g, '&quot;')}"
+                 placeholder="Enter description">
+        </td>
+        <td class="category-cell">
+          ${generateCategoryDropdown(category, tx.subcategory, index)}
+        </td>
+        <td class="amount-cell">
+          <input type="number"
+                 class="edit-field amount-field income-field"
+                 value="${income > 0 ? income.toFixed(2) : ''}"
+                 data-field="income"
+                 data-index="${index}"
+                 data-original="${income > 0 ? income.toFixed(2) : ''}"
+                 placeholder="0.00"
+                 step="0.01"
+                 min="0">
+        </td>
+        <td class="amount-cell">
+          <input type="number"
+                 class="edit-field amount-field expense-field"
+                 value="${expenses > 0 ? expenses.toFixed(2) : ''}"
+                 data-field="expenses"
+                 data-index="${index}"
+                 data-original="${expenses > 0 ? expenses.toFixed(2) : ''}"
+                 placeholder="0.00"
+                 step="0.01"
+                 min="0">
+        </td>
+        <td class="currency-cell">
+          <select class="edit-field currency-field"
+                  data-field="currency"
+                  data-index="${index}"
+                  data-original="${currency}">
+            <option value="USD" ${currency === 'USD' ? 'selected' : ''}>USD</option>
+            <option value="EUR" ${currency === 'EUR' ? 'selected' : ''}>EUR</option>
+            <option value="GBP" ${currency === 'GBP' ? 'selected' : ''}>GBP</option>
+            <option value="CAD" ${currency === 'CAD' ? 'selected' : ''}>CAD</option>
+            <option value="AUD" ${currency === 'AUD' ? 'selected' : ''}>AUD</option>
+          </select>
+        </td>
+        <td class="action-cell">
+          <button class="btn-save action-btn" data-index="${index}" style="display: none;" title="Save changes">💾</button>
+          <button class="btn-revert action-btn" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  console.log('CRITICAL: Generated table HTML successfully');
+  return html;
+}
+
+/**
+ * Attach event listeners to transaction table fields
+ */
+function attachTransactionEventListeners() {
+  console.log('CRITICAL: Attaching transaction event listeners');
+
+  // Handle field changes
+  document.querySelectorAll('.edit-field').forEach(field => {
+    field.addEventListener('input', (e) => {
+      const row = e.target.closest('tr');
+      const saveBtn = row.querySelector('.btn-save');
+      const revertBtn = row.querySelector('.btn-revert');
+
+      const hasChanges = checkRowForChanges(row);
+
+      if (hasChanges) {
+        saveBtn.style.display = 'inline-block';
+        revertBtn.style.display = 'inline-block';
+        row.classList.add('has-changes');
+      } else {
+        saveBtn.style.display = 'none';
+        revertBtn.style.display = 'none';
+        row.classList.remove('has-changes');
+      }
+    });
+  });
+
+  // Handle save buttons
+  document.querySelectorAll('.btn-save').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      saveTransactionChanges(index);
+    });
+  });
+
+  // Handle revert buttons
+  document.querySelectorAll('.btn-revert').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      revertTransactionChanges(index);
+    });
+  });
+
+  console.log('CRITICAL: Transaction event listeners attached successfully');
+}
+
+/**
+ * Check if a row has any changes
+ */
+function checkRowForChanges(row) {
+  const fields = row.querySelectorAll('.edit-field');
+  for (let field of fields) {
+    if (field.value !== field.dataset.original) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Save changes to a transaction
+ */
+function saveTransactionChanges(index) {
+  if (!AppState.transactions || !AppState.transactions[index]) return;
+
+  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+  if (!row) return;
+
+  const fields = row.querySelectorAll('.edit-field');
+  const transaction = AppState.transactions[index];
+
+  fields.forEach(field => {
+    const fieldName = field.dataset.field;
+    const newValue = field.value;
+
+    // Update the transaction
+    transaction[fieldName] = newValue;
+
+    // Update the original value
+    field.dataset.original = newValue;
+  });
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    // Hide save/revert buttons
+    row.querySelector('.btn-save').style.display = 'none';
+    row.querySelector('.btn-revert').style.display = 'none';
+    row.classList.remove('has-changes');
+
+    // Show success feedback
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Transaction updated', 'success');
+      }
+    });
+
+    // Update category buttons if category changed
+    setTimeout(() => {
+      renderCategoryButtons();
+    }, 100);
+
+  } catch (error) {
+    console.error('Error saving transaction:', error);
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Error saving changes', 'error');
+      }
+    });
   }
 }
 
+/**
+ * Revert changes to a transaction
+ */
+function revertTransactionChanges(index) {
+  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+  if (!row) return;
+
+  const fields = row.querySelectorAll('.edit-field');
+
+  fields.forEach(field => {
+    field.value = field.dataset.original;
+  });
+
+  // Hide save/revert buttons
+  row.querySelector('.btn-save').style.display = 'none';
+  row.querySelector('.btn-revert').style.display = 'none';
+  row.classList.remove('has-changes');
+}
 
 /**
- * Updates the currency filter dropdown with available currencies
- * @param {Array} transactions - The transactions to analyze for currencies
+ * FIXED: Updates the currency filter dropdown with available currencies
+ * @param {Array} transactions - Array of transactions to extract currencies from
  */
 function updateCurrencyFilter(transactions) {
-  // Get unique currencies from transactions
-  const currencies = [...new Set(transactions.map(tx => tx.currency || 'USD'))];
+  const currencies = new Set();
+  transactions.forEach(tx => {
+    if (tx.currency) {
+      currencies.add(tx.currency);
+    }
+  });
 
-  const filterSelect = document.querySelector('#currencyFilter');
-  if (filterSelect && currencies.length > 1) {
-    filterSelect.innerHTML = '<option value="">All Currencies</option>' +
-      currencies.map(currency => `<option value="${currency}">${currency}</option>`).join('');
-    filterSelect.style.display = 'block';
-  } else if (filterSelect) {
-    filterSelect.style.display = 'none';
+  const currencyFilter = document.getElementById('filterCurrency');
+  if (currencyFilter) {
+    // Save current selection
+    const currentValue = currencyFilter.value;
+
+    // Clear existing options except "All"
+    currencyFilter.innerHTML = '<option value="">All Currencies</option>';
+
+    // Add currency options
+    Array.from(currencies).sort().forEach(currency => {
+      const option = document.createElement('option');
+      option.value = currency;
+      option.textContent = currency;
+      currencyFilter.appendChild(option);
+    });
+
+    // Restore selection if it still exists
+    if (currentValue && currencyFilter.querySelector(`option[value="${currentValue}"]`)) {
+      currencyFilter.value = currentValue;
+    }
   }
 }
 
@@ -292,41 +467,30 @@ function updateCurrencyFilter(transactions) {
  * @returns {string} Filter section HTML
  */
 function createFilterSection() {
-  // Get current categories for the dropdown
-  const categories = AppState.categories || {};
-  const categoryOptions = Object.keys(categories).map(cat =>
-    `<option value="${cat}">${cat}</option>`
-  ).join('');
-
   return `
-    <div class="transaction-filters-row">
+    <div class="filter-row">
       <div class="filter-group">
         <label for="filterCategory">Category:</label>
-        <select id="filterCategory" class="filter-select">
+        <select id="filterCategory">
           <option value="">All Categories</option>
-          ${categoryOptions}
         </select>
       </div>
-
       <div class="filter-group">
         <label for="filterCurrency">Currency:</label>
-        <select id="filterCurrency" class="filter-select">
+        <select id="filterCurrency">
           <option value="">All Currencies</option>
         </select>
       </div>
-
       <div class="filter-group">
-        <label for="filterStartDate">From:</label>
-        <input type="date" id="filterStartDate" class="filter-input">
+        <label for="filterDateFrom">From:</label>
+        <input type="date" id="filterDateFrom">
       </div>
-
       <div class="filter-group">
-        <label for="filterEndDate">To:</label>
-        <input type="date" id="filterEndDate" class="filter-input">
+        <label for="filterDateTo">To:</label>
+        <input type="date" id="filterDateTo">
       </div>
-
       <div class="filter-group">
-        <button id="clearFilters" class="button secondary-btn">Clear Filters</button>
+        <button id="clearFiltersBtn" class="button secondary-btn">Clear Filters</button>
       </div>
     </div>
   `;
@@ -336,117 +500,123 @@ function createFilterSection() {
  * Initializes the filter controls
  */
 function initializeFilters() {
-  console.log("Initializing transaction filters...");
-
   // Category filter
   const categoryFilter = document.getElementById('filterCategory');
   if (categoryFilter) {
-    // Remove existing listeners by cloning
-    const newCategoryFilter = categoryFilter.cloneNode(true);
-    categoryFilter.parentNode.replaceChild(newCategoryFilter, categoryFilter);
+    // FIXED: Populate only main categories (no subcategories in dropdown)
+    const categories = AppState.categories || {};
+    Object.keys(categories).sort().forEach(categoryName => {
+      const option = document.createElement('option');
+      option.value = categoryName;
+      option.textContent = categoryName;
+      categoryFilter.appendChild(option);
+    });
 
-    newCategoryFilter.addEventListener('change', (e) => {
-      filterByCategory(e.target.value);
+    categoryFilter.addEventListener('change', () => {
+      AppState.currentCategoryFilter = categoryFilter.value;
+      renderTransactions(AppState.transactions || [], false);
     });
   }
 
   // Currency filter
   const currencyFilter = document.getElementById('filterCurrency');
   if (currencyFilter) {
-    // Remove existing listeners by cloning
-    const newCurrencyFilter = currencyFilter.cloneNode(true);
-    currencyFilter.parentNode.replaceChild(newCurrencyFilter, currencyFilter);
-
-    newCurrencyFilter.addEventListener('change', (e) => {
-      const filteredTransactions = applyFilters();
-      renderTransactions(filteredTransactions, true);
+    currencyFilter.addEventListener('change', () => {
+      renderTransactions(AppState.transactions || [], false);
     });
   }
 
   // Date filters
-  const startDateFilter = document.getElementById('filterStartDate');
-  const endDateFilter = document.getElementById('filterEndDate');
+  const dateFromFilter = document.getElementById('filterDateFrom');
+  const dateToFilter = document.getElementById('filterDateTo');
 
-  if (startDateFilter) {
-    const newStartDateFilter = startDateFilter.cloneNode(true);
-    startDateFilter.parentNode.replaceChild(newStartDateFilter, startDateFilter);
-
-    newStartDateFilter.addEventListener('change', () => {
-      const filteredTransactions = applyFilters();
-      renderTransactions(filteredTransactions, true);
+  if (dateFromFilter) {
+    dateFromFilter.addEventListener('change', () => {
+      renderTransactions(AppState.transactions || [], false);
     });
   }
 
-  if (endDateFilter) {
-    const newEndDateFilter = endDateFilter.cloneNode(true);
-    endDateFilter.parentNode.replaceChild(newEndDateFilter, endDateFilter);
-
-    newEndDateFilter.addEventListener('change', () => {
-      const filteredTransactions = applyFilters();
-      renderTransactions(filteredTransactions, true);
+  if (dateToFilter) {
+    dateToFilter.addEventListener('change', () => {
+      renderTransactions(AppState.transactions || [], false);
     });
   }
 
   // Clear filters button
-  const clearFiltersBtn = document.getElementById('clearFilters');
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
   if (clearFiltersBtn) {
-    const newClearFiltersBtn = clearFiltersBtn.cloneNode(true);
-    clearFiltersBtn.parentNode.replaceChild(newClearFiltersBtn, clearFiltersBtn);
+    clearFiltersBtn.addEventListener('click', () => {
+      if (categoryFilter) categoryFilter.value = '';
+      if (currencyFilter) currencyFilter.value = '';
+      if (dateFromFilter) dateFromFilter.value = '';
+      if (dateToFilter) dateToFilter.value = '';
 
-    newClearFiltersBtn.addEventListener('click', () => {
-      // Clear all filter values
-      const categoryFilterUpdated = document.getElementById('filterCategory');
-      const currencyFilterUpdated = document.getElementById('filterCurrency');
-      const startDateFilterUpdated = document.getElementById('filterStartDate');
-      const endDateFilterUpdated = document.getElementById('filterEndDate');
+      // Clear category button filter too
+      AppState.currentCategoryFilter = '';
 
-      if (categoryFilterUpdated) categoryFilterUpdated.value = '';
-      if (currencyFilterUpdated) currencyFilterUpdated.value = '';
-      if (startDateFilterUpdated) startDateFilterUpdated.value = '';
-      if (endDateFilterUpdated) endDateFilterUpdated.value = '';
-
-      // Re-render with all transactions
-      const allTransactions = AppState.transactions || [];
-      renderTransactions(allTransactions, true);
+      renderTransactions(AppState.transactions || [], false);
     });
   }
-
-  console.log("Transaction filters initialized successfully");
 }
 
 /**
- * Applies current filters to the transaction list
+ * FIXED: Applies current filters to the transaction list
  * @param {Array} transactions - The transactions to filter
  * @returns {Array} Filtered transactions
  */
 function applyFilters(transactions = AppState.transactions || []) {
+  console.log(`CRITICAL: Applying filters to ${transactions.length} transactions`);
+
   let filtered = [...transactions];
 
-  // Get filter values
-  const categoryFilter = document.getElementById('filterCategory')?.value || '';
-  const currencyFilter = document.getElementById('filterCurrency')?.value || '';
-  const startDate = document.getElementById('filterStartDate')?.value || '';
-  const endDate = document.getElementById('filterEndDate')?.value || '';
+  // FIXED: Only apply UI filters if the elements exist, otherwise return all transactions
+  const categoryFilter = document.getElementById('filterCategory');
+  const currencyFilter = document.getElementById('filterCurrency');
+  const dateFromFilter = document.getElementById('filterDateFrom');
+  const dateToFilter = document.getElementById('filterDateTo');
 
-  // Apply category filter
-  if (categoryFilter) {
-    filtered = filtered.filter(tx => (tx.category || 'Uncategorized') === categoryFilter);
+  // Category filter - check both filter dropdown and category button filter
+  const currentCategoryFilter = AppState.currentCategoryFilter || '';
+  const activeFilter = currentCategoryFilter || (categoryFilter ? categoryFilter.value : '');
+
+  if (activeFilter) {
+    filtered = filtered.filter(tx => {
+      if (activeFilter.includes(' > ')) {
+        // Subcategory filter
+        const [parentCat, subCat] = activeFilter.split(' > ');
+        return tx.category === parentCat && tx.subcategory === subCat;
+      } else {
+        // Main category filter
+        return (tx.category || 'Uncategorized') === activeFilter;
+      }
+    });
   }
 
-  // Apply currency filter
-  if (currencyFilter) {
-    filtered = filtered.filter(tx => (tx.currency || 'USD') === currencyFilter);
+  // Currency filter
+  if (currencyFilter && currencyFilter.value) {
+    filtered = filtered.filter(tx => (tx.currency || 'USD') === currencyFilter.value);
   }
 
-  // Apply date filters
-  if (startDate) {
-    filtered = filtered.filter(tx => new Date(tx.date) >= new Date(startDate));
+  // Date filters
+  if (dateFromFilter && dateFromFilter.value) {
+    const fromDate = new Date(dateFromFilter.value);
+    filtered = filtered.filter(tx => {
+      if (!tx.date) return false;
+      const txDate = new Date(tx.date);
+      return txDate >= fromDate;
+    });
   }
 
-  if (endDate) {
-    filtered = filtered.filter(tx => new Date(tx.date) <= new Date(endDate));
+  if (dateToFilter && dateToFilter.value) {
+    const toDate = new Date(dateToFilter.value);
+    filtered = filtered.filter(tx => {
+      if (!tx.date) return false;
+      const txDate = new Date(tx.date);
+      return txDate <= toDate;
+    });
   }
 
+  console.log(`CRITICAL: Applied filters: ${filtered.length} transactions after filtering from ${transactions.length}`);
   return filtered;
 }
 
@@ -454,300 +624,272 @@ function applyFilters(transactions = AppState.transactions || []) {
  * Updates transaction summary display
  */
 function updateTransactionSummary(transactions) {
-  const summaryContainer = document.getElementById('transactionSummary');
-  if (!summaryContainer) return;
-
   const totalIncome = transactions.reduce((sum, tx) => sum + (parseFloat(tx.income) || 0), 0);
   const totalExpenses = transactions.reduce((sum, tx) => sum + (parseFloat(tx.expenses) || 0), 0);
-  const netAmount = totalIncome - totalExpenses;
+  const netBalance = totalIncome - totalExpenses;
 
-  summaryContainer.innerHTML = `
-    <div class="summary-stats">
-      <div class="summary-item income">
-        <span class="label">Income:</span>
-        <span class="value">$${totalIncome.toLocaleString()}</span>
+  // Update summary if it exists
+  const summaryContainer = document.getElementById('transactionSummary');
+  if (summaryContainer) {
+    summaryContainer.innerHTML = `
+      <div class="summary-item">
+        <span class="summary-label">Income:</span>
+        <span class="summary-value income">${totalIncome.toFixed(2)}</span>
       </div>
-      <div class="summary-item expenses">
-        <span class="label">Expenses:</span>
-        <span class="value">$${totalExpenses.toLocaleString()}</span>
+      <div class="summary-item">
+        <span class="summary-label">Expenses:</span>
+        <span class="summary-value expenses">${totalExpenses.toFixed(2)}</span>
       </div>
-      <div class="summary-item net ${netAmount >= 0 ? 'positive' : 'negative'}">
-        <span class="label">Net:</span>
-        <span class="value">$${netAmount.toLocaleString()}</span>
+      <div class="summary-item">
+        <span class="summary-label">Net:</span>
+        <span class="summary-value ${netBalance >= 0 ? 'income' : 'expenses'}">${netBalance.toFixed(2)}</span>
       </div>
-      <div class="summary-item count">
-        <span class="label">Transactions:</span>
-        <span class="value">${transactions.length}</span>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Generates transaction table HTML
- */
-function generateTransactionTableHTML(transactions) {
-  if (!transactions || transactions.length === 0) {
-    return `
-      <div class="no-transactions">
-        <p>📄 No transactions found</p>
-        <p class="info-text">Upload a file or adjust your filters to see transactions</p>
+      <div class="summary-item">
+        <span class="summary-label">Count:</span>
+        <span class="summary-value">${transactions.length}</span>
       </div>
     `;
   }
+}
 
-  const tableHTML = `
-    <table class="transaction-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Description</th>
-          <th>Category</th>
-          <th>Income</th>
-          <th>Expenses</th>
-          <th>Currency</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${transactions.map(tx => `
-          <tr>
-            <td>${new Date(tx.date).toLocaleDateString()}</td>
-            <td>${tx.description || 'N/A'}</td>
-            <td>
-              <span class="category-badge" style="background-color: ${getCategoryColor(tx.category)}">
-                ${tx.category || 'Uncategorized'}
-              </span>
-            </td>
-            <td class="amount income">${tx.income ? `$${parseFloat(tx.income).toFixed(2)}` : ''}</td>
-            <td class="amount expenses">${tx.expenses ? `$${parseFloat(tx.expenses).toFixed(2)}` : ''}</td>
-            <td>${tx.currency || 'USD'}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+/**
+ * Generate category dropdown with subcategories
+ */
+function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionIndex) {
+  const categories = AppState.categories || {};
+  let html = `
+    <select class="edit-field category-select"
+            data-field="category"
+            data-index="${transactionIndex}"
+            data-original="${selectedCategory || ''}">
+      <option value="">Select Category</option>
   `;
 
-  return tableHTML;
+  // Get sorted categories by order
+  const sortedCategories = Object.entries(categories)
+    .sort(([, a], [, b]) => {
+      const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
+      const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
+      return orderA - orderB;
+    });
+
+  sortedCategories.forEach(([categoryName, categoryData]) => {
+    const isSelected = selectedCategory === categoryName;
+    html += `<option value="${categoryName}" ${isSelected ? 'selected' : ''}>${categoryName}</option>`;
+
+    // Add subcategories if they exist
+    if (typeof categoryData === 'object' && categoryData.subcategories) {
+      Object.keys(categoryData.subcategories).sort().forEach(subName => {
+        const subValue = `${categoryName} > ${subName}`;
+        const isSubSelected = selectedCategory === categoryName && selectedSubcategory === subName;
+        html += `<option value="${subValue}" ${isSubSelected ? 'selected' : ''}>&nbsp;&nbsp;→ ${subName}</option>`;
+      });
+    }
+  });
+
+  html += '</select>';
+  return html;
 }
 
 /**
- * Get category color from AppState
- */
-function getCategoryColor(categoryName) {
-  if (!categoryName) return '#cccccc';
-
-  const category = AppState.categories[categoryName];
-  if (typeof category === 'string') return category;
-  if (category && category.color) return category.color;
-
-  // Generate consistent color based on name
-  let hash = 0;
-  for (let i = 0; i < categoryName.length; i++) {
-    hash = ((hash << 5) - hash) + categoryName.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return `hsl(${Math.abs(hash) % 360}, 70%, 60%)`;
-}
-
-/**
- * Render beautiful category buttons
+ * Render category buttons with improved styling - FIXED: Only main categories
  */
 export function renderCategoryButtons() {
-  console.log('Rendering category buttons...');
+  console.log("CRITICAL: Rendering category buttons...");
 
+  const categories = AppState.categories || {};
+  const transactions = AppState.transactions || [];
+
+  // Find or create category buttons container
   const container = createCategoryButtonsContainer();
   if (!container) {
-    console.warn('Category buttons container not found');
+    console.error("CRITICAL: Could not create category buttons container");
     return;
   }
 
-  // Get categories from transactions and AppState
-  const transactions = AppState.transactions || [];
-  const transactionCategories = [...new Set(transactions.map(tx => tx.category || 'Uncategorized'))];
-  const allCategories = Object.keys(AppState.categories || {});
-  const categories = [...new Set([...transactionCategories, ...allCategories])].sort();
+  // Count transactions by category
+  const categoryCounts = updateCategoryCounts(transactions);
 
-  if (categories.length === 0) {
+  if (Object.keys(categories).length === 0 && transactions.length === 0) {
     container.innerHTML = `
-      <div class="category-buttons-empty">
-        <p>No categories available. Upload transactions or create categories in the sidebar.</p>
+      <div class="category-filter-header">
+        <h4>No categories available. Create categories in the sidebar.</h4>
       </div>
     `;
     return;
   }
 
-  // Create beautiful category buttons
-  const buttonsHTML = `
+  // Build category buttons HTML with improved styling
+  let buttonsHTML = `
     <div class="category-buttons-header">
-      <h4>Filter by Category</h4>
-      <button class="category-btn all active" data-category="">All Categories</button>
+      <h4>📊 Filter by Category</h4>
     </div>
     <div class="category-buttons-grid">
-      ${categories.map(category => {
-    const count = transactions.filter(tx => (tx.category || 'Uncategorized') === category).length;
-    const color = getCategoryColor(category);
-
-    return `
-          <button class="category-btn"
-                  data-category="${category}"
-                  style="--category-color: ${color}"
-                  title="${category} (${count} transactions)">
-            <span class="category-color" style="background-color: ${color}"></span>
-            <span class="category-name">${category}</span>
-            <span class="category-count">${count}</span>
-          </button>
-        `;
-  }).join('')}
-    </div>
   `;
+
+  // Add "All" button
+  const totalCount = transactions.length;
+  const isAllActive = !AppState.currentCategoryFilter;
+  buttonsHTML += `
+    <button class="category-btn all ${isAllActive ? 'active' : ''}" data-category="">
+      <span class="category-color" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></span>
+      <div class="category-info">
+        <span class="category-name">All Categories</span>
+        <span class="category-count">${totalCount}</span>
+      </div>
+    </button>
+  `;
+
+  // FIXED: Only show main categories (no subcategories in filter buttons)
+  const sortedCategories = Object.entries(categories)
+    .sort(([, a], [, b]) => {
+      const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
+      const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
+      return orderA - orderB;
+    });
+
+  sortedCategories.forEach(([categoryName, categoryData]) => {
+    const count = categoryCounts[categoryName] || 0;
+    let color = '#cccccc';
+
+    if (typeof categoryData === 'string') {
+      color = categoryData;
+    } else if (typeof categoryData === 'object' && categoryData.color) {
+      color = categoryData.color;
+    }
+
+    const isActive = AppState.currentCategoryFilter === categoryName;
+    buttonsHTML += `
+      <button class="category-btn ${isActive ? 'active' : ''}" data-category="${categoryName}">
+        <span class="category-color" style="background: ${color};"></span>
+        <div class="category-info">
+          <span class="category-name">${categoryName}</span>
+          <span class="category-count">${count}</span>
+        </div>
+      </button>
+    `;
+  });
+
+  buttonsHTML += `</div>`;
 
   container.innerHTML = buttonsHTML;
 
-  // Add event listeners
+  // Add event listeners - FIXED: Only handle main category clicks
   container.querySelectorAll('.category-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      const category = e.currentTarget.getAttribute('data-category');
+
+      // FIXED: Only handle main category filtering
+      filterByCategory(category);
+
       // Update active state
       container.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      e.target.closest('.category-btn').classList.add('active');
-
-      // Filter transactions
-      const category = e.target.closest('.category-btn').dataset.category;
-      filterByCategory(category);
+      e.currentTarget.classList.add('active');
     });
   });
 
-  console.log(`Rendered ${categories.length} category buttons`);
+  console.log("CRITICAL: Category buttons rendered successfully");
 }
 
 /**
- * Update transactions from merged files - Fixed initialization
+ * Creates the category buttons container if it doesn't exist
+ */
+function createCategoryButtonsContainer() {
+  let container = document.getElementById('categoryButtons');
+
+  if (!container) {
+    // Find the transaction section
+    const transactionSection = document.querySelector('.transactions-section');
+    if (!transactionSection) {
+      console.error("CRITICAL: Transaction section not found for category buttons");
+      return null;
+    }
+
+    const sectionContent = transactionSection.querySelector('.section-content');
+    if (!sectionContent) {
+      console.error("CRITICAL: Section content not found for category buttons");
+      return null;
+    }
+
+    // Create category buttons container
+    container = document.createElement('div');
+    container.id = 'categoryButtons';
+    container.className = 'category-buttons-container';
+
+    // Insert before the transaction table
+    const tableWrapper = document.getElementById('transactionTableWrapper');
+    if (tableWrapper) {
+      sectionContent.insertBefore(container, tableWrapper);
+    } else {
+      sectionContent.appendChild(container);
+    }
+
+    console.log("CRITICAL: Category buttons container created");
+  }
+
+  return container;
+}
+
+/**
+ * FIXED: Initialize transaction manager and load existing data
+ */
+export function initializeTransactionManager() {
+  console.log("CRITICAL: Initializing transaction manager...");
+
+  // FIXED: Force immediate render with current AppState data
+  setTimeout(() => {
+    const transactions = AppState.transactions || [];
+    console.log(`CRITICAL: Transaction manager forcing render of ${transactions.length} transactions`);
+    renderTransactions(transactions, true);
+  }, 100);
+}
+
+/**
+ * FIXED: Update transactions from merged files
  */
 export function updateTransactions() {
-  console.log('Updating transactions from merged files...');
+  console.log("CRITICAL: updateTransactions called - processing merged files...");
 
-  // Ensure AppState is properly initialized
-  if (!AppState) {
-    console.error('AppState not available');
-    return [];
+  if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
+    console.log("CRITICAL: No merged files found");
+    AppState.transactions = [];
+    renderTransactions([]);
+    return;
   }
 
-  // Load transactions from merged files
-  const allTransactions = [];
+  // CRITICAL FIX: Process all merged files into transactions
+  let allTransactions = [];
 
-  if (AppState.mergedFiles && AppState.mergedFiles.length > 0) {
-    AppState.mergedFiles.forEach(file => {
-      if (file.transactions && Array.isArray(file.transactions)) {
-        // Use pre-processed transactions from the file
-        allTransactions.push(...file.transactions);
-      } else if (file.data && file.headerMapping) {
-        // Process file data into transactions if not already processed
-        const fileTransactions = processFileToTransactions(file);
-        allTransactions.push(...fileTransactions);
+  AppState.mergedFiles.forEach(file => {
+    try {
+      console.log(`CRITICAL: Processing file: ${file.fileName}`, file);
+
+      // Use pre-processed transactions if available
+      if (file.transactions && Array.isArray(file.transactions) && file.transactions.length > 0) {
+        allTransactions = allTransactions.concat(file.transactions);
+        console.log(`CRITICAL: Loaded ${file.transactions.length} pre-processed transactions from ${file.fileName}`);
+      } else {
+        console.warn(`CRITICAL: File ${file.fileName} has no valid transaction data`);
       }
-    });
-  }
+    } catch (error) {
+      console.error(`CRITICAL: Error processing file ${file.fileName}:`, error);
+    }
+  });
 
-  // Update AppState
+  console.log(`CRITICAL: Total transactions processed: ${allTransactions.length}`);
+
+  // CRITICAL: Store in AppState immediately
   AppState.transactions = allTransactions;
 
   // Save to localStorage
   try {
-    localStorage.setItem("transactions", JSON.stringify(allTransactions));
+    localStorage.setItem('transactions', JSON.stringify(allTransactions));
+    console.log(`CRITICAL: Saved ${allTransactions.length} transactions to localStorage`);
   } catch (error) {
-    console.error('Error saving transactions to localStorage:', error);
-    import('./uiManager.js').then(module => {
-      if (module.showToast) {
-        module.showToast('Error saving transactions', 'error');
-      }
-    });
+    console.error('CRITICAL: Error saving transactions to localStorage:', error);
   }
 
-  // Re-render transactions only if we have a container
-  const container = document.getElementById("transactionTableContainer");
-  if (container || document.querySelector('.main-content')) {
-    renderTransactions(allTransactions, true);
-  } else {
-    console.log('Transaction container not ready, skipping render');
-  }
-
-  console.log(`Updated transactions: ${allTransactions.length} total`);
-  return allTransactions;
-}
-
-/**
- * Process file data into transaction objects
- */
-function processFileToTransactions(file) {
-  const transactions = [];
-
-  if (!file.data || !file.headerMapping) {
-    console.warn('File missing data or header mapping:', file.fileName);
-    return transactions;
-  }
-
-  // Get the data starting from the specified row
-  const dataStartIndex = file.dataRowIndex || 1;
-  const dataRows = file.data.slice(dataStartIndex);
-
-  dataRows.forEach((row, index) => {
-    if (!row || row.length === 0) return;
-
-    const transaction = {
-      date: '',
-      description: '',
-      income: '',
-      expenses: '',
-      currency: file.currency || 'USD',
-      category: '',
-      fileName: file.fileName
-    };
-
-    // Map the row data to transaction fields based on header mapping
-    file.headerMapping.forEach((mapping, colIndex) => {
-      if (mapping && mapping !== '–' && colIndex < row.length) {
-        const value = row[colIndex];
-        if (value !== null && value !== undefined) {
-          const mappingKey = mapping.toLowerCase();
-          transaction[mappingKey] = String(value).trim();
-        }
-      }
-    });
-
-    // Only add if we have essential data
-    if (transaction.date || transaction.description || transaction.income || transaction.expenses) {
-      transactions.push(transaction);
-    }
-  });
-
-  return transactions;
-}
-
-/**
- * Initialize transaction event listeners including category order changes
- */
-export function initializeTransactionEventListeners() {
-  console.log("Initializing transaction event listeners");
-
-  // Transaction category change handlers
-  document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('category-select')) {
-      const index = parseInt(e.target.dataset.index, 10);
-      const newCategory = e.target.value;
-
-      if (AppState.transactions && AppState.transactions[index]) {
-        AppState.transactions[index].category = newCategory;
-
-        // Save updated transactions
-        try {
-          localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
-          showToast(`Transaction category updated to ${newCategory}`, 'success');
-        } catch (error) {
-          console.error('Error saving updated transaction:', error);
-          showToast('Error updating transaction category', 'error');
-        }
-      }
-    }
-  });
-
-  console.log("Transaction event listeners initialized with category order support");
+  // FORCE render with the actual transactions
+  console.log(`CRITICAL: Forcing render of ${allTransactions.length} transactions`);
+  renderTransactions(allTransactions, true);
 }

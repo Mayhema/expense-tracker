@@ -1,5 +1,3 @@
-import { showToast } from './uiManager.js';
-
 // Module variables
 let darkModeToggle = null;
 let debugModeToggle = null;
@@ -11,13 +9,9 @@ export function setupSidebarManager() {
   console.log("Setting up sidebar manager...");
 
   try {
-    // Initialize hamburger menu
+    // Initialize components in order
     initializeHamburgerMenu();
-
-    // Initialize toggle switches
     initializeToggles();
-
-    // Initialize action buttons
     initializeActionButtons();
 
     console.log("Sidebar manager setup complete");
@@ -36,14 +30,13 @@ function initializeHamburgerMenu() {
   const mainContent = document.getElementById("mainContent");
 
   if (!hamburgerMenu || !sidebar || !sidebarOverlay) {
-    console.warn("Hamburger menu elements not found");
+    console.warn("Required sidebar elements not found");
     return;
   }
 
   // Toggle sidebar on hamburger click
   hamburgerMenu.addEventListener("click", () => {
     const isOpen = sidebar.classList.contains("open");
-
     if (isOpen) {
       closeSidebar();
     } else {
@@ -64,7 +57,6 @@ function initializeHamburgerMenu() {
   function openSidebar() {
     sidebar.classList.add("open");
     sidebarOverlay.classList.add("active");
-    hamburgerMenu.classList.add("active");
     if (mainContent) {
       mainContent.classList.add("sidebar-open");
     }
@@ -73,7 +65,6 @@ function initializeHamburgerMenu() {
   function closeSidebar() {
     sidebar.classList.remove("open");
     sidebarOverlay.classList.remove("active");
-    hamburgerMenu.classList.remove("active");
     if (mainContent) {
       mainContent.classList.remove("sidebar-open");
     }
@@ -101,7 +92,7 @@ function initializeToggles() {
 function initializeDebugModeToggle() {
   const debugModeToggle = document.getElementById("debugModeToggle");
   if (!debugModeToggle) {
-    console.warn("Debug mode toggle element not found");
+    console.warn("Debug mode toggle not found");
     return;
   }
 
@@ -123,6 +114,18 @@ function initializeDebugModeToggle() {
     document.body.classList.toggle("debug-mode", isEnabled);
     localStorage.setItem("debugMode", isEnabled);
     updateDebugVisibility(isEnabled);
+
+    // Re-initialize debug button listeners if debug mode is enabled
+    if (isEnabled) {
+      setTimeout(() => {
+        import('../utils/debug.js').then(module => {
+          if (module.attachDebugFunctions) {
+            module.attachDebugFunctions();
+          }
+        });
+      }, 100);
+    }
+
     console.log(`Debug mode ${isEnabled ? 'enabled' : 'disabled'}`);
   });
 
@@ -135,7 +138,7 @@ function initializeDebugModeToggle() {
 function initializeDarkModeToggle() {
   const darkModeToggle = document.getElementById("darkModeToggle");
   if (!darkModeToggle) {
-    console.warn("Dark mode toggle element not found");
+    console.warn("Dark mode toggle not found");
     return;
   }
 
@@ -152,10 +155,10 @@ function initializeDarkModeToggle() {
 
   // Add event listener
   newToggle.addEventListener('change', (e) => {
-    const isEnabled = e.target.checked;
-    document.body.classList.toggle("dark-mode", isEnabled);
-    localStorage.setItem("darkMode", isEnabled);
-    console.log(`Dark mode ${isEnabled ? 'enabled' : 'disabled'}`);
+    const isDark = e.target.checked;
+    document.body.classList.toggle("dark-mode", isDark);
+    localStorage.setItem("darkMode", isDark);
+    console.log(`Dark mode ${isDark ? 'enabled' : 'disabled'}`);
   });
 
   console.log("Dark mode toggle initialized successfully");
@@ -179,12 +182,9 @@ function updateDebugVisibility(isDebugMode) {
         element.style.display = 'block';
       }
       element.style.visibility = 'visible';
-      element.style.opacity = '1';
     } else {
-      // Hide the element
       element.style.display = 'none';
       element.style.visibility = 'hidden';
-      element.style.opacity = '0';
     }
   });
 
@@ -202,11 +202,15 @@ function initializeActionButtons() {
   const fileUploadBtn = document.getElementById("fileUploadBtn");
   if (fileUploadBtn) {
     fileUploadBtn.addEventListener("click", () => {
-      import('../ui/fileUpload.js').then(module => {
+      // Import and use the file upload functionality
+      import("../ui/fileUpload.js").then(module => {
         if (module.createNewFileInput) {
-          const fileInput = module.createNewFileInput();
-          if (fileInput) fileInput.click();
+          module.createNewFileInput();
+        } else {
+          console.error("createNewFileInput function not found");
         }
+      }).catch(err => {
+        console.error("Error loading file upload module:", err);
       });
     });
   }
@@ -214,28 +218,76 @@ function initializeActionButtons() {
   // Show mappings button
   const showMappingsBtn = document.getElementById("showMappingsBtn");
   if (showMappingsBtn) {
-    showMappingsBtn.addEventListener("click", _handleShowMappings);
+    showMappingsBtn.addEventListener("click", () => {
+      _handleShowMappings();
+    });
   }
 
   // Show merged files button
   const showMergedFilesBtn = document.getElementById("showMergedFilesBtn");
   if (showMergedFilesBtn) {
-    showMergedFilesBtn.addEventListener("click", _handleShowMergedFiles);
+    showMergedFilesBtn.addEventListener("click", () => {
+      _handleShowMergedFiles();
+    });
   }
 
   // Edit categories button
   const editCategoriesBtn = document.getElementById("editCategoriesSidebarBtn");
   if (editCategoriesBtn) {
-    editCategoriesBtn.addEventListener("click", _handleEditCategories);
+    editCategoriesBtn.addEventListener("click", () => {
+      _handleEditCategories();
+    });
   }
 
-  // Export button
+  // Export button - FIXED
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn) {
     exportBtn.addEventListener("click", () => {
-      import('../exports/exportManager.js').then(module => {
-        if (module.exportMergedFilesAsCSV) {
-          module.exportMergedFilesAsCSV();
+      // FIXED: Import AppState properly
+      import('../core/appState.js').then(appModule => {
+        const transactions = appModule.AppState.transactions || [];
+        if (transactions.length === 0) {
+          import('../ui/uiManager.js').then(uiModule => {
+            uiModule.showToast("No transactions to export", "warning");
+          });
+          return;
+        }
+
+        try {
+          // Generate CSV content
+          const headers = ['Date', 'Description', 'Category', 'Income', 'Expenses', 'Currency'];
+          const csvContent = [
+            headers.join(','),
+            ...transactions.map(tx => [
+              tx.date || '',
+              `"${(tx.description || '').replace(/"/g, '""')}"`,
+              tx.category || '',
+              tx.income || '',
+              tx.expenses || '',
+              tx.currency || 'USD'
+            ].join(','))
+          ].join('\n');
+
+          // Create and download file
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const timestamp = new Date().toISOString().split('T')[0];
+          a.href = url;
+          a.download = `transactions-${timestamp}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          import('../ui/uiManager.js').then(uiModule => {
+            uiModule.showToast(`Exported ${transactions.length} transactions`, "success");
+          });
+        } catch (error) {
+          console.error("Export error:", error);
+          import('../ui/uiManager.js').then(uiModule => {
+            uiModule.showToast("Export failed", "error");
+          });
         }
       });
     });
@@ -254,43 +306,38 @@ function initializeDebugButtons() {
   const debugButtons = [
     {
       id: "debugFilesBtn", handler: () => {
-        if (window.debugMergedFiles) {
-          window.debugMergedFiles();
-        } else {
-          console.log("Debug files function not available");
-        }
+        import("../utils/debug.js").then(module => {
+          if (module.debugMergedFiles) {
+            module.debugMergedFiles();
+          }
+        });
       }
     },
     {
       id: "debugSignaturesBtn", handler: () => {
-        if (window.debugSignatures) {
-          window.debugSignatures();
-        } else {
-          console.log("Debug signatures function not available");
-        }
+        import("../utils/debug.js").then(module => {
+          if (module.debugSignatures) {
+            module.debugSignatures();
+          }
+        });
       }
     },
     {
       id: "debugTransactionsBtn", handler: () => {
-        if (window.inspectTransactionData) {
-          window.inspectTransactionData();
-        } else {
-          console.log("Debug transactions function not available");
-        }
+        import("../utils/debug.js").then(module => {
+          if (module.inspectTransactionData) {
+            module.inspectTransactionData();
+          }
+        });
       }
     },
     {
       id: "saveLogBtn", handler: () => {
-        // Simple log save implementation
-        const logs = console.history || [];
-        const logData = JSON.stringify(logs, null, 2);
-        const blob = new Blob([logData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `debug-log-${new Date().toISOString().slice(0, 19)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        if (window.saveConsoleLogs) {
+          window.saveConsoleLogs();
+        } else {
+          console.log("Console logger not available");
+        }
       }
     },
     { id: "resetAppBtn", handler: _handleResetApp }
@@ -299,7 +346,15 @@ function initializeDebugButtons() {
   debugButtons.forEach(({ id, handler }) => {
     const button = document.getElementById(id);
     if (button) {
-      button.addEventListener("click", handler);
+      // Remove existing listeners
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
+
+      // Add new listener
+      newButton.addEventListener("click", handler);
+      console.log(`Debug button ${id} initialized`);
+    } else {
+      console.warn(`Debug button ${id} not found`);
     }
   });
 }
@@ -308,15 +363,55 @@ function initializeDebugButtons() {
  * Show mappings manager modal
  */
 function _handleShowMappings() {
-  import("../mappings/mappingsManager.js").then(module => {
-    if (typeof module.showMappingsModal === 'function') {
-      module.showMappingsModal();
-    } else {
-      showToast("Mappings manager not available", "error");
-    }
-  }).catch(err => {
-    console.error("Error loading mappings manager:", err);
-    showToast("Error opening mappings manager.", "error");
+  const mappings = JSON.parse(localStorage.getItem('fileFormatMappings') || '[]');
+
+  const modalContent = document.createElement('div');
+  modalContent.className = 'mappings-modal-content';
+
+  if (mappings.length === 0) {
+    modalContent.innerHTML = '<div class="empty-state"><p>No saved mappings found.</p></div>';
+  } else {
+    const mappingsHTML = mappings.map((mapping, index) => {
+      const fields = mapping.mapping ? mapping.mapping.filter(m => m !== '–').join(', ') : 'No mapping';
+      const created = mapping.created ? new Date(mapping.created).toLocaleString() : 'Unknown';
+
+      return `
+        <div class="mapping-item" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
+          <div><strong>Mapping ${index + 1}</strong> (Created: ${created})</div>
+          <div style="font-family: monospace; font-size: 0.8em; background: #f5f5f5; padding: 5px; border-radius: 3px; word-break: break-all; margin: 5px 0;">
+            Signature: ${mapping.signature || 'Unknown'}
+          </div>
+          <div style="margin-top: 10px;"><strong>Fields:</strong> ${fields}</div>
+          <button class="danger" onclick="removeMapping(${index})" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 10px;">Remove</button>
+        </div>
+      `;
+    }).join('');
+
+    modalContent.innerHTML = `
+      <h3>File Format Mappings (${mappings.length})</h3>
+      ${mappingsHTML}
+    `;
+  }
+
+  // Show modal using the modal manager
+  import('./modalManager.js').then(module => {
+    const modal = module.showModal({
+      title: '🗂️ File Format Mappings',
+      content: modalContent,
+      size: 'large',
+      closeOnClickOutside: true
+    });
+
+    // Add remove function to window temporarily for the modal
+    window.removeMapping = function (index) {
+      if (confirm('Are you sure you want to remove this mapping?')) {
+        mappings.splice(index, 1);
+        localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
+        modal.close();
+        // Re-open with updated data
+        setTimeout(() => _handleShowMappings(), 100);
+      }
+    };
   });
 }
 
@@ -324,41 +419,46 @@ function _handleShowMappings() {
  * Show merged files manager modal
  */
 function _handleShowMergedFiles() {
-  import("../ui/fileListUI.js").then(module => {
-    if (typeof module.showMergedFilesModal === 'function') {
+  import('./fileListUI.js').then(module => {
+    if (module.showMergedFilesModal) {
       module.showMergedFilesModal();
     } else {
-      showToast("File list manager not available", "error");
+      console.error('showMergedFilesModal function not found');
     }
   }).catch(err => {
-    console.error("Error loading file list UI:", err);
-    showToast("Error opening file list manager.", "error");
+    console.error('Error loading file list UI:', err);
+    import('./uiManager.js').then(uiModule => {
+      if (uiModule.showToast) {
+        uiModule.showToast('Error opening file list manager', 'error');
+      }
+    });
   });
 }
 
-/**
- * Show category manager modal
- */
 function _handleEditCategories() {
-  import("../ui/categoryModal.js").then(module => {
-    if (typeof module.showCategoryManagerModal === 'function') {
+  import('./categoryModal.js').then(module => {
+    if (module.showCategoryManagerModal) {
       module.showCategoryManagerModal();
     } else {
-      showToast("Category manager not available", "error");
+      console.error('showCategoryManagerModal function not found');
     }
   }).catch(err => {
-    console.error("Error loading category manager:", err);
-    showToast("Error opening category manager.", "error");
+    console.error('Error loading category manager:', err);
+    import('./uiManager.js').then(uiModule => {
+      if (uiModule.showToast) {
+        uiModule.showToast('Error opening category manager', 'error');
+      }
+    });
   });
 }
 
 /**
- * Handle app reset
+ * Reset application data
  */
 function _handleResetApp() {
-  if (window.resetApplication) {
-    window.resetApplication();
-  } else {
-    console.log("Reset application function not available");
+  if (confirm('Are you sure you want to reset the application? This will clear all data.')) {
+    localStorage.clear();
+    sessionStorage.clear();
+    location.reload();
   }
 }

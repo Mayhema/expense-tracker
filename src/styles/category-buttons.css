@@ -1,0 +1,226 @@
+.category-buttons-container {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.category-filter-header {
+  margin-bottom: 0.75rem;
+}
+
+.category-filter-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* FIXED: Force horizontal layout for category buttons */
+.category-buttons-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  padding: 0.5rem 0 !important;
+}
+
+.category-btn {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  padding: 0.4rem 0.8rem !important;
+  border: 1px solid #ddd !important;
+  border-radius: 20px !important;
+  background: white !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-size: 0.8rem !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-height: 32px !important;
+}
+
+.category-btn.subcategory {
+  font-size: 0.75rem !important;
+  opacity: 0.9 !important;
+}
+
+.category-btn:hover {
+  background: #f0f0f0 !important;
+  border-color: #bbb !important;
+  transform: translateY(-1px) !important;
+}
+
+.category-btn.active {
+  background: #007bff !important;
+  color: white !important;
+  border-color: #007bff !important;
+}
+
+.category-btn .btn-color {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  flex-shrink: 0 !important;
+}
+
+.category-btn .btn-text {
+  font-weight: 500 !important;
+  flex-shrink: 1 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 120px !important;
+}
+
+.category-btn .btn-count {
+  background: rgba(0, 0, 0, 0.1) !important;
+  color: #666 !important;
+  padding: 0.1rem 0.4rem !important;
+  border-radius: 10px !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+  min-width: 20px !important;
+  text-align: center !important;
+}
+
+.category-btn.active .btn-count {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+/* Transaction table improvements */
+.transaction-table-wrapper {
+  margin-top: 1rem;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.transaction-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
+}
+
+.transaction-table th,
+.transaction-table td {
+  padding: 0.75rem !important;
+  border: 1px solid #e0e0e0 !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+}
+
+.transaction-table th {
+  background: #f8f9fa !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  font-size: 0.9rem !important;
+}
+
+.transaction-table tr.has-changes {
+  background: #fff3cd !important;
+}
+
+.edit-field {
+  width: 100% !important;
+  padding: 0.4rem !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  font-size: 0.85rem !important;
+}
+
+.edit-field:focus {
+  border-color: #007bff !important;
+  background: white !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Dark mode overrides */
+.dark-mode .category-buttons-container {
+  background: #333 !important;
+  border-color: #555 !important;
+}
+
+.dark-mode .category-filter-header h4 {
+  color: #ccc !important;
+}
+
+.dark-mode .category-btn {
+  background: #444 !important;
+  border-color: #666 !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .category-btn:hover {
+  background: #555 !important;
+  border-color: #777 !important;
+}
+
+.dark-mode .category-btn .btn-count {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ccc !important;
+}
+
+.dark-mode .transaction-table-wrapper {
+  background: #333 !important;
+  border-color: #555 !important;
+}
+
+.dark-mode .transaction-table th {
+  background: #444 !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .transaction-table td {
+  border-color: #555 !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .edit-field {
+  background: #444 !important;
+  color: #e0e0e0 !important;
+  border-color: #555 !important;
+}
+
+.dark-mode .edit-field:focus {
+  background: #333 !important;
+  border-color: #007bff !important;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .category-buttons-row {
+    gap: 0.3rem !important;
+  }
+
+  .category-btn {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .category-btn .btn-text {
+    max-width: 80px !important;
+  }
+
+  .transaction-table {
+    font-size: 0.8rem !important;
+  }
+
+  .edit-field {
+    font-size: 0.75rem !important;
+    padding: 0.3rem !important;
+  }
+}

@@ -1,10 +1,7 @@
 import { AppState, resetFileState } from '../core/appState.js';
-import { addMergedFile } from '../core/fileManager.js';
-import { renderMergedFiles } from './fileListUI.js';
-import { showToast, hideElement } from './uiManager.js';
+import { showToast } from './uiManager.js';
 import { showModal } from './modalManager.js';
-import { renderHeaderPreview } from './headerMapping.js';
-import { updateTransactions } from './transactionManager.js';
+import { TRANSACTION_FIELDS, autoDetectFieldType } from '../constants/fieldMappings.js'; // FIXED: Correct import
 
 // Global flag to prevent multiple file inputs
 let fileInputInProgress = false;
@@ -29,46 +26,18 @@ export function initializeFileUpload() {
 
   // Prevent multiple initializations
   if (fileInputInProgress) {
-    console.log("File upload already initializing, skipping");
+    console.log("File upload already in progress");
     return;
   }
 
   try {
+    // Clean up any existing file inputs
     cleanupExistingFileInputs();
 
-    const fileUploadBtn = document.getElementById('fileUploadBtn');
-    if (fileUploadBtn) {
-      // Remove existing listeners to prevent duplicates
-      const newBtn = fileUploadBtn.cloneNode(true);
-      fileUploadBtn.parentNode.replaceChild(newBtn, fileUploadBtn);
-
-      // Add single click listener
-      newBtn.addEventListener('click', handleFileUploadClick);
-      console.log("File upload button initialized");
-    } else {
-      console.warn("File upload button not found");
-    }
+    console.log("File upload initialized successfully");
   } catch (error) {
     console.error("Error initializing file upload:", error);
   }
-}
-
-/**
- * Handle file upload button click
- */
-function handleFileUploadClick(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  // Prevent rapid clicking
-  if (fileInputInProgress) {
-    console.log("File upload already in progress");
-    showToast("File upload already in progress", "warning");
-    return;
-  }
-
-  console.log("Creating new file input...");
-  createNewFileInput();
 }
 
 /**
@@ -78,52 +47,40 @@ export function createNewFileInput() {
   // Prevent multiple file inputs
   if (fileInputInProgress) {
     console.log("File input already in progress");
-    return;
+    return null;
   }
 
   fileInputInProgress = true;
 
   try {
-    // Clean up any existing file inputs first
+    // Clean up existing inputs first
     cleanupExistingFileInputs();
 
-    // Create file input
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".csv,.xlsx,.xls,.xml";
+    // Create new file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
     fileInput.id = `fileInput_${Date.now()}`;
-    fileInput.style.display = "none";
+    fileInput.accept = '.csv,.xlsx,.xls,.xml';
+    fileInput.style.display = 'none';
 
-    // Add to DOM temporarily
+    // Add event listener for file selection
+    fileInput.addEventListener('change', handleFileSelection);
+
+    // Add to DOM and trigger click
     document.body.appendChild(fileInput);
 
-    // Add event listener
-    fileInput.addEventListener("change", (event) => {
-      handleFileSelection(event);
-      // Clean up after use
-      setTimeout(() => {
-        if (fileInput.parentNode) {
-          fileInput.parentNode.removeChild(fileInput);
-        }
-        fileInputInProgress = false;
-      }, 100);
-    });
-
-    // Handle user cancellation
+    // Small delay to ensure DOM is ready
     setTimeout(() => {
-      if (fileInput.parentNode && !fileInput.files.length) {
-        fileInput.parentNode.removeChild(fileInput);
-        fileInputInProgress = false;
-      }
-    }, 10000); // 10 second timeout
+      fileInput.click();
+    }, 10);
 
-    // Trigger file picker
-    fileInput.click();
+    console.log("File input created and triggered");
+    return fileInput;
 
   } catch (error) {
     console.error("Error creating file input:", error);
-    showToast("Error opening file picker", "error");
     fileInputInProgress = false;
+    return null;
   }
 }
 
@@ -134,38 +91,24 @@ function handleFileSelection(event) {
   const file = event.target.files[0];
   if (!file) {
     console.log("No file selected");
+    fileInputInProgress = false;
     return;
   }
 
   console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
 
   try {
-    // Import and use file handler
-    import('../parsers/fileHandler.js').then(module => {
-      module.handleFileUpload(file);
-    }).catch(error => {
-      console.error("Error loading file handler:", error);
-      showToast("Error processing file", "error");
-    });
+    // Process the file
+    handleFileUploadProcess(file);
   } catch (error) {
-    console.error("Error handling file selection:", error);
-    showToast("Error processing file", "error");
+    console.error("Error processing file:", error);
+    handleFileUploadError(error);
+  } finally {
+    // Clean up the file input
+    if (event.target && event.target.parentNode) {
+      event.target.parentNode.removeChild(event.target);
+    }
   }
-}
-
-/**
- * Process file upload and render preview
- */
-export function onFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) {
-    console.log("No file selected");
-    fileInputInProgress = false;
-    return;
-  }
-
-  console.log("Processing file:", file.name);
-  handleFileUploadProcess(file);
 }
 
 /**
@@ -191,14 +134,12 @@ function handleFileUploadProcess(file) {
 
   if (fileExt === 'csv') {
     handleCSVFile(file);
-  } else if (['xlsx', 'xls'].includes(fileExt)) {
+  } else if (fileExt === 'xlsx' || fileExt === 'xls') {
     handleExcelFile(file);
   } else if (fileExt === 'xml') {
     handleXMLFile(file);
   } else {
-    showToast("Unsupported file format. Please use CSV, Excel, or XML files.", "error");
-    resetFileState();
-    fileInputInProgress = false;
+    handleFileUploadError(new Error(`Unsupported file type: ${fileExt}`));
   }
 }
 
@@ -209,16 +150,14 @@ function handleCSVFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const content = e.target.result;
-      import('../parser/csvParser.js').then(module => {
-        const data = module.parseCSV(content);
-        processUploadedData(file, data);
-      }).catch(error => {
-        console.error('Error loading CSV parser:', error);
-        showToast("Error processing CSV file", "error");
-        resetFileState();
-        fileInputInProgress = false;
+      const csvText = e.target.result;
+      const lines = csvText.split('\n').filter(line => line.trim());
+      const data = lines.map(line => {
+        // Simple CSV parsing - could be enhanced
+        return line.split(',').map(field => field.replace(/^"(.*)"$/, '$1').trim());
       });
+
+      processUploadedData(file, data);
     } catch (error) {
       handleFileUploadError(error);
     }
@@ -233,20 +172,18 @@ function handleExcelFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const content = e.target.result;
-      import('../parser/excelParser.js').then(module => {
-        const parser = new module.default();
-        parser.parse(content).then(data => {
-          processUploadedData(file, data);
-        }).catch(error => {
-          handleFileUploadError(error);
-        });
-      }).catch(error => {
-        console.error('Error loading Excel parser:', error);
-        showToast("Error processing Excel file", "error");
-        resetFileState();
-        fileInputInProgress = false;
-      });
+      // This would require XLSX library
+      if (typeof XLSX === 'undefined') {
+        throw new Error('XLSX library not loaded');
+      }
+
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      processUploadedData(file, jsonData);
     } catch (error) {
       handleFileUploadError(error);
     }
@@ -261,16 +198,28 @@ function handleXMLFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const content = e.target.result;
-      import('../parser/xmlParser.js').then(module => {
-        const data = module.parseXML(content);
-        processUploadedData(file, data);
-      }).catch(error => {
-        console.error('Error loading XML parser:', error);
-        showToast("Error processing XML file", "error");
-        resetFileState();
-        fileInputInProgress = false;
-      });
+      const xmlText = e.target.result;
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+      // Convert XML to array format for processing
+      const transactions = xmlDoc.querySelectorAll('transaction, Transaction');
+      const data = [];
+
+      // Add header row
+      if (transactions.length > 0) {
+        const firstTransaction = transactions[0];
+        const headers = Array.from(firstTransaction.children).map(child => child.tagName);
+        data.push(headers);
+
+        // Add data rows
+        transactions.forEach(transaction => {
+          const row = Array.from(transaction.children).map(child => child.textContent);
+          data.push(row);
+        });
+      }
+
+      processUploadedData(file, data);
     } catch (error) {
       handleFileUploadError(error);
     }
@@ -283,9 +232,7 @@ function handleXMLFile(file) {
  */
 function processUploadedData(file, data) {
   if (!data || data.length === 0) {
-    showToast("File appears to be empty or invalid", "error");
-    resetFileState();
-    fileInputInProgress = false;
+    handleFileUploadError(new Error("No data found in file"));
     return;
   }
 
@@ -333,220 +280,409 @@ function handleDuplicateFile(file) {
 }
 
 /**
- * Show file preview modal
+ * Show file preview modal with real-time updates
  */
 function showFilePreviewModal(data) {
   // Get file extension for specific handling
   const fileExt = AppState.currentFileName ? AppState.currentFileName.split('.').pop().toLowerCase() : '';
-  const isXmlFile = fileExt === 'xml';
 
   // Create modal content with enhanced structure
-  const modalContent = document.createElement("div");
-  modalContent.className = "file-preview-modal";
-
-  // Set default row values based on file type
-  const defaultHeaderRow = 1;
-  const defaultDataRow = isXmlFile ? 1 : 2;
-
-  // Calculate estimated values for display
-  const estimatedTransactions = Math.max(0, data.length - defaultDataRow);
+  const modalContent = document.createElement('div');
+  modalContent.className = 'file-preview-modal';
 
   modalContent.innerHTML = `
-    <div class="file-info-section">
-      <h3>📄 ${AppState.currentFileName}</h3>
-      <div class="file-stats">
-        <span class="stat">📊 ${data.length} rows</span>
-        <span class="stat">📑 ${data[0]?.length || 0} columns</span>
-        <span class="stat">📁 ${fileExt.toUpperCase()}</span>
-        <span class="stat">📈 ~${estimatedTransactions} transactions</span>
-      </div>
-    </div>
-
-    <div class="currency-section">
-      <label for="modalFileCurrency">💰 Currency for this file:</label>
-      <select id="modalFileCurrency" class="currency-select">
-        <option value="USD" selected>$ USD</option>
-        <option value="EUR">€ EUR</option>
-        <option value="GBP">£ GBP</option>
-        <option value="CAD">$ CAD</option>
-        <option value="AUD">$ AUD</option>
-      </select>
-    </div>
-
-    <div class="row-selection-section">
-      <h4>📋 Data Structure</h4>
-      <div class="row-inputs">
-        <div class="input-group">
-          <label for="modalHeaderRowInput">Header Row:</label>
-          <input type="number" id="modalHeaderRowInput" min="1" value="${defaultHeaderRow}" max="${data.length}">
-          <span class="hint">Row containing column names</span>
-        </div>
-        <div class="input-group">
-          <label for="modalDataRowInput">Data Starts at Row:</label>
-          <input type="number" id="modalDataRowInput" min="1" value="${defaultDataRow}" max="${data.length}">
-          <span class="hint">First row with transaction data</span>
+    <div class="preview-content">
+      <div class="file-info">
+        <h3>📄 ${AppState.currentFileName}</h3>
+        <div class="file-stats">
+          <span class="stat">📊 ${data.length} rows</span>
+          <span class="stat">📑 ${data[0]?.length || 0} columns</span>
+          <span class="stat">📁 ${fileExt.toUpperCase()}</span>
         </div>
       </div>
 
-      ${isXmlFile ? `
-        <div class="xml-notice">
-          <strong>Note:</strong> XML files typically use the same row for both header and data since each row is self-describing.
+      <div class="row-config-section">
+        <h4>📋 Data Structure Configuration</h4>
+        <div class="row-config">
+          <div class="config-group">
+            <label for="headerRowSelect">Header Row:</label>
+            <select id="headerRowSelect">
+              ${data.map((_, index) => `<option value="${index}" ${index === 0 ? 'selected' : ''}>${index + 1}</option>`).join('')}
+            </select>
+          </div>
+          <div class="config-group">
+            <label for="dataRowSelect">Data Starts At Row:</label>
+            <select id="dataRowSelect">
+              ${data.map((_, index) => `<option value="${index}" ${index === 1 ? 'selected' : ''}>${index + 1}</option>`).join('')}
+            </select>
+          </div>
         </div>
-      ` : ''}
-    </div>
+      </div>
 
-    <div class="preview-section">
-      <h4>📋 File Preview & Column Mapping</h4>
-      <div id="modalPreviewTable" class="preview-table-container">
-        <!-- Preview will be rendered here -->
+      <div id="headerMappingContainer" class="header-mapping-section"></div>
+      <div id="previewTableContainer" class="preview-table-section"></div>
+
+      <div class="modal-actions">
+        <button id="saveHeadersBtn" class="button primary-btn">Save & Import File</button>
+        <button id="cancelPreviewBtn" class="button secondary-btn">Cancel</button>
       </div>
     </div>
   `;
 
-  // Show the modal
   const modal = showModal({
-    title: `Import: ${AppState.currentFileName}`,
+    title: 'Import File: Column Mapping',
     content: modalContent,
-    size: "xlarge",
-    closeOnClickOutside: false,
-    className: "file-preview-modal"
+    size: 'xlarge',
+    closeOnClickOutside: false
   });
 
-  // Store the modal in AppState for later access
-  AppState.currentPreviewModal = modal;
+  // Update preview function
+  function updatePreview() {
+    const headerRowIndex = parseInt(document.getElementById('headerRowSelect').value);
+    const dataRowIndex = parseInt(document.getElementById('dataRowSelect').value);
 
-  // Add footer buttons
-  const footerDiv = document.createElement("div");
-  footerDiv.className = "modal-footer";
-  footerDiv.innerHTML = `
-    <button id="modalCancelBtn" class="button cancel-btn">Cancel</button>
-    <button id="modalSaveHeadersBtn" class="button primary-btn">Save Mapping & Import File</button>
-  `;
-
-  modalContent.appendChild(footerDiv);
-
-  // Set up event listeners
-  setupModalEventListeners(modal, data, fileExt);
-
-  // Initial preview render
-  setTimeout(() => {
-    renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
-  }, 150);
-}
-
-/**
- * Set up modal event listeners
- */
-function setupModalEventListeners(modal, data, fileExt) {
-  console.log("Setting up modal event listeners");
-
-  // Wait for elements to be in DOM
-  setTimeout(() => {
-    const headerRowInput = document.getElementById("modalHeaderRowInput");
-    const dataRowInput = document.getElementById("modalDataRowInput");
-    const cancelBtn = document.getElementById("modalCancelBtn");
-    const saveBtn = document.getElementById("modalSaveHeadersBtn");
-
-    if (!headerRowInput || !dataRowInput) {
-      console.error("Required input elements not found");
+    if (headerRowIndex >= data.length || dataRowIndex >= data.length) {
       return;
     }
 
-    // Debounced update function
-    let updateTimeout;
-    const debouncedUpdate = () => {
-      clearTimeout(updateTimeout);
-      updateTimeout = setTimeout(() => {
-        renderHeaderPreview(data, "modalPreviewTable", "modalHeaderRowInput", "modalDataRowInput");
-      }, 300);
-    };
+    const headers = data[headerRowIndex] || [];
+    const mappingContainer = document.getElementById('headerMappingContainer');
 
-    // Add input listeners
-    headerRowInput.addEventListener("input", debouncedUpdate);
-    dataRowInput.addEventListener("input", debouncedUpdate);
+    // Auto-detect column types using FIXED import
+    const suggestedMapping = autoDetectColumns(headers, data, headerRowIndex, dataRowIndex);
 
-    // Button listeners
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", () => {
-        modal.close();
-        resetFileState();
+    // Render header mapping interface as a proper table
+    let html = `
+      <h4>🎯 Column Mapping</h4>
+      <div class="mapping-table-container">
+        <table class="mapping-table">
+          <thead>
+            <tr>
+              <th>File Column</th>
+              <th>Sample Data</th>
+              <th>Map To Field</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    headers.forEach((header, index) => {
+      const sampleData = getSampleData(data, dataRowIndex, index);
+      const suggested = suggestedMapping[index] || '–';
+
+      html += `
+        <tr>
+          <td class="column-header">
+            <strong>${header || `Column ${index + 1}`}</strong>
+          </td>
+          <td class="sample-data">
+            <em>${sampleData}</em>
+          </td>
+          <td class="mapping-select-cell">
+            <select class="header-select" data-index="${index}">
+              <option value="–" ${suggested === '–' ? 'selected' : ''}>– Ignore –</option>
+              ${TRANSACTION_FIELDS.map(field =>
+        `<option value="${field}" ${suggested === field ? 'selected' : ''}>${field}</option>`
+      ).join('')}
+            </select>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    mappingContainer.innerHTML = html;
+
+    // Add change listeners to selects
+    document.querySelectorAll('.header-select').forEach(select => {
+      select.addEventListener('change', () => {
+        updateSaveButtonState();
+        updatePreviewTable();
       });
-    }
+    });
 
+    // Initial preview table render
+    updatePreviewTable();
+    updateSaveButtonState();
+  }
+
+  function updatePreviewTable() {
+    const headerRowIndex = parseInt(document.getElementById('headerRowSelect').value);
+    const dataRowIndex = parseInt(document.getElementById('dataRowSelect').value);
+    const previewContainer = document.getElementById('previewTableContainer');
+
+    if (!previewContainer) return;
+
+    const headers = data[headerRowIndex] || [];
+    const mapping = getCurrentMapping();
+
+    // Generate preview table
+    let previewHTML = `
+      <h4>📋 Data Preview (First 5 rows)</h4>
+      <div class="preview-table-wrapper">
+        <table class="preview-table">
+          <thead>
+            <tr>
+    `;
+
+    headers.forEach((header, index) => {
+      const mappedType = mapping[index] || '–';
+      const isMapped = mappedType !== '–';
+      previewHTML += `
+        <th class="${isMapped ? 'mapped-column' : 'unmapped-column'}">
+          <div class="column-header">
+            <span class="original-name">${header}</span>
+            ${isMapped ? `<span class="mapped-to">→ ${mappedType}</span>` : '<span class="ignored">Ignored</span>'}
+          </div>
+        </th>
+      `;
+    });
+
+    previewHTML += `
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    // Show first 5 data rows
+    const previewRows = data.slice(dataRowIndex, Math.min(dataRowIndex + 5, data.length));
+    previewRows.forEach((row) => {
+      previewHTML += '<tr>';
+      headers.forEach((header, index) => {
+        const value = row[index] || '';
+        const mappedType = mapping[index] || '–';
+        const isMapped = mappedType !== '–';
+        previewHTML += `
+          <td class="${isMapped ? 'mapped-data' : 'unmapped-data'}">
+            ${value}
+          </td>
+        `;
+      });
+      previewHTML += '</tr>';
+    });
+
+    previewHTML += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    previewContainer.innerHTML = previewHTML;
+  }
+
+  function updateSaveButtonState() {
+    const saveBtn = document.getElementById('saveHeadersBtn');
     if (saveBtn) {
-      saveBtn.addEventListener("click", () => {
-        onSaveHeaders(modal);
-      });
-    }
+      const mappings = getCurrentMapping();
+      const hasDate = mappings.includes('Date');
+      const hasAmount = mappings.includes('Income') || mappings.includes('Expenses');
 
-    console.log("Modal event listeners set up successfully");
-  }, 100);
+      saveBtn.disabled = !(hasDate && hasAmount);
+      saveBtn.title = hasDate && hasAmount ?
+        'Ready to import' :
+        'Need at least Date and Income/Expenses columns';
+    }
+  }
+
+  // Set up modal event listeners with real-time updates
+  setupModalEventListeners(modal, data, fileExt, updatePreview);
+
+  // Initial render
+  updatePreview();
+}
+
+function autoDetectColumn(header, sampleData) {
+  // FIXED: Use the utility function from fieldMappings
+  return autoDetectFieldType(header);
 }
 
 /**
- * Handle saving headers and merging the file
+ * Set up modal event listeners with real-time preview updates
+ */
+function setupModalEventListeners(modal, data, fileExt, updatePreview) {
+  // Update preview when row selects change
+  const headerRowSelect = document.getElementById('headerRowSelect');
+  const dataRowSelect = document.getElementById('dataRowSelect');
+
+  if (headerRowSelect) {
+    headerRowSelect.addEventListener('change', updatePreview);
+  }
+  if (dataRowSelect) {
+    dataRowSelect.addEventListener('change', updatePreview);
+  }
+
+  // Cancel button
+  const cancelBtn = document.getElementById('cancelPreviewBtn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      modal.close();
+      clearPreview();
+    });
+  }
+
+  // Save button
+  const saveBtn = document.getElementById('saveHeadersBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      onSaveHeaders(modal);
+    });
+  }
+}
+
+/**
+ * Handles saving headers and merging the file
  */
 export async function onSaveHeaders(modal) {
   try {
-    console.log("Saving headers and merging file...");
+    const data = AppState.currentPreviewData;
+    const fileName = AppState.currentFileName;
 
-    // Validate that we have the necessary data
-    if (!AppState.currentPreviewData || !AppState.currentFileName) {
+    console.log('CRITICAL: Saving headers for file:', fileName, 'Data rows:', data ? data.length : 0);
+
+    if (!data || !fileName) {
       showToast("No file data to save", "error");
       return;
     }
 
-    // Get the current mapping from the modal
-    const headerMapping = getCurrentMapping();
-    if (!headerMapping) {
-      showToast("Please configure column mappings", "error");
-      return;
-    }
+    // Get mapping and settings
+    const mapping = getCurrentMapping();
+    const headerRowIndex = parseInt(document.getElementById('headerRowSelect')?.value || 0);
+    const dataRowIndex = parseInt(document.getElementById('dataRowSelect')?.value || 1);
 
-    // Check if required mappings are present
-    const hasDate = headerMapping.includes("Date");
-    const hasAmount = headerMapping.includes("Income") || headerMapping.includes("Expenses");
+    console.log('CRITICAL: File processing settings:', {
+      mapping,
+      headerRowIndex,
+      dataRowIndex,
+      dataLength: data.length
+    });
+
+    // Validate mapping before proceeding
+    const hasDate = mapping.includes('Date');
+    const hasAmount = mapping.includes('Income') || mapping.includes('Expenses');
 
     if (!hasDate || !hasAmount) {
-      showToast("Please map at least one Date column and one Income or Expenses column", "error");
+      showToast("Please map at least Date and one amount field (Income or Expenses)", "error");
       return;
     }
 
-    // Get row settings
-    const headerRowInput = document.getElementById("modalHeaderRowInput");
-    const dataRowInput = document.getElementById("modalDataRowInput");
-    const currencySelect = document.getElementById("modalFileCurrency");
+    // Generate signature for mapping storage
+    const signature = generateFileSignature(data, mapping);
 
-    const headerRow = parseInt(headerRowInput.value) - 1;
-    const dataRow = parseInt(dataRowInput.value) - 1;
-    const currency = currencySelect ? currencySelect.value : 'USD';
+    // CRITICAL FIX: Process transactions with proper field mapping
+    const transactions = [];
+    for (let i = dataRowIndex; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
 
-    // Generate file signature for mapping reuse
-    const signature = generateFileSignature(AppState.currentPreviewData, headerMapping);
+      const transaction = {
+        fileName,
+        currency: 'USD',
+        date: '',
+        description: '',
+        category: '',
+        income: 0,
+        expenses: 0
+      };
 
-    // Call addMergedFile with correct parameters
-    addMergedFile(
-      AppState.currentPreviewData,  // fileData
-      headerMapping,                // headerMapping
-      AppState.currentFileName,     // fileName
-      signature,                    // signature
-      headerRow,                    // headerRowIndex
-      dataRow,                      // dataRowIndex
-      currency                      // currency
-    );
+      mapping.forEach((field, colIndex) => {
+        if (field && field !== '–' && row[colIndex] !== undefined) {
+          let value = row[colIndex];
 
-    // Update UI
-    updateTransactions();
-    renderMergedFiles();
+          // Apply date conversion for Excel date fields
+          if (field === 'Date' && typeof value === 'string' && /^\d{5}$/.test(value.trim())) {
+            const excelDate = parseFloat(value);
+            if (excelDate > 0 && excelDate < 100000) {
+              const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+              value = jsDate.toISOString().split('T')[0];
+            }
+          }
 
-    // Close modal and reset state
+          // Map to lowercase field names to match transaction structure
+          const fieldName = field.toLowerCase();
+          transaction[fieldName] = value;
+        }
+      });
+
+      // Convert string numbers to proper numbers
+      if (transaction.income && typeof transaction.income === 'string') {
+        transaction.income = parseFloat(transaction.income.replace(/[^\d.-]/g, '')) || 0;
+      }
+      if (transaction.expenses && typeof transaction.expenses === 'string') {
+        transaction.expenses = parseFloat(transaction.expenses.replace(/[^\d.-]/g, '')) || 0;
+      }
+
+      // Only add if has essential data
+      if (transaction.date || transaction.description || transaction.income > 0 || transaction.expenses > 0) {
+        transactions.push(transaction);
+      }
+    }
+
+    console.log(`CRITICAL: Processed ${transactions.length} transactions from file:`, transactions.slice(0, 3));
+
+    // Save merged file data with ALL required fields
+    const mergedFile = {
+      fileName,
+      headerRowIndex,
+      dataRowIndex,
+      data,
+      transactions,
+      headerMapping: mapping,
+      signature,
+      currency: 'USD',
+      mergedAt: new Date().toISOString()
+    };
+
+    // Add to merged files
+    if (!AppState.mergedFiles) {
+      AppState.mergedFiles = [];
+    }
+    AppState.mergedFiles.push(mergedFile);
+
+    // CRITICAL FIX: Update AppState.transactions immediately and force UI update
+    if (!AppState.transactions) {
+      AppState.transactions = [];
+    }
+    AppState.transactions.push(...transactions);
+
+    console.log('CRITICAL: Updated AppState:', {
+      mergedFiles: AppState.mergedFiles.length,
+      totalTransactions: AppState.transactions.length,
+      lastTransaction: AppState.transactions[AppState.transactions.length - 1]
+    });
+
+    // Save everything to localStorage
+    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    // Close modal and clear state
     modal.close();
     resetFileState();
+    fileInputInProgress = false;
 
-    showToast(`File "${AppState.currentFileName}" imported successfully!`, "success");
+    // Show success message
+    showToast(`File imported: ${transactions.length} transactions added`, "success");
+
+    // CRITICAL: Force immediate transaction display update
+    console.log('CRITICAL: Forcing transaction manager update...');
+
+    // Use setTimeout to ensure DOM is ready, then force update
+    setTimeout(() => {
+      import('./transactionManager.js').then(module => {
+        console.log('CRITICAL: Transaction manager imported, forcing renderTransactions...');
+        // Force render with the actual transactions
+        module.renderTransactions(AppState.transactions, true);
+      }).catch(error => {
+        console.error('CRITICAL ERROR: Failed to import transaction manager:', error);
+      });
+    }, 100);
 
   } catch (error) {
-    console.error("Error saving headers:", error);
+    console.error('CRITICAL ERROR: Error saving file:', error);
     showToast("Error importing file", "error");
   }
 }
@@ -555,27 +691,49 @@ export async function onSaveHeaders(modal) {
  * Get current mapping from the modal
  */
 function getCurrentMapping() {
-  const selects = document.querySelectorAll('#modalPreviewTable .header-map');
-  if (selects.length === 0) {
-    console.error("No header mapping selects found");
-    return null;
-  }
+  const selects = document.querySelectorAll('.header-select, .column-mapping');
+  const mapping = [];
 
-  return Array.from(selects).map(select => select.value);
+  selects.forEach((select, index) => {
+    mapping[index] = select.value || '–';
+  });
+
+  return mapping;
 }
 
 /**
  * Generate file signature for mapping identification
  */
 function generateFileSignature(data, headerMapping) {
-  if (!data || !headerMapping) return 'unknown';
+  try {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return 'empty-file';
+    }
 
-  // Create a simple signature based on file structure
-  const columnCount = data[0]?.length || 0;
-  const rowCount = data.length;
-  const mappingString = headerMapping.join('-');
+    // Create a simple signature based on structure, not content
+    const signature = {
+      columnCount: data[0] ? data[0].length : 0,
+      rowCount: Math.min(data.length, 5), // Only use first 5 rows
+      mapping: headerMapping || []
+    };
 
-  return `${columnCount}col_${rowCount}row_${mappingString}`;
+    // Convert to string and encode safely
+    const signatureString = JSON.stringify(signature);
+
+    // Use a simple hash instead of btoa to avoid encoding issues
+    let hash = 0;
+    for (let i = 0; i < signatureString.length; i++) {
+      const char = signatureString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+
+    return `sig_${Math.abs(hash).toString(36)}`;
+  } catch (error) {
+    console.error('Error generating file signature:', error);
+    // Return a fallback signature
+    return `fallback_${Date.now()}`;
+  }
 }
 
 /**
@@ -589,30 +747,48 @@ function saveMergedFiles() {
   }
 }
 
+// Convert Excel date number to readable date
+function convertExcelDate(excelDate) {
+  const date = new Date((excelDate - 25569) * 86400 * 1000);
+  return date.toISOString().split('T')[0];
+}
+
 /**
  * Clear preview and reset state
  */
-export function clearPreview() {
+function clearPreview() {
   console.log("Clearing preview and all temporary data");
-
-  // Clear preview area
-  const previewTable = document.getElementById("previewTable");
-  if (previewTable) {
-    previewTable.innerHTML = '';
-  }
-
-  // Hide UI controls
-  hideElement("rowSelectionPanel");
-  hideElement("saveHeadersBtn");
-  hideElement("clearPreviewBtn");
-
-  // Ensure all temporary data is removed
-  localStorage.removeItem("tempFileSignature");
-
-  // Clean up any file input elements
-  cleanupExistingFileInputs();
 
   // Reset state
   resetFileState();
   fileInputInProgress = false;
+
+  // Clean up any file input elements
+  cleanupExistingFileInputs();
+}
+
+/**
+ * Auto-detect column types based on headers and sample data
+ */
+function autoDetectColumns(headers, data, headerRowIndex, dataRowIndex) {
+  const mapping = [];
+
+  headers.forEach((header, index) => {
+    const sampleData = getSampleData(data, dataRowIndex, index);
+    mapping[index] = autoDetectColumn(header, sampleData);
+  });
+
+  return mapping;
+}
+
+/**
+ * Get sample data for a column
+ */
+function getSampleData(data, dataRowIndex, columnIndex) {
+  if (!data || dataRowIndex >= data.length) return 'No data';
+
+  const sampleRows = data.slice(dataRowIndex, Math.min(dataRowIndex + 3, data.length));
+  const samples = sampleRows.map(row => row[columnIndex] || '').filter(val => val).slice(0, 2);
+
+  return samples.length > 0 ? samples.join(', ') : 'Empty';
 }

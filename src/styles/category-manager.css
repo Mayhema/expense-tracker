@@ -1,0 +1,366 @@
+.category-manager-content {
+  padding: 0;
+}
+
+.category-manager-header {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.category-manager-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.category-manager-header p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.add-category-section {
+  padding: 1.5rem;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.add-category-section h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.form-row input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.form-row input[type="color"] {
+  width: 40px;
+  height: 38px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.categories-section {
+  padding: 1.5rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.categories-section h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+/* Table-like layout for categories */
+.categories-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.categories-table th,
+.categories-table td {
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.categories-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.category-row {
+  background: white;
+}
+
+.category-row:hover {
+  background: #f8f9fa;
+}
+
+.order-cell {
+  width: 80px;
+}
+
+.color-cell {
+  width: 60px;
+}
+
+.name-cell {
+  min-width: 150px;
+}
+
+.subcategories-cell {
+  min-width: 120px;
+}
+
+.actions-cell {
+  width: 100px;
+  text-align: center;
+}
+
+.order-input {
+  width: 60px;
+  padding: 0.25rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.color-input {
+  width: 40px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.name-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.subcategory-count {
+  font-size: 0.8rem;
+  color: #666;
+  margin-right: 0.5rem;
+}
+
+/* Subcategories section */
+.subcategories-row {
+  background: #fafbfc;
+}
+
+.subcategories-container {
+  padding: 1rem;
+}
+
+.subcategories-header h5 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.add-subcategory-form {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.subcategories-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.subcategories-table th,
+.subcategories-table td {
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.subcategories-table th {
+  background: #f0f0f0;
+  font-size: 0.85rem;
+}
+
+.subcolor-input {
+  width: 32px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.subname-input {
+  width: 100%;
+  padding: 0.4rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  text-align: right;
+}
+
+/* Button Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #f8f9fa;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+  border-color: #004085;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.btn-success:hover {
+  background: #1e7e34;
+  border-color: #1c7430;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+  border-color: #4e555b;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.btn-icon {
+  font-size: 1rem;
+  padding: 0.25rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Dark mode */
+.dark-mode .category-manager-header {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.dark-mode .category-manager-header h3,
+.dark-mode .categories-section h4,
+.dark-mode .add-category-section h4 {
+  color: #e0e0e0;
+}
+
+.dark-mode .category-manager-header p {
+  color: #ccc;
+}
+
+.dark-mode .add-category-section,
+.dark-mode .categories-section,
+.dark-mode .modal-footer {
+  background: #333;
+  border-color: #444;
+}
+
+.dark-mode .categories-table th {
+  background: #444;
+  color: #e0e0e0;
+}
+
+.dark-mode .categories-table td {
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.dark-mode .category-row {
+  background: #2a2a2a;
+}
+
+.dark-mode .category-row:hover {
+  background: #333;
+}
+
+.dark-mode .subcategories-row {
+  background: #2a2a2a;
+}
+
+.dark-mode .add-subcategory-form {
+  background: #333;
+  border-color: #444;
+}
+
+.dark-mode input[type="text"],
+.dark-mode .order-input,
+.dark-mode .name-input,
+.dark-mode .subname-input {
+  background: #444;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.dark-mode .empty-state {
+  color: #ccc;
+}

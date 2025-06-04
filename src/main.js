@@ -1,61 +1,80 @@
-console.log("Executing main.js - Version: 2024-07-29_01");
+console.log("Executing main.js - Version: 2024-07-29_02");
 
 // Import only JavaScript modules - all CSS is loaded via HTML
-import { AppState, initialize } from './core/appState.js';
+import { AppState, loadAppState } from './core/appState.js';
 import { initializeFileUpload } from './ui/fileUpload.js';
-import { initializeUI } from './ui/uiManager.js';
-import { initializeCharts } from './ui/charts.js';
-import { updateTransactions } from './ui/transactionManager.js';
+import { setupSidebarManager } from './ui/sidebarManager.js';
+import { initializeTransactionManager } from './ui/transactionManager.js';
 
 /**
  * Initialize the entire application
  */
-async function initializeApp() {
-  try {
-    console.log("🔧 Initializing AppState...");
+async function initializeMainApp() {
+  console.log("Starting application initialization...");
 
-    // Initialize AppState first
-    const stateInitialized = initialize(); // Use the imported function directly
-    if (!stateInitialized) {
-      throw new Error("Failed to initialize AppState");
+  try {
+    // Initialize app state first
+    console.log("CRITICAL: Loading app state...");
+    await loadAppState();
+
+    // Initialize theme from localStorage (inline instead of themeManager)
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    const isDebugMode = localStorage.getItem('debugMode') === 'true';
+
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
     }
 
-    console.log("🎨 Initializing UI components...");
-    initializeUI();
+    if (isDebugMode) {
+      document.body.classList.add('debug-mode');
+    }
 
-    console.log("📁 Initializing file upload...");
+    // Initialize sidebar
+    console.log("CRITICAL: Setting up sidebar...");
+    setupSidebarManager();
+
+    // Initialize file upload
+    console.log("CRITICAL: Initializing file upload...");
     initializeFileUpload();
 
-    console.log("📊 Initializing charts...");
-    await initializeCharts();
+    // Initialize transaction manager (this will create the section and render data)
+    console.log("CRITICAL: Initializing transaction manager...");
+    initializeTransactionManager();
 
-    // Add small delay before transaction rendering to ensure DOM is ready
-    console.log("💾 Loading and rendering transactions...");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    updateTransactions();
+    // Initialize charts after a delay to ensure DOM is ready
+    setTimeout(() => {
+      import('./ui/charts.js').then(module => {
+        if (module.initializeCharts) {
+          module.initializeCharts();
+        }
+      }).catch(error => {
+        console.log('Charts not available:', error.message);
+      });
+    }, 500);
 
-    console.log("✅ Application initialized successfully!");
-    return true;
+    console.log("CRITICAL: App initialization complete");
   } catch (error) {
-    console.error("❌ Failed to initialize application:", error);
-
-    // Show user-friendly error message
-    import('./ui/uiManager.js').then((uiModule) => {
-      if (uiModule.showToast) {
-        uiModule.showToast("Failed to initialize application. Please refresh the page.", "error");
-      }
-    });
-
-    return false;
+    console.error("CRITICAL ERROR: App initialization failed:", error);
   }
 }
 
-// Start the application when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-  initializeApp();
-}
+// Initialize the application when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('DOM loaded, initializing expense tracker...');
+
+  try {
+    // Initialize the main application
+    await initializeMainApp();
+
+    // Load debug utilities after main app is ready
+    await import('./utils/debug.js');
+    await import('./utils/console-logger.js');
+
+    console.log('✅ Expense Tracker initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Expense Tracker:', error);
+  }
+});
 
 // Make AppState available globally for debugging
 window.AppState = AppState;

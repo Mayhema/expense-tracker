@@ -6,17 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>💰 Expense Tracker</title>
 
-  <!-- Fixed CSS paths to point to styles folder -->
-  <link rel="stylesheet" href="src/styles/main.css">
-  <link rel="stylesheet" href="src/styles/components.css">
-  <link rel="stylesheet" href="src/styles/modals.css">
-  <link rel="stylesheet" href="src/styles/sidebar.css">
-  <link rel="stylesheet" href="src/styles/transactions.css">
-  <link rel="stylesheet" href="src/styles/dark-theme.css">
+  <!-- Add this meta tag to allow popups -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; popup-open 'allow-popups';">
 
-  <!-- Load XLSX library for Excel file support -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- Single consolidated CSS file -->
+  <link rel="stylesheet" href="src/styles/main.css">
+
+  <!-- External libraries -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -147,8 +146,11 @@
     <!-- Merged Files will be dynamically inserted here -->
   </div>
 
-  <!-- Scripts -->
-  <script type="module" src="src/main.js"></script>
+  <!-- Console logger for debug mode -->
+  <script src="src/utils/console-logger.js"></script>
+
+  <!-- Main application -->
+  <script type="module" src="src/app.js"></script>
 </body>
 
 </html>

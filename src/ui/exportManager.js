@@ -1,6 +1,7 @@
 import { AppState } from '../core/appState.js';
 import { showModal } from './modalManager.js';
 import { showToast } from './uiManager.js';
+import { exportTransactionsAsCSV, exportTransactionsAsJSON } from '../exports/exportManager.js';
 
 /**
  * Show export modal with options
@@ -67,76 +68,13 @@ export function showExportModal() {
 
   document.getElementById('performExport').addEventListener('click', () => {
     const format = document.querySelector('input[name="exportFormat"]:checked').value;
-    exportTransactions(format);
-    modal.close();
-  });
-}
-
-/**
- * Export transactions in specified format
- */
-function exportTransactions(format) {
-  const transactions = AppState.transactions || [];
-
-  try {
-    let content, filename, mimeType;
 
     if (format === 'csv') {
-      content = convertToCSV(transactions);
-      filename = `expense-tracker-export-${new Date().toISOString().split('T')[0]}.csv`;
-      mimeType = 'text/csv';
+      exportTransactionsAsCSV();
     } else if (format === 'json') {
-      content = JSON.stringify(transactions, null, 2);
-      filename = `expense-tracker-export-${new Date().toISOString().split('T')[0]}.json`;
-      mimeType = 'application/json';
+      exportTransactionsAsJSON();
     }
 
-    downloadFile(content, filename, mimeType);
-    showToast(`Successfully exported ${transactions.length} transactions`, 'success');
-
-  } catch (error) {
-    console.error('Export error:', error);
-    showToast('Error exporting data', 'error');
-  }
-}
-
-/**
- * Convert transactions to CSV format
- */
-function convertToCSV(transactions) {
-  const headers = ['Date', 'Description', 'Amount', 'Type', 'Category', 'Source File'];
-  const rows = transactions.map(t => [
-    t.date || '',
-    (t.description || '').replace(/"/g, '""'),
-    t.expenses || t.income || '0',
-    t.expenses ? 'Expense' : 'Income',
-    t.category || 'Uncategorized',
-    t.fileName || ''
-  ]);
-
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
-
-  return csvContent;
-}
-
-/**
- * Download file to user's computer
- */
-function downloadFile(content, filename, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.style.display = 'none';
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
+    modal.close();
+  });
 }

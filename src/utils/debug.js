@@ -1,6 +1,5 @@
-import { AppState } from "../core/appState.js";
-import { showToast } from "../ui/uiManager.js";
-import { showModal } from "../ui/modalManager.js";
+import { AppState } from '../core/appState.js';
+import { showModal } from '../ui/modalManager.js';
 
 /**
  * Enhanced debug function for transaction data with detailed analysis
@@ -11,9 +10,9 @@ export function inspectTransactionData() {
   const transactionCount = transactions.length;
 
   if (transactionCount === 0) {
-    modalContent.innerHTML = '<p>No transactions found to analyze.</p>';
+    modalContent.innerHTML = '<p>No transaction data available to inspect.</p>';
     showModal({
-      title: "Transaction Debug - No Data",
+      title: "Transaction Debug Analysis",
       content: modalContent,
       size: "medium"
     });
@@ -132,22 +131,22 @@ function analyzeTransactions(transactions) {
   };
 
   transactions.forEach((tx, index) => {
-    // Financial totals
+    // Analyze income/expenses
     const income = parseFloat(tx.income) || 0;
     const expenses = parseFloat(tx.expenses) || 0;
     analysis.totalIncome += income;
     analysis.totalExpenses += expenses;
 
-    // Track currencies
+    // Analyze currencies
     if (tx.currency) {
       analysis.currencies.add(tx.currency);
     }
 
-    // Track categories
+    // Analyze categories
     const category = tx.category || 'Uncategorized';
     analysis.categories.add(category);
 
-    if (!tx.category || tx.category.toLowerCase() === 'other') {
+    if (!tx.category) {
       analysis.uncategorized++;
     }
 
@@ -156,14 +155,14 @@ function analyzeTransactions(transactions) {
       analysis.categoryBreakdown[category] = { count: 0, amount: 0 };
     }
     analysis.categoryBreakdown[category].count++;
-    analysis.categoryBreakdown[category].amount += Math.abs(income - expenses);
+    analysis.categoryBreakdown[category].amount += (income + expenses);
 
-    // Track source files
+    // Source files
     if (tx.fileName) {
       analysis.sourceFiles.add(tx.fileName);
     }
 
-    // Track dates
+    // Dates
     if (tx.date) {
       analysis.dates.push(new Date(tx.date));
     }
@@ -172,14 +171,11 @@ function analyzeTransactions(transactions) {
     if (!tx.date) {
       analysis.issues.push(`Transaction ${index + 1}: Missing date`);
     }
-    if (!tx.description || tx.description.trim() === '') {
+    if (!tx.description) {
       analysis.issues.push(`Transaction ${index + 1}: Missing description`);
     }
     if (income === 0 && expenses === 0) {
       analysis.issues.push(`Transaction ${index + 1}: Zero amount`);
-    }
-    if (income > 0 && expenses > 0) {
-      analysis.issues.push(`Transaction ${index + 1}: Both income and expense values present`);
     }
   });
 
@@ -193,12 +189,12 @@ function analyzeTransactions(transactions) {
 
   // Date range
   if (analysis.dates.length > 0) {
-    const sortedDates = analysis.dates.sort((a, b) => a - b);
-    const startDate = sortedDates[0].toLocaleDateString();
-    const endDate = sortedDates[sortedDates.length - 1].toLocaleDateString();
-    analysis.dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+    const sortedDates = analysis.dates.sort();
+    const earliest = sortedDates[0].toLocaleDateString();
+    const latest = sortedDates[sortedDates.length - 1].toLocaleDateString();
+    analysis.dateRange = `${earliest} - ${latest}`;
   } else {
-    analysis.dateRange = 'No dates found';
+    analysis.dateRange = 'No dates available';
   }
 
   // Format monetary values
@@ -217,43 +213,24 @@ export function debugMergedFiles() {
   const modalContent = document.createElement('div');
 
   if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    modalContent.innerHTML = `<p>No merged files found in AppState.</p>`;
+    modalContent.innerHTML = '<p>No merged files available to debug.</p>';
   } else {
-    modalContent.innerHTML = `
-      <div class="merged-files-debug">
-        <h3>Merged Files (${AppState.mergedFiles.length})</h3>
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th>File Name</th>
-              <th>Data Rows</th>
-              <th>Header Fields</th>
-              <th>Signature</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${AppState.mergedFiles.map(file => {
-      const fields = (file.headerMapping || []).join(", ");
+    const filesInfo = AppState.mergedFiles.map((file, index) => {
       return `
-                <tr>
-                  <td>${file.fileName}</td>
-                  <td>${file.data ? file.data.length : 0}</td>
-                  <td>${fields}</td>
-                  <td style="font-size:0.8em; word-break:break-all;">${file.signature || 'missing'}</td>
-                </tr>
-              `;
-    }).join('')}
-          </tbody>
-        </table>
-
-        <h3>Sample Data</h3>
-        <div style="max-height:200px; overflow:auto;">
-          <pre style="font-size:0.8em;">${JSON.stringify(
-      AppState.mergedFiles[0]?.data?.slice(0, 2) || "No data",
-      null, 2
-    )}</pre>
+        <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+          <h4>File ${index + 1}: ${file.fileName || 'Unknown'}</h4>
+          <p><strong>Signature:</strong> ${file.signature || 'None'}</p>
+          <p><strong>Data rows:</strong> ${file.data ? file.data.length : 0}</p>
+          <p><strong>Header row:</strong> ${file.headerRowIndex || 0}</p>
+          <p><strong>Data start row:</strong> ${file.dataRowIndex || 1}</p>
+          <p><strong>Currency:</strong> ${file.currency || 'USD'}</p>
         </div>
-      </div>
+      `;
+    }).join('');
+
+    modalContent.innerHTML = `
+      <h3>Merged Files Debug (${AppState.mergedFiles.length} files)</h3>
+      ${filesInfo}
     `;
   }
 
@@ -268,111 +245,71 @@ export function debugMergedFiles() {
  * Debug function for signatures
  */
 export function debugSignatures() {
-  console.log("Debug signatures triggered");
-
   const modalContent = document.createElement('div');
 
   // Current file signature section
   let currentFileSection = '<h3>Current File Signature</h3>';
   if (AppState.currentFileSignature && AppState.currentFileName) {
     currentFileSection += `
-      <p><strong>File currently being previewed:</strong> ${AppState.currentFileName}</p>
-      <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
-        <tr>
-          <th style="text-align:left; padding:8px; background:#f5f5f5;">Type</th>
-          <th style="text-align:left; padding:8px; background:#f5f5f5;">Value</th>
-        </tr>
-        <tr>
-          <td style="padding:8px; border-bottom:1px solid #eee;">Format Signature</td>
-          <td style="padding:8px; border-bottom:1px solid #eee; word-break:break-all;">
-            <code>${AppState.currentFileSignature.formatSig || 'N/A'}</code>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px; border-bottom:1px solid #eee;">Content Signature</td>
-          <td style="padding:8px; border-bottom:1px solid #eee; word-break:break-all;">
-            <code>${AppState.currentFileSignature.contentSig || 'N/A'}</code>
-          </td>
-        </tr>
-      </table>
+      <p><strong>File:</strong> ${AppState.currentFileName}</p>
+      <p><strong>Signature:</strong> ${AppState.currentFileSignature}</p>
     `;
   } else {
-    currentFileSection += '<p>No current file signature (no file is being previewed)</p>';
+    currentFileSection += '<p>No current file signature available.</p>';
   }
 
-  // Saved mappings section
-  const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  // FIXED: Get saved mappings from localStorage
+  const mappings = JSON.parse(localStorage.getItem('fileFormatMappings') || '[]');
   let mappingsSection = '<h3>Saved Format Mappings</h3>';
 
   if (mappings.length > 0) {
-    mappingsSection += `
-      <div style="max-height:200px; overflow:auto;">
-        <table style="width:100%; border-collapse:collapse;">
-          <tr>
-            <th style="text-align:left; padding:8px; background:#f5f5f5;">Signature</th>
-            <th style="text-align:left; padding:8px; background:#f5f5f5;">Fields</th>
-            <th style="text-align:left; padding:8px; background:#f5f5f5;">Created</th>
-          </tr>
-          ${mappings.map(entry => {
-      const fields = entry.mapping?.filter(m => m !== "–").join(", ") || "No mapping";
-      const created = entry.created ? new Date(entry.created).toLocaleString() : 'Unknown';
-      const sig = entry.signature || "Missing signature";
+    mappingsSection += mappings.map((mapping, index) => {
+      const fields = mapping.mapping ? mapping.mapping.filter(m => m !== '–').join(', ') : 'No mapping';
+      const created = mapping.created ? new Date(mapping.created).toLocaleString() : 'Unknown';
 
       return `
-              <tr>
-                <td style="padding:8px; border-bottom:1px solid #eee; word-break:break-all;">
-                  <code>${typeof sig === 'object' ? JSON.stringify(sig) : sig}</code>
-                </td>
-                <td style="padding:8px; border-bottom:1px solid #eee;">${fields}</td>
-                <td style="padding:8px; border-bottom:1px solid #eee;">${created}</td>
-              </tr>
-            `;
-    }).join('')}
-        </table>
-      </div>
-    `;
+        <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+          <strong>Mapping ${index + 1}:</strong> ${mapping.signature || 'Unknown signature'}<br>
+          <strong>File:</strong> ${mapping.fileName || 'Unknown'}<br>
+          <strong>Fields:</strong> ${fields}<br>
+          <strong>Created:</strong> ${created}
+        </div>
+      `;
+    }).join('');
   } else {
-    mappingsSection += '<p>No saved mappings found</p>';
+    mappingsSection += '<p>No saved mappings found.</p>';
   }
 
   // Merged files signatures section
   let filesSection = '<h3>Merged Files Signatures</h3>';
   if (AppState.mergedFiles?.length > 0) {
-    filesSection += `
-      <div style="max-height:200px; overflow:auto;">
-        <table style="width:100%; border-collapse:collapse;">
-          <tr>
-            <th style="text-align:left; padding:8px; background:#f5f5f5;">File Name</th>
-            <th style="text-align:left; padding:8px; background:#f5f5f5;">Signature</th>
-            <th style="text-align:left; padding:8px; background:#f5f5f5;">Header Fields</th>
-          </tr>
-          ${AppState.mergedFiles.map(file => {
-      const fields = (file.headerMapping || []).join(", ");
-      return `
-              <tr>
-                <td style="padding:8px; border-bottom:1px solid #eee;">${file.fileName}</td>
-                <td style="padding:8px; border-bottom:1px solid #eee; word-break:break-all;">
-                  <code>${file.signature || 'missing'}</code>
-                </td>
-                <td style="padding:8px; border-bottom:1px solid #eee;">${fields}</td>
-              </tr>
-            `;
-    }).join('')}
-        </table>
+    filesSection += AppState.mergedFiles.map((file, index) => `
+      <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+        <strong>${file.fileName}:</strong> ${file.signature || 'No signature'}<br>
+        <strong>Mapping:</strong> ${file.headerMapping ? file.headerMapping.filter(m => m !== '–').join(', ') : 'No mapping'}<br>
+        <strong>Transactions:</strong> ${file.transactions ? file.transactions.length : 0}
       </div>
-    `;
+    `).join('');
   } else {
-    filesSection += '<p>No merged files found</p>';
+    filesSection += '<p>No merged files available.</p>';
   }
 
   // Combine all sections
   modalContent.innerHTML = currentFileSection + mappingsSection + filesSection;
 
   showModal({
-    title: "Signature Debug Info",
+    title: "🔍 Debug: File Signatures & Mappings",
     content: modalContent,
     size: "large"
   });
+}
+
+/**
+ * Check if debug mode is active
+ */
+function isDebugModeActive() {
+  return localStorage.getItem('debugMode') === 'true' &&
+    document.body.classList.contains('debug-mode');
 }
 
 /**
@@ -394,7 +331,7 @@ export function attachDebugFunctions() {
 
   // Add event listeners to debug buttons if DOM is ready, otherwise wait
   if (document.readyState === "loading") {
-    document.addEventListener('DOMContentLoaded', attachDebugButtonListeners);
+    document.addEventListener("DOMContentLoaded", attachDebugButtonListeners);
   } else {
     attachDebugButtonListeners();
   }
@@ -409,154 +346,33 @@ function attachDebugButtonListeners() {
 
   console.log("Attaching debug button listeners...");
 
-  // Use a more reliable method to attach listeners after a longer delay
-  setTimeout(() => {
-    // Check if debug mode is enabled first
-    const isDebugMode = document.body.classList.contains('debug-mode');
-
-    if (!isDebugMode) {
-      console.log("Debug mode not active, deferring button listener attachment");
-      // Try again later if debug mode gets enabled
-      setTimeout(attachDebugButtonListeners, 2000);
-      return;
-    }
-
-    // Debug files button
-    const debugFilesBtn = document.getElementById('debugFilesBtn');
-    if (debugFilesBtn) {
-      // Remove any existing listeners
-      const newBtn = debugFilesBtn.cloneNode(true);
-      debugFilesBtn.parentNode.replaceChild(newBtn, debugFilesBtn);
-
-      newBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("Debug files button clicked");
-        debugMergedFiles();
-      });
-      console.log("Debug files button listener attached");
-    } else {
-      console.warn("Debug files button not found - creating it");
-      createDebugButton('debugFilesBtn', '🗂️', 'Debug Files', debugMergedFiles);
-    }
-
-    // Debug signatures button
-    const debugSignaturesBtn = document.getElementById('debugSignaturesBtn');
-    if (debugSignaturesBtn) {
-      // Remove any existing listeners
-      const newBtn = debugSignaturesBtn.cloneNode(true);
-      debugSignaturesBtn.parentNode.replaceChild(newBtn, debugSignaturesBtn);
-
-      newBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("Debug signatures button clicked");
-        debugSignatures();
-      });
-      console.log("Debug signatures button listener attached");
-    } else {
-      console.warn("Debug signatures button not found - creating it");
-      createDebugButton('debugSignaturesBtn', '🔍', 'Debug Signatures', debugSignatures);
-    }
-
-    // Reset application button
-    const resetAppBtn = document.getElementById('resetAppBtn');
-    if (resetAppBtn) {
-      // Remove any existing listeners
-      const newBtn = resetAppBtn.cloneNode(true);
-      resetAppBtn.parentNode.replaceChild(newBtn, resetAppBtn);
-
-      newBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("Reset application button clicked");
-        resetApplication();
-      });
-      console.log("Reset application button listener attached");
-    } else {
-      console.warn("Reset application button not found - creating it");
-      createDebugButton('resetAppBtn', '🔄', 'Reset App', resetApplication);
-    }
-
-    window.debugButtonsAttached = true;
-    console.log("Debug button listeners attached");
-  }, 1000); // Increased delay to ensure DOM is ready
-}
-
-/**
- * Create debug button if it doesn't exist
- */
-function createDebugButton(id, icon, text, handler) {
-  // Find debug section or create it
-  let debugSection = document.getElementById('debugSection');
-  if (!debugSection) {
-    debugSection = createDebugSection();
+  // Check if debug mode is active before attaching
+  if (!isDebugModeActive()) {
+    console.log("Debug mode not active, skipping button listener attachment");
+    return;
   }
 
-  const actionButtons = debugSection.querySelector('.action-buttons');
-  if (actionButtons) {
-    const button = document.createElement('button');
-    button.id = id;
-    button.className = 'action-button debug-only';
-    if (id === 'resetAppBtn') {
-      button.style.backgroundColor = '#dc3545';
-    }
+  // Use a more reliable method to attach listeners
+  setTimeout(() => {
+    const debugButtons = [
+      { id: 'debugFilesBtn', handler: debugMergedFiles },
+      { id: 'debugSignaturesBtn', handler: debugSignatures },
+      { id: 'debugTransactionsBtn', handler: inspectTransactionData },
+      { id: 'resetAppBtn', handler: resetApplication }
+    ];
 
-    button.innerHTML = `
-      <span class="action-icon">${icon}</span>
-      <span class="action-text">${text}</span>
-    `;
-
-    button.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handler();
+    debugButtons.forEach(({ id, handler }) => {
+      const button = document.getElementById(id);
+      if (button && !button.dataset.listenerAttached) {
+        button.addEventListener('click', handler);
+        button.dataset.listenerAttached = 'true';
+        console.log(`Attached listener to ${id}`);
+      }
     });
 
-    actionButtons.appendChild(button);
-    console.log(`Created debug button: ${id}`);
-  }
-}
-
-/**
- * Create debug section if it doesn't exist
- */
-function createDebugSection() {
-  // Check if debug section already exists
-  let debugSection = document.getElementById('debugSection');
-  if (debugSection) {
-    console.log("Debug section already exists");
-    return debugSection;
-  }
-
-  // Find the main content area
-  let mainContent = document.querySelector('.main-content');
-  if (!mainContent) {
-    console.error("Main content area not found for debug section");
-    return null;
-  }
-
-  // Create debug section
-  debugSection = document.createElement('div');
-  debugSection.id = 'debugSection';
-  debugSection.className = 'section debug-only';
-
-  debugSection.innerHTML = `
-    <div class="section-header">
-      <h2>🐛 Debug Tools</h2>
-    </div>
-    <div class="section-content">
-      <div class="action-buttons">
-        <!-- Debug buttons will be added here -->
-      </div>
-    </div>
-  `;
-
-  // Insert at the end of main content
-  mainContent.appendChild(debugSection);
-  console.log("Debug section created successfully");
-
-  return debugSection;
+    window.debugButtonsAttached = true;
+    console.log("Debug button listeners attached successfully");
+  }, 500);
 }
 
 /**
@@ -565,55 +381,23 @@ function createDebugSection() {
 export function resetApplication() {
   console.log("Reset application triggered");
 
-  if (!confirm("Are you sure you want to reset the application? This will clear all data and cannot be undone.")) {
-    return;
-  }
+  if (confirm('Are you sure you want to reset the application? This will clear all data and reload the page.')) {
+    try {
+      // Clear all localStorage
+      localStorage.clear();
 
-  try {
-    // Clear localStorage
-    const keysToRemove = [
-      'transactions',
-      'mergedFiles',
-      'expenseCategories',
-      'categoryMappings',
-      'fileFormatMappings',
-      'darkMode',
-      'debugMode'
-    ];
+      // Clear sessionStorage
+      sessionStorage.clear();
 
-    keysToRemove.forEach(key => {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {
-        console.warn(`Could not remove ${key} from localStorage:`, e);
-      }
-    });
+      // Show confirmation
+      alert('Application reset complete. The page will now reload.');
 
-    // Clear AppState
-    AppState.transactions = [];
-    AppState.mergedFiles = [];
-    AppState.categories = {};
-    AppState.currentFileData = null;
-    AppState.currentFileName = null;
-    AppState.currentFileSignature = null;
-
-    // Clear any global variables
-    if (window.tempFileSignature) {
-      delete window.tempFileSignature;
-    }
-
-    console.log("Application reset completed");
-
-    // Show success message and reload
-    showToast("Application reset successfully. Reloading page...", "success");
-
-    setTimeout(() => {
+      // Reload the page
       window.location.reload();
-    }, 1500);
-
-  } catch (error) {
-    console.error("Error during application reset:", error);
-    showToast("Error during reset. Please refresh the page manually.", "error");
+    } catch (error) {
+      console.error('Error during reset:', error);
+      alert('Error occurred during reset. Please refresh the page manually.');
+    }
   }
 }
 

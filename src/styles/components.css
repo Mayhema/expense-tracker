@@ -295,3 +295,145 @@
   border-width: 2px;
   margin: 0;
 }
+
+/* Transaction Table Styles */
+.transaction-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  min-width: 800px;
+}
+
+.transaction-table th,
+.transaction-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.transaction-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.transaction-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.transaction-table .edit-field {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 0.9rem;
+}
+
+.transaction-table .edit-field:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.transaction-table .has-changes {
+  background: #fff3cd;
+}
+
+.transaction-table .action-btn {
+  padding: 4px 8px;
+  margin: 0 2px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.transaction-table .btn-save {
+  background: #28a745;
+  color: white;
+}
+
+.transaction-table .btn-revert {
+  background: #6c757d;
+  color: white;
+}
+
+/* Preview Table Styles */
+.preview-table-wrapper {
+  max-height: 400px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.preview-table th,
+.preview-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.preview-table th {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.preview-table .mapped-column {
+  background: #d4edda;
+}
+
+.preview-table .unmapped-column {
+  background: #f8d7da;
+}
+
+.preview-table .mapped-data {
+  background: #f8fff9;
+}
+
+.preview-table .unmapped-data {
+  background: #fff5f5;
+}
+
+.mapping-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.mapping-table th,
+.mapping-table td {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.mapping-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.mapping-table .header-select {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
