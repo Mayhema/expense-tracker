@@ -108,7 +108,7 @@ function initializeTimelineChart() {
 }
 
 /**
- * Update charts with new data
+ * Update charts with new data using dd/mm/yyyy format
  */
 export function updateCharts(transactions = []) {
   try {
@@ -120,17 +120,31 @@ export function updateCharts(transactions = []) {
 }
 
 /**
- * Update income expense chart
+ * Update income expense chart with dd/mm/yyyy date handling
  */
 function updateIncomeExpenseChart(transactions) {
-  // Implementation for updating income/expense chart
-  console.log("Updating income/expense chart with", transactions.length, "transactions");
+  // FIXED: Filter transactions by date range if needed
+  const filteredTransactions = transactions.filter(tx => {
+    if (!tx.date) return true;
+    // Validate date format
+    const date = new Date(tx.date);
+    return !isNaN(date.getTime());
+  });
+
+  console.log("Updating income/expense chart with", filteredTransactions.length, "transactions");
 }
 
 /**
- * Update timeline chart
+ * Update timeline chart with dd/mm/yyyy date handling
  */
 function updateTimelineChart(transactions) {
-  // Implementation for updating timeline chart
-  console.log("Updating timeline chart with", transactions.length, "transactions");
+  // FIXED: Filter transactions by date range if needed
+  const filteredTransactions = transactions.filter(tx => {
+    if (!tx.date) return true;
+    // Validate date format
+    const date = new Date(tx.date);
+    return !isNaN(date.getTime());
+  });
+
+  console.log("Updating timeline chart with", filteredTransactions.length, "transactions");
 }

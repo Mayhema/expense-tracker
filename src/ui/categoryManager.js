@@ -298,7 +298,243 @@ function attachCategoryManagerEventListeners(container, modal) {
   });
 }
 
-function addCategory(name, color) {
+/**
+ * Add category with real-time UI updates
+ */
+export function addCategory(name, color) {
+  if (!name.trim()) {
+    import('./uiManager.js').then(module => {
+      module.showToast("Category name cannot be empty", "error");
+    });
+    return false;
+  }
+
+  if (AppState.categories[name]) {
+    import('./uiManager.js').then(module => {
+      module.showToast("Category already exists", "error");
+    });
+    return false;
+  }
+
+  // Get next order number
+  const existingOrders = Object.values(AppState.categories)
+    .map(cat => typeof cat === 'object' && cat.order !== undefined ? cat.order : 999)
+    .filter(order => order !== 999);
+
+  const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+
+  // Add category with order
+  AppState.categories[name] = {
+    color: color,
+    order: nextOrder,
+    subcategories: {}
+  };
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+  } catch (error) {
+    console.error('Error saving categories:', error);
+    return false;
+  }
+
+  // FIXED: Update all category UI elements in real-time
+  import('./transactionManager.js').then(module => {
+    if (module.updateAllCategoryUI) {
+      module.updateAllCategoryUI();
+    }
+  }).catch(error => {
+    console.warn('Could not update category UI:', error);
+  });
+
+  import('./uiManager.js').then(module => {
+    module.showToast(`Category "${name}" added successfully`, "success");
+  });
+
+  return true;
+}
+
+/**
+ * Update category with real-time UI updates
+ */
+export function updateCategory(oldName, newName, newColor) {
+  if (!newName.trim()) {
+    import('./uiManager.js').then(module => {
+      module.showToast("Category name cannot be empty", "error");
+    });
+    return false;
+  }
+
+  if (newName !== oldName && AppState.categories[newName]) {
+    import('./uiManager.js').then(module => {
+      module.showToast("Category name already exists", "error");
+    });
+    return false;
+  }
+
+  const currentValue = AppState.categories[oldName];
+  let updatedValue;
+
+  if (typeof currentValue === 'object') {
+    updatedValue = { ...currentValue, color: newColor };
+  } else {
+    updatedValue = {
+      color: newColor,
+      order: 999,
+      subcategories: {}
+    };
+  }
+
+  if (oldName !== newName) {
+    delete AppState.categories[oldName];
+    AppState.categories[newName] = updatedValue;
+
+    // Update transactions that use this category
+    if (AppState.transactions) {
+      AppState.transactions.forEach(tx => {
+        if (tx.category === oldName) {
+          tx.category = newName;
+        }
+      });
+      localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    }
+  } else {
+    AppState.categories[oldName] = updatedValue;
+  }
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+  } catch (error) {
+    console.error('Error saving categories:', error);
+    return false;
+  }
+
+  // FIXED: Update all category UI elements in real-time
+  import('./transactionManager.js').then(module => {
+    if (module.updateAllCategoryUI) {
+      module.updateAllCategoryUI();
+    }
+  }).catch(error => {
+    console.warn('Could not update category UI:', error);
+  });
+
+  import('./uiManager.js').then(module => {
+    module.showToast(`Category updated successfully`, "success");
+  });
+
+  return true;
+}
+
+/**
+ * Delete category with real-time UI updates
+ */
+export function deleteCategory(name) {
+  if (!AppState.categories[name]) {
+    return false;
+  }
+
+  delete AppState.categories[name];
+
+  // Update transactions that use this category
+  if (AppState.transactions) {
+    AppState.transactions.forEach(tx => {
+      if (tx.category === name) {
+        tx.category = '';
+      }
+    });
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+  }
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+  } catch (error) {
+    console.error('Error saving categories:', error);
+    return false;
+  }
+
+  // FIXED: Update all category UI elements in real-time
+  import('./transactionManager.js').then(module => {
+    if (module.updateAllCategoryUI) {
+      module.updateAllCategoryUI();
+    }
+  }).catch(error => {
+    console.warn('Could not update category UI:', error);
+  });
+
+  import('./uiManager.js').then(module => {
+    module.showToast(`Category "${name}" deleted`, "success");
+  });
+
+  return true;
+}
+
+/**
+ * Add subcategory with real-time UI updates
+ */
+export function addSubcategory(parentName, subName, subColor) {
+  if (!subName.trim()) {
+    import('./uiManager.js').then(module => {
+      module.showToast("Subcategory name cannot be empty", "error");
+    });
+    return false;
+  }
+
+  let parentCategory = AppState.categories[parentName];
+  if (!parentCategory) {
+    return false;
+  }
+
+  // Convert string category to object if needed
+  if (typeof parentCategory === 'string') {
+    parentCategory = {
+      color: parentCategory,
+      order: 999,
+      subcategories: {}
+    };
+    AppState.categories[parentName] = parentCategory;
+  }
+
+  // Ensure subcategories object exists
+  if (!parentCategory.subcategories) {
+    parentCategory.subcategories = {};
+  }
+
+  if (parentCategory.subcategories[subName]) {
+    import('./uiManager.js').then(module => {
+      module.showToast("Subcategory already exists", "error");
+    });
+    return false;
+  }
+
+  parentCategory.subcategories[subName] = subColor;
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+  } catch (error) {
+    console.error('Error saving categories:', error);
+    return false;
+  }
+
+  // FIXED: Update all category UI elements in real-time
+  import('./transactionManager.js').then(module => {
+    if (module.updateAllCategoryUI) {
+      module.updateAllCategoryUI();
+    }
+  }).catch(error => {
+    console.warn('Could not update category UI:', error);
+  });
+
+  import('./uiManager.js').then(module => {
+    module.showToast(`Subcategory "${subName}" added successfully`, "success");
+  });
+
+  return true;
+}
+
+function addCategoryInternal(name, color) {
   if (!AppState.categories) {
     AppState.categories = {};
   }
@@ -317,14 +553,14 @@ function addCategory(name, color) {
   saveCategories();
 }
 
-function deleteCategory(categoryName) {
+function deleteCategoryInternal(categoryName) {
   if (AppState.categories && AppState.categories[categoryName]) {
     delete AppState.categories[categoryName];
     saveCategories();
   }
 }
 
-function addSubcategory(parentCategory, name, color) {
+function addSubcategoryInternal(parentCategory, name, color) {
   if (AppState.categories && AppState.categories[parentCategory]) {
     if (typeof AppState.categories[parentCategory] === 'string') {
       // Convert old format to new format

@@ -1,5 +1,4 @@
 // Directory: /src/ui/uiManager.js
-import { AppState } from '../core/appState.js';
 
 let activeToast = null;
 
@@ -258,41 +257,6 @@ export function showPageLoadingOverlay(message = 'Loading...') {
       }
     }
   };
-}
-
-export function updateCurrencyFilters() {
-  // Update currency filters based on current transactions
-  const currencyFilter = document.getElementById('currencyFilter');
-  if (!currencyFilter) return;
-
-  const transactions = AppState.transactions || [];
-  const currencies = new Set();
-
-  transactions.forEach(tx => {
-    if (tx.currency) {
-      currencies.add(tx.currency);
-    }
-  });
-
-  // Clear existing options except "All"
-  const allOption = currencyFilter.querySelector('option[value=""]');
-  currencyFilter.innerHTML = '';
-  if (allOption) {
-    currencyFilter.appendChild(allOption);
-  } else {
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = 'All Currencies';
-    currencyFilter.appendChild(defaultOption);
-  }
-
-  // Add currency options
-  Array.from(currencies).sort().forEach(currency => {
-    const option = document.createElement('option');
-    option.value = currency;
-    option.textContent = currency;
-    currencyFilter.appendChild(option);
-  });
 }
 
 /**

@@ -128,7 +128,7 @@ export function debugTransactions() {
       const category = tx.category || 'Uncategorized';
       debugInfo.byCategory[category] = (debugInfo.byCategory[category] || 0) + 1;
 
-      // Date range
+      // Date range - FIXED: Use formatDateToDDMMYYYY for consistent format
       if (tx.date) {
         const date = new Date(tx.date);
         if (!debugInfo.dateRange.earliest || date < debugInfo.dateRange.earliest) {
@@ -153,8 +153,8 @@ export function debugTransactions() {
     console.log('By File:', debugInfo.byFile);
     console.log('By Category:', debugInfo.byCategory);
     console.log('Date Range:', {
-      earliest: debugInfo.dateRange.earliest?.toISOString().split('T')[0],
-      latest: debugInfo.dateRange.latest?.toISOString().split('T')[0]
+      earliest: debugInfo.dateRange.earliest ? formatDateToDDMMYYYY(debugInfo.dateRange.earliest) : null,
+      latest: debugInfo.dateRange.latest ? formatDateToDDMMYYYY(debugInfo.dateRange.latest) : null
     });
     console.log('Amounts:', {
       totalIncome: debugInfo.amounts.totalIncome.toFixed(2),

@@ -1010,7 +1010,7 @@ function safeFormatNumber(value) {
 /**
  * Process timeline data from transactions
  * @param {Array} transactions - Array of transactions
- * @returns {Object} Processed timeline data
+ * @returns {Object} Processed timeline data with dd/mm/yyyy formatted labels
  */
 function processTimelineData(transactions) {
   const timelineData = {
@@ -1030,19 +1030,28 @@ function processTimelineData(transactions) {
     const date = transaction.date;
     if (!date) return;
 
-    if (!dailyTotals[date]) {
-      dailyTotals[date] = { income: 0, expenses: 0 };
+    // FIXED: Use formatDateToDDMMYYYY for consistent date format
+    const formattedDate = formatDateToDDMMYYYY(date);
+    if (!formattedDate) return;
+
+    if (!dailyTotals[formattedDate]) {
+      dailyTotals[formattedDate] = { income: 0, expenses: 0 };
     }
 
     const income = parseFloat(transaction.income || 0);
     const expenses = parseFloat(transaction.expenses || 0);
 
-    dailyTotals[date].income += income;
-    dailyTotals[date].expenses += expenses;
+    dailyTotals[formattedDate].income += income;
+    dailyTotals[formattedDate].expenses += expenses;
   });
 
   // Sort dates and prepare data arrays
-  const sortedDates = Object.keys(dailyTotals).sort();
+  const sortedDates = Object.keys(dailyTotals).sort((a, b) => {
+    // Convert back to Date objects for proper sorting
+    const dateA = parseDDMMYYYY(a);
+    const dateB = parseDDMMYYYY(b);
+    return dateA - dateB;
+  });
 
   timelineData.labels = sortedDates;
   timelineData.incomeData = sortedDates.map(date => dailyTotals[date].income);

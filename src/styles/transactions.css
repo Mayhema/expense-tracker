@@ -12,24 +12,162 @@
   margin-bottom: 20px;
 }
 
-.transaction-filters-row {
-  display: flex;
-  gap: 15px;
-  align-items: end;
-  flex-wrap: wrap;
+.filter-row {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 15px !important;
+  align-items: end !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
 }
 
 .filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 120px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  min-width: 120px !important;
+  flex: 0 0 auto !important;
+  font-size: 14px;
+  vertical-align: bottom !important;
+  margin-right: 15px !important;
 }
 
 .filter-group label {
   font-weight: 500;
   font-size: 0.9rem;
   color: var(--text-color);
+  white-space: nowrap;
+}
+
+/* Ensure specific filter elements maintain proper sizing */
+.filter-group>select,
+.filter-group>input {
+  min-width: 120px !important;
+  max-width: 150px !important;
+  box-sizing: border-box !important;
+}
+
+/* Force horizontal layout even with CSS inheritance issues */
+.transaction-filters .filter-row {
+  flex-flow: row wrap !important;
+}
+
+.transaction-filters .filter-group {
+  flex-basis: auto !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Add ultra-specific selectors to override any conflicting styles */
+.transaction-filters .filter-row,
+#transactionFilters .filter-row,
+.transactions-section .filter-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 15px !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+}
+
+.transaction-filters .filter-group,
+#transactionFilters .filter-group,
+.transactions-section .filter-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  min-width: 120px !important;
+  max-width: 200px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* CRITICAL: Force horizontal layout with maximum specificity */
+.transaction-filters .filter-row,
+#transactionFilters .filter-row,
+.transactions-section .filter-row,
+.section .filter-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 15px !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.transaction-filters .filter-group,
+#transactionFilters .filter-group,
+.transactions-section .filter-group,
+.section .filter-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  min-width: 120px !important;
+  max-width: 200px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* ULTRA-SPECIFIC: Force horizontal layout with maximum CSS specificity */
+.transaction-filters .filter-row,
+#transactionFilters .filter-row,
+.transactions-section .filter-row,
+.section .filter-row,
+div.transaction-filters div.filter-row,
+div#transactionFilters div.filter-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 15px !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.transaction-filters .filter-group,
+#transactionFilters .filter-group,
+.transactions-section .filter-group,
+.section .filter-group,
+div.transaction-filters div.filter-group,
+div#transactionFilters div.filter-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  min-width: 120px !important;
+  max-width: 200px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Override ANY possible grid or other layout */
+.filter-row>*,
+.filter-row>div,
+.filter-row .filter-group {
+  display: flex !important;
+  flex-direction: column !important;
+  float: none !important;
+  vertical-align: bottom !important;
+  margin-right: 15px !important;
+}
+
+/* Ensure filter controls are properly sized */
+.filter-group>select,
+.filter-group>input,
+.filter-group>button {
+  width: 100% !important;
+  min-width: 120px !important;
+  box-sizing: border-box !important;
 }
 
 .filter-select,
@@ -42,11 +180,54 @@
   color: var(--text-color);
 }
 
-.filter-select:focus,
-.filter-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+#filterCategory,
+#filterCurrency,
+#filterDateFrom,
+#filterDateTo {
+  padding: 8px 10px !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  font-size: 0.9rem !important;
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  min-width: 120px !important;
+}
+
+/* FIXED: Improved date input styling for dd/mm/yyyy format */
+#filterDateFrom,
+#filterDateTo {
+  padding: 8px 10px !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  font-size: 0.9rem !important;
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  min-width: 120px !important;
+  font-family: monospace !important;
+  /* Better for date display */
+  text-align: center !important;
+  /* Center align date text */
+}
+
+.date-field {
+  font-family: monospace !important;
+  /* Better for date input */
+  text-align: center !important;
+}
+
+#clearFiltersBtn {
+  padding: 8px 12px !important;
+  background: #6c757d !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  white-space: nowrap !important;
+}
+
+#clearFiltersBtn:hover {
+  background: #5a6268 !important;
 }
 
 .transaction-table-wrapper {
@@ -159,4 +340,17 @@
   background: var(--bg-color);
   color: var(--text-color);
   font-size: 0.85rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .filter-group {
+    min-width: auto !important;
+    width: 100% !important;
+  }
 }

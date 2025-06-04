@@ -3,6 +3,7 @@
 // Update imports
 import { AppState } from '../core/appState.js';
 import { showToast } from '../ui/uiManager.js';
+import { formatDateToDDMMYYYY } from '../utils/dateUtils.js';
 
 /**
  * Export transactions as CSV with improved formatting
@@ -27,9 +28,11 @@ export function exportTransactionsAsCSV() {
       ...transactions.map(tx => {
         const amount = parseFloat(tx.expenses) || parseFloat(tx.income) || 0;
         const type = tx.expenses ? 'Expense' : 'Income';
+        // FIXED: Format date to dd/mm/yyyy for export
+        const formattedDate = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
 
         return [
-          tx.date || '',
+          formattedDate,
           `"${(tx.description || '').replace(/"/g, '""')}"`,
           amount.toFixed(2),
           type,
@@ -40,8 +43,9 @@ export function exportTransactionsAsCSV() {
       })
     ].join('\n');
 
-    // Create and download file
-    downloadFile(csvContent, `transactions_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+    // Create and download file with dd/mm/yyyy in filename
+    const currentDate = formatDateToDDMMYYYY(new Date()).replace(/\//g, '-');
+    downloadFile(csvContent, `transactions_${currentDate}.csv`, 'text/csv');
     showToast(`Exported ${transactions.length} transactions to CSV`, "success");
 
   } catch (error) {
@@ -64,8 +68,15 @@ export function exportTransactionsAsJSON() {
   }
 
   try {
-    const jsonContent = JSON.stringify(transactions, null, 2);
-    downloadFile(jsonContent, `transactions_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+    // FIXED: Format dates to dd/mm/yyyy in JSON export
+    const formattedTransactions = transactions.map(tx => ({
+      ...tx,
+      date: tx.date ? formatDateToDDMMYYYY(tx.date) : ''
+    }));
+
+    const jsonContent = JSON.stringify(formattedTransactions, null, 2);
+    const currentDate = formatDateToDDMMYYYY(new Date()).replace(/\//g, '-');
+    downloadFile(jsonContent, `transactions_${currentDate}.json`, 'application/json');
     showToast(`Exported ${transactions.length} transactions to JSON`, "success");
 
   } catch (error) {

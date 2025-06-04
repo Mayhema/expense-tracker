@@ -1,4 +1,5 @@
 import { AppState } from '../core/appState.js';
+import { formatDateToDDMMYYYY, convertDDMMYYYYToISO, parseDDMMYYYY } from '../utils/dateUtils.js';
 
 /**
  * Helper function to get and update category counts
@@ -53,7 +54,7 @@ export function renderTransactions(transactions = [], updateCharts = true) {
   const filteredTransactions = applyFilters(actualTransactions);
   console.log(`CRITICAL: Filtered to ${filteredTransactions.length} transactions for display`);
 
-  // Update summary
+  // Update summary - FIXED: Add missing function
   updateTransactionSummary(filteredTransactions);
 
   // FIXED: Render filters section
@@ -70,12 +71,12 @@ export function renderTransactions(transactions = [], updateCharts = true) {
   // Update charts if requested
   if (updateCharts) {
     setTimeout(() => {
-      import('./charts.js').then(module => {
-        if (module.updateCharts) {
-          module.updateCharts();
+      import('../charts/chartManager.js').then(module => {
+        if (module.updateChartsWithCurrentData) {
+          module.updateChartsWithCurrentData();
         }
       }).catch(error => {
-        console.log('Charts module not available:', error.message);
+        console.warn('Could not update charts:', error);
       });
     }, 300);
   }
@@ -138,9 +139,6 @@ function renderFiltersSection(container, transactions) {
   // Initialize filter controls
   initializeFilters();
 
-  // Update currency filter with actual data
-  updateCurrencyFilter(transactions);
-
   console.log('CRITICAL: Filters section rendered');
 }
 
@@ -184,7 +182,7 @@ function renderTransactionTable(container, transactions) {
 }
 
 /**
- * FIXED: Generate proper transaction table HTML
+ * FIXED: Generate proper transaction table HTML with dd/mm/yyyy dates
  */
 function generateTransactionTableHTML(transactions) {
   console.log(`CRITICAL: Generating table HTML for ${transactions.length} transactions`);
@@ -213,8 +211,8 @@ function generateTransactionTableHTML(transactions) {
   `;
 
   transactions.forEach((tx, index) => {
-    // FIXED: Properly handle transaction data
-    const date = tx.date || '';
+    // FIXED: Format date to dd/mm/yyyy for display
+    const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
     const description = tx.description || '';
     const category = tx.category || '';
     const income = parseFloat(tx.income) || 0;
@@ -224,12 +222,13 @@ function generateTransactionTableHTML(transactions) {
     html += `
       <tr data-transaction-index="${index}" class="transaction-row">
         <td class="date-cell">
-          <input type="date"
+          <input type="text"
                  class="edit-field date-field"
                  value="${date}"
                  data-field="date"
                  data-index="${index}"
-                 data-original="${date}">
+                 data-original="${date}"
+                 placeholder="dd/mm/yyyy">
         </td>
         <td class="description-cell">
           <input type="text"
@@ -368,13 +367,28 @@ function saveTransactionChanges(index) {
 
   fields.forEach(field => {
     const fieldName = field.dataset.field;
-    const newValue = field.value;
+    let newValue = field.value;
+
+    // FIXED: Convert date from dd/mm/yyyy to ISO format for storage
+    if (fieldName === 'date' && newValue) {
+      const isoDate = convertDDMMYYYYToISO(newValue);
+      if (isoDate) {
+        newValue = isoDate;
+      } else {
+        console.warn('Invalid date format:', newValue);
+        return; // Skip invalid dates
+      }
+    }
 
     // Update the transaction
     transaction[fieldName] = newValue;
 
-    // Update the original value
-    field.dataset.original = newValue;
+    // Update the original value (keep display format for dates)
+    if (fieldName === 'date') {
+      field.dataset.original = field.value; // Keep dd/mm/yyyy format
+    } else {
+      field.dataset.original = newValue;
+    }
   });
 
   // Save to localStorage
@@ -428,139 +442,39 @@ function revertTransactionChanges(index) {
 }
 
 /**
- * FIXED: Updates the currency filter dropdown with available currencies
- * @param {Array} transactions - Array of transactions to extract currencies from
+ * FIXED: Add missing updateTransactionSummary function
  */
-function updateCurrencyFilter(transactions) {
-  const currencies = new Set();
-  transactions.forEach(tx => {
-    if (tx.currency) {
-      currencies.add(tx.currency);
-    }
-  });
+function updateTransactionSummary(transactions) {
+  const totalIncome = transactions.reduce((sum, tx) => sum + (parseFloat(tx.income) || 0), 0);
+  const totalExpenses = transactions.reduce((sum, tx) => sum + (parseFloat(tx.expenses) || 0), 0);
+  const netBalance = totalIncome - totalExpenses;
 
-  const currencyFilter = document.getElementById('filterCurrency');
-  if (currencyFilter) {
-    // Save current selection
-    const currentValue = currencyFilter.value;
-
-    // Clear existing options except "All"
-    currencyFilter.innerHTML = '<option value="">All Currencies</option>';
-
-    // Add currency options
-    Array.from(currencies).sort().forEach(currency => {
-      const option = document.createElement('option');
-      option.value = currency;
-      option.textContent = currency;
-      currencyFilter.appendChild(option);
-    });
-
-    // Restore selection if it still exists
-    if (currentValue && currencyFilter.querySelector(`option[value="${currentValue}"]`)) {
-      currencyFilter.value = currentValue;
-    }
+  // Update summary if it exists
+  const summaryContainer = document.getElementById('transactionSummary');
+  if (summaryContainer) {
+    summaryContainer.innerHTML = `
+      <div class="summary-item">
+        <span class="summary-label">Income:</span>
+        <span class="summary-value income">${totalIncome.toFixed(2)}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Expenses:</span>
+        <span class="summary-value expenses">${totalExpenses.toFixed(2)}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Net:</span>
+        <span class="summary-value ${netBalance >= 0 ? 'income' : 'expenses'}">${netBalance.toFixed(2)}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Count:</span>
+        <span class="summary-value">${transactions.length}</span>
+      </div>
+    `;
   }
 }
 
 /**
- * Creates the filter section HTML
- * @returns {string} Filter section HTML
- */
-function createFilterSection() {
-  return `
-    <div class="filter-row">
-      <div class="filter-group">
-        <label for="filterCategory">Category:</label>
-        <select id="filterCategory">
-          <option value="">All Categories</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="filterCurrency">Currency:</label>
-        <select id="filterCurrency">
-          <option value="">All Currencies</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="filterDateFrom">From:</label>
-        <input type="date" id="filterDateFrom">
-      </div>
-      <div class="filter-group">
-        <label for="filterDateTo">To:</label>
-        <input type="date" id="filterDateTo">
-      </div>
-      <div class="filter-group">
-        <button id="clearFiltersBtn" class="button secondary-btn">Clear Filters</button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Initializes the filter controls
- */
-function initializeFilters() {
-  // Category filter
-  const categoryFilter = document.getElementById('filterCategory');
-  if (categoryFilter) {
-    // FIXED: Populate only main categories (no subcategories in dropdown)
-    const categories = AppState.categories || {};
-    Object.keys(categories).sort().forEach(categoryName => {
-      const option = document.createElement('option');
-      option.value = categoryName;
-      option.textContent = categoryName;
-      categoryFilter.appendChild(option);
-    });
-
-    categoryFilter.addEventListener('change', () => {
-      AppState.currentCategoryFilter = categoryFilter.value;
-      renderTransactions(AppState.transactions || [], false);
-    });
-  }
-
-  // Currency filter
-  const currencyFilter = document.getElementById('filterCurrency');
-  if (currencyFilter) {
-    currencyFilter.addEventListener('change', () => {
-      renderTransactions(AppState.transactions || [], false);
-    });
-  }
-
-  // Date filters
-  const dateFromFilter = document.getElementById('filterDateFrom');
-  const dateToFilter = document.getElementById('filterDateTo');
-
-  if (dateFromFilter) {
-    dateFromFilter.addEventListener('change', () => {
-      renderTransactions(AppState.transactions || [], false);
-    });
-  }
-
-  if (dateToFilter) {
-    dateToFilter.addEventListener('change', () => {
-      renderTransactions(AppState.transactions || [], false);
-    });
-  }
-
-  // Clear filters button
-  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-  if (clearFiltersBtn) {
-    clearFiltersBtn.addEventListener('click', () => {
-      if (categoryFilter) categoryFilter.value = '';
-      if (currencyFilter) currencyFilter.value = '';
-      if (dateFromFilter) dateFromFilter.value = '';
-      if (dateToFilter) dateToFilter.value = '';
-
-      // Clear category button filter too
-      AppState.currentCategoryFilter = '';
-
-      renderTransactions(AppState.transactions || [], false);
-    });
-  }
-}
-
-/**
- * FIXED: Applies current filters to the transaction list
+ * FIXED: Applies current filters to the transaction list with dd/mm/yyyy date handling
  * @param {Array} transactions - The transactions to filter
  * @returns {Array} Filtered transactions
  */
@@ -597,23 +511,29 @@ function applyFilters(transactions = AppState.transactions || []) {
     filtered = filtered.filter(tx => (tx.currency || 'USD') === currencyFilter.value);
   }
 
-  // Date filters
+  // Date filters - FIXED: Handle dd/mm/yyyy input format using dateUtils
   if (dateFromFilter && dateFromFilter.value) {
-    const fromDate = new Date(dateFromFilter.value);
-    filtered = filtered.filter(tx => {
-      if (!tx.date) return false;
-      const txDate = new Date(tx.date);
-      return txDate >= fromDate;
-    });
+    const fromDate = parseDDMMYYYY(dateFromFilter.value);
+    if (fromDate) {
+      filtered = filtered.filter(tx => {
+        if (!tx.date) return false;
+        const txDate = new Date(tx.date);
+        return !isNaN(txDate.getTime()) && txDate >= fromDate;
+      });
+    }
   }
 
   if (dateToFilter && dateToFilter.value) {
-    const toDate = new Date(dateToFilter.value);
-    filtered = filtered.filter(tx => {
-      if (!tx.date) return false;
-      const txDate = new Date(tx.date);
-      return txDate <= toDate;
-    });
+    const toDate = parseDDMMYYYY(dateToFilter.value);
+    if (toDate) {
+      // Set to end of day for inclusive filtering
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(tx => {
+        if (!tx.date) return false;
+        const txDate = new Date(tx.date);
+        return !isNaN(txDate.getTime()) && txDate <= toDate;
+      });
+    }
   }
 
   console.log(`CRITICAL: Applied filters: ${filtered.length} transactions after filtering from ${transactions.length}`);
@@ -621,39 +541,161 @@ function applyFilters(transactions = AppState.transactions || []) {
 }
 
 /**
- * Updates transaction summary display
+ * FIXED: Initializes the filter controls
  */
-function updateTransactionSummary(transactions) {
-  const totalIncome = transactions.reduce((sum, tx) => sum + (parseFloat(tx.income) || 0), 0);
-  const totalExpenses = transactions.reduce((sum, tx) => sum + (parseFloat(tx.expenses) || 0), 0);
-  const netBalance = totalIncome - totalExpenses;
+function initializeFilters() {
+  // Category filter - FIXED: Use AppState.categories with proper ordering
+  const categoryFilter = document.getElementById('filterCategory');
+  if (categoryFilter) {
+    updateCategoryFilterDropdown(categoryFilter);
 
-  // Update summary if it exists
-  const summaryContainer = document.getElementById('transactionSummary');
-  if (summaryContainer) {
-    summaryContainer.innerHTML = `
-      <div class="summary-item">
-        <span class="summary-label">Income:</span>
-        <span class="summary-value income">${totalIncome.toFixed(2)}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Expenses:</span>
-        <span class="summary-value expenses">${totalExpenses.toFixed(2)}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Net:</span>
-        <span class="summary-value ${netBalance >= 0 ? 'income' : 'expenses'}">${netBalance.toFixed(2)}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Count:</span>
-        <span class="summary-value">${transactions.length}</span>
-      </div>
-    `;
+    categoryFilter.addEventListener('change', () => {
+      AppState.currentCategoryFilter = categoryFilter.value;
+      renderTransactions(AppState.transactions || [], false);
+    });
+  }
+
+  // Currency filter - FIXED: Use CURRENCIES from currencies.js
+  const currencyFilter = document.getElementById('filterCurrency');
+  if (currencyFilter) {
+    // Clear existing options first
+    currencyFilter.innerHTML = '<option value="">All Currencies</option>';
+
+    // FIXED: Import and use CURRENCIES
+    import('../constants/currencies.js').then(module => {
+      const currencies = module.CURRENCIES || {};
+      Object.keys(currencies).sort().forEach(currencyCode => {
+        const option = document.createElement('option');
+        option.value = currencyCode;
+        option.textContent = `${currencyCode} - ${currencies[currencyCode].name}`;
+        currencyFilter.appendChild(option);
+      });
+    }).catch(error => {
+      console.warn('Could not load CURRENCIES:', error);
+    });
+
+    currencyFilter.addEventListener('change', () => {
+      renderTransactions(AppState.transactions || [], false);
+    });
+  }
+
+  // Date filters - FIXED: Use dd/mm/yyyy format consistently
+  const dateFromFilter = document.getElementById('filterDateFrom');
+  const dateToFilter = document.getElementById('filterDateTo');
+
+  if (dateFromFilter) {
+    // Set placeholder to dd/mm/yyyy
+    dateFromFilter.placeholder = 'dd/mm/yyyy';
+
+    dateFromFilter.addEventListener('change', () => {
+      renderTransactions(AppState.transactions || [], false);
+    });
+  }
+
+  if (dateToFilter) {
+    // Set placeholder to dd/mm/yyyy
+    dateToFilter.placeholder = 'dd/mm/yyyy';
+
+    dateToFilter.addEventListener('change', () => {
+      renderTransactions(AppState.transactions || [], false);
+    });
+  }
+
+  // Clear filters button
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+      if (categoryFilter) categoryFilter.value = '';
+      if (currencyFilter) currencyFilter.value = '';
+      if (dateFromFilter) dateFromFilter.value = '';
+      if (dateToFilter) dateToFilter.value = '';
+
+      // Clear category button filter too
+      AppState.currentCategoryFilter = '';
+
+      renderTransactions(AppState.transactions || [], false);
+    });
   }
 }
 
 /**
- * Generate category dropdown with subcategories
+ * FIXED: Update category filter dropdown with current categories and proper ordering
+ */
+function updateCategoryFilterDropdown(categoryFilter) {
+  if (!categoryFilter) return;
+
+  // Save current selection
+  const currentValue = categoryFilter.value;
+
+  // Clear existing options
+  categoryFilter.innerHTML = '<option value="">All Categories</option>';
+
+  // Get categories from AppState with proper ordering
+  const categories = AppState.categories || {};
+
+  // Sort categories by order property, then alphabetically
+  const sortedCategories = Object.entries(categories)
+    .sort(([, a], [, b]) => {
+      const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
+      const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // If same order, sort alphabetically
+      return a[0].localeCompare(b[0]);
+    });
+
+  // Add category options
+  sortedCategories.forEach(([categoryName, categoryData]) => {
+    const option = document.createElement('option');
+    option.value = categoryName;
+    option.textContent = categoryName;
+    categoryFilter.appendChild(option);
+  });
+
+  // Restore selection if it still exists
+  if (currentValue && categoryFilter.querySelector(`option[value="${currentValue}"]`)) {
+    categoryFilter.value = currentValue;
+  }
+}
+
+/**
+ * Creates the filter section HTML - FIXED: Use proper date input type
+ */
+function createFilterSection() {
+  return `
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="filterCategory">Category:</label>
+        <select id="filterCategory" class="filter-select">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filterCurrency">Currency:</label>
+        <select id="filterCurrency" class="filter-select">
+          <option value="">All Currencies</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filterDateFrom">From:</label>
+        <input type="text" id="filterDateFrom" class="filter-input" placeholder="dd/mm/yyyy">
+      </div>
+      <div class="filter-group">
+        <label for="filterDateTo">To:</label>
+        <input type="text" id="filterDateTo" class="filter-input" placeholder="dd/mm/yyyy">
+      </div>
+      <div class="filter-group">
+        <button id="clearFiltersBtn" class="button secondary-btn">Clear Filters</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generate category dropdown with subcategories - FIXED: Use proper ordering
  */
 function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionIndex) {
   const categories = AppState.categories || {};
@@ -665,12 +707,18 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
       <option value="">Select Category</option>
   `;
 
-  // Get sorted categories by order
+  // Get sorted categories by order - FIXED: Use same sorting logic as filter
   const sortedCategories = Object.entries(categories)
     .sort(([, a], [, b]) => {
       const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
       const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
-      return orderA - orderB;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // If same order, sort alphabetically
+      return a[0].localeCompare(b[0]);
     });
 
   sortedCategories.forEach(([categoryName, categoryData]) => {
@@ -680,9 +728,9 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
     // Add subcategories if they exist
     if (typeof categoryData === 'object' && categoryData.subcategories) {
       Object.keys(categoryData.subcategories).sort().forEach(subName => {
-        const subValue = `${categoryName} > ${subName}`;
-        const isSubSelected = selectedCategory === categoryName && selectedSubcategory === subName;
-        html += `<option value="${subValue}" ${isSubSelected ? 'selected' : ''}>&nbsp;&nbsp;→ ${subName}</option>`;
+        const fullName = `${categoryName} > ${subName}`;
+        const isSubSelected = selectedCategory === fullName;
+        html += `<option value="${fullName}" ${isSubSelected ? 'selected' : ''}>&nbsp;&nbsp;${subName}</option>`;
       });
     }
   });
@@ -692,7 +740,7 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 }
 
 /**
- * Render category buttons with improved styling - FIXED: Only main categories
+ * Render category buttons with improved styling - FIXED: Use proper ordering
  */
 export function renderCategoryButtons() {
   console.log("CRITICAL: Rendering category buttons...");
@@ -740,12 +788,18 @@ export function renderCategoryButtons() {
     </button>
   `;
 
-  // FIXED: Only show main categories (no subcategories in filter buttons)
+  // FIXED: Use proper ordering for category buttons
   const sortedCategories = Object.entries(categories)
     .sort(([, a], [, b]) => {
       const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
       const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
-      return orderA - orderB;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // If same order, sort alphabetically
+      return a[0].localeCompare(b[0]);
     });
 
   sortedCategories.forEach(([categoryName, categoryData]) => {
@@ -778,13 +832,7 @@ export function renderCategoryButtons() {
   container.querySelectorAll('.category-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const category = e.currentTarget.getAttribute('data-category');
-
-      // FIXED: Only handle main category filtering
       filterByCategory(category);
-
-      // Update active state
-      container.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      e.currentTarget.classList.add('active');
     });
   });
 
@@ -892,4 +940,25 @@ export function updateTransactions() {
   // FORCE render with the actual transactions
   console.log(`CRITICAL: Forcing render of ${allTransactions.length} transactions`);
   renderTransactions(allTransactions, true);
+}
+
+/**
+ * FIXED: Export function to update all category-related UI elements
+ */
+export function updateAllCategoryUI() {
+  console.log("CRITICAL: Updating all category UI elements...");
+
+  // Update category filter dropdown
+  const categoryFilter = document.getElementById('filterCategory');
+  if (categoryFilter) {
+    updateCategoryFilterDropdown(categoryFilter);
+  }
+
+  // Update category buttons
+  renderCategoryButtons();
+
+  // Re-render transaction table to update category dropdowns
+  renderTransactions(AppState.transactions || [], false);
+
+  console.log("CRITICAL: All category UI elements updated");
 }
