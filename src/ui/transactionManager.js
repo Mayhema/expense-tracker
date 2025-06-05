@@ -1,5 +1,6 @@
 import { AppState } from '../core/appState.js';
 import { formatDateToDDMMYYYY, convertDDMMYYYYToISO, parseDDMMYYYY } from '../utils/dateUtils.js';
+import { CURRENCIES } from '../constants/currencies.js';
 
 /**
  * Helper function to get and update category counts
@@ -219,6 +220,12 @@ function generateTransactionTableHTML(transactions) {
     const expenses = parseFloat(tx.expenses) || 0;
     const currency = tx.currency || 'USD';
 
+    // FIXED: Generate currency dropdown from CURRENCIES constant
+    const currencyOptions = Object.keys(CURRENCIES).sort().map(currencyCode => {
+      const isSelected = currency === currencyCode;
+      return `<option value="${currencyCode}" ${isSelected ? 'selected' : ''}>${currencyCode}</option>`;
+    }).join('');
+
     html += `
       <tr data-transaction-index="${index}" class="transaction-row">
         <td class="date-cell">
@@ -269,11 +276,7 @@ function generateTransactionTableHTML(transactions) {
                   data-field="currency"
                   data-index="${index}"
                   data-original="${currency}">
-            <option value="USD" ${currency === 'USD' ? 'selected' : ''}>USD</option>
-            <option value="EUR" ${currency === 'EUR' ? 'selected' : ''}>EUR</option>
-            <option value="GBP" ${currency === 'GBP' ? 'selected' : ''}>GBP</option>
-            <option value="CAD" ${currency === 'CAD' ? 'selected' : ''}>CAD</option>
-            <option value="AUD" ${currency === 'AUD' ? 'selected' : ''}>AUD</option>
+            ${currencyOptions}
           </select>
         </td>
         <td class="action-cell">
@@ -452,24 +455,41 @@ function updateTransactionSummary(transactions) {
   // Update summary if it exists
   const summaryContainer = document.getElementById('transactionSummary');
   if (summaryContainer) {
+    // FIXED: Force the exact structure with proper classes and force display as flex row
     summaryContainer.innerHTML = `
-      <div class="summary-item">
-        <span class="summary-label">Income:</span>
-        <span class="summary-value income">${totalIncome.toFixed(2)}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Expenses:</span>
-        <span class="summary-value expenses">${totalExpenses.toFixed(2)}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Net:</span>
-        <span class="summary-value ${netBalance >= 0 ? 'income' : 'expenses'}">${netBalance.toFixed(2)}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Count:</span>
-        <span class="summary-value">${transactions.length}</span>
+      <div class="summary-cards-row" style="display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 1rem !important; justify-content: space-between !important;">
+        <div class="summary-card income" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
+          <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(40, 167, 69, 0.1) !important; color: #28a745 !important; display: flex !important; align-items: center !important; justify-content: center !important;">💰</div>
+          <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
+            <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Income</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #28a745 !important;">${totalIncome.toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="summary-card expenses" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
+          <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(220, 53, 69, 0.1) !important; color: #dc3545 !important; display: flex !important; align-items: center !important; justify-content: center !important;">💸</div>
+          <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
+            <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Expenses</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #dc3545 !important;">${totalExpenses.toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="summary-card net ${netBalance >= 0 ? 'positive' : 'negative'}" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
+          <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: ${netBalance >= 0 ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)'} !important; color: ${netBalance >= 0 ? '#28a745' : '#dc3545'} !important; display: flex !important; align-items: center !important; justify-content: center !important;">${netBalance >= 0 ? '📈' : '📉'}</div>
+          <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
+            <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Net Balance</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: ${netBalance >= 0 ? '#28a745' : '#dc3545'} !important;">${netBalance.toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="summary-card count" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
+          <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(0, 123, 255, 0.1) !important; color: #007bff !important; display: flex !important; align-items: center !important; justify-content: center !important;">📊</div>
+          <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
+            <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Transactions</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #007bff !important;">${transactions.length}</span>
+          </div>
+        </div>
       </div>
     `;
+
+    console.log('CRITICAL: Transaction summary updated with inline styles to force horizontal layout');
   }
 }
 
@@ -619,7 +639,7 @@ function initializeFilters() {
 }
 
 /**
- * FIXED: Update category filter dropdown with current categories and proper ordering
+ * FIXED: Update category filter dropdown with current categories and proper ordering and colors
  */
 function updateCategoryFilterDropdown(categoryFilter) {
   if (!categoryFilter) return;
@@ -647,11 +667,22 @@ function updateCategoryFilterDropdown(categoryFilter) {
       return a[0].localeCompare(b[0]);
     });
 
-  // Add category options
+  // Add category options with colors
   sortedCategories.forEach(([categoryName, categoryData]) => {
+    // Get proper color from category data
+    let color = '#cccccc';
+    if (typeof categoryData === 'string') {
+      color = categoryData;
+    } else if (typeof categoryData === 'object' && categoryData.color) {
+      color = categoryData.color;
+    }
+
     const option = document.createElement('option');
     option.value = categoryName;
-    option.textContent = categoryName;
+    option.textContent = `● ${categoryName}`;
+    option.setAttribute('data-color', color);
+    option.style.color = color;
+    option.style.fontWeight = '500';
     categoryFilter.appendChild(option);
   });
 
@@ -695,7 +726,7 @@ function createFilterSection() {
 }
 
 /**
- * Generate category dropdown with subcategories - FIXED: Use proper ordering
+ * Generate category dropdown with subcategories - FIXED: Use proper ordering and colors
  */
 function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionIndex) {
   const categories = AppState.categories || {};
@@ -723,14 +754,24 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 
   sortedCategories.forEach(([categoryName, categoryData]) => {
     const isSelected = selectedCategory === categoryName;
-    html += `<option value="${categoryName}" ${isSelected ? 'selected' : ''}>${categoryName}</option>`;
+
+    // FIXED: Get proper color for option styling
+    let color = '#cccccc';
+    if (typeof categoryData === 'string') {
+      color = categoryData;
+    } else if (typeof categoryData === 'object' && categoryData.color) {
+      color = categoryData.color;
+    }
+
+    html += `<option value="${categoryName}" ${isSelected ? 'selected' : ''} data-color="${color}" style="color: ${color}; font-weight: 500;">● ${categoryName}</option>`;
 
     // Add subcategories if they exist
     if (typeof categoryData === 'object' && categoryData.subcategories) {
       Object.keys(categoryData.subcategories).sort().forEach(subName => {
         const fullName = `${categoryName} > ${subName}`;
         const isSubSelected = selectedCategory === fullName;
-        html += `<option value="${fullName}" ${isSubSelected ? 'selected' : ''}>&nbsp;&nbsp;${subName}</option>`;
+        const subColor = categoryData.subcategories[subName] || color;
+        html += `<option value="${fullName}" ${isSubSelected ? 'selected' : ''} data-color="${subColor}" style="color: ${subColor}; font-weight: 400; padding-left: 20px;">  ○ ${subName}</option>`;
       });
     }
   });
