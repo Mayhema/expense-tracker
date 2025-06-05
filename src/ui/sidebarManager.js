@@ -386,30 +386,57 @@ function _handleShowMappings() {
   const modalContent = document.createElement('div');
   modalContent.className = 'mappings-modal-content';
 
+  // FIXED: Show current file signature properly
+  const currentSignature = AppState.currentFileSignature || 'No current file signature available';
+
+  let html = `
+    <div class="current-signature-section">
+      <h4>Current File Signature</h4>
+      <div class="signature-display">${currentSignature}</div>
+    </div>
+  `;
+
   if (mappings.length === 0) {
-    modalContent.innerHTML = '<div class="empty-state"><p>No saved mappings found.</p></div>';
+    html += '<div class="empty-state"><p>No saved mappings found.</p></div>';
   } else {
-    const mappingsHTML = mappings.map((mapping, index) => {
-      const fields = mapping.mapping ? mapping.mapping.filter(m => m !== '–').join(', ') : 'No mapping';
-      const created = mapping.created ? new Date(mapping.created).toLocaleString() : 'Unknown';
+    // CRITICAL FIX: Group mappings by signature and show all files that use each mapping
+    const mappingsBySignature = {};
+    mappings.forEach(mapping => {
+      if (!mappingsBySignature[mapping.signature]) {
+        mappingsBySignature[mapping.signature] = {
+          signature: mapping.signature,
+          mapping: mapping.mapping,
+          files: [],
+          created: mapping.created,
+          lastUsed: mapping.lastUsed
+        };
+      }
+      mappingsBySignature[mapping.signature].files.push(mapping.fileName);
+    });
+
+    const mappingsHTML = Object.values(mappingsBySignature).map((groupedMapping, index) => {
+      const fields = groupedMapping.mapping ? groupedMapping.mapping.filter(m => m !== '–').join(', ') : 'No mapping';
+      const created = groupedMapping.created ? new Date(groupedMapping.created).toLocaleString() : 'Unknown';
+      const filesList = groupedMapping.files.join(', ');
 
       return `
         <div class="mapping-item" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
-          <div><strong>Mapping ${index + 1}</strong> (Created: ${created})</div>
-          <div style="font-family: monospace; font-size: 0.8em; background: #f5f5f5; padding: 5px; border-radius: 3px; word-break: break-all; margin: 5px 0;">
-            Signature: ${mapping.signature || 'Unknown'}
-          </div>
-          <div style="margin-top: 10px;"><strong>Fields:</strong> ${fields}</div>
+          <div><strong>Mapping ${index + 1}: ${groupedMapping.signature}</strong></div>
+          <div><strong>Files:</strong> ${filesList}</div>
+          <div><strong>Fields:</strong> ${fields}</div>
+          <div><strong>Created:</strong> ${created}</div>
           <button class="danger" onclick="removeMapping(${index})" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 10px;">Remove</button>
         </div>
       `;
     }).join('');
 
-    modalContent.innerHTML = `
-      <h3>File Format Mappings (${mappings.length})</h3>
+    html += `
+      <h3>Saved Format Mappings (${Object.keys(mappingsBySignature).length})</h3>
       ${mappingsHTML}
     `;
   }
+
+  modalContent.innerHTML = html;
 
   // Show modal using the modal manager
   import('./modalManager.js').then(module => {
@@ -423,8 +450,18 @@ function _handleShowMappings() {
     // Add remove function to window temporarily for the modal
     window.removeMapping = function (index) {
       if (confirm('Are you sure you want to remove this mapping?')) {
-        mappings.splice(index, 1);
-        localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
+        const mappingsBySignature = {};
+        mappings.forEach(mapping => {
+          if (!mappingsBySignature[mapping.signature]) {
+            mappingsBySignature[mapping.signature] = [];
+          }
+          mappingsBySignature[mapping.signature].push(mapping);
+        });
+
+        const signatureToRemove = Object.keys(mappingsBySignature)[index];
+        const updatedMappings = mappings.filter(m => m.signature !== signatureToRemove);
+
+        localStorage.setItem('fileFormatMappings', JSON.stringify(updatedMappings));
         modal.close();
         // Re-open with updated data
         setTimeout(() => _handleShowMappings(), 100);

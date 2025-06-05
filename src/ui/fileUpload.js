@@ -230,10 +230,42 @@ function handleXMLFile(file) {
 /**
  * Process uploaded data
  */
-function processUploadedData(file, data) {
+async function processUploadedData(file, data) {
   if (!data || data.length === 0) {
     handleFileUploadError(new Error("No data found in file"));
     return;
+  }
+
+  // CRITICAL FIX: Check for duplicate file first
+  const isDuplicate = checkForDuplicateFile(file);
+  if (isDuplicate) {
+    handleDuplicateFile(file);
+    return;
+  }
+
+  // CRITICAL FIX: Generate signature and set as current
+  const { generateFileSignature } = await import('../parsers/fileHandler.js');
+  const { findMappingBySignature } = await import('../mappings/mappingsManager.js');
+  const { setCurrentFileSignature } = await import('../core/appState.js');
+
+  const signature = generateFileSignature(file.name, data);
+
+  // FIXED: Set current file signature for display
+  setCurrentFileSignature(signature);
+
+  console.log('CRITICAL: Generated signature for file:', file.name, 'signature:', signature);
+
+  const existingMapping = findMappingBySignature(signature);
+
+  if (existingMapping) {
+    console.log('CRITICAL: Found existing mapping, auto-applying:', existingMapping);
+
+    // FIXED: Auto-apply existing mapping - this should work for same signatures
+    console.log('CRITICAL: Auto-applying saved mapping for signature:', signature);
+    autoApplyMapping(file, data, existingMapping);
+    return;
+  } else {
+    console.log('CRITICAL: No existing mapping found for signature:', signature, 'showing manual mapping');
   }
 
   // Store data and show preview
@@ -241,6 +273,101 @@ function processUploadedData(file, data) {
   showFilePreviewModal(data);
   showToast(`File loaded: ${data.length} rows found`, "success");
   fileInputInProgress = false;
+}
+
+/**
+ * Auto-apply existing mapping to file
+ */
+async function autoApplyMapping(file, data, mapping) {
+  try {
+    console.log('CRITICAL: Auto-applying mapping:', mapping);
+
+    // Store file data
+    AppState.currentPreviewData = data;
+    AppState.currentFileName = file.name;
+
+    // Generate signature
+    const { generateFileSignature } = await import('../parsers/fileHandler.js');
+    const signature = generateFileSignature(file.name, data, mapping.mapping);
+
+    // Process transactions
+    const transactions = [];
+    for (let i = mapping.dataRowIndex || 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
+
+      const transaction = {
+        fileName: file.name,
+        currency: mapping.currency || 'USD',
+        date: '',
+        description: '',
+        category: '',
+        income: 0,
+        expenses: 0
+      };
+
+      mapping.mapping.forEach((field, colIndex) => {
+        if (field && field !== '–' && row[colIndex] !== undefined) {
+          const fieldName = field.toLowerCase();
+          transaction[fieldName] = row[colIndex];
+        }
+      });
+
+      // Convert string numbers
+      if (transaction.income && typeof transaction.income === 'string') {
+        transaction.income = parseFloat(transaction.income.replace(/[^\d.-]/g, '')) || 0;
+      }
+      if (transaction.expenses && typeof transaction.expenses === 'string') {
+        transaction.expenses = parseFloat(transaction.expenses.replace(/[^\d.-]/g, '')) || 0;
+      }
+
+      if (transaction.date || transaction.description || transaction.income > 0 || transaction.expenses > 0) {
+        transactions.push(transaction);
+      }
+    }
+
+    // Add to merged files
+    const mergedFile = {
+      fileName: file.name,
+      headerRowIndex: mapping.headerRowIndex || 0,
+      dataRowIndex: mapping.dataRowIndex || 1,
+      data,
+      transactions,
+      headerMapping: mapping.mapping,
+      signature,
+      currency: mapping.currency || 'USD',
+      mergedAt: new Date().toISOString()
+    };
+
+    if (!AppState.mergedFiles) {
+      AppState.mergedFiles = [];
+    }
+    AppState.mergedFiles.push(mergedFile);
+
+    if (!AppState.transactions) {
+      AppState.transactions = [];
+    }
+    AppState.transactions.push(...transactions);
+
+    // Save to localStorage
+    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    fileInputInProgress = false;
+    showToast(`File imported automatically: ${transactions.length} transactions added`, "success");
+
+    // Force UI update
+    setTimeout(() => {
+      import('./transactionManager.js').then(module => {
+        module.renderTransactions(AppState.transactions, true);
+      });
+    }, 100);
+
+  } catch (error) {
+    console.error('CRITICAL ERROR: Auto-apply mapping failed:', error);
+    showToast("Auto-mapping failed, showing manual mapping", "warning");
+    showFilePreviewModal(data);
+  }
 }
 
 /**
@@ -274,9 +401,49 @@ function checkForDuplicateFile(file) {
  * Handle duplicate file
  */
 function handleDuplicateFile(file) {
-  showToast(`File "${file.name}" already exists. Please rename the file or remove the existing one.`, "warning");
-  resetFileState();
-  fileInputInProgress = false;
+  const shouldReplace = confirm(`File "${file.name}" already exists. Do you want to replace it?`);
+
+  if (shouldReplace) {
+    // Remove existing file and continue
+    AppState.mergedFiles = AppState.mergedFiles.filter(f => f.fileName !== file.name);
+
+    // Remove transactions from that file
+    if (AppState.transactions) {
+      AppState.transactions = AppState.transactions.filter(t => t.fileName !== file.name);
+    }
+
+    // Save updated state
+    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    showToast(`Replacing existing file: ${file.name}`, "info");
+
+    // Continue with processing
+    fileInputInProgress = false;
+
+    // Re-trigger file processing
+    setTimeout(() => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim());
+          const data = lines.map(line => {
+            return line.split(',').map(field => field.replace(/^"(.*)"$/, '$1').trim());
+          });
+          processUploadedData(file, data);
+        } catch (error) {
+          handleFileUploadError(error);
+        }
+      };
+      reader.readAsText(file);
+    }, 100);
+
+  } else {
+    showToast(`Upload cancelled for duplicate file: ${file.name}`, "info");
+    resetFileState();
+    fileInputInProgress = false;
+  }
 }
 
 /**
@@ -570,8 +737,24 @@ export async function onSaveHeaders(modal) {
       return;
     }
 
-    // Generate signature for mapping storage
-    const signature = generateFileSignature(data, mapping);
+    // CRITICAL FIX: Generate signature consistently - without mapping parameter
+    const { generateFileSignature } = await import('../parsers/fileHandler.js');
+    const { saveHeadersAndFormat } = await import('../mappings/mappingsManager.js');
+
+    // FIXED: Generate signature without mapping to ensure consistency
+    const signature = generateFileSignature(fileName, data);
+
+    // CRITICAL FIX: Save mapping with all required parameters
+    saveHeadersAndFormat(
+      signature,
+      mapping,
+      fileName,
+      headerRowIndex,
+      dataRowIndex,
+      'USD'
+    );
+
+    console.log('CRITICAL: Saved mapping with signature:', signature, 'mapping:', mapping);
 
     // CRITICAL FIX: Process transactions with proper field mapping
     const transactions = [];

@@ -125,6 +125,12 @@ export function initializeAppState() {
   });
 }
 
+// FIXED: Add function to set current file signature
+export function setCurrentFileSignature(signature) {
+  AppState.currentFileSignature = signature;
+  console.log('CRITICAL: Set current file signature:', signature);
+}
+
 // FIXED: Add function to rebuild transactions from merged files
 function rebuildTransactionsFromFiles() {
   console.log('Rebuilding transactions from merged files...');

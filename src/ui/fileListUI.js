@@ -47,30 +47,49 @@ function buildMergedFilesContent() {
   let html = `
     <div class="merged-files-list">
       <h3>Merged Files (${mergedFiles.length})</h3>
+      <div class="merged-files-table-container">
+        <table class="merged-files-table" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f5f5f5;">
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">File Name</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Transactions</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Currency</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Signature</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Import Date</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
   `;
 
   mergedFiles.forEach((file, index) => {
-    const transactionCount = file.data ? file.data.length - (file.dataRowIndex || 1) : 0;
-    const fileSize = file.originalFile ? (file.originalFile.size / 1024).toFixed(1) + ' KB' : 'Unknown size';
+    const transactionCount = file.transactions ? file.transactions.length : (file.data ? file.data.length - (file.dataRowIndex || 1) : 0);
+    const currency = file.currency || 'USD';
+    const signature = file.signature || 'No signature';
+    const importDate = file.mergedAt ? new Date(file.mergedAt).toLocaleDateString() : 'Unknown';
+    const fileName = file.fileName || 'Unknown File';
 
     html += `
-      <div class="file-item" data-index="${index}">
-        <div class="file-info">
-          <div class="file-icon">📄</div>
-          <div class="file-details">
-            <div class="file-name">${file.fileName || 'Unknown File'}</div>
-            <div class="file-stats">${transactionCount} transactions • ${fileSize}</div>
-          </div>
-        </div>
-        <div class="file-actions">
-          <button class="edit-file-btn" data-index="${index}" title="Edit file mapping">✏️</button>
-          <button class="remove-file-btn" data-index="${index}" title="Remove file">🗑️</button>
-        </div>
-      </div>
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">${fileName}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${transactionCount}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${currency}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; word-break: break-all; max-width: 150px;">
+          ${signature.substring(0, 15)}${signature.length > 15 ? '...' : ''}
+        </td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${importDate}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+          <button class="edit-file-btn" data-index="${index}" title="Edit file mapping" style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px;">✏️</button>
+          <button class="remove-file-btn" data-index="${index}" title="Remove file" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">🗑️</button>
+        </td>
+      </tr>
     `;
   });
 
   html += `
+          </tbody>
+        </table>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="button secondary-btn" id="closeMergedFilesBtn">Close</button>

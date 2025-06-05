@@ -57,6 +57,7 @@ function renderMappingsList() {
   const container = document.getElementById('formatMappingsList');
   if (!container) return;
 
+  // CRITICAL FIX: Use the mappingsManager to get mappings
   const mappings = getMappings();
 
   if (mappings.length === 0) {
@@ -73,7 +74,8 @@ function renderMappingsList() {
     <table class="mappings-table" style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr style="background: #f5f5f5;">
-          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Format Signature</th>
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">File Name</th>
+          <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Signature</th>
           <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Column Mapping</th>
           <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Currency</th>
           <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Created</th>
@@ -84,9 +86,8 @@ function renderMappingsList() {
   `;
 
   mappings.forEach((mapping, index) => {
-    const signature = typeof mapping.signature === 'string'
-      ? mapping.signature
-      : JSON.stringify(mapping.signature);
+    const signature = mapping.signature || 'Unknown';
+    const fileName = mapping.fileName || 'Unknown';
 
     const fields = Array.isArray(mapping.mapping)
       ? mapping.mapping.filter(m => m !== "–").join(", ")
@@ -99,8 +100,9 @@ function renderMappingsList() {
 
     html += `
       <tr>
-        <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; word-break: break-all; max-width: 200px;">
-          ${signature.substring(0, 50)}${signature.length > 50 ? '...' : ''}
+        <td style="padding: 8px; border: 1px solid #ddd;">${fileName}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; word-break: break-all; max-width: 150px;">
+          ${signature.substring(0, 15)}${signature.length > 15 ? '...' : ''}
         </td>
         <td style="padding: 8px; border: 1px solid #ddd;">${fields}</td>
         <td style="padding: 8px; border: 1px solid #ddd;">${currency}</td>

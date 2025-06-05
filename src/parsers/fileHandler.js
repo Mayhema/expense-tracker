@@ -243,38 +243,50 @@ function parseXMLToRows(xmlDoc) {
  * @param {Array<Array>} data - File data as 2D array
  * @param {Array<string>} [mapping] - Optional column mapping
  * @param {string} currency - File currency (optional)
- * @returns {Object} File signature
+ * @returns {string} File signature
  */
 export function generateFileSignature(fileName, data, mapping = null, currency = null) {
   if (!data || !data[0]) {
-    return { formatSig: "empty" };
+    return 'empty-file';
   }
 
   try {
-    // Create a format signature based on the header structure
-    let formatSig;
-    if (mapping) {
-      // If mapping is provided, use that for signature
-      formatSig = JSON.stringify(mapping);
-    } else {
-      // Otherwise, use the first row (header)
-      formatSig = JSON.stringify(data[0].map(cell => String(cell).toLowerCase()));
+    // CRITICAL FIX: Create consistent signature based on file structure and headers only
+    const columnCount = data[0] ? data[0].length : 0;
+    const fileExt = fileName.split('.').pop().toLowerCase();
+
+    // Include header content in signature for better uniqueness
+    const headerContent = data[0] ? data[0].map(cell =>
+      String(cell || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    ).join('|') : '';
+
+    // CRITICAL FIX: Create signature based only on file structure, not mapping
+    // This ensures files with the same structure get the same signature
+    const structureData = {
+      extension: fileExt,
+      columnCount: columnCount,
+      headerContent: headerContent.substring(0, 50), // Limit length but include content
+      hasSecondRow: data.length > 1
+      // REMOVED: mapping parameter to ensure consistent signatures
+    };
+
+    const structureString = JSON.stringify(structureData);
+
+    // Create a simple hash that's consistent
+    let hash = 0;
+    for (let i = 0; i < structureString.length; i++) {
+      const char = structureString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
     }
 
-    // Create a content signature with a sample of data
-    const contentSig = createContentSignature(data);
+    const signature = `sig_${Math.abs(hash).toString(36)}`;
+    console.log('CRITICAL: Generated signature:', signature, 'for file:', fileName, 'structure:', structureData);
 
-    // Create a mapping signature if mapping provided
-    const mappingSig = mapping ? JSON.stringify(mapping) : null;
-
-    return {
-      formatSig,
-      contentSig,
-      mappingSig
-    };
+    return signature;
   } catch (error) {
-    console.error("Error generating signature:", error);
-    return { formatSig: "error" };
+    console.error('CRITICAL ERROR: Error generating signature:', error);
+    return `fallback_${Date.now()}`;
   }
 }
 

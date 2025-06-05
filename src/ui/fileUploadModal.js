@@ -257,15 +257,24 @@ function saveHeadersAndMergeFile(modal) {
     const dataRowIndex = parseInt(dataRowInput.value, 10) - 1;
     const currency = currencySelect ? currencySelect.value : "USD";
 
-    // Generate signature
+    // CRITICAL FIX: Generate signature and save mapping
     const finalSignature = generateFileSignature(
       AppState.currentFileName,
       AppState.currentFileData,
       mapping
     );
 
-    // Save mapping for future use
-    saveHeadersAndFormat(finalSignature, mapping, null, headerRowIndex, dataRowIndex);
+    // CRITICAL FIX: Save mapping with correct structure expected by findMappingBySignature
+    saveHeadersAndFormat(
+      finalSignature,
+      mapping,
+      AppState.currentFileName,
+      headerRowIndex,
+      dataRowIndex,
+      currency
+    );
+
+    console.log('CRITICAL: Saved mapping with signature:', finalSignature, 'mapping:', mapping);
 
     // Add merged file
     addMergedFile(
@@ -280,9 +289,9 @@ function saveHeadersAndMergeFile(modal) {
 
     // Close modal and show success message
     modal.close();
-    showToast("File merged successfully!", "success");
+    showToast("File merged successfully and mapping saved!", "success");
   } catch (error) {
-    console.error("Error saving headers:", error);
+    console.error("CRITICAL ERROR: Error saving headers:", error);
     showToast("Error saving mappings: " + error.message, "error");
   }
 }
