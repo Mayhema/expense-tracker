@@ -238,12 +238,31 @@ body {
   transform: translateY(-1px);
 }
 
-.action-icon {
-  font-size: 1.2rem;
-  min-width: 20px;
+.action-button.danger {
+  background: var(--danger-color, #dc3545);
+  border-color: var(--danger-color, #dc3545);
+  color: white;
 }
 
-.action-text {
+.action-button.danger:hover {
+  background: var(--danger-hover, #c82333);
+  border-color: var(--danger-hover, #c82333);
+}
+
+/* FIXED: Smaller debug tool buttons */
+.debug-only .action-button {
+  padding: 8px 12px;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.debug-only .action-icon {
+  font-size: 1rem;
+  min-width: 16px;
+}
+
+.debug-only .action-text {
+  font-size: 0.8rem;
   font-weight: 500;
 }
 

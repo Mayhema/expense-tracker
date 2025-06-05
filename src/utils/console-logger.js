@@ -1,7 +1,143 @@
-document.addEventListener('DOMContentLoaded', function () {
-  // Initialize console logging with proper JSON structure
-  let logContent = [];
+// FIXED: Initialize logging immediately when script loads, not on DOMContentLoaded
+let logContent = [];
 
+// FIXED: Export to global scope immediately
+window.saveConsoleLogs = function () {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
+    const filename = `console-logs-${timestamp}.json`;
+
+    const logData = {
+      exportInfo: {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        totalLogs: logContent.length
+      },
+      appState: {
+        transactions: window.AppState?.transactions?.length || 0,
+        mergedFiles: window.AppState?.mergedFiles?.length || 0,
+        categories: Object.keys(window.AppState?.categories || {}).length
+      },
+      logs: logContent.map(log => ({
+        ...log,
+        timestamp: new Date(log.timestamp).toISOString()
+      }))
+    };
+
+    const jsonString = JSON.stringify(logData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log(`✅ Successfully saved ${logContent.length} console logs to ${filename}`);
+  } catch (error) {
+    console.error('❌ Error saving logs:', error);
+    alert('Error saving logs: ' + error.message);
+  }
+};
+
+// FIXED: Enhanced log capture with proper JSON serialization
+function appendToLog(type, args) {
+  const timestamp = new Date().toISOString();
+
+  // Convert arguments to serializable format
+  const serializedArgs = args.map(arg => {
+    if (arg === null) return null;
+    if (arg === undefined) return '[undefined]';
+
+    if (typeof arg === 'object') {
+      try {
+        // Handle special objects
+        if (arg instanceof Error) {
+          return {
+            type: 'Error',
+            name: arg.name,
+            message: arg.message,
+            stack: arg.stack
+          };
+        }
+
+        if (arg instanceof Date) {
+          return {
+            type: 'Date',
+            value: arg.toISOString()
+          };
+        }
+
+        // Try to serialize object
+        return JSON.parse(JSON.stringify(arg));
+      } catch (e) {
+        // Log the serialization error and return a fallback representation
+        console.warn('Failed to serialize object:', e.message);
+        return `[Object: ${Object.prototype.toString.call(arg)}]`;
+      }
+    }
+
+    return arg;
+  });
+
+  // Create log entry
+  const logEntry = {
+    timestamp,
+    type: type.toUpperCase(),
+    message: args.map(arg =>
+      typeof arg === 'object' && arg !== null ?
+        JSON.stringify(arg, null, 2) :
+        String(arg)
+    ).join(' '),
+    args: serializedArgs,
+    url: window.location.href
+  };
+
+  logContent.push(logEntry);
+
+  // Keep only last 1000 entries to prevent memory issues
+  if (logContent.length > 1000) {
+    logContent = logContent.slice(-1000);
+  }
+}
+
+// FIXED: Override console methods immediately
+const originalMethods = {
+  log: console.log,
+  error: console.error,
+  warn: console.warn,
+  info: console.info
+};
+
+console.log = function (...args) {
+  appendToLog('log', args);
+  originalMethods.log.apply(console, args);
+};
+
+console.error = function (...args) {
+  appendToLog('error', args);
+  originalMethods.error.apply(console, args);
+};
+
+console.warn = function (...args) {
+  appendToLog('warn', args);
+  originalMethods.warn.apply(console, args);
+};
+
+console.info = function (...args) {
+  appendToLog('info', args);
+  originalMethods.info.apply(console, args);
+};
+
+// Log that console logger is active
+console.log('📝 Console logger initialized with JSON export support');
+
+document.addEventListener('DOMContentLoaded', function () {
   // Create save button
   const saveButton = document.createElement('button');
   saveButton.textContent = 'Save Logs';
@@ -36,10 +172,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // FIXED: Save logs as proper JSON file
+  // FIXED: Save logs function with clear logs option
   function saveLogs() {
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0]; // Clean timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('.')[0];
       const filename = `console-logs-${timestamp}.json`;
 
       // Create comprehensive JSON log structure
@@ -64,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         logs: logContent.map(log => ({
           ...log,
-          timestamp: new Date(log.timestamp).toISOString() // Ensure proper ISO format
+          timestamp: new Date(log.timestamp).toISOString()
         }))
       };
 
@@ -99,100 +235,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // Attach save function to button
   saveButton.addEventListener('click', saveLogs);
 
-  // Export to global scope
+  // FIXED: Update global function to use the same logic
   window.saveConsoleLogs = saveLogs;
   window.clearConsoleLogs = () => {
     logContent = [];
     console.log('📝 Console logs cleared manually');
-  };
-
-  // Enhanced log capture with proper JSON serialization
-  function appendToLog(type, args) {
-    const timestamp = new Date().toISOString();
-
-    // Convert arguments to serializable format
-    const serializedArgs = args.map(arg => {
-      if (arg === null) return null;
-      if (arg === undefined) return '[undefined]';
-
-      if (typeof arg === 'object') {
-        try {
-          // Handle special objects
-          if (arg instanceof Error) {
-            return {
-              type: 'Error',
-              name: arg.name,
-              message: arg.message,
-              stack: arg.stack
-            };
-          }
-
-          if (arg instanceof Date) {
-            return {
-              type: 'Date',
-              value: arg.toISOString()
-            };
-          }
-
-          // Try to serialize object
-          return JSON.parse(JSON.stringify(arg));
-        } catch (e) {
-          console.warn('Failed to serialize object:', e.message);
-          return `[Object: ${Object.prototype.toString.call(arg)}]`;
-        }
-      }
-
-      return arg;
-    });
-
-    // Create log entry
-    const logEntry = {
-      timestamp,
-      type: type.toUpperCase(),
-      message: args.map(arg =>
-        typeof arg === 'object' && arg !== null ?
-          JSON.stringify(arg, null, 2) :
-          String(arg)
-      ).join(' '),
-      args: serializedArgs,
-      url: window.location.href,
-      userAgent: navigator.userAgent.substring(0, 100) // Truncate for space
-    };
-
-    logContent.push(logEntry);
-
-    // Keep only last 1000 entries to prevent memory issues
-    if (logContent.length > 1000) {
-      logContent = logContent.slice(-1000);
-    }
-  }
-
-  // Override console methods
-  const originalMethods = {
-    log: console.log,
-    error: console.error,
-    warn: console.warn,
-    info: console.info
-  };
-
-  console.log = function (...args) {
-    appendToLog('log', args);
-    originalMethods.log.apply(console, args);
-  };
-
-  console.error = function (...args) {
-    appendToLog('error', args);
-    originalMethods.error.apply(console, args);
-  };
-
-  console.warn = function (...args) {
-    appendToLog('warn', args);
-    originalMethods.warn.apply(console, args);
-  };
-
-  console.info = function (...args) {
-    appendToLog('info', args);
-    originalMethods.info.apply(console, args);
   };
 
   // HTTP request logger
@@ -216,5 +263,5 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  console.log('📝 Console logger initialized with JSON export support');
+  console.log('📝 Console logger DOM setup completed');
 });

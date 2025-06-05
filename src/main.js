@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize the main application
     await initializeMainApp();
 
-    // Load debug utilities after main app is ready
+    // FIXED: Load debug utilities and console logger before anything else
     await import('./utils/debug.js');
     await import('./utils/console-logger.js');
 

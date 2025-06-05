@@ -40,6 +40,7 @@ body.dark-mode .sidebar-content h3 {
   color: #e0e0e0;
 }
 
+/* Action Buttons */
 body.dark-mode .action-button {
   background: #2d2d2d;
   color: #e0e0e0;
@@ -52,46 +53,53 @@ body.dark-mode .action-button:hover {
   color: #0d6efd;
 }
 
-/* Debug Action Buttons Dark Mode */
-body.dark-mode .debug-action-button {
-  background: #2d2d2d;
-  color: #e0e0e0;
-  border-color: #444;
-}
-
-body.dark-mode .debug-action-button:hover {
-  background: #3a3a3a;
-  border-color: #6c757d;
-  color: #aaa;
-}
-
-body.dark-mode .debug-action-button.danger {
+body.dark-mode .action-button.danger {
   background: #2d2d2d;
   color: #ff6b6b;
   border-color: #dc3545;
 }
 
-body.dark-mode .debug-action-button.danger:hover {
+body.dark-mode .action-button.danger:hover {
   background: #dc3545;
   color: white;
   border-color: #dc3545;
 }
 
-/* Toggle Switches */
-body.dark-mode .toggle-switch {
-  background: #333;
+/* Debug Action Buttons Dark Mode - FIXED: Smaller size for debug tools */
+body.dark-mode .debug-only .action-button {
+  background: #2d2d2d;
+  color: #e0e0e0;
+  border-color: #444;
+  padding: 8px 12px;
+  gap: 8px;
+  min-width: 100px;
 }
 
-body.dark-mode .toggle-switch input:checked+.slider {
-  background-color: #0d6efd;
+body.dark-mode .debug-only .action-button:hover {
+  background: #3a3a3a;
+  border-color: #6c757d;
+  color: #aaa;
 }
 
-body.dark-mode .slider {
-  background-color: #555;
+body.dark-mode .debug-only .action-button.danger {
+  background: #2d2d2d;
+  color: #ff6b6b;
+  border-color: #dc3545;
+  padding: 8px 12px;
 }
 
-body.dark-mode .slider:before {
-  background-color: #e0e0e0;
+body.dark-mode .debug-only .action-button.danger:hover {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+body.dark-mode .debug-only .action-icon {
+  font-size: 1rem;
+}
+
+body.dark-mode .debug-only .action-text {
+  font-size: 0.8rem;
 }
 
 /* ===========================================

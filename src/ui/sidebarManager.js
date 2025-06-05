@@ -267,56 +267,24 @@ function initializeActionButtons() {
     });
   }
 
-  // Export button - FIXED
+  // Export button - FIXED: Use the correct export function
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn) {
     exportBtn.addEventListener("click", () => {
-      // FIXED: Import AppState properly
-      import('../core/appState.js').then(appModule => {
-        const transactions = appModule.AppState.transactions || [];
-        if (transactions.length === 0) {
-          import('../ui/uiManager.js').then(uiModule => {
-            uiModule.showToast("No transactions to export", "warning");
-          });
-          return;
+      // FIXED: Import the correct export manager module
+      import('../exports/exportManager.js').then(module => {
+        if (module.exportTransactionsAsCSV) {
+          module.exportTransactionsAsCSV();
+        } else {
+          console.error('exportTransactionsAsCSV function not found');
         }
-
-        try {
-          // Generate CSV content
-          const headers = ['Date', 'Description', 'Category', 'Income', 'Expenses', 'Currency'];
-          const csvContent = [
-            headers.join(','),
-            ...transactions.map(tx => [
-              tx.date || '',
-              `"${(tx.description || '').replace(/"/g, '""')}"`,
-              tx.category || '',
-              tx.income || '',
-              tx.expenses || '',
-              tx.currency || 'USD'
-            ].join(','))
-          ].join('\n');
-
-          // Create and download file
-          const blob = new Blob([csvContent], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          const timestamp = new Date().toISOString().split('T')[0];
-          a.href = url;
-          a.download = `transactions-${timestamp}.csv`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-
-          import('../ui/uiManager.js').then(uiModule => {
-            uiModule.showToast(`Exported ${transactions.length} transactions`, "success");
-          });
-        } catch (error) {
-          console.error("Export error:", error);
-          import('../ui/uiManager.js').then(uiModule => {
-            uiModule.showToast("Export failed", "error");
-          });
-        }
+      }).catch(err => {
+        console.error('Error loading export manager:', err);
+        import('../ui/uiManager.js').then(uiModule => {
+          if (uiModule.showToast) {
+            uiModule.showToast('Error loading export function', 'error');
+          }
+        });
       });
     });
   }
@@ -361,10 +329,32 @@ function initializeDebugButtons() {
     },
     {
       id: "saveLogBtn", handler: () => {
+        // FIXED: Properly import and use console logger
         if (window.saveConsoleLogs) {
           window.saveConsoleLogs();
         } else {
-          console.log("Console logger not available");
+          // Import console logger if not available
+          import('../utils/console-logger.js').then(() => {
+            setTimeout(() => {
+              if (window.saveConsoleLogs) {
+                window.saveConsoleLogs();
+              } else {
+                console.error("Console logger failed to initialize");
+                import('../ui/uiManager.js').then(uiModule => {
+                  if (uiModule.showToast) {
+                    uiModule.showToast('Console logger not available', 'error');
+                  }
+                });
+              }
+            }, 100);
+          }).catch(err => {
+            console.error("Failed to load console logger:", err);
+            import('../ui/uiManager.js').then(uiModule => {
+              if (uiModule.showToast) {
+                uiModule.showToast('Failed to load console logger', 'error');
+              }
+            });
+          });
         }
       }
     },
