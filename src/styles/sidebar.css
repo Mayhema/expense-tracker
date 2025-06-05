@@ -272,12 +272,14 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
+  cursor: pointer;
 }
 
 .toggle-item label {
   color: var(--text-color);
   font-weight: 500;
   cursor: pointer;
+  flex: 1;
 }
 
 /* Toggle Switch */
@@ -285,12 +287,18 @@ body {
   position: relative;
   width: 50px;
   height: 24px;
+  cursor: pointer;
 }
 
 .toggle-switch input[type="checkbox"] {
   opacity: 0;
-  width: 0;
-  height: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .slider {
@@ -303,6 +311,7 @@ body {
   background-color: #ccc;
   transition: 0.4s;
   border-radius: 24px;
+  pointer-events: none;
 }
 
 .slider:before {
@@ -315,6 +324,7 @@ body {
   background-color: white;
   transition: 0.4s;
   border-radius: 50%;
+  pointer-events: none;
 }
 
 input:checked+.slider {
