@@ -1111,3 +1111,5 @@ body.dark-mode .action-button:hover {
   min-width: 120px !important;
   flex: 0 0 auto !important;
 }
+
+@import './fileUpload.css';

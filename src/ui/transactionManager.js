@@ -214,7 +214,8 @@ function generateTransactionTableHTML(transactions) {
   transactions.forEach((tx, index) => {
     // FIXED: Format date to dd/mm/yyyy for display
     const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
-    const description = tx.description || '';
+    // FIXED: Ensure description is always a string and handle null/undefined
+    const description = (tx.description || '').toString();
     const category = tx.category || '';
     const income = parseFloat(tx.income) || 0;
     const expenses = parseFloat(tx.expenses) || 0;

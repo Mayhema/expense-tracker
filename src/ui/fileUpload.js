@@ -10,7 +10,7 @@ let fileInputInProgress = false;
  * Cleanup any existing file input elements to prevent duplicates
  */
 function cleanupExistingFileInputs() {
-  const existingInputs = document.querySelectorAll('input[type="file"][id^="fileInput"]');
+  const existingInputs = document.querySelectorAll('input[type="file"]');
   existingInputs.forEach(input => {
     if (input.parentNode) {
       input.parentNode.removeChild(input);
@@ -44,13 +44,11 @@ export function initializeFileUpload() {
  * Creates a new file input element
  */
 export function createNewFileInput() {
-  // Prevent multiple file inputs
+  // FIXED: Only check if input is in progress when actually processing
   if (fileInputInProgress) {
     console.log("File input already in progress");
     return null;
   }
-
-  fileInputInProgress = true;
 
   try {
     // Clean up existing inputs first
@@ -59,12 +57,31 @@ export function createNewFileInput() {
     // Create new file input
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.id = `fileInput_${Date.now()}`;
     fileInput.accept = '.csv,.xlsx,.xls,.xml';
     fileInput.style.display = 'none';
 
     // Add event listener for file selection
     fileInput.addEventListener('change', handleFileSelection);
+
+    // FIXED: Add cancel handler to reset progress flag
+    fileInput.addEventListener('cancel', () => {
+      fileInputInProgress = false;
+      if (document.body.contains(fileInput)) {
+        document.body.removeChild(fileInput);
+      }
+    });
+
+    // FIXED: Handle window focus to detect cancel
+    const handleFocus = () => {
+      setTimeout(() => {
+        if (!fileInput.files.length && document.body.contains(fileInput)) {
+          fileInputInProgress = false;
+          document.body.removeChild(fileInput);
+        }
+        window.removeEventListener('focus', handleFocus);
+      }, 300);
+    };
+    window.addEventListener('focus', handleFocus);
 
     // Add to DOM and trigger click
     document.body.appendChild(fileInput);
@@ -91,9 +108,13 @@ function handleFileSelection(event) {
   const file = event.target.files[0];
   if (!file) {
     console.log("No file selected");
+    // FIXED: Reset progress flag if no file selected
     fileInputInProgress = false;
     return;
   }
+
+  // FIXED: Only set progress flag when file is actually selected
+  fileInputInProgress = true;
 
   console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
 
@@ -446,60 +467,56 @@ function handleDuplicateFile(file) {
   }
 }
 
+// FIXED: Use only the 5 essential fields from TRANSACTION_FIELDS for mapping
+const MAPPING_FIELDS = ['Date', 'Income', 'Expenses', 'Description', 'Currency'];
+
 /**
- * Show file preview modal with real-time updates
+ * FIXED: Show simplified file preview modal with clean structure
  */
 function showFilePreviewModal(data) {
-  // Get file extension for specific handling
   const fileExt = AppState.currentFileName ? AppState.currentFileName.split('.').pop().toLowerCase() : '';
 
-  // Create modal content with enhanced structure
   const modalContent = document.createElement('div');
   modalContent.className = 'file-preview-modal';
 
+  // FIXED: Simplified clean structure
   modalContent.innerHTML = `
-    <div class="preview-content">
-      <div class="file-info">
-        <h3>📄 ${AppState.currentFileName}</h3>
-        <div class="file-stats">
-          <span class="stat">📊 ${data.length} rows</span>
-          <span class="stat">📑 ${data[0]?.length || 0} columns</span>
-          <span class="stat">📁 ${fileExt.toUpperCase()}</span>
-        </div>
+    <div class="file-info-section">
+      <h3>📄 ${AppState.currentFileName}</h3>
+      <div class="file-stats">
+        <span>📊 ${data.length} rows</span>
+        <span>📑 ${data[0]?.length || 0} columns</span>
+        <span>📁 ${fileExt.toUpperCase()}</span>
       </div>
+    </div>
 
-      <div class="row-config-section">
-        <h4>📋 Data Structure Configuration</h4>
-        <div class="row-config">
-          <div class="config-group">
-            <label for="headerRowSelect">Header Row:</label>
-            <select id="headerRowSelect">
-              ${data.map((_, index) => `<option value="${index}" ${index === 0 ? 'selected' : ''}>${index + 1}</option>`).join('')}
-            </select>
-          </div>
-          <div class="config-group">
-            <label for="dataRowSelect">Data Starts At Row:</label>
-            <select id="dataRowSelect">
-              ${data.map((_, index) => `<option value="${index}" ${index === 1 ? 'selected' : ''}>${index + 1}</option>`).join('')}
-            </select>
-          </div>
-        </div>
+    <div class="row-config-section">
+      <div class="config-row">
+        <label for="headerRowSelect">Header Row:</label>
+        <select id="headerRowSelect">
+          ${data.map((_, index) => `<option value="${index}" ${index === 0 ? 'selected' : ''}>${index + 1}</option>`).join('')}
+        </select>
       </div>
-
-      <div id="headerMappingContainer" class="header-mapping-section"></div>
-      <div id="previewTableContainer" class="preview-table-section"></div>
-
-      <div class="modal-actions">
-        <button id="saveHeadersBtn" class="button primary-btn">Save & Import File</button>
-        <button id="cancelPreviewBtn" class="button secondary-btn">Cancel</button>
+      <div class="config-row">
+        <label for="dataRowSelect">Data Row:</label>
+        <select id="dataRowSelect">
+          ${data.map((_, index) => `<option value="${index}" ${index === 1 ? 'selected' : ''}>${index + 1}</option>`).join('')}
+        </select>
       </div>
+    </div>
+
+    <div id="previewContainer" class="preview-container"></div>
+
+    <div class="modal-actions">
+      <button id="saveHeadersBtn" class="btn primary-btn">Import File</button>
+      <button id="cancelPreviewBtn" class="btn secondary-btn">Cancel</button>
     </div>
   `;
 
   const modal = showModal({
     title: 'Import File: Column Mapping',
     content: modalContent,
-    size: 'xlarge',
+    size: 'large',
     closeOnClickOutside: false
   });
 
@@ -513,133 +530,70 @@ function showFilePreviewModal(data) {
     }
 
     const headers = data[headerRowIndex] || [];
-    const mappingContainer = document.getElementById('headerMappingContainer');
+    const dataRow = data[dataRowIndex] || [];
+    const previewContainer = document.getElementById('previewContainer');
 
-    // Auto-detect column types using FIXED import
-    const suggestedMapping = autoDetectColumns(headers, data, headerRowIndex, dataRowIndex);
-
-    // Render header mapping interface as a proper table
+    // FIXED: Proper table structure with headers mapping above each column using only essential fields
     let html = `
-      <h4>🎯 Column Mapping</h4>
-      <div class="mapping-table-container">
-        <table class="mapping-table">
+      <div class="preview-table-wrapper">
+        <table class="column-mapping-table">
           <thead>
-            <tr>
-              <th>File Column</th>
-              <th>Sample Data</th>
-              <th>Map To Field</th>
+            <tr class="mapping-row">
+              ${headers.map((header, index) => {
+      const suggested = autoDetectFieldType(header) || '–';
+      // FIXED: Only show essential mapping fields
+      const validSuggestion = MAPPING_FIELDS.includes(suggested) ? suggested : '–';
+      return `
+                  <th class="mapping-cell">
+                    <select class="header-select" data-index="${index}">
+                      <option value="–" ${validSuggestion === '–' ? 'selected' : ''}>-ignore-</option>
+                      ${MAPPING_FIELDS.map(field =>
+        `<option value="${field}" ${validSuggestion === field ? 'selected' : ''}>${field}</option>`
+      ).join('')}
+                    </select>
+                  </th>
+                `;
+    }).join('')}
+            </tr>
+            <tr class="header-row">
+              ${headers.map(header => `
+                <th class="header-cell">
+                  ${header || '<em>empty</em>'}
+                </th>
+              `).join('')}
             </tr>
           </thead>
           <tbody>
-    `;
-
-    headers.forEach((header, index) => {
-      const sampleData = getSampleData(data, dataRowIndex, index);
-      const suggested = suggestedMapping[index] || '–';
-
-      html += `
-        <tr>
-          <td class="column-header">
-            <strong>${header || `Column ${index + 1}`}</strong>
-          </td>
-          <td class="sample-data">
-            <em>${sampleData}</em>
-          </td>
-          <td class="mapping-select-cell">
-            <select class="header-select" data-index="${index}">
-              <option value="–" ${suggested === '–' ? 'selected' : ''}>– Ignore –</option>
-              ${TRANSACTION_FIELDS.map(field =>
-        `<option value="${field}" ${suggested === field ? 'selected' : ''}>${field}</option>`
-      ).join('')}
-            </select>
-          </td>
-        </tr>
-      `;
-    });
-
-    html += `
+            <tr class="data-row">
+              ${dataRow.map((cell, index) => {
+      // FIXED: Convert Excel dates for preview
+      let displayValue = cell || '<em>empty</em>';
+      if (cell && isExcelDate(cell)) {
+        const convertedDate = convertExcelDate(cell);
+        displayValue = `${convertedDate} <small>(was: ${cell})</small>`;
+      }
+      return `
+                  <td class="data-cell">
+                    ${displayValue}
+                  </td>
+                `;
+    }).join('')}
+            </tr>
           </tbody>
         </table>
       </div>
     `;
 
-    mappingContainer.innerHTML = html;
+    previewContainer.innerHTML = html;
 
-    // Add change listeners to selects
+    // Add change listeners
     document.querySelectorAll('.header-select').forEach(select => {
       select.addEventListener('change', () => {
         updateSaveButtonState();
-        updatePreviewTable();
       });
     });
 
-    // Initial preview table render
-    updatePreviewTable();
     updateSaveButtonState();
-  }
-
-  function updatePreviewTable() {
-    const headerRowIndex = parseInt(document.getElementById('headerRowSelect').value);
-    const dataRowIndex = parseInt(document.getElementById('dataRowSelect').value);
-    const previewContainer = document.getElementById('previewTableContainer');
-
-    if (!previewContainer) return;
-
-    const headers = data[headerRowIndex] || [];
-    const mapping = getCurrentMapping();
-
-    // Generate preview table
-    let previewHTML = `
-      <h4>📋 Data Preview (First 5 rows)</h4>
-      <div class="preview-table-wrapper">
-        <table class="preview-table">
-          <thead>
-            <tr>
-    `;
-
-    headers.forEach((header, index) => {
-      const mappedType = mapping[index] || '–';
-      const isMapped = mappedType !== '–';
-      previewHTML += `
-        <th class="${isMapped ? 'mapped-column' : 'unmapped-column'}">
-          <div class="column-header">
-            <span class="original-name">${header}</span>
-            ${isMapped ? `<span class="mapped-to">→ ${mappedType}</span>` : '<span class="ignored">Ignored</span>'}
-          </div>
-        </th>
-      `;
-    });
-
-    previewHTML += `
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    // Show first 5 data rows
-    const previewRows = data.slice(dataRowIndex, Math.min(dataRowIndex + 5, data.length));
-    previewRows.forEach((row) => {
-      previewHTML += '<tr>';
-      headers.forEach((header, index) => {
-        const value = row[index] || '';
-        const mappedType = mapping[index] || '–';
-        const isMapped = mappedType !== '–';
-        previewHTML += `
-          <td class="${isMapped ? 'mapped-data' : 'unmapped-data'}">
-            ${value}
-          </td>
-        `;
-      });
-      previewHTML += '</tr>';
-    });
-
-    previewHTML += `
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    previewContainer.innerHTML = previewHTML;
   }
 
   function updateSaveButtonState() {
@@ -656,7 +610,7 @@ function showFilePreviewModal(data) {
     }
   }
 
-  // Set up modal event listeners with real-time updates
+  // Set up event listeners
   setupModalEventListeners(modal, data, fileExt, updatePreview);
 
   // Initial render
@@ -776,13 +730,9 @@ export async function onSaveHeaders(modal) {
         if (field && field !== '–' && row[colIndex] !== undefined) {
           let value = row[colIndex];
 
-          // Apply date conversion for Excel date fields
-          if (field === 'Date' && typeof value === 'string' && /^\d{5}$/.test(value.trim())) {
-            const excelDate = parseFloat(value);
-            if (excelDate > 0 && excelDate < 100000) {
-              const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
-              value = jsDate.toISOString().split('T')[0];
-            }
+          // FIXED: Apply Excel date conversion during processing
+          if (field === 'Date' && isExcelDate(value)) {
+            value = convertExcelDate(value);
           }
 
           // Map to lowercase field names to match transaction structure
@@ -930,11 +880,6 @@ function saveMergedFiles() {
   }
 }
 
-// Convert Excel date number to readable date
-function convertExcelDate(excelDate) {
-  const date = new Date((excelDate - 25569) * 86400 * 1000);
-  return date.toISOString().split('T')[0];
-}
 
 /**
  * Clear preview and reset state
@@ -974,4 +919,25 @@ function getSampleData(data, dataRowIndex, columnIndex) {
   const samples = sampleRows.map(row => row[columnIndex] || '').filter(val => val).slice(0, 2);
 
   return samples.length > 0 ? samples.join(', ') : 'Empty';
+}
+
+// FIXED: Add Excel date detection and conversion functions
+function isExcelDate(value) {
+  if (!value) return false;
+  const num = parseFloat(value);
+  return !isNaN(num) && num > 25000 && num < 100000 && /^\d+(\.\d+)?$/.test(value.toString());
+}
+
+function convertExcelDate(excelDate) {
+  try {
+    const num = parseFloat(excelDate);
+    if (isNaN(num)) return excelDate;
+
+    // Excel date conversion (Excel epoch starts 1900-01-01, but with leap year bug)
+    const date = new Date((num - 25569) * 86400 * 1000);
+    return date.toISOString().split('T')[0];
+  } catch (error) {
+    console.error('Error converting Excel date:', error);
+    return excelDate;
+  }
 }
