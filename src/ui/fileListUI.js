@@ -63,7 +63,12 @@ function buildMergedFilesContent() {
   `;
 
   mergedFiles.forEach((file, index) => {
-    const transactionCount = file.transactions ? file.transactions.length : (file.data ? file.data.length - (file.dataRowIndex || 1) : 0);
+    let transactionCount = 0;
+    if (file.transactions) {
+      transactionCount = file.transactions.length;
+    } else if (file.data) {
+      transactionCount = file.data.length - (file.dataRowIndex || 1);
+    }
     const currency = file.currency || 'USD';
     const signature = file.signature || 'No signature';
     const importDate = file.mergedAt ? new Date(file.mergedAt).toLocaleDateString() : 'Unknown';

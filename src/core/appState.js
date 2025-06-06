@@ -38,8 +38,8 @@ export function initialize() {
       console.log(`Loaded ${AppState.mergedFiles.length} merged files from localStorage`);
     }
 
-    // Load categories from localStorage
-    const savedCategories = localStorage.getItem('expenseCategories');
+    // FIXED: Load categories from localStorage with consistent key
+    const savedCategories = localStorage.getItem('categories');
     if (savedCategories) {
       AppState.categories = JSON.parse(savedCategories);
       console.log(`Loaded categories from localStorage`);
@@ -105,17 +105,21 @@ export function initializeAppState() {
 
   // Load categories
   try {
-    const savedCategories = localStorage.getItem('expenseCategories');
+    const savedCategories = localStorage.getItem('categories');
     if (savedCategories) {
       AppState.categories = JSON.parse(savedCategories);
+      console.log(`Loaded categories from localStorage:`, Object.keys(AppState.categories));
     } else {
       // Initialize with default categories
-      AppState.categories = DEFAULT_CATEGORIES;
-      localStorage.setItem('expenseCategories', JSON.stringify(AppState.categories));
+      console.log("No saved categories found, initializing with defaults...");
+      AppState.categories = { ...DEFAULT_CATEGORIES };
+      localStorage.setItem('categories', JSON.stringify(AppState.categories));
+      console.log(`Initialized ${Object.keys(AppState.categories).length} default categories`);
     }
   } catch (error) {
     console.error('Error loading categories:', error);
-    AppState.categories = DEFAULT_CATEGORIES;
+    AppState.categories = { ...DEFAULT_CATEGORIES };
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
   }
 
   console.log("AppState initialized:", {
@@ -171,7 +175,7 @@ function initializeDefaultCategories() {
  */
 export function saveCategories() {
   try {
-    localStorage.setItem('expenseCategories', JSON.stringify(AppState.categories));
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
     console.log("Categories saved to localStorage");
   } catch (error) {
     console.error("Error saving categories:", error);
@@ -289,7 +293,7 @@ export function clearState() {
   // Clear localStorage
   localStorage.removeItem('transactions');
   localStorage.removeItem('mergedFiles');
-  localStorage.removeItem('expenseCategories');
+  localStorage.removeItem('categories');
 
   console.log("Application state cleared");
 }

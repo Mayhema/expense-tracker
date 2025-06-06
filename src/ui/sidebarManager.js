@@ -491,7 +491,7 @@ function _handleShowMergedFiles() {
 }
 
 function _handleEditCategories() {
-  import('./categoryModal.js').then(module => {
+  import('./categoryManager.js').then(module => {
     if (module.showCategoryManagerModal) {
       module.showCategoryManagerModal();
     } else {

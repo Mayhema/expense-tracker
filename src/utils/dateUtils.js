@@ -3,6 +3,47 @@
  */
 
 /**
+ * Helper function to parse slash-separated dates
+ * @param {string} dateInput - Date string with slashes
+ * @returns {Date|null} Parsed date or null if invalid
+ */
+function parseSlashDate(dateInput) {
+  const parts = dateInput.split('/');
+  if (parts.length !== 3) return null;
+
+  const first = parseInt(parts[0]);
+  const second = parseInt(parts[1]);
+
+  if (first > 12) {
+    // Definitely dd/mm/yyyy
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+  } else if (second > 12) {
+    // Definitely mm/dd/yyyy, convert to dd/mm/yyyy
+    return new Date(parts[2], parts[0] - 1, parts[1]);
+  } else {
+    // Ambiguous, assume dd/mm/yyyy
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+}
+
+/**
+ * Helper function to parse string dates
+ * @param {string} dateInput - Date string to parse
+ * @returns {Date|null} Parsed date or null if invalid
+ */
+function parseStringDate(dateInput) {
+  if (dateInput.includes('/')) {
+    return parseSlashDate(dateInput);
+  } else if (dateInput.includes('-')) {
+    // ISO format yyyy-mm-dd
+    return new Date(dateInput);
+  } else {
+    // Try parsing as is
+    return new Date(dateInput);
+  }
+}
+
+/**
  * Convert date from various formats to dd/mm/yyyy
  * @param {string|Date} dateInput - Input date in any format
  * @returns {string} Date in dd/mm/yyyy format
@@ -15,38 +56,12 @@ export function formatDateToDDMMYYYY(dateInput) {
   if (dateInput instanceof Date) {
     date = dateInput;
   } else if (typeof dateInput === 'string') {
-    // Handle various input formats
-    if (dateInput.includes('/')) {
-      // Already in dd/mm/yyyy or mm/dd/yyyy format
-      const parts = dateInput.split('/');
-      if (parts.length === 3) {
-        // Assume dd/mm/yyyy if day > 12, otherwise try to detect
-        const first = parseInt(parts[0]);
-        const second = parseInt(parts[1]);
-
-        if (first > 12) {
-          // Definitely dd/mm/yyyy
-          date = new Date(parts[2], parts[1] - 1, parts[0]);
-        } else if (second > 12) {
-          // Definitely mm/dd/yyyy, convert to dd/mm/yyyy
-          date = new Date(parts[2], parts[0] - 1, parts[1]);
-        } else {
-          // Ambiguous, assume dd/mm/yyyy
-          date = new Date(parts[2], parts[1] - 1, parts[0]);
-        }
-      }
-    } else if (dateInput.includes('-')) {
-      // ISO format yyyy-mm-dd
-      date = new Date(dateInput);
-    } else {
-      // Try parsing as is
-      date = new Date(dateInput);
-    }
+    date = parseStringDate(dateInput);
   } else {
     return '';
   }
 
-  if (isNaN(date.getTime())) {
+  if (!date || isNaN(date.getTime())) {
     console.warn('Invalid date input:', dateInput);
     return '';
   }

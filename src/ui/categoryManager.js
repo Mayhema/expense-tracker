@@ -41,7 +41,12 @@ function buildCategoryManagerHTML() {
     </div>
 
     <div class="categories-section">
-      <h4>Existing Categories (${Object.keys(categories).length})</h4>
+      <div class="categories-header">
+        <h4>Existing Categories (${Object.keys(categories).length})</h4>
+        <button class="btn btn-warning" id="resetCategoriesBtn" title="Reset to default categories">
+          🔄 Reset to Defaults
+        </button>
+      </div>
       ${Object.keys(categories).length === 0 ?
       '<div class="empty-state">No categories created yet.</div>' :
       buildCategoriesTable(categories)
@@ -83,6 +88,9 @@ function buildCategoriesTable(categories) {
     const subcategories = (typeof categoryData === 'object' && categoryData.subcategories) ? categoryData.subcategories : {};
     const subCount = Object.keys(subcategories).length;
 
+    // FIXED: Create safe ID by encoding category name
+    const safeId = btoa(categoryName).replace(/[^a-zA-Z0-9]/g, '');
+
     html += `
       <tr class="category-row" data-category="${categoryName}">
         <td class="order-cell">
@@ -106,10 +114,12 @@ function buildCategoriesTable(categories) {
                  data-category="${categoryName}">
         </td>
         <td class="subcategories-cell">
-          <span class="subcategory-count">${subCount} subs</span>
-          <button class="btn btn-sm btn-secondary manage-subs-btn" data-category="${categoryName}">
-            Manage
-          </button>
+          <div class="subcategory-info">
+            <span class="subcategory-count">${subCount}</span>
+            <button class="btn btn-sm btn-info manage-subs-btn" data-category="${categoryName}">
+              <span class="manage-text">Manage</span>
+            </button>
+          </div>
         </td>
         <td class="actions-cell">
           <button class="btn btn-sm btn-danger delete-category-btn" data-category="${categoryName}">
@@ -119,18 +129,16 @@ function buildCategoriesTable(categories) {
       </tr>
     `;
 
-    // Add subcategories row if expanded
-    if (subCount > 0) {
-      html += `
-        <tr class="subcategories-row" id="subcategories-${categoryName}" style="display: none;">
-          <td colspan="5">
-            <div class="subcategories-container">
-              ${buildSubcategoriesSection(categoryName, subcategories)}
-            </div>
-          </td>
-        </tr>
-      `;
-    }
+    // FIXED: Use safe ID and class-based selection instead of ID
+    html += `
+      <tr class="subcategories-row subcategories-for-${safeId}" data-category="${categoryName}" style="display: none;">
+        <td colspan="5">
+          <div class="subcategories-container">
+            ${buildSubcategoriesSection(categoryName, subcategories)}
+          </div>
+        </td>
+      </tr>
+    `;
   });
 
   html += `
@@ -219,6 +227,19 @@ function attachCategoryManagerEventListeners(container, modal) {
     });
   }
 
+  // Reset to default categories button
+  const resetCategoriesBtn = container.querySelector('#resetCategoriesBtn');
+  if (resetCategoriesBtn) {
+    resetCategoriesBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset all categories to defaults? This will remove all your custom categories and cannot be undone.')) {
+        resetToDefaultCategories();
+        // Refresh the modal content
+        container.innerHTML = buildCategoryManagerHTML();
+        attachCategoryManagerEventListeners(container, modal);
+      }
+    });
+  }
+
   // Close button
   const closeBtn = container.querySelector('#closeCategoryManagerBtn');
   if (closeBtn) {
@@ -239,15 +260,46 @@ function attachCategoryManagerEventListeners(container, modal) {
     });
   });
 
-  // Manage subcategories buttons
+  // FIXED: Manage subcategories buttons - use class-based selection
   container.querySelectorAll('.manage-subs-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const categoryName = e.target.dataset.category;
-      const subRow = container.querySelector(`#subcategories-${categoryName}`);
-      if (subRow) {
-        const isVisible = subRow.style.display !== 'none';
-        subRow.style.display = isVisible ? 'none' : 'table-row';
-        e.target.textContent = isVisible ? 'Manage' : 'Hide';
+      e.preventDefault();
+      e.stopPropagation();
+
+      const button = e.currentTarget;
+      const categoryName = button.dataset.category;
+      const safeId = btoa(categoryName).replace(/[^a-zA-Z0-9]/g, '');
+      const subRow = container.querySelector(`.subcategories-for-${safeId}`);
+      const manageText = button.querySelector('.manage-text');
+
+      console.log('FIXED: Manage button clicked for category:', categoryName);
+      console.log('FIXED: Safe ID:', safeId);
+      console.log('FIXED: Found subRow:', !!subRow);
+      console.log('FIXED: Found manageText:', !!manageText);
+
+      if (subRow && manageText) {
+        const isVisible = subRow.style.display === 'table-row';
+
+        if (isVisible) {
+          // Hide subcategories
+          subRow.style.display = 'none';
+          manageText.textContent = 'Manage';
+          button.classList.remove('active');
+          console.log('FIXED: Hiding subcategories');
+        } else {
+          // Show subcategories
+          subRow.style.display = 'table-row';
+          manageText.textContent = 'Hide';
+          button.classList.add('active');
+          console.log('FIXED: Showing subcategories');
+
+          // FIXED: Re-attach event listeners for the newly shown subcategory elements
+          attachSubcategoryListeners(subRow, container, modal);
+        }
+      } else {
+        console.error('FIXED: Could not find subRow or manageText elements');
+        console.error('FIXED: Available subcategory rows:', container.querySelectorAll('.subcategories-row').length);
+        console.error('FIXED: Looking for class:', `.subcategories-for-${safeId}`);
       }
     });
   });
@@ -259,27 +311,67 @@ function attachCategoryManagerEventListeners(container, modal) {
       saveCategoryChanges(categoryName, container);
     });
   });
+}
 
-  // Add subcategory buttons
-  container.querySelectorAll('.add-subcategory-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+// FIXED: Rename function to avoid duplicate declaration
+function attachSubcategoryListeners(subRow, container, modal) {
+  // Add subcategory buttons with proper event handling
+  subRow.querySelectorAll('.add-subcategory-btn').forEach(btn => {
+    // Remove existing listeners by cloning the node
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+
+    newBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       const parentCategory = e.target.dataset.parent;
-      const nameInput = container.querySelector(`input.subname-input[data-parent="${parentCategory}"]:not([data-subcategory])`);
-      const colorInput = container.querySelector(`input.subcolor-input[data-parent="${parentCategory}"]:not([data-subcategory])`);
+      const nameInput = subRow.querySelector(`input.subname-input[data-parent="${parentCategory}"]:not([data-subcategory])`);
+      const colorInput = subRow.querySelector(`input.subcolor-input[data-parent="${parentCategory}"]:not([data-subcategory])`);
+
+      console.log('FIXED: Add subcategory clicked for:', parentCategory);
+      console.log('FIXED: Found inputs:', !!nameInput, !!colorInput);
 
       if (nameInput && nameInput.value.trim()) {
-        addSubcategory(parentCategory, nameInput.value.trim(), colorInput.value);
-        container.innerHTML = buildCategoryManagerHTML();
-        attachCategoryManagerEventListeners(container, modal);
+        if (addSubcategory(parentCategory, nameInput.value.trim(), colorInput.value)) {
+          // Refresh the modal content
+          container.innerHTML = buildCategoryManagerHTML();
+          attachCategoryManagerEventListeners(container, modal);
+
+          // Show the subcategory section after refresh
+          setTimeout(() => {
+            const newSubRow = container.querySelector(`#subcategories-${parentCategory}`);
+            const manageBtn = container.querySelector(`.manage-subs-btn[data-category="${parentCategory}"]`);
+            const manageText = manageBtn?.querySelector('.manage-text');
+
+            if (newSubRow && manageBtn && manageText) {
+              newSubRow.style.display = 'table-row';
+              manageText.textContent = 'Hide';
+              manageBtn.classList.add('active');
+              // Re-attach listeners for the newly shown section
+              attachSubcategoryListeners(newSubRow, container, modal);
+            }
+          }, 100);
+        }
       }
     });
   });
 
   // Delete subcategory buttons
-  container.querySelectorAll('.delete-subcategory-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  subRow.querySelectorAll('.delete-subcategory-btn').forEach(btn => {
+    // Remove existing listeners by cloning the node
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+
+    newBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       const parentCategory = e.target.dataset.parent;
       const subcategoryName = e.target.dataset.subcategory;
+
+      console.log('FIXED: Delete subcategory clicked:', subcategoryName, 'from', parentCategory);
+
       if (confirm(`Delete subcategory "${subcategoryName}"?`)) {
         deleteSubcategory(parentCategory, subcategoryName);
         container.innerHTML = buildCategoryManagerHTML();
@@ -289,8 +381,12 @@ function attachCategoryManagerEventListeners(container, modal) {
   });
 
   // Subcategory input change handlers
-  container.querySelectorAll('.subname-input[data-subcategory], .subcolor-input[data-subcategory]').forEach(input => {
-    input.addEventListener('change', (e) => {
+  subRow.querySelectorAll('.subname-input[data-subcategory], .subcolor-input[data-subcategory]').forEach(input => {
+    // Remove existing listeners by cloning the node
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+
+    newInput.addEventListener('change', (e) => {
       const parentCategory = e.target.dataset.parent;
       const subcategoryName = e.target.dataset.subcategory;
       saveSubcategoryChanges(parentCategory, subcategoryName, container);
@@ -338,7 +434,7 @@ export function addCategory(name, color) {
     return false;
   }
 
-  // FIXED: Update all category UI elements in real-time
+  // Update all category UI elements in real-time
   import('./transactionManager.js').then(module => {
     if (module.updateAllCategoryUI) {
       module.updateAllCategoryUI();
@@ -410,7 +506,7 @@ export function updateCategory(oldName, newName, newColor) {
     return false;
   }
 
-  // FIXED: Update all category UI elements in real-time
+  // Update all category UI elements in real-time
   import('./transactionManager.js').then(module => {
     if (module.updateAllCategoryUI) {
       module.updateAllCategoryUI();
@@ -454,7 +550,7 @@ export function deleteCategory(name) {
     return false;
   }
 
-  // FIXED: Update all category UI elements in real-time
+  // Update all category UI elements in real-time
   import('./transactionManager.js').then(module => {
     if (module.updateAllCategoryUI) {
       module.updateAllCategoryUI();
@@ -518,7 +614,7 @@ export function addSubcategory(parentName, subName, subColor) {
     return false;
   }
 
-  // FIXED: Update all category UI elements in real-time
+  // Update all category UI elements in real-time
   import('./transactionManager.js').then(module => {
     if (module.updateAllCategoryUI) {
       module.updateAllCategoryUI();
@@ -534,52 +630,6 @@ export function addSubcategory(parentName, subName, subColor) {
   return true;
 }
 
-function addCategoryInternal(name, color) {
-  if (!AppState.categories) {
-    AppState.categories = {};
-  }
-
-  // Get the highest order number and add 1
-  const maxOrder = Math.max(0, ...Object.values(AppState.categories).map(cat =>
-    (typeof cat === 'object' && cat.order !== undefined) ? cat.order : 0
-  ));
-
-  AppState.categories[name] = {
-    color: color,
-    order: maxOrder + 1,
-    subcategories: {}
-  };
-
-  saveCategories();
-}
-
-function deleteCategoryInternal(categoryName) {
-  if (AppState.categories && AppState.categories[categoryName]) {
-    delete AppState.categories[categoryName];
-    saveCategories();
-  }
-}
-
-function addSubcategoryInternal(parentCategory, name, color) {
-  if (AppState.categories && AppState.categories[parentCategory]) {
-    if (typeof AppState.categories[parentCategory] === 'string') {
-      // Convert old format to new format
-      AppState.categories[parentCategory] = {
-        color: AppState.categories[parentCategory],
-        order: 0,
-        subcategories: {}
-      };
-    }
-
-    if (!AppState.categories[parentCategory].subcategories) {
-      AppState.categories[parentCategory].subcategories = {};
-    }
-
-    AppState.categories[parentCategory].subcategories[name] = color;
-    saveCategories();
-  }
-}
-
 function deleteSubcategory(parentCategory, subcategoryName) {
   if (AppState.categories &&
     AppState.categories[parentCategory] &&
@@ -587,6 +637,14 @@ function deleteSubcategory(parentCategory, subcategoryName) {
     AppState.categories[parentCategory].subcategories[subcategoryName]) {
     delete AppState.categories[parentCategory].subcategories[subcategoryName];
     saveCategories();
+
+    console.log('FIXED: Deleted subcategory:', subcategoryName, 'from', parentCategory);
+
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast(`Subcategory "${subcategoryName}" deleted`, 'success');
+      }
+    });
   }
 }
 
@@ -660,7 +718,7 @@ function saveSubcategoryChanges(parentCategory, subcategoryName, container) {
 
 function saveCategories() {
   try {
-    localStorage.setItem('expenseCategories', JSON.stringify(AppState.categories));
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
     console.log('Categories saved to localStorage');
 
     // Show success feedback
@@ -673,8 +731,8 @@ function saveCategories() {
     // Update transaction buttons
     setTimeout(() => {
       import('./transactionManager.js').then(txModule => {
-        if (txModule.renderCategoryButtons) {
-          txModule.renderCategoryButtons();
+        if (txModule.updateAllCategoryUI) {
+          txModule.updateAllCategoryUI();
         }
       });
     }, 100);
@@ -684,6 +742,47 @@ function saveCategories() {
     import('./uiManager.js').then(module => {
       if (module.showToast) {
         module.showToast('Error saving categories', 'error');
+      }
+    });
+  }
+}
+
+/**
+ * FIXED: Reset categories to default values
+ */
+export function resetToDefaultCategories() {
+  console.log("Resetting categories to defaults...");
+
+  try {
+    // Import and use default categories
+    import('../constants/categories.js').then(module => {
+      AppState.categories = { ...module.DEFAULT_CATEGORIES };
+
+      // Save to localStorage
+      localStorage.setItem('categories', JSON.stringify(AppState.categories));
+
+      // Update all category UI elements
+      import('./transactionManager.js').then(txModule => {
+        if (txModule.updateAllCategoryUI) {
+          txModule.updateAllCategoryUI();
+        }
+      }).catch(error => {
+        console.warn('Could not update category UI:', error);
+      });
+
+      import('./uiManager.js').then(uiModule => {
+        if (uiModule.showToast) {
+          uiModule.showToast('Categories reset to defaults successfully', 'success');
+        }
+      });
+
+      console.log(`Reset to ${Object.keys(AppState.categories).length} default categories`);
+    });
+  } catch (error) {
+    console.error('Error resetting categories:', error);
+    import('./uiManager.js').then(uiModule => {
+      if (uiModule.showToast) {
+        uiModule.showToast('Error resetting categories', 'error');
       }
     });
   }

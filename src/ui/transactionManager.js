@@ -591,11 +591,7 @@ function initializeFilters() {
         currencyFilter.appendChild(option);
       });
     }).catch(error => {
-      console.warn('Could not load CURRENCIES:', error);
-    });
-
-    currencyFilter.addEventListener('change', () => {
-      renderTransactions(AppState.transactions || [], false);
+      console.warn('Could not load currencies:', error);
     });
   }
 
@@ -639,7 +635,7 @@ function initializeFilters() {
 }
 
 /**
- * FIXED: Update category filter dropdown with current categories and proper ordering and colors
+ * FIXED: Update category filter dropdown with current categories
  */
 function updateCategoryFilterDropdown(categoryFilter) {
   if (!categoryFilter) return;
@@ -653,9 +649,9 @@ function updateCategoryFilterDropdown(categoryFilter) {
   // Get categories from AppState with proper ordering
   const categories = AppState.categories || {};
 
-  // Sort categories by order property, then alphabetically
+  // Sort categories by order property, then alphabetically - FIXED: Same fix here
   const sortedCategories = Object.entries(categories)
-    .sort(([, a], [, b]) => {
+    .sort(([nameA, a], [nameB, b]) => {
       const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
       const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
 
@@ -663,8 +659,8 @@ function updateCategoryFilterDropdown(categoryFilter) {
         return orderA - orderB;
       }
 
-      // If same order, sort alphabetically
-      return a[0].localeCompare(b[0]);
+      // If same order, sort alphabetically - FIXED: Use nameA and nameB
+      return nameA.localeCompare(nameB);
     });
 
   // Add category options with colors
@@ -673,7 +669,7 @@ function updateCategoryFilterDropdown(categoryFilter) {
     let color = '#cccccc';
     if (typeof categoryData === 'string') {
       color = categoryData;
-    } else if (typeof categoryData === 'object' && categoryData.color) {
+    } else if (categoryData && categoryData.color) {
       color = categoryData.color;
     }
 
@@ -740,7 +736,7 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 
   // Get sorted categories by order - FIXED: Use same sorting logic as filter
   const sortedCategories = Object.entries(categories)
-    .sort(([, a], [, b]) => {
+    .sort(([nameA, a], [nameB, b]) => {
       const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
       const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
 
@@ -748,8 +744,8 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
         return orderA - orderB;
       }
 
-      // If same order, sort alphabetically
-      return a[0].localeCompare(b[0]);
+      // If same order, sort alphabetically - FIXED: Use nameA and nameB instead of a[0] and b[0]
+      return nameA.localeCompare(nameB);
     });
 
   sortedCategories.forEach(([categoryName, categoryData]) => {
@@ -759,7 +755,7 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
     let color = '#cccccc';
     if (typeof categoryData === 'string') {
       color = categoryData;
-    } else if (typeof categoryData === 'object' && categoryData.color) {
+    } else if (categoryData && categoryData.color) {
       color = categoryData.color;
     }
 
@@ -767,11 +763,9 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 
     // Add subcategories if they exist
     if (typeof categoryData === 'object' && categoryData.subcategories) {
-      Object.keys(categoryData.subcategories).sort().forEach(subName => {
-        const fullName = `${categoryName} > ${subName}`;
-        const isSubSelected = selectedCategory === fullName;
-        const subColor = categoryData.subcategories[subName] || color;
-        html += `<option value="${fullName}" ${isSubSelected ? 'selected' : ''} data-color="${subColor}" style="color: ${subColor}; font-weight: 400; padding-left: 20px;">  ○ ${subName}</option>`;
+      Object.entries(categoryData.subcategories).forEach(([subName, subColor]) => {
+        const isSubSelected = selectedCategory === categoryName && selectedSubcategory === subName;
+        html += `<option value="${categoryName}:${subName}" ${isSubSelected ? 'selected' : ''} data-color="${subColor}" style="color: ${subColor}; padding-left: 20px;">  ➤ ${subName}</option>`;
       });
     }
   });
@@ -829,9 +823,9 @@ export function renderCategoryButtons() {
     </button>
   `;
 
-  // FIXED: Use proper ordering for category buttons
+  // FIXED: Use proper ordering for category buttons with same fix
   const sortedCategories = Object.entries(categories)
-    .sort(([, a], [, b]) => {
+    .sort(([nameA, a], [nameB, b]) => {
       const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
       const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
 
@@ -839,8 +833,8 @@ export function renderCategoryButtons() {
         return orderA - orderB;
       }
 
-      // If same order, sort alphabetically
-      return a[0].localeCompare(b[0]);
+      // If same order, sort alphabetically - FIXED: Use nameA and nameB
+      return nameA.localeCompare(nameB);
     });
 
   sortedCategories.forEach(([categoryName, categoryData]) => {
@@ -849,7 +843,7 @@ export function renderCategoryButtons() {
 
     if (typeof categoryData === 'string') {
       color = categoryData;
-    } else if (typeof categoryData === 'object' && categoryData.color) {
+    } else if (categoryData && categoryData.color) {
       color = categoryData.color;
     }
 
@@ -872,7 +866,7 @@ export function renderCategoryButtons() {
   // Add event listeners - FIXED: Only handle main category clicks
   container.querySelectorAll('.category-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const category = e.currentTarget.getAttribute('data-category');
+      const category = e.currentTarget.dataset.category;
       filterByCategory(category);
     });
   });
@@ -890,13 +884,13 @@ function createCategoryButtonsContainer() {
     // Find the transaction section
     const transactionSection = document.querySelector('.transactions-section');
     if (!transactionSection) {
-      console.error("CRITICAL: Transaction section not found for category buttons");
+      console.error('Transaction section not found');
       return null;
     }
 
     const sectionContent = transactionSection.querySelector('.section-content');
     if (!sectionContent) {
-      console.error("CRITICAL: Section content not found for category buttons");
+      console.error('Section content not found');
       return null;
     }
 
@@ -904,19 +898,27 @@ function createCategoryButtonsContainer() {
     container = document.createElement('div');
     container.id = 'categoryButtons';
     container.className = 'category-buttons-container';
-
-    // Insert before the transaction table
-    const tableWrapper = document.getElementById('transactionTableWrapper');
-    if (tableWrapper) {
-      sectionContent.insertBefore(container, tableWrapper);
-    } else {
-      sectionContent.appendChild(container);
-    }
-
-    console.log("CRITICAL: Category buttons container created");
+    sectionContent.appendChild(container);
   }
 
   return container;
+}
+
+/**
+ * FIXED: Function to update all category UI elements when categories change
+ */
+export function updateAllCategoryUI() {
+  // Update category filter dropdown
+  const categoryFilter = document.getElementById('filterCategory');
+  if (categoryFilter) {
+    updateCategoryFilterDropdown(categoryFilter);
+  }
+
+  // Update category buttons directly instead of importing
+  renderCategoryButtons();
+
+  // Re-render transactions to update category displays
+  renderTransactions(AppState.transactions || [], false);
 }
 
 /**
@@ -927,9 +929,7 @@ export function initializeTransactionManager() {
 
   // FIXED: Force immediate render with current AppState data
   setTimeout(() => {
-    const transactions = AppState.transactions || [];
-    console.log(`CRITICAL: Transaction manager forcing render of ${transactions.length} transactions`);
-    renderTransactions(transactions, true);
+    renderTransactions(AppState.transactions || [], true);
   }, 100);
 }
 
@@ -981,25 +981,4 @@ export function updateTransactions() {
   // FORCE render with the actual transactions
   console.log(`CRITICAL: Forcing render of ${allTransactions.length} transactions`);
   renderTransactions(allTransactions, true);
-}
-
-/**
- * FIXED: Export function to update all category-related UI elements
- */
-export function updateAllCategoryUI() {
-  console.log("CRITICAL: Updating all category UI elements...");
-
-  // Update category filter dropdown
-  const categoryFilter = document.getElementById('filterCategory');
-  if (categoryFilter) {
-    updateCategoryFilterDropdown(categoryFilter);
-  }
-
-  // Update category buttons
-  renderCategoryButtons();
-
-  // Re-render transaction table to update category dropdowns
-  renderTransactions(AppState.transactions || [], false);
-
-  console.log("CRITICAL: All category UI elements updated");
 }
