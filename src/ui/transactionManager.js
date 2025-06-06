@@ -72,12 +72,12 @@ export function renderTransactions(transactions = [], updateCharts = true) {
   // Update charts if requested
   if (updateCharts) {
     setTimeout(() => {
-      import('../charts/chartManager.js').then(module => {
-        if (module.updateChartsWithCurrentData) {
-          module.updateChartsWithCurrentData();
+      import('./charts.js').then(module => {
+        if (module.initializeCharts) {
+          module.initializeCharts();
         }
       }).catch(error => {
-        console.warn('Could not update charts:', error);
+        console.log('Charts not available:', error.message);
       });
     }, 300);
   }
@@ -183,7 +183,25 @@ function renderTransactionTable(container, transactions) {
 }
 
 /**
- * FIXED: Generate proper transaction table HTML with dd/mm/yyyy dates
+ * FIXED: Get category color helper function
+ */
+function getCategoryColor(categoryName) {
+  if (!categoryName || !AppState.categories) return '#cccccc';
+
+  const categoryData = AppState.categories[categoryName];
+  if (!categoryData) return '#cccccc';
+
+  if (typeof categoryData === 'string') {
+    return categoryData;
+  } else if (typeof categoryData === 'object' && categoryData.color) {
+    return categoryData.color;
+  }
+
+  return '#cccccc';
+}
+
+/**
+ * FIXED: Generate proper transaction table HTML with edit mode and counter
  */
 function generateTransactionTableHTML(transactions) {
   console.log(`CRITICAL: Generating table HTML for ${transactions.length} transactions`);
@@ -192,13 +210,14 @@ function generateTransactionTableHTML(transactions) {
     <div class="transaction-table-header">
       <h4>📋 Transaction Data (${transactions.length} transactions)</h4>
       <div class="table-info">
-        <span>Click on any field to edit • Changes are saved automatically</span>
+        <span>Use the Edit button to modify transactions • Changes are saved automatically</span>
       </div>
     </div>
     <div class="table-container">
       <table class="transaction-table">
         <thead>
           <tr>
+            <th>#</th>
             <th>Date</th>
             <th>Description</th>
             <th>Category</th>
@@ -214,43 +233,56 @@ function generateTransactionTableHTML(transactions) {
   transactions.forEach((tx, index) => {
     // FIXED: Format date to dd/mm/yyyy for display
     const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
-    // FIXED: Ensure description is always a string and handle null/undefined
-    const description = (tx.description || '').toString();
+    // FIXED: Ensure description is clean and handle null/undefined
+    const description = (tx.description || '').toString().replace(/\s*data-field=.*$/i, '').trim();
     const category = tx.category || '';
+    const subcategory = tx.subcategory || '';
     const income = parseFloat(tx.income) || 0;
     const expenses = parseFloat(tx.expenses) || 0;
     const currency = tx.currency || 'USD';
+    const isEdited = tx.edited || false;
+
+    // FIXED: Get category color for cell background
+    const categoryColor = getCategoryColor(category);
+    const categoryStyle = category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
 
     // FIXED: Generate currency dropdown from CURRENCIES constant
     const currencyOptions = Object.keys(CURRENCIES).sort().map(currencyCode => {
-      const isSelected = currency === currencyCode;
-      return `<option value="${currencyCode}" ${isSelected ? 'selected' : ''}>${currencyCode}</option>`;
+      return `<option value="${currencyCode}" ${currency === currencyCode ? 'selected' : ''}>${currencyCode}</option>`;
     }).join('');
 
     html += `
-      <tr data-transaction-index="${index}" class="transaction-row">
+      <tr data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
+        <td class="counter-cell">${index + 1}</td>
         <td class="date-cell">
+          <span class="display-value">${date}</span>
           <input type="text"
                  class="edit-field date-field"
                  value="${date}"
                  data-field="date"
                  data-index="${index}"
                  data-original="${date}"
-                 placeholder="dd/mm/yyyy">
+                 placeholder="dd/mm/yyyy"
+                 style="display: none;">
         </td>
         <td class="description-cell">
+          <span class="display-value">${description}</span>
           <input type="text"
                  class="edit-field description-field"
-                 value="${description.replace(/"/g, '&quot;')}
+                 value="${description.replace(/"/g, '&quot;')}"
+
                  data-field="description"
                  data-index="${index}"
                  data-original="${description.replace(/"/g, '&quot;')}"
-                 placeholder="Enter description">
+
+                 placeholder="Enter description"
+                 style="display: none;">
         </td>
-        <td class="category-cell">
-          ${generateCategoryDropdown(category, tx.subcategory, index)}
+        <td class="category-cell" style="${categoryStyle}">
+          ${generateCategoryDropdown(category, subcategory, index)}
         </td>
         <td class="amount-cell">
+          <span class="display-value">${income > 0 ? income.toFixed(2) : ''}</span>
           <input type="number"
                  class="edit-field amount-field income-field"
                  value="${income > 0 ? income.toFixed(2) : ''}"
@@ -259,9 +291,11 @@ function generateTransactionTableHTML(transactions) {
                  data-original="${income > 0 ? income.toFixed(2) : ''}"
                  placeholder="0.00"
                  step="0.01"
-                 min="0">
+                 min="0"
+                 style="display: none;">
         </td>
         <td class="amount-cell">
+          <span class="display-value">${expenses > 0 ? expenses.toFixed(2) : ''}</span>
           <input type="number"
                  class="edit-field amount-field expense-field"
                  value="${expenses > 0 ? expenses.toFixed(2) : ''}"
@@ -270,7 +304,8 @@ function generateTransactionTableHTML(transactions) {
                  data-original="${expenses > 0 ? expenses.toFixed(2) : ''}"
                  placeholder="0.00"
                  step="0.01"
-                 min="0">
+                 min="0"
+                 style="display: none;">
         </td>
         <td class="currency-cell">
           <select class="edit-field currency-field"
@@ -281,6 +316,7 @@ function generateTransactionTableHTML(transactions) {
           </select>
         </td>
         <td class="action-cell">
+          <button class="btn-edit action-btn" data-index="${index}" title="Edit transaction">✏️</button>
           <button class="btn-save action-btn" data-index="${index}" style="display: none;" title="Save changes">💾</button>
           <button class="btn-revert action-btn" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
         </td>
@@ -299,30 +335,48 @@ function generateTransactionTableHTML(transactions) {
 }
 
 /**
- * Attach event listeners to transaction table fields
+ * FIXED: Attach event listeners to transaction table fields
  */
 function attachTransactionEventListeners() {
   console.log('CRITICAL: Attaching transaction event listeners');
 
-  // Handle field changes
-  document.querySelectorAll('.edit-field').forEach(field => {
-    field.addEventListener('input', (e) => {
-      const row = e.target.closest('tr');
-      const saveBtn = row.querySelector('.btn-save');
-      const revertBtn = row.querySelector('.btn-revert');
-
-      const hasChanges = checkRowForChanges(row);
-
-      if (hasChanges) {
-        saveBtn.style.display = 'inline-block';
-        revertBtn.style.display = 'inline-block';
-        row.classList.add('has-changes');
-      } else {
-        saveBtn.style.display = 'none';
-        revertBtn.style.display = 'none';
-        row.classList.remove('has-changes');
-      }
+  // FIXED: Handle edit buttons
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index);
+      enterEditMode(index);
     });
+  });
+
+  // Handle field changes (only for currency and category which are always editable)
+  document.querySelectorAll('.edit-field').forEach(field => {
+    if (field.classList.contains('currency-field') || field.classList.contains('category-select')) {
+      field.addEventListener('change', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        saveFieldChange(index, e.target.dataset.field, e.target.value);
+      });
+    } else {
+      // For other fields, only listen when in edit mode
+      field.addEventListener('input', (e) => {
+        const row = e.target.closest('tr');
+        if (row.dataset.editMode === 'true') {
+          const saveBtn = row.querySelector('.btn-save');
+          const revertBtn = row.querySelector('.btn-revert');
+
+          const hasChanges = checkRowForChanges(row);
+
+          if (hasChanges) {
+            saveBtn.style.display = 'inline-block';
+            revertBtn.style.display = 'inline-block';
+            row.classList.add('has-changes');
+          } else {
+            saveBtn.style.display = 'none';
+            revertBtn.style.display = 'none';
+            row.classList.remove('has-changes');
+          }
+        }
+      });
+    }
   });
 
   // Handle save buttons
@@ -345,10 +399,123 @@ function attachTransactionEventListeners() {
 }
 
 /**
+ * FIXED: Enter edit mode for a specific row
+ */
+function enterEditMode(index) {
+  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+  if (!row) return;
+
+  // Set edit mode
+  row.dataset.editMode = 'true';
+  row.classList.add('editing-mode');
+
+  // Hide display values and show input fields (except currency and category)
+  const displayValues = row.querySelectorAll('.display-value');
+  const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+
+  displayValues.forEach(span => span.style.display = 'none');
+  editFields.forEach(input => input.style.display = 'block');
+
+  // Hide edit button, show save/revert buttons
+  const editBtn = row.querySelector('.btn-edit');
+  const saveBtn = row.querySelector('.btn-save');
+  const revertBtn = row.querySelector('.btn-revert');
+
+  editBtn.style.display = 'none';
+  saveBtn.style.display = 'inline-block';
+  revertBtn.style.display = 'inline-block';
+}
+
+/**
+ * FIXED: Exit edit mode for a specific row
+ */
+function exitEditMode(index) {
+  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+  if (!row) return;
+
+  // Unset edit mode
+  row.dataset.editMode = 'false';
+  row.classList.remove('editing-mode', 'has-changes');
+
+  // Show display values and hide input fields (except currency and category)
+  const displayValues = row.querySelectorAll('.display-value');
+  const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+
+  displayValues.forEach(span => span.style.display = 'block');
+  editFields.forEach(input => input.style.display = 'none');
+
+  // Show edit button, hide save/revert buttons
+  const editBtn = row.querySelector('.btn-edit');
+  const saveBtn = row.querySelector('.btn-save');
+  const revertBtn = row.querySelector('.btn-revert');
+
+  editBtn.style.display = 'inline-block';
+  saveBtn.style.display = 'none';
+  revertBtn.style.display = 'none';
+}
+
+/**
+ * FIXED: Save individual field change (for category and currency)
+ */
+function saveFieldChange(index, fieldName, newValue) {
+  if (!AppState.transactions || !AppState.transactions[index]) return;
+
+  const transaction = AppState.transactions[index];
+  const oldValue = transaction[fieldName];
+
+  // Update the transaction
+  transaction[fieldName] = newValue;
+
+  // Mark as edited if it wasn't already
+  if (!transaction.edited) {
+    transaction.edited = true;
+  }
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    // Update display for category changes (update cell background color)
+    if (fieldName === 'category') {
+      const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+      const categoryCell = row.querySelector('.category-cell');
+      const categoryColor = getCategoryColor(newValue);
+      const categoryStyle = newValue ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
+      categoryCell.style.cssText = categoryStyle;
+
+      // Mark row as edited
+      row.classList.add('edited-row');
+    }
+
+    // Show success feedback
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast(`${fieldName} updated`, 'success');
+      }
+    });
+
+    // Update category buttons if category changed
+    if (fieldName === 'category') {
+      setTimeout(() => {
+        renderCategoryButtons();
+      }, 100);
+    }
+
+  } catch (error) {
+    console.error('Error saving transaction:', error);
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Error saving changes', 'error');
+      }
+    });
+  }
+}
+
+/**
  * Check if a row has any changes
  */
 function checkRowForChanges(row) {
-  const fields = row.querySelectorAll('.edit-field');
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
   for (let field of fields) {
     if (field.value !== field.dataset.original) {
       return true;
@@ -366,7 +533,7 @@ function saveTransactionChanges(index) {
   const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
   if (!row) return;
 
-  const fields = row.querySelectorAll('.edit-field');
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
   const transaction = AppState.transactions[index];
 
   fields.forEach(field => {
@@ -393,16 +560,31 @@ function saveTransactionChanges(index) {
     } else {
       field.dataset.original = newValue;
     }
+
+    // Update display value
+    const displayValue = row.querySelector(`.display-value`);
+    if (displayValue && displayValue.closest('td').querySelector(`[data-field="${fieldName}"]`)) {
+      if (fieldName === 'income' || fieldName === 'expenses') {
+        const numValue = parseFloat(newValue) || 0;
+        displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : '';
+      } else {
+        displayValue.textContent = field.value;
+      }
+    }
   });
+
+  // Mark as edited
+  transaction.edited = true;
 
   // Save to localStorage
   try {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
 
-    // Hide save/revert buttons
-    row.querySelector('.btn-save').style.display = 'none';
-    row.querySelector('.btn-revert').style.display = 'none';
-    row.classList.remove('has-changes');
+    // Exit edit mode
+    exitEditMode(index);
+
+    // Mark row as edited
+    row.classList.add('edited-row');
 
     // Show success feedback
     import('./uiManager.js').then(module => {
@@ -410,11 +592,6 @@ function saveTransactionChanges(index) {
         module.showToast('Transaction updated', 'success');
       }
     });
-
-    // Update category buttons if category changed
-    setTimeout(() => {
-      renderCategoryButtons();
-    }, 100);
 
   } catch (error) {
     console.error('Error saving transaction:', error);
@@ -433,16 +610,14 @@ function revertTransactionChanges(index) {
   const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
   if (!row) return;
 
-  const fields = row.querySelectorAll('.edit-field');
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
 
   fields.forEach(field => {
     field.value = field.dataset.original;
   });
 
-  // Hide save/revert buttons
-  row.querySelector('.btn-save').style.display = 'none';
-  row.querySelector('.btn-revert').style.display = 'none';
-  row.classList.remove('has-changes');
+  // Exit edit mode
+  exitEditMode(index);
 }
 
 /**
@@ -495,7 +670,7 @@ function updateTransactionSummary(transactions) {
 }
 
 /**
- * FIXED: Applies current filters to the transaction list with dd/mm/yyyy date handling
+ * FIXED: Applies current filters to the transaction list with dd/mm/yyyy date handling and subcategory support
  * @param {Array} transactions - The transactions to filter
  * @returns {Array} Filtered transactions
  */
@@ -516,14 +691,20 @@ function applyFilters(transactions = AppState.transactions || []) {
 
   if (activeFilter) {
     filtered = filtered.filter(tx => {
-      if (activeFilter.includes(' > ')) {
-        // Subcategory filter
-        const [parentCat, subCat] = activeFilter.split(' > ');
-        return tx.category === parentCat && tx.subcategory === subCat;
-      } else {
-        // Main category filter
-        return (tx.category || 'Uncategorized') === activeFilter;
+      const txCategory = tx.category || 'Uncategorized';
+      const txSubcategory = tx.subcategory || '';
+
+      // If filtering by main category, include all its subcategories
+      if (txCategory === activeFilter) {
+        return true;
       }
+
+      // If transaction has subcategory, check if it matches the filter
+      if (txSubcategory && `${txCategory}:${txSubcategory}` === activeFilter) {
+        return true;
+      }
+
+      return false;
     });
   }
 
@@ -723,7 +904,7 @@ function createFilterSection() {
 }
 
 /**
- * Generate category dropdown with subcategories - FIXED: Use proper ordering and colors
+ * FIXED: Generate category dropdown with subcategories - Use proper ordering and colors, save changes automatically
  */
 function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionIndex) {
   const categories = AppState.categories || {};
@@ -762,11 +943,12 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 
     html += `<option value="${categoryName}" ${isSelected ? 'selected' : ''} data-color="${color}" style="color: ${color}; font-weight: 500;">● ${categoryName}</option>`;
 
-    // Add subcategories if they exist
+    // FIXED: Add subcategories if they exist
     if (typeof categoryData === 'object' && categoryData.subcategories) {
       Object.entries(categoryData.subcategories).forEach(([subName, subColor]) => {
+        const fullSubcategoryValue = `${categoryName}:${subName}`;
         const isSubSelected = selectedCategory === categoryName && selectedSubcategory === subName;
-        html += `<option value="${categoryName}:${subName}" ${isSubSelected ? 'selected' : ''} data-color="${subColor}" style="color: ${subColor}; padding-left: 20px;">  ➤ ${subName}</option>`;
+        html += `<option value="${fullSubcategoryValue}" ${isSubSelected ? 'selected' : ''} data-color="${subColor}" style="color: ${subColor}; padding-left: 20px;">  ➤ ${subName}</option>`;
       });
     }
   });

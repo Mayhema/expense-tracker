@@ -533,6 +533,10 @@ function showFilePreviewModal(data) {
     const dataRow = data[dataRowIndex] || [];
     const previewContainer = document.getElementById('previewContainer');
 
+    // CRITICAL FIX: Only create mapping dropdowns for actual columns that exist
+    const actualColumnCount = headers.length;
+    console.log('CRITICAL: Creating mapping for', actualColumnCount, 'actual columns');
+
     // FIXED: Proper table structure with headers mapping above each column using only essential fields
     let html = `
       <div class="preview-table-wrapper">
@@ -566,11 +570,14 @@ function showFilePreviewModal(data) {
           <tbody>
             <tr class="data-row">
               ${dataRow.map((cell, index) => {
-      // FIXED: Convert Excel dates for preview
+      // FIXED: Convert Excel dates for preview and clean display value
       let displayValue = cell || '<em>empty</em>';
       if (cell && isExcelDate(cell)) {
         const convertedDate = convertExcelDate(cell);
         displayValue = `${convertedDate} <small>(was: ${cell})</small>`;
+      } else if (cell) {
+        // CRITICAL FIX: Clean any unwanted text from display value
+        displayValue = String(cell).replace(/data-field=.*$/i, '').trim() || '<em>empty</em>';
       }
       return `
                   <td class="data-cell">
@@ -691,6 +698,32 @@ export async function onSaveHeaders(modal) {
       return;
     }
 
+    // CRITICAL FIX: Validate that we have enough columns in the data
+    const actualColumnCount = data[headerRowIndex]?.length || data[0]?.length || 0;
+    const mappedColumnCount = mapping.length;
+
+    console.log('CRITICAL: Column validation:', {
+      actualColumnCount,
+      mappedColumnCount,
+      headerRow: data[headerRowIndex],
+      dataRow: data[dataRowIndex]
+    });
+
+    if (mappedColumnCount > actualColumnCount) {
+      showToast(`Error: File has ${actualColumnCount} columns but mapping has ${mappedColumnCount} columns`, "error");
+      return;
+    }
+
+    // CRITICAL FIX: Find the highest mapped column index that's not '–'
+    const maxMappedColumnIndex = mapping.reduce((maxIndex, field, index) => {
+      return field !== '–' ? Math.max(maxIndex, index) : maxIndex;
+    }, -1);
+
+    if (maxMappedColumnIndex >= actualColumnCount) {
+      showToast(`Error: Mapping uses column ${maxMappedColumnIndex + 1} but file only has ${actualColumnCount} columns`, "error");
+      return;
+    }
+
     // CRITICAL FIX: Generate signature consistently - without mapping parameter
     const { generateFileSignature } = await import('../parsers/fileHandler.js');
     const { saveHeadersAndFormat } = await import('../mappings/mappingsManager.js');
@@ -710,7 +743,7 @@ export async function onSaveHeaders(modal) {
 
     console.log('CRITICAL: Saved mapping with signature:', signature, 'mapping:', mapping);
 
-    // CRITICAL FIX: Process transactions with proper field mapping
+    // CRITICAL FIX: Process transactions with proper field mapping and validation
     const transactions = [];
     for (let i = dataRowIndex; i < data.length; i++) {
       const row = data[i];
@@ -726,36 +759,77 @@ export async function onSaveHeaders(modal) {
         expenses: 0
       };
 
+      // CRITICAL FIX: Only process columns that exist in the actual data AND are mapped
       mapping.forEach((field, colIndex) => {
-        if (field && field !== '–' && row[colIndex] !== undefined) {
-          let value = row[colIndex];
+        // Skip if field is not mapped, column doesn't exist, or cell is empty
+        if (field === '–' || colIndex >= row.length || !row[colIndex]) {
+          return;
+        }
 
-          // FIXED: Apply Excel date conversion during processing
-          if (field === 'Date' && isExcelDate(value)) {
-            value = convertExcelDate(value);
+        let value = row[colIndex];
+
+        // Skip empty values
+        if (value === null || value === undefined || value === '') {
+          return;
+        }
+
+        console.log(`CRITICAL: Processing column ${colIndex}, field ${field}, value:`, value);
+
+        // FIXED: Apply Excel date conversion during processing
+        if (field === 'Date' && isExcelDate(value)) {
+          value = convertExcelDate(value);
+        }
+
+        // CRITICAL FIX: Ensure proper data type conversion and validation
+        if (field === 'Income' || field === 'Expenses') {
+          // Convert to number for amount fields
+          const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
+          if (numValue > 0) { // Only set if positive value
+            transaction[field.toLowerCase()] = numValue;
           }
-
-          // Map to lowercase field names to match transaction structure
-          const fieldName = field.toLowerCase();
-          transaction[fieldName] = value;
+        } else {
+          // Convert to string for other fields
+          const cleanValue = String(value).trim();
+          transaction[field.toLowerCase()] = cleanValue;
         }
       });
 
-      // Convert string numbers to proper numbers
-      if (transaction.income && typeof transaction.income === 'string') {
-        transaction.income = parseFloat(transaction.income.replace(/[^\d.-]/g, '')) || 0;
+      // CRITICAL FIX: Validate transaction has meaningful data and correct data types
+      const hasValidDate = transaction.date && transaction.date !== '' && typeof transaction.date === 'string';
+      const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
+      const hasValidDescription = transaction.description && transaction.description.trim() !== '';
+
+      // Additional validation: ensure date is not a number (which indicates wrong mapping)
+      if (transaction.date && typeof transaction.date === 'number') {
+        console.warn('CRITICAL: Invalid date format detected, skipping transaction:', transaction);
+        continue;
       }
-      if (transaction.expenses && typeof transaction.expenses === 'string') {
-        transaction.expenses = parseFloat(transaction.expenses.replace(/[^\d.-]/g, '')) || 0;
+
+      // Additional validation: ensure description is not a number (which indicates wrong mapping)
+      if (transaction.description && !isNaN(parseFloat(transaction.description)) && isFinite(transaction.description)) {
+        console.warn('CRITICAL: Description appears to be a number, possible wrong mapping:', transaction);
       }
 
       // Only add if has essential data
-      if (transaction.date || transaction.description || transaction.income > 0 || transaction.expenses > 0) {
+      if (hasValidDate || hasValidAmount || hasValidDescription) {
         transactions.push(transaction);
       }
     }
 
     console.log(`CRITICAL: Processed ${transactions.length} transactions from file:`, transactions.slice(0, 3));
+
+    // CRITICAL FIX: Validate processed transactions before saving
+    if (transactions.length === 0) {
+      showToast("No valid transactions found in the file. Please check your column mapping.", "error");
+      return;
+    }
+
+    // Validate sample transactions for data integrity
+    const sampleTx = transactions[0];
+    if (typeof sampleTx.date === 'number') {
+      showToast("Invalid date format detected. Please check your Date column mapping.", "error");
+      return;
+    }
 
     // Save merged file data with ALL required fields
     const mergedFile = {
@@ -827,10 +901,15 @@ function getCurrentMapping() {
   const selects = document.querySelectorAll('.header-select, .column-mapping');
   const mapping = [];
 
+  // CRITICAL FIX: Only get mappings for actual select elements that exist
   selects.forEach((select, index) => {
-    mapping[index] = select.value || '–';
+    const dataIndex = parseInt(select.getAttribute('data-index'));
+    if (!isNaN(dataIndex)) {
+      mapping[dataIndex] = select.value || '–';
+    }
   });
 
+  console.log('CRITICAL: Generated mapping array:', mapping, 'length:', mapping.length);
   return mapping;
 }
 

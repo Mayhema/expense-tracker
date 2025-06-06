@@ -582,3 +582,85 @@ div#transactionFilters div.filter-group {
     font-size: 0.7rem !important;
   }
 }
+
+/* FIXED: Add styles for edit mode and edited indicators */
+.transaction-table .counter-cell {
+  text-align: center;
+  font-weight: bold;
+  color: #666;
+  width: 50px;
+}
+
+.transaction-table .editing-mode {
+  background-color: #fff3cd !important;
+}
+
+.dark-mode .transaction-table .editing-mode {
+  background-color: #533f03 !important;
+}
+
+.transaction-table .edited-row {
+  border-left: 3px solid #28a745;
+}
+
+.transaction-table .edited-indicator {
+  position: relative;
+}
+
+.transaction-table .edited-indicator::after {
+  content: "*";
+  color: #28a745;
+  font-weight: bold;
+  margin-left: 3px;
+}
+
+.transaction-table .has-changes {
+  background-color: #f8f9fa !important;
+}
+
+.dark-mode .transaction-table .has-changes {
+  background-color: #2d3748 !important;
+}
+
+.transaction-table .btn-edit,
+.transaction-table .btn-save,
+.transaction-table .btn-revert {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 5px;
+  margin: 0 2px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.transaction-table .btn-edit:hover {
+  background-color: #e3f2fd;
+}
+
+.transaction-table .btn-save:hover {
+  background-color: #e8f5e8;
+}
+
+.transaction-table .btn-revert:hover {
+  background-color: #ffebee;
+}
+
+.dark-mode .transaction-table .btn-edit:hover {
+  background-color: #1e3a8a;
+}
+
+.dark-mode .transaction-table .btn-save:hover {
+  background-color: #166534;
+}
+
+.dark-mode .transaction-table .btn-revert:hover {
+  background-color: #991b1b;
+}
+
+/* FIXED: Category cell styling with color background */
+.transaction-table .category-cell {
+  border-radius: 4px;
+  padding: 8px 12px;
+}

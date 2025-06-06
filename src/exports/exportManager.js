@@ -19,33 +19,37 @@ export function exportTransactionsAsCSV() {
   }
 
   try {
-    // Create CSV header with better column names
-    const headers = ['Date', 'Description', 'Amount', 'Type', 'Category', 'Currency', 'Source File'];
+    // FIXED: Match transaction data columns exactly
+    const headers = ['Date', 'Description', 'Category', 'Income', 'Expenses', 'Currency', 'File Name'];
 
-    // Create CSV content with improved data handling
-    const csvContent = [
+    // Create CSV content with improved data handling and Hebrew support
+    const csvRows = [
       headers.join(','),
       ...transactions.map(tx => {
-        const amount = parseFloat(tx.expenses) || parseFloat(tx.income) || 0;
-        const type = tx.expenses ? 'Expense' : 'Income';
         // FIXED: Format date to dd/mm/yyyy for export
         const formattedDate = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
 
+        // Clean description for export
+        const cleanDescription = (tx.description || '').trim();
+
         return [
           formattedDate,
-          `"${(tx.description || '').replace(/"/g, '""')}"`,
-          amount.toFixed(2),
-          type,
-          tx.category || 'Uncategorized',
+          `"${cleanDescription.replace(/"/g, '""')}"`, // Proper CSV escaping
+          `"${(tx.category || 'Uncategorized').replace(/"/g, '""')}"`,
+          (parseFloat(tx.income) || 0).toFixed(2),
+          (parseFloat(tx.expenses) || 0).toFixed(2),
           tx.currency || 'USD',
-          tx.fileName || 'Unknown'
+          `"${(tx.fileName || 'Unknown').replace(/"/g, '""')}"`
         ].join(',');
       })
-    ].join('\n');
+    ];
+
+    // CRITICAL FIX: Add UTF-8 BOM for proper Hebrew encoding
+    const csvContent = '\uFEFF' + csvRows.join('\n');
 
     // Create and download file with dd/mm/yyyy in filename
     const currentDate = formatDateToDDMMYYYY(new Date()).replace(/\//g, '-');
-    downloadFile(csvContent, `transactions_${currentDate}.csv`, 'text/csv');
+    downloadFile(csvContent, `transactions_${currentDate}.csv`, 'text/csv;charset=utf-8');
     showToast(`Exported ${transactions.length} transactions to CSV`, "success");
 
   } catch (error) {
@@ -70,13 +74,18 @@ export function exportTransactionsAsJSON() {
   try {
     // FIXED: Format dates to dd/mm/yyyy in JSON export
     const formattedTransactions = transactions.map(tx => ({
-      ...tx,
-      date: tx.date ? formatDateToDDMMYYYY(tx.date) : ''
+      date: tx.date ? formatDateToDDMMYYYY(tx.date) : '',
+      description: (tx.description || '').trim(),
+      category: tx.category || 'Uncategorized',
+      income: parseFloat(tx.income) || 0,
+      expenses: parseFloat(tx.expenses) || 0,
+      currency: tx.currency || 'USD',
+      fileName: tx.fileName || 'Unknown'
     }));
 
     const jsonContent = JSON.stringify(formattedTransactions, null, 2);
     const currentDate = formatDateToDDMMYYYY(new Date()).replace(/\//g, '-');
-    downloadFile(jsonContent, `transactions_${currentDate}.json`, 'application/json');
+    downloadFile(jsonContent, `transactions_${currentDate}.json`, 'application/json;charset=utf-8');
     showToast(`Exported ${transactions.length} transactions to JSON`, "success");
 
   } catch (error) {
@@ -127,7 +136,8 @@ export function exportMergedFilesAsCSV() {
  * Download file helper function
  */
 function downloadFile(content, filename, mimeType) {
-  const blob = new Blob([content], { type: mimeType + ';charset=utf-8;' });
+  // FIXED: Ensure proper encoding for Hebrew text
+  const blob = new Blob([content], { type: mimeType });
   const link = document.createElement('a');
 
   if (link.download !== undefined) {
