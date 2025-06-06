@@ -144,7 +144,7 @@ function renderFiltersSection(container, transactions) {
 }
 
 /**
- * FIXED: Render transaction table with guaranteed structure
+ * FIXED: Render transaction table with guaranteed structure and proper date sorting
  */
 function renderTransactionTable(container, transactions) {
   const tableWrapper = container.querySelector('#transactionTableWrapper');
@@ -169,8 +169,15 @@ function renderTransactionTable(container, transactions) {
     return;
   }
 
-  // FIXED: Generate proper table HTML
-  const tableHTML = generateTransactionTableHTML(transactions);
+  // FIXED: Sort transactions by date (oldest to newest)
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    const dateA = new Date(a.date || '1900-01-01');
+    const dateB = new Date(b.date || '1900-01-01');
+    return dateA - dateB;
+  });
+
+  // FIXED: Generate proper table HTML with sorted transactions
+  const tableHTML = generateTransactionTableHTML(sortedTransactions);
   tableWrapper.innerHTML = tableHTML;
 
   // FIXED: Attach event listeners after DOM update
@@ -179,7 +186,7 @@ function renderTransactionTable(container, transactions) {
     console.log('CRITICAL: Event listeners attached');
   }, 50);
 
-  console.log(`CRITICAL: Transaction table rendered with ${transactions.length} rows`);
+  console.log(`CRITICAL: Transaction table rendered with ${sortedTransactions.length} rows (sorted by date)`);
 }
 
 /**
@@ -233,8 +240,9 @@ function generateTransactionTableHTML(transactions) {
   transactions.forEach((tx, index) => {
     // FIXED: Format date to dd/mm/yyyy for display
     const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
-    // FIXED: Ensure description is clean and handle null/undefined
+    // FIXED: Ensure description is clean and handle null/undefined with RTL detection
     const description = (tx.description || '').toString().replace(/\s*data-field=.*$/i, '').trim();
+    const isRTL = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F]/.test(description);
     const category = tx.category || '';
     const subcategory = tx.subcategory || '';
     const income = parseFloat(tx.income) || 0;
@@ -246,9 +254,10 @@ function generateTransactionTableHTML(transactions) {
     const categoryColor = getCategoryColor(category);
     const categoryStyle = category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
 
-    // FIXED: Generate currency dropdown from CURRENCIES constant
-    const currencyOptions = Object.keys(CURRENCIES).sort().map(currencyCode => {
-      return `<option value="${currencyCode}" ${currency === currencyCode ? 'selected' : ''}>${currencyCode}</option>`;
+    // FIXED: Generate currency dropdown with proper symbols (fix symbol issue)
+    const currencyOptions = Object.entries(CURRENCIES).sort(([a], [b]) => a.localeCompare(b)).map(([currencyCode, currencyData]) => {
+      const symbol = currencyData?.symbol || '💱';
+      return `<option value="${currencyCode}" ${currency === currencyCode ? 'selected' : ''}>${symbol} ${currencyCode}</option>`;
     }).join('');
 
     html += `
@@ -265,18 +274,17 @@ function generateTransactionTableHTML(transactions) {
                  placeholder="dd/mm/yyyy"
                  style="display: none;">
         </td>
-        <td class="description-cell">
-          <span class="display-value">${description}</span>
+        <td class="description-cell" ${isRTL ? 'dir="rtl"' : ''}>
+          <span class="display-value" ${isRTL ? 'style="direction: rtl; text-align: right;"' : ''}>${description}</span>
           <input type="text"
                  class="edit-field description-field"
                  value="${description.replace(/"/g, '&quot;')}"
-
                  data-field="description"
                  data-index="${index}"
                  data-original="${description.replace(/"/g, '&quot;')}"
-
                  placeholder="Enter description"
-                 style="display: none;">
+                 ${isRTL ? 'dir="rtl"' : ''}
+                 style="display: none; ${isRTL ? 'direction: rtl; text-align: right;' : ''}">
         </td>
         <td class="category-cell" style="${categoryStyle}">
           ${generateCategoryDropdown(category, subcategory, index)}
@@ -409,7 +417,7 @@ function enterEditMode(index) {
   row.dataset.editMode = 'true';
   row.classList.add('editing-mode');
 
-  // Hide display values and show input fields (except currency and category)
+  // FIXED: Hide display values and show input fields (except currency and category)
   const displayValues = row.querySelectorAll('.display-value');
   const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
 
@@ -437,7 +445,7 @@ function exitEditMode(index) {
   row.dataset.editMode = 'false';
   row.classList.remove('editing-mode', 'has-changes');
 
-  // Show display values and hide input fields (except currency and category)
+  // FIXED: Show display values and hide input fields (except currency and category)
   const displayValues = row.querySelectorAll('.display-value');
   const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
 
@@ -461,10 +469,20 @@ function saveFieldChange(index, fieldName, newValue) {
   if (!AppState.transactions || !AppState.transactions[index]) return;
 
   const transaction = AppState.transactions[index];
-  const oldValue = transaction[fieldName];
 
-  // Update the transaction
-  transaction[fieldName] = newValue;
+  // FIXED: Handle category with subcategory parsing
+  if (fieldName === 'category') {
+    if (newValue.includes(':')) {
+      const [category, subcategory] = newValue.split(':');
+      transaction.category = category;
+      transaction.subcategory = subcategory;
+    } else {
+      transaction.category = newValue;
+      transaction.subcategory = '';
+    }
+  } else {
+    transaction[fieldName] = newValue;
+  }
 
   // Mark as edited if it wasn't already
   if (!transaction.edited) {
@@ -479,12 +497,18 @@ function saveFieldChange(index, fieldName, newValue) {
     if (fieldName === 'category') {
       const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
       const categoryCell = row.querySelector('.category-cell');
-      const categoryColor = getCategoryColor(newValue);
-      const categoryStyle = newValue ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
+      const categoryColor = getCategoryColor(transaction.category);
+      const categoryStyle = transaction.category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
       categoryCell.style.cssText = categoryStyle;
 
       // Mark row as edited
       row.classList.add('edited-row');
+    }
+
+    // FIXED: Update summary in real-time for currency changes
+    if (fieldName === 'currency') {
+      const filteredTransactions = applyFilters(AppState.transactions);
+      updateTransactionSummary(filteredTransactions);
     }
 
     // Show success feedback
@@ -561,13 +585,15 @@ function saveTransactionChanges(index) {
       field.dataset.original = newValue;
     }
 
-    // Update display value
-    const displayValue = row.querySelector(`.display-value`);
-    if (displayValue && displayValue.closest('td').querySelector(`[data-field="${fieldName}"]`)) {
+    // FIXED: Update display value in real-time with proper text content setting
+    const cell = field.closest('td');
+    const displayValue = cell.querySelector('.display-value');
+    if (displayValue) {
       if (fieldName === 'income' || fieldName === 'expenses') {
         const numValue = parseFloat(newValue) || 0;
         displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : '';
       } else {
+        // FIXED: For description and other text fields, properly update display text
         displayValue.textContent = field.value;
       }
     }
@@ -585,6 +611,10 @@ function saveTransactionChanges(index) {
 
     // Mark row as edited
     row.classList.add('edited-row');
+
+    // FIXED: Update summary in real-time
+    const filteredTransactions = applyFilters(AppState.transactions);
+    updateTransactionSummary(filteredTransactions);
 
     // Show success feedback
     import('./uiManager.js').then(module => {
@@ -621,52 +651,110 @@ function revertTransactionChanges(index) {
 }
 
 /**
- * FIXED: Add missing updateTransactionSummary function
+ * FIXED: Add missing updateTransactionSummary function with multi-currency support
  */
 function updateTransactionSummary(transactions) {
-  const totalIncome = transactions.reduce((sum, tx) => sum + (parseFloat(tx.income) || 0), 0);
-  const totalExpenses = transactions.reduce((sum, tx) => sum + (parseFloat(tx.expenses) || 0), 0);
-  const netBalance = totalIncome - totalExpenses;
-
-  // Update summary if it exists
   const summaryContainer = document.getElementById('transactionSummary');
-  if (summaryContainer) {
-    // FIXED: Force the exact structure with proper classes and force display as flex row
+  if (!summaryContainer) return;
+
+  // Group transactions by currency
+  const currencyGroups = {};
+  transactions.forEach(tx => {
+    const currency = tx.currency || 'USD';
+    if (!currencyGroups[currency]) {
+      currencyGroups[currency] = {
+        income: 0,
+        expenses: 0,
+        count: 0
+      };
+    }
+    currencyGroups[currency].income += parseFloat(tx.income) || 0;
+    currencyGroups[currency].expenses += parseFloat(tx.expenses) || 0;
+    currencyGroups[currency].count += 1;
+  });
+
+  const currencies = Object.keys(currencyGroups);
+
+  if (currencies.length === 1) {
+    // Single currency - show traditional summary
+    const currency = currencies[0];
+    const data = currencyGroups[currency];
+    const netBalance = data.income - data.expenses;
+    const currencyIcon = CURRENCIES[currency]?.icon || '💱';
+
     summaryContainer.innerHTML = `
       <div class="summary-cards-row" style="display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 1rem !important; justify-content: space-between !important;">
         <div class="summary-card income" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
           <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(40, 167, 69, 0.1) !important; color: #28a745 !important; display: flex !important; align-items: center !important; justify-content: center !important;">💰</div>
           <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
             <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Income</span>
-            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #28a745 !important;">${totalIncome.toFixed(2)}</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #28a745 !important;">${currencyIcon} ${data.income.toFixed(2)}</span>
           </div>
         </div>
         <div class="summary-card expenses" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
           <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(220, 53, 69, 0.1) !important; color: #dc3545 !important; display: flex !important; align-items: center !important; justify-content: center !important;">💸</div>
           <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
             <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Expenses</span>
-            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #dc3545 !important;">${totalExpenses.toFixed(2)}</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #dc3545 !important;">${currencyIcon} ${data.expenses.toFixed(2)}</span>
           </div>
         </div>
         <div class="summary-card net ${netBalance >= 0 ? 'positive' : 'negative'}" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
           <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: ${netBalance >= 0 ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)'} !important; color: ${netBalance >= 0 ? '#28a745' : '#dc3545'} !important; display: flex !important; align-items: center !important; justify-content: center !important;">${netBalance >= 0 ? '📈' : '📉'}</div>
           <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
             <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Net Balance</span>
-            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: ${netBalance >= 0 ? '#28a745' : '#dc3545'} !important;">${netBalance.toFixed(2)}</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: ${netBalance >= 0 ? '#28a745' : '#dc3545'} !important;">${currencyIcon} ${netBalance.toFixed(2)}</span>
           </div>
         </div>
         <div class="summary-card count" style="display: flex !important; align-items: center !important; gap: 0.75rem !important; flex: 1 1 calc(25% - 0.75rem) !important; min-width: 180px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
           <div class="summary-icon" style="font-size: 1.5rem !important; width: 40px !important; height: 40px !important; border-radius: 50% !important; background: rgba(0, 123, 255, 0.1) !important; color: #007bff !important; display: flex !important; align-items: center !important; justify-content: center !important;">📊</div>
           <div class="summary-content" style="display: flex !important; flex-direction: column !important; gap: 0.25rem !important; flex: 1 !important;">
             <span class="summary-label" style="font-size: 0.85rem !important; font-weight: 500 !important; color: #6c757d !important; text-transform: uppercase !important;">Transactions</span>
-            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #007bff !important;">${transactions.length}</span>
+            <span class="summary-value" style="font-size: 1.25rem !important; font-weight: 700 !important; color: #007bff !important;">${data.count}</span>
           </div>
         </div>
       </div>
     `;
+  } else {
+    // Multiple currencies - show by currency
+    let cardsHTML = '';
+    currencies.forEach(currency => {
+      const data = currencyGroups[currency];
+      const netBalance = data.income - data.expenses;
+      const currencyIcon = CURRENCIES[currency]?.icon || '💱';
 
-    console.log('CRITICAL: Transaction summary updated with inline styles to force horizontal layout');
+      cardsHTML += `
+        <div class="summary-card currency-summary" style="display: flex !important; flex-direction: column !important; gap: 0.5rem !important; flex: 1 1 calc(33% - 0.75rem) !important; min-width: 200px !important; padding: 1rem !important; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; border: 1px solid #e9ecef !important; border-radius: 10px !important;">
+          <div class="currency-header" style="display: flex !important; align-items: center !important; gap: 0.5rem !important; font-weight: 600 !important; color: #495057 !important;">
+            <span style="font-size: 1.2rem !important;">${currencyIcon}</span>
+            <span>${currency}</span>
+          </div>
+          <div class="currency-stats" style="display: flex !important; justify-content: space-between !important; gap: 1rem !important;">
+            <div style="text-align: center !important;">
+              <div style="font-size: 0.75rem !important; color: #6c757d !important; text-transform: uppercase !important;">Income</div>
+              <div style="font-size: 1rem !important; font-weight: 600 !important; color: #28a745 !important;">${data.income.toFixed(2)}</div>
+            </div>
+            <div style="text-align: center !important;">
+              <div style="font-size: 0.75rem !important; color: #6c757d !important; text-transform: uppercase !important;">Expenses</div>
+              <div style="font-size: 1rem !important; font-weight: 600 !important; color: #dc3545 !important;">${data.expenses.toFixed(2)}</div>
+            </div>
+            <div style="text-align: center !important;">
+              <div style="font-size: 0.75rem !important; color: #6c757d !important; text-transform: uppercase !important;">Net</div>
+              <div style="font-size: 1rem !important; font-weight: 600 !important; color: ${netBalance >= 0 ? '#28a745' : '#dc3545'} !important;">${netBalance.toFixed(2)}</div>
+            </div>
+          </div>
+          <div style="text-align: center !important; font-size: 0.85rem !important; color: #6c757d !important;">${data.count} transactions</div>
+        </div>
+      `;
+    });
+
+    summaryContainer.innerHTML = `
+      <div class="summary-cards-row" style="display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 1rem !important; justify-content: flex-start !important;">
+        ${cardsHTML}
+      </div>
+    `;
   }
+
+  console.log('CRITICAL: Transaction summary updated with multi-currency support');
 }
 
 /**
@@ -700,11 +788,7 @@ function applyFilters(transactions = AppState.transactions || []) {
       }
 
       // If transaction has subcategory, check if it matches the filter
-      if (txSubcategory && `${txCategory}:${txSubcategory}` === activeFilter) {
-        return true;
-      }
-
-      return false;
+      return txSubcategory && `${txCategory}:${txSubcategory}` === activeFilter;
     });
   }
 
@@ -743,7 +827,7 @@ function applyFilters(transactions = AppState.transactions || []) {
 }
 
 /**
- * FIXED: Initializes the filter controls
+ * FIXED: Initializes the filter controls with currency symbols
  */
 function initializeFilters() {
   // Category filter - FIXED: Use AppState.categories with proper ordering
@@ -757,19 +841,21 @@ function initializeFilters() {
     });
   }
 
-  // Currency filter - FIXED: Use CURRENCIES from currencies.js
+  // Currency filter - FIXED: Use CURRENCIES with proper symbols (fix symbol issue)
   const currencyFilter = document.getElementById('filterCurrency');
   if (currencyFilter) {
     // Clear existing options first
     currencyFilter.innerHTML = '<option value="">All Currencies</option>';
 
-    // FIXED: Import and use CURRENCIES
+    // FIXED: Import and use CURRENCIES with proper symbols handling
     import('../constants/currencies.js').then(module => {
       const currencies = module.CURRENCIES || {};
-      Object.keys(currencies).sort().forEach(currencyCode => {
+      Object.entries(currencies).sort(([a], [b]) => a.localeCompare(b)).forEach(([currencyCode, currencyData]) => {
         const option = document.createElement('option');
         option.value = currencyCode;
-        option.textContent = `${currencyCode} - ${currencies[currencyCode].name}`;
+        const symbol = currencyData?.symbol || '💱';
+        const name = currencyData?.name || currencyCode;
+        option.textContent = `${symbol} ${currencyCode} - ${name}`;
         currencyFilter.appendChild(option);
       });
     }).catch(error => {

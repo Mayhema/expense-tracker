@@ -273,6 +273,20 @@ div#transactionFilters div.filter-group {
   white-space: nowrap;
 }
 
+/* FIXED: RTL support for description cells */
+.transaction-table .description-cell[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: bidi-override;
+}
+
+.transaction-table .description-cell[dir="rtl"] .display-value,
+.transaction-table .description-cell[dir="rtl"] .edit-field {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: bidi-override;
+}
+
 .transaction-table .income-cell {
   color: var(--success-color);
   font-weight: 600;
@@ -663,4 +677,56 @@ div#transactionFilters div.filter-group {
 .transaction-table .category-cell {
   border-radius: 4px;
   padding: 8px 12px;
+}
+
+/* FIXED: Multi-currency summary styling */
+.summary-card.currency-summary {
+  min-width: 200px !important;
+  flex: 1 1 calc(33% - 0.75rem) !important;
+}
+
+.currency-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.currency-stats {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+}
+
+.currency-stats>div {
+  text-align: center !important;
+  flex: 1 !important;
+}
+
+.currency-stats .stat-label {
+  font-size: 0.75rem !important;
+  color: #6c757d !important;
+  text-transform: uppercase !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.currency-stats .stat-value {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+/* Dark mode support for multi-currency */
+.dark-mode .summary-card.currency-summary {
+  background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
+  border-color: #6c757d !important;
+}
+
+.dark-mode .currency-header {
+  color: #e9ecef !important;
+}
+
+.dark-mode .currency-stats .stat-label {
+  color: #adb5bd !important;
 }
