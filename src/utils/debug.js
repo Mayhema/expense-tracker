@@ -127,10 +127,31 @@ function analyzeTransactions(transactions) {
     uncategorized: 0,
     categoryBreakdown: {},
     issues: [],
-    dates: []
+    dates: [],
+    idAnalysis: {
+      withIds: 0,
+      withoutIds: 0,
+      duplicateIds: 0
+    }
   };
 
+  const seenIds = new Set();
+
   transactions.forEach((tx, index) => {
+    // ADDED: Analyze transaction IDs
+    if (tx.id) {
+      analysis.idAnalysis.withIds++;
+      if (seenIds.has(tx.id)) {
+        analysis.idAnalysis.duplicateIds++;
+        analysis.issues.push(`Transaction ${index + 1}: Duplicate ID ${tx.id}`);
+      } else {
+        seenIds.add(tx.id);
+      }
+    } else {
+      analysis.idAnalysis.withoutIds++;
+      analysis.issues.push(`Transaction ${index + 1}: Missing ID`);
+    }
+
     // Analyze income/expenses
     const income = parseFloat(tx.income) || 0;
     const expenses = parseFloat(tx.expenses) || 0;
@@ -201,6 +222,7 @@ function analyzeTransactions(transactions) {
   analysis.totalIncome = analysis.totalIncome.toFixed(2);
   analysis.totalExpenses = analysis.totalExpenses.toFixed(2);
 
+  // FIXED: Return the analysis
   return analysis;
 }
 

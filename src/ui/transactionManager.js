@@ -208,10 +208,163 @@ function getCategoryColor(categoryName) {
 }
 
 /**
+ * CRITICAL FIX: Ensure all transactions have unique IDs and log the process
+ */
+function ensureTransactionIds(transactions) {
+  console.group('🆔 ENSURING TRANSACTION IDS');
+  let idsAdded = 0;
+  let existingIds = 0;
+
+  transactions.forEach((tx, index) => {
+    if (!tx.id) {
+      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      idsAdded++;
+      console.log(`🆔 ASSIGNED ID: ${tx.id} to transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
+    } else {
+      existingIds++;
+      console.log(`✓ EXISTING ID: ${tx.id} for transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
+    }
+  });
+
+  console.log(`🆔 SUMMARY: ${idsAdded} IDs added, ${existingIds} existing IDs found`);
+  console.groupEnd();
+
+  return transactions;
+}
+
+/**
+ * CRITICAL FIX: Save individual field change using transaction ID instead of index
+ */
+function saveFieldChangeById(transactionId, fieldName, newValue) {
+  console.group(`💾 SAVING FIELD CHANGE BY ID`);
+  console.log(`🆔 Transaction ID: ${transactionId}`);
+  console.log(`📝 Field: ${fieldName}`);
+  console.log(`🔄 New Value: "${newValue}"`);
+
+  if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
+    console.error('❌ No transactions array in AppState');
+    console.groupEnd();
+    return;
+  }
+
+  // CRITICAL FIX: Find transaction by ID instead of using index
+  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+
+  if (transactionIndex === -1) {
+    console.error(`❌ Transaction with ID ${transactionId} not found in AppState.transactions`);
+    console.log(`📋 Available transaction IDs:`, AppState.transactions.map((tx, idx) => ({ index: idx, id: tx.id, desc: tx.description?.substring(0, 30) })));
+    console.groupEnd();
+    return;
+  }
+
+  const transaction = AppState.transactions[transactionIndex];
+  console.log(`✓ Found transaction at index ${transactionIndex}:`);
+  console.log(`  📝 Description: "${transaction.description?.substring(0, 50)}..."`);
+  console.log(`  🏷️ Current category: "${transaction.category}"`);
+  console.log(`  📂 Current subcategory: "${transaction.subcategory}"`);
+
+  // FIXED: Handle category with subcategory parsing
+  if (fieldName === 'category') {
+    const oldCategory = transaction.category;
+    const oldSubcategory = transaction.subcategory;
+
+    if (newValue.includes(':')) {
+      const [category, subcategory] = newValue.split(':');
+      transaction.category = category;
+      transaction.subcategory = subcategory;
+      console.log(`🔄 Updated category from "${oldCategory}:${oldSubcategory}" to "${category}:${subcategory}"`);
+    } else {
+      transaction.category = newValue;
+      transaction.subcategory = '';
+      console.log(`🔄 Updated category from "${oldCategory}" to "${newValue}", cleared subcategory`);
+    }
+  } else {
+    const oldValue = transaction[fieldName];
+    transaction[fieldName] = newValue;
+    console.log(`🔄 Updated field ${fieldName} from "${oldValue}" to "${newValue}"`);
+  }
+
+  // Mark as edited if it wasn't already
+  if (!transaction.edited) {
+    transaction.edited = true;
+    console.log(`✏️ Marked transaction ${transactionId} as edited`);
+  }
+
+  // CRITICAL FIX: Save to localStorage immediately and verify
+  try {
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    console.log(`💾 Saved transaction ${transactionId} field ${fieldName} to localStorage`);
+
+    // Verify the save worked
+    const savedData = localStorage.getItem('transactions');
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      const savedTransaction = parsedData.find(tx => tx.id === transactionId);
+      if (savedTransaction) {
+        console.log(`✓ Verified save - transaction ${transactionId}:`);
+        console.log(`  🏷️ Category: "${savedTransaction.category}"`);
+        console.log(`  📂 Subcategory: "${savedTransaction.subcategory}"`);
+      } else {
+        console.error(`❌ Transaction ${transactionId} not found in saved data after save!`);
+      }
+    }
+
+    // Update display for category changes (update cell background color)
+    if (fieldName === 'category') {
+      const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+      if (row) {
+        const categoryCell = row.querySelector('.category-cell');
+        const categoryColor = getCategoryColor(transaction.category);
+        const categoryStyle = transaction.category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
+        categoryCell.style.cssText = categoryStyle;
+
+        // Mark row as edited
+        row.classList.add('edited-row');
+        console.log(`🎨 Updated UI for transaction ${transactionId} with category ${transaction.category}`);
+      } else {
+        console.error(`❌ Could not find row for transaction ${transactionId} to update UI`);
+      }
+
+      // CRITICAL FIX: Force update category buttons to refresh counts immediately
+      setTimeout(() => {
+        renderCategoryButtons();
+        console.log('🔄 Category buttons re-rendered after category change');
+      }, 50);
+    }
+
+    // FIXED: Update summary in real-time for currency changes
+    if (fieldName === 'currency') {
+      const filteredTransactions = applyFilters(AppState.transactions);
+      updateTransactionSummary(filteredTransactions);
+    }
+
+    // Show success feedback
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast(`${fieldName} updated`, 'success');
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error saving transaction:', error);
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Error saving changes', 'error');
+      }
+    });
+  }
+
+  console.groupEnd();
+}
+
+/**
  * FIXED: Generate proper transaction table HTML with edit mode and counter
  */
 function generateTransactionTableHTML(transactions) {
-  console.log(`CRITICAL: Generating table HTML for ${transactions.length} transactions`);
+  console.log(`🔧 Generating table HTML for ${transactions.length} transactions`);
+
+  // CRITICAL FIX: Ensure all transactions have IDs before rendering
+  ensureTransactionIds(transactions);
 
   let html = `
     <div class="transaction-table-header">
@@ -238,6 +391,15 @@ function generateTransactionTableHTML(transactions) {
   `;
 
   transactions.forEach((tx, index) => {
+    // CRITICAL FIX: Ensure each transaction has a unique ID
+    if (!tx.id) {
+      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      console.log(`🆔 CRITICAL: Assigned new ID ${tx.id} to transaction at index ${index}`);
+    }
+
+    // CRITICAL LOG: Log transaction details for debugging
+    console.log(`🔧 Rendering transaction ID ${tx.id} at index ${index}, category: "${tx.category}", description: "${tx.description?.substring(0, 50)}..."`);
+
     // FIXED: Format date to dd/mm/yyyy for display
     const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
     // FIXED: Ensure description is clean and handle null/undefined with RTL detection
@@ -261,7 +423,7 @@ function generateTransactionTableHTML(transactions) {
     }).join('');
 
     html += `
-      <tr data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
+      <tr data-transaction-id="${tx.id}" data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
         <td class="counter-cell">${index + 1}</td>
         <td class="date-cell">
           <span class="display-value">${date}</span>
@@ -269,6 +431,7 @@ function generateTransactionTableHTML(transactions) {
                  class="edit-field date-field"
                  value="${date}"
                  data-field="date"
+                 data-transaction-id="${tx.id}"
                  data-index="${index}"
                  data-original="${date}"
                  placeholder="dd/mm/yyyy"
@@ -278,8 +441,9 @@ function generateTransactionTableHTML(transactions) {
           <span class="display-value" ${isRTL ? 'style="direction: rtl; text-align: right;"' : ''}>${description}</span>
           <input type="text"
                  class="edit-field description-field"
-                 value="${description.replace(/"/g, '&quot;')}"
+                 value="${description.replace(/"/g, '&quot;')}
                  data-field="description"
+                 data-transaction-id="${tx.id}"
                  data-index="${index}"
                  data-original="${description.replace(/"/g, '&quot;')}"
                  placeholder="Enter description"
@@ -287,7 +451,7 @@ function generateTransactionTableHTML(transactions) {
                  style="display: none; ${isRTL ? 'direction: rtl; text-align: right;' : ''}">
         </td>
         <td class="category-cell" style="${categoryStyle}">
-          ${generateCategoryDropdown(category, subcategory, index)}
+          ${generateCategoryDropdown(category, subcategory, tx.id)}
         </td>
         <td class="amount-cell">
           <span class="display-value">${income > 0 ? income.toFixed(2) : ''}</span>
@@ -295,6 +459,7 @@ function generateTransactionTableHTML(transactions) {
                  class="edit-field amount-field income-field"
                  value="${income > 0 ? income.toFixed(2) : ''}"
                  data-field="income"
+                 data-transaction-id="${tx.id}"
                  data-index="${index}"
                  data-original="${income > 0 ? income.toFixed(2) : ''}"
                  placeholder="0.00"
@@ -308,6 +473,7 @@ function generateTransactionTableHTML(transactions) {
                  class="edit-field amount-field expense-field"
                  value="${expenses > 0 ? expenses.toFixed(2) : ''}"
                  data-field="expenses"
+                 data-transaction-id="${tx.id}"
                  data-index="${index}"
                  data-original="${expenses > 0 ? expenses.toFixed(2) : ''}"
                  placeholder="0.00"
@@ -318,15 +484,16 @@ function generateTransactionTableHTML(transactions) {
         <td class="currency-cell">
           <select class="edit-field currency-field"
                   data-field="currency"
+                  data-transaction-id="${tx.id}"
                   data-index="${index}"
                   data-original="${currency}">
             ${currencyOptions}
           </select>
         </td>
         <td class="action-cell">
-          <button class="btn-edit action-btn" data-index="${index}" title="Edit transaction">✏️</button>
-          <button class="btn-save action-btn" data-index="${index}" style="display: none;" title="Save changes">💾</button>
-          <button class="btn-revert action-btn" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
+          <button class="btn-edit action-btn" data-transaction-id="${tx.id}" data-index="${index}" title="Edit transaction">✏️</button>
+          <button class="btn-save action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Save changes">💾</button>
+          <button class="btn-revert action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
         </td>
       </tr>
     `;
@@ -338,7 +505,7 @@ function generateTransactionTableHTML(transactions) {
     </div>
   `;
 
-  console.log('CRITICAL: Generated table HTML successfully');
+  console.log('✓ Generated table HTML successfully');
   return html;
 }
 
@@ -346,12 +513,14 @@ function generateTransactionTableHTML(transactions) {
  * FIXED: Attach event listeners to transaction table fields
  */
 function attachTransactionEventListeners() {
-  console.log('CRITICAL: Attaching transaction event listeners');
+  console.log('🔧 Attaching transaction event listeners');
 
   // FIXED: Handle edit buttons
   document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      const transactionId = e.target.dataset.transactionId;
       const index = parseInt(e.target.dataset.index);
+      console.log(`✏️ Edit button clicked for transaction ID: ${transactionId}, index: ${index}`);
       enterEditMode(index);
     });
   });
@@ -360,8 +529,14 @@ function attachTransactionEventListeners() {
   document.querySelectorAll('.edit-field').forEach(field => {
     if (field.classList.contains('currency-field') || field.classList.contains('category-select')) {
       field.addEventListener('change', (e) => {
-        const index = parseInt(e.target.dataset.index);
-        saveFieldChange(index, e.target.dataset.field, e.target.value);
+        const transactionId = e.target.dataset.transactionId;
+        const fieldName = e.target.dataset.field;
+        const newValue = e.target.value;
+
+        console.log(`🔄 Field change detected for transaction ID ${transactionId}, field ${fieldName}, new value: "${newValue}"`);
+
+        // CRITICAL FIX: Use transaction ID to find the correct transaction
+        saveFieldChangeById(transactionId, fieldName, newValue);
       });
     } else {
       // For other fields, only listen when in edit mode
@@ -390,7 +565,9 @@ function attachTransactionEventListeners() {
   // Handle save buttons
   document.querySelectorAll('.btn-save').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      const transactionId = e.target.dataset.transactionId;
       const index = parseInt(e.target.dataset.index);
+      console.log(`💾 Save button clicked for transaction ID: ${transactionId}, index: ${index}`);
       saveTransactionChanges(index);
     });
   });
@@ -398,12 +575,14 @@ function attachTransactionEventListeners() {
   // Handle revert buttons
   document.querySelectorAll('.btn-revert').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      const transactionId = e.target.dataset.transactionId;
       const index = parseInt(e.target.dataset.index);
+      console.log(`↶ Revert button clicked for transaction ID: ${transactionId}, index: ${index}`);
       revertTransactionChanges(index);
     });
   });
 
-  console.log('CRITICAL: Transaction event listeners attached successfully');
+  console.log('✓ Transaction event listeners attached successfully');
 }
 
 /**
@@ -463,35 +642,60 @@ function exitEditMode(index) {
 }
 
 /**
- * FIXED: Save individual field change (for category and currency)
+ * FIXED: Save individual field change (for category and currency) - UPDATED TO USE INDEX FOR BACKWARD COMPATIBILITY
  */
 function saveFieldChange(index, fieldName, newValue) {
   if (!AppState.transactions || !AppState.transactions[index]) return;
 
   const transaction = AppState.transactions[index];
 
+  // Get the transaction ID for logging
+  const transactionId = transaction.id || `Unknown-${index}`;
+
+  console.group(`💾 SAVING FIELD CHANGE (Legacy Index Method)`);
+  console.log(`🆔 Transaction ID: ${transactionId}`);
+  console.log(`📝 Index: ${index}`);
+  console.log(`📝 Field: ${fieldName}`);
+  console.log(`🔄 New Value: "${newValue}"`);
+
   // FIXED: Handle category with subcategory parsing
   if (fieldName === 'category') {
+    const oldCategory = transaction.category;
+    const oldSubcategory = transaction.subcategory;
+
     if (newValue.includes(':')) {
       const [category, subcategory] = newValue.split(':');
       transaction.category = category;
       transaction.subcategory = subcategory;
+      console.log(`🔄 Updated category from "${oldCategory}:${oldSubcategory}" to "${category}:${subcategory}"`);
     } else {
       transaction.category = newValue;
       transaction.subcategory = '';
+      console.log(`🔄 Updated category from "${oldCategory}" to "${newValue}", cleared subcategory`);
     }
   } else {
+    const oldValue = transaction[fieldName];
     transaction[fieldName] = newValue;
+    console.log(`🔄 Updated field ${fieldName} from "${oldValue}" to "${newValue}"`);
   }
 
   // Mark as edited if it wasn't already
   if (!transaction.edited) {
     transaction.edited = true;
+    console.log(`✏️ Marked transaction ${transactionId} as edited`);
   }
 
-  // Save to localStorage
+  // CRITICAL FIX: Save to localStorage immediately and verify
   try {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    console.log(`💾 Saved transaction ${transactionId} field ${fieldName} to localStorage`);
+
+    // Verify the save worked
+    const savedData = localStorage.getItem('transactions');
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      console.log(`✓ Verified save - transaction ${index} category:`, parsedData[index]?.category, parsedData[index]?.subcategory);
+    }
 
     // Update display for category changes (update cell background color)
     if (fieldName === 'category') {
@@ -503,6 +707,12 @@ function saveFieldChange(index, fieldName, newValue) {
 
       // Mark row as edited
       row.classList.add('edited-row');
+
+      // CRITICAL FIX: Force update category buttons to refresh counts immediately
+      setTimeout(() => {
+        renderCategoryButtons();
+        console.log('🔄 Category buttons re-rendered after category change');
+      }, 50);
     }
 
     // FIXED: Update summary in real-time for currency changes
@@ -518,21 +728,16 @@ function saveFieldChange(index, fieldName, newValue) {
       }
     });
 
-    // Update category buttons if category changed
-    if (fieldName === 'category') {
-      setTimeout(() => {
-        renderCategoryButtons();
-      }, 100);
-    }
-
   } catch (error) {
-    console.error('Error saving transaction:', error);
+    console.error('❌ Error saving transaction:', error);
     import('./uiManager.js').then(module => {
       if (module.showToast) {
         module.showToast('Error saving changes', 'error');
       }
     });
   }
+
+  console.groupEnd();
 }
 
 /**
@@ -992,12 +1197,12 @@ function createFilterSection() {
 /**
  * FIXED: Generate category dropdown with subcategories - Use proper ordering and colors, save changes automatically
  */
-function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionIndex) {
+function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionId) {
   const categories = AppState.categories || {};
   let html = `
     <select class="edit-field category-select"
             data-field="category"
-            data-index="${transactionIndex}"
+            data-transaction-id="${transactionId}"
             data-original="${selectedCategory || ''}">
       <option value="">Select Category</option>
   `;
@@ -1206,12 +1411,14 @@ export function initializeTransactionManager() {
  * FIXED: Update transactions from merged files
  */
 export function updateTransactions() {
-  console.log("CRITICAL: updateTransactions called - processing merged files...");
+  console.group('🔄 UPDATE TRANSACTIONS CALLED');
+  console.log("Processing merged files...");
 
   if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    console.log("CRITICAL: No merged files found");
+    console.log("No merged files found");
     AppState.transactions = [];
     renderTransactions([]);
+    console.groupEnd();
     return;
   }
 
@@ -1220,21 +1427,24 @@ export function updateTransactions() {
 
   AppState.mergedFiles.forEach(file => {
     try {
-      console.log(`CRITICAL: Processing file: ${file.fileName}`, file);
+      console.log(`📂 Processing file: ${file.fileName}`, file);
 
       // Use pre-processed transactions if available
       if (file.transactions && Array.isArray(file.transactions) && file.transactions.length > 0) {
         allTransactions = allTransactions.concat(file.transactions);
-        console.log(`CRITICAL: Loaded ${file.transactions.length} pre-processed transactions from ${file.fileName}`);
+        console.log(`✓ Loaded ${file.transactions.length} pre-processed transactions from ${file.fileName}`);
       } else {
-        console.warn(`CRITICAL: File ${file.fileName} has no valid transaction data`);
+        console.warn(`⚠️ File ${file.fileName} has no valid transaction data`);
       }
     } catch (error) {
-      console.error(`CRITICAL: Error processing file ${file.fileName}:`, error);
+      console.error(`❌ Error processing file ${file.fileName}:`, error);
     }
   });
 
-  console.log(`CRITICAL: Total transactions processed: ${allTransactions.length}`);
+  console.log(`📊 Total transactions processed: ${allTransactions.length}`);
+
+  // CRITICAL FIX: Ensure all transactions have unique IDs
+  ensureTransactionIds(allTransactions);
 
   // CRITICAL: Store in AppState immediately
   AppState.transactions = allTransactions;
@@ -1242,12 +1452,14 @@ export function updateTransactions() {
   // Save to localStorage
   try {
     localStorage.setItem('transactions', JSON.stringify(allTransactions));
-    console.log(`CRITICAL: Saved ${allTransactions.length} transactions to localStorage`);
+    console.log(`💾 Saved ${allTransactions.length} transactions to localStorage`);
   } catch (error) {
-    console.error('CRITICAL: Error saving transactions to localStorage:', error);
+    console.error('❌ Error saving transactions to localStorage:', error);
   }
 
   // FORCE render with the actual transactions
-  console.log(`CRITICAL: Forcing render of ${allTransactions.length} transactions`);
+  console.log(`🔧 Forcing render of ${allTransactions.length} transactions`);
   renderTransactions(allTransactions, true);
+
+  console.groupEnd();
 }
