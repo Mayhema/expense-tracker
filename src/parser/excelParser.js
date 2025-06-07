@@ -46,9 +46,9 @@ const initializeDependencies = async () => {
             // Generate UUID without external dependency
             uuid = {
                 v4: () => {
-                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                         const r = Math.random() * 16 | 0;
-                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        const v = c == 'x' ? r : (r & 0x3 | 0x8);
                         return v.toString(16);
                     });
                 }
@@ -91,32 +91,26 @@ class ExcelParser {
             const workbook = XLSX.read(fileContent, { type: 'string' });
 
             if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                throw new Error('No sheets found in Excel file');
+                throw new Error('No worksheets found in Excel file');
             }
 
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
 
             if (!sheet) {
-                throw new Error(`Sheet "${sheetName}" not found`);
+                throw new Error('Could not access worksheet data');
             }
 
             // Convert sheet to JSON with error handling
             let rawData;
             try {
-                rawData = XLSX.utils.sheet_to_json(sheet, {
-                    header: 1, // Use array of arrays instead of objects
-                    defval: '', // Default value for empty cells
-                    raw: false // Format values as strings
-                });
+                rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
             } catch (jsonError) {
-                console.error('Error converting sheet to JSON:', jsonError);
-                throw new Error('Failed to parse Excel sheet data');
+                throw new Error('Failed to convert Excel data to JSON: ' + jsonError.message);
             }
 
             if (!Array.isArray(rawData) || rawData.length === 0) {
-                console.warn('Excel file appears to be empty');
-                return [];
+                throw new Error('Excel file appears to be empty or has no readable data');
             }
 
             // Return raw data as 2D array for header mapping
@@ -127,11 +121,9 @@ class ExcelParser {
 
             // Provide more specific error messages
             if (error.message.includes('Unsupported file')) {
-                throw new Error('Unsupported Excel file format. Please use .xlsx or .xls files.');
-            } else if (error.message.includes('password')) {
-                throw new Error('Password-protected Excel files are not supported.');
-            } else if (error.message.includes('corrupted')) {
-                throw new Error('Excel file appears to be corrupted or invalid.');
+                throw new Error('Unsupported Excel file format. Please save as .xlsx or .xls');
+            } else if (error.message.includes('Cannot read property')) {
+                throw new Error('Excel file appears to be corrupted or has invalid structure');
             }
 
             throw new Error(`Excel parsing failed: ${error.message}`);
@@ -237,8 +229,7 @@ class ExcelParser {
             const cellValue = row[colIndex];
 
             if (this.isValidFieldValue(fieldName, cellValue)) {
-                const fieldKey = fieldName.toLowerCase();
-                transaction[fieldKey] = this.convertCellValue(fieldName, cellValue);
+                transaction[fieldName.toLowerCase()] = this.convertCellValue(fieldName, cellValue);
             }
         }
     }
@@ -275,8 +266,9 @@ class ExcelParser {
         const num = parseFloat(value);
         if (isNaN(num)) return false;
 
-        // Excel dates are typically between 1 (1900-01-01) and ~50000 (2037+)
-        return num >= 1 && num <= 100000 && Number.isInteger(num);
+        // FIXED: Only convert numbers that are actual Excel dates
+        // Use the same range as the centralized dateUtils
+        return num >= 25000 && num <= 100000 && Number.isInteger(num);
     }
 
     /**
@@ -289,12 +281,13 @@ class ExcelParser {
             const num = parseFloat(excelDate);
             if (isNaN(num)) return String(excelDate);
 
-            // Excel's epoch is 1900-01-01, but Excel treats 1900 as a leap year incorrectly
-            const excelEpoch = new Date(1900, 0, 1);
+            // FIXED: Use the correct Excel epoch and calculation
+            // Excel's epoch is January 1, 1900, but Excel incorrectly considers 1900 a leap year
+            const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
             const msPerDay = 24 * 60 * 60 * 1000;
 
-            // Subtract 2 days to account for Excel's leap year bug and 0-based indexing
-            const jsDate = new Date(excelEpoch.getTime() + (num - 2) * msPerDay);
+            // FIXED: Use (excelDate - 1) instead of (excelDate - 2) for correct date calculation
+            const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * msPerDay);
 
             if (isNaN(jsDate.getTime())) {
                 return String(excelDate); // Return original if conversion fails
@@ -318,6 +311,10 @@ class ExcelParser {
         try {
             await this.ensureInitialized();
 
+            if (!XLSX) {
+                throw new Error('XLSX library not available');
+            }
+
             const workbook = XLSX.read(fileContent, { type: 'string' });
             return workbook.SheetNames || [];
 
@@ -337,23 +334,23 @@ class ExcelParser {
         try {
             await this.ensureInitialized();
 
+            if (!XLSX) {
+                throw new Error('XLSX library not available');
+            }
+
             const workbook = XLSX.read(fileContent, { type: 'string' });
 
-            if (!workbook.SheetNames.includes(sheetName)) {
-                throw new Error(`Sheet "${sheetName}" not found`);
+            if (!workbook.Sheets[sheetName]) {
+                throw new Error(`Sheet '${sheetName}' not found`);
             }
 
             const sheet = workbook.Sheets[sheetName];
-            const rawData = XLSX.utils.sheet_to_json(sheet, {
-                header: 1,
-                defval: '',
-                raw: false
-            });
+            const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
 
             return rawData;
 
         } catch (error) {
-            console.error(`Error parsing sheet "${sheetName}":`, error);
+            console.error('Error parsing specific sheet:', error);
             throw error;
         }
     }

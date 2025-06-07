@@ -1,144 +1,352 @@
 /**
- * Date utility functions for consistent dd/mm/yyyy format across the project
+ * Centralized date utilities for consistent date handling across the application
  */
 
 /**
- * Helper function to parse slash-separated dates
- * @param {string} dateInput - Date string with slashes
- * @returns {Date|null} Parsed date or null if invalid
+ * Supported date formats for parsing
  */
-function parseSlashDate(dateInput) {
-  const parts = dateInput.split('/');
-  if (parts.length !== 3) return null;
+const DATE_FORMATS = {
+  ISO: /^\d{4}-\d{2}-\d{2}$/,                    // YYYY-MM-DD
+  US: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,         // MM/DD/YYYY
+  EU: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,         // DD/MM/YYYY (same pattern, context-dependent)
+  DOT: /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/,        // DD.MM.YYYY
+  DASH: /^(\d{1,2})-(\d{1,2})-(\d{4})$/,         // DD-MM-YYYY
+  REVERSE: /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/     // YYYY/MM/DD
+};
 
-  const first = parseInt(parts[0]);
-  const second = parseInt(parts[1]);
+/**
+ * Check if a value is an Excel date serial number
+ * @param {any} value - Value to check
+ * @returns {boolean} True if it appears to be an Excel date
+ */
+export function isExcelDate(value) {
+  if (!value && value !== 0) return false;
 
-  if (first > 12) {
-    // Definitely dd/mm/yyyy
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-  } else if (second > 12) {
-    // Definitely mm/dd/yyyy, convert to dd/mm/yyyy
-    return new Date(parts[2], parts[0] - 1, parts[1]);
-  } else {
-    // Ambiguous, assume dd/mm/yyyy
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-  }
+  const num = parseFloat(value);
+  if (isNaN(num)) return false;
+
+  // FIXED: Only convert numbers that are actual Excel dates (from 1900 onwards)
+  // Excel dates start from 1 (January 1, 1900) to around 2958465 (December 31, 9999)
+  // Typical modern dates are between 25000 (1968) and 55000 (2050+)
+  return num >= 25000 && num <= 100000 && Number.isInteger(num);
 }
 
 /**
- * Helper function to parse string dates
- * @param {string} dateInput - Date string to parse
- * @returns {Date|null} Parsed date or null if invalid
- */
-function parseStringDate(dateInput) {
-  if (dateInput.includes('/')) {
-    return parseSlashDate(dateInput);
-  } else if (dateInput.includes('-')) {
-    // ISO format yyyy-mm-dd
-    return new Date(dateInput);
-  } else {
-    // Try parsing as is
-    return new Date(dateInput);
-  }
-}
-
-/**
- * Convert date from various formats to dd/mm/yyyy
- * @param {string|Date} dateInput - Input date in any format
- * @returns {string} Date in dd/mm/yyyy format
- */
-export function formatDateToDDMMYYYY(dateInput) {
-  if (!dateInput) return '';
-
-  let date;
-
-  if (dateInput instanceof Date) {
-    date = dateInput;
-  } else if (typeof dateInput === 'string') {
-    date = parseStringDate(dateInput);
-  } else {
-    return '';
-  }
-
-  if (!date || isNaN(date.getTime())) {
-    console.warn('Invalid date input:', dateInput);
-    return '';
-  }
-
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-
-  return `${day}/${month}/${year}`;
-}
-
-/**
- * Convert dd/mm/yyyy to ISO format (yyyy-mm-dd) for internal use
- * @param {string} ddmmyyyy - Date in dd/mm/yyyy format
- * @returns {string} Date in ISO format
- */
-export function convertDDMMYYYYToISO(ddmmyyyy) {
-  if (!ddmmyyyy || typeof ddmmyyyy !== 'string') return '';
-
-  const parts = ddmmyyyy.split('/');
-  if (parts.length !== 3) return '';
-
-  const day = parseInt(parts[0]);
-  const month = parseInt(parts[1]);
-  const year = parseInt(parts[2]);
-
-  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
-    return '';
-  }
-
-  const date = new Date(year, month - 1, day);
-  if (isNaN(date.getTime())) return '';
-
-  return date.toISOString().slice(0, 10);
-}
-
-/**
- * Parse date input in dd/mm/yyyy format
- * @param {string} dateStr - Date string in dd/mm/yyyy format
+ * Convert Excel date serial number to JavaScript Date
+ * @param {number} excelDate - Excel date serial number
  * @returns {Date|null} JavaScript Date object or null if invalid
  */
-export function parseDDMMYYYY(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return null;
+export function excelDateToJSDate(excelDate) {
+  if (!isExcelDate(excelDate)) return null;
 
-  const parts = dateStr.split('/');
-  if (parts.length !== 3) return null;
+  try {
+    // FIXED: Use the correct Excel epoch and calculation
+    // Excel's epoch is January 1, 1900, but Excel incorrectly considers 1900 a leap year
+    // The correct calculation is: (excelDate - 1) days from January 1, 1900
+    const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
+    const msPerDay = 24 * 60 * 60 * 1000;
 
-  const day = parseInt(parts[0]);
-  const month = parseInt(parts[1]);
-  const year = parseInt(parts[2]);
+    // FIXED: Use (excelDate - 1) instead of (excelDate - 2) for correct date calculation
+    const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * msPerDay);
 
-  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
+    // Validate the resulting date
+    if (isNaN(jsDate.getTime())) return null;
+
+    return jsDate;
+  } catch (error) {
+    console.error('Error converting Excel date:', error);
     return null;
   }
-
-  const date = new Date(year, month - 1, day);
-  return isNaN(date.getTime()) ? null : date;
 }
 
 /**
- * Get current date in dd/mm/yyyy format
- * @returns {string} Current date in dd/mm/yyyy format
+ * Convert Excel date to ISO string format (YYYY-MM-DD)
+ * @param {number} excelDate - Excel date serial number
+ * @returns {string|null} ISO date string or null if invalid
  */
-export function getCurrentDateDDMMYYYY() {
-  return formatDateToDDMMYYYY(new Date());
+export function excelDateToISOString(excelDate) {
+  const jsDate = excelDateToJSDate(excelDate);
+  if (!jsDate) return null;
+
+  const year = jsDate.getFullYear();
+  const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+  const day = String(jsDate.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 }
 
 /**
- * Validate dd/mm/yyyy format
+ * Format Excel date for preview display
+ * @param {number} excelDate - Excel date serial number
+ * @returns {string} Formatted preview string
+ */
+export function formatExcelDateForPreview(excelDate) {
+  const isoDate = excelDateToISOString(excelDate);
+  if (!isoDate) return String(excelDate);
+
+  return `${isoDate} (Excel: ${excelDate})`;
+}
+
+/**
+ * Validate if a string represents a valid date
  * @param {string} dateStr - Date string to validate
- * @returns {boolean} True if valid dd/mm/yyyy format
+ * @returns {boolean} True if valid date
  */
-export function isValidDDMMYYYY(dateStr) {
+export function isValidDateString(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return false;
 
-  const ddmmyyyyRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!ddmmyyyyRegex.test(dateStr)) return false;
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime()) && date.getFullYear() > 1900;
+}
 
-  return parseDDMMYYYY(dateStr) !== null;
+/**
+ * Parse various date formats into a standardized ISO format (YYYY-MM-DD)
+ * @param {any} value - Value to parse as date
+ * @returns {string|null} ISO date string or null if invalid
+ */
+export function parseToISODate(value) {
+  if (!value && value !== 0) return null;
+
+  // Handle Excel dates first
+  if (isExcelDate(value)) {
+    return excelDateToISOString(parseFloat(value));
+  }
+
+  // Convert to string for parsing
+  const str = String(value).trim();
+  if (!str) return null;
+
+  // Check if already in ISO format
+  if (DATE_FORMATS.ISO.test(str)) {
+    if (isValidDateString(str)) return str;
+  }
+
+  // Try to parse other formats
+  return parseCustomDateFormats(str);
+}
+
+/**
+ * Parse custom date formats and convert to ISO
+ * @param {string} dateStr - Date string to parse
+ * @returns {string|null} ISO date string or null if invalid
+ */
+function parseCustomDateFormats(dateStr) {
+  // Try US format: MM/DD/YYYY
+  let match = dateStr.match(DATE_FORMATS.US);
+  if (match) {
+    const [, month, day, year] = match;
+    if (isValidDateComponents(year, month, day)) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+
+  // Try EU format: DD/MM/YYYY (assume if day > 12)
+  match = dateStr.match(DATE_FORMATS.EU);
+  if (match) {
+    const [, part1, part2, year] = match;
+    // If first part > 12, assume DD/MM format
+    if (parseInt(part1) > 12 && isValidDateComponents(year, part2, part1)) {
+      return `${year}-${part2.padStart(2, '0')}-${part1.padStart(2, '0')}`;
+    }
+  }
+
+  // Try dot format: DD.MM.YYYY
+  match = dateStr.match(DATE_FORMATS.DOT);
+  if (match) {
+    const [, day, month, year] = match;
+    if (isValidDateComponents(year, month, day)) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+
+  // Try dash format: DD-MM-YYYY
+  match = dateStr.match(DATE_FORMATS.DASH);
+  if (match) {
+    const [, day, month, year] = match;
+    if (isValidDateComponents(year, month, day)) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+
+  // Try reverse format: YYYY/MM/DD
+  match = dateStr.match(DATE_FORMATS.REVERSE);
+  if (match) {
+    const [, year, month, day] = match;
+    if (isValidDateComponents(year, month, day)) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+
+  // Try parsing as-is with Date constructor
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  } catch (error) {
+    console.warn('Failed to parse date string:', dateStr, error.message);
+  }
+
+  return null;
+}
+
+/**
+ * Validate date components
+ * @param {string} year - Year component
+ * @param {string} month - Month component
+ * @param {string} day - Day component
+ * @returns {boolean} True if valid components
+ */
+function isValidDateComponents(year, month, day) {
+  const y = parseInt(year);
+  const m = parseInt(month);
+  const d = parseInt(day);
+
+  if (y < 1900 || y > 2100) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+
+  // Create date and check if it's valid
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d;
+}
+
+/**
+ * Format date for display in different locales
+ * @param {string} isoDate - ISO date string (YYYY-MM-DD)
+ * @param {string} format - Display format ('US', 'EU', 'ISO')
+ * @returns {string} Formatted date string
+ */
+export function formatDateForDisplay(isoDate, format = 'ISO') {
+  if (!isoDate || !isValidDateString(isoDate)) return isoDate || '';
+
+  const date = new Date(isoDate);
+  if (isNaN(date.getTime())) return isoDate;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  switch (format.toUpperCase()) {
+    case 'US':
+      return `${month}/${day}/${year}`;
+    case 'EU':
+      return `${day}/${month}/${year}`;
+    case 'ISO':
+    default:
+      return `${year}-${month}-${day}`;
+  }
+}
+
+/**
+ * Check if a column contains date-like values
+ * @param {Array} columnValues - Array of values from a column
+ * @returns {boolean} True if column appears to contain dates
+ */
+export function isDateColumn(columnValues) {
+  if (!columnValues || columnValues.length === 0) return false;
+
+  let dateCount = 0;
+  let totalValidValues = 0;
+
+  for (const value of columnValues) {
+    if (value !== null && value !== undefined && value !== '') {
+      totalValidValues++;
+
+      // Check if it's an Excel date or parseable date
+      if (isExcelDate(value) || parseToISODate(value)) {
+        dateCount++;
+      }
+    }
+  }
+
+  // If at least 60% of non-empty values are dates, consider it a date column
+  return totalValidValues > 0 && (dateCount / totalValidValues) >= 0.6;
+}
+
+/**
+ * Get current date in ISO format
+ * @returns {string} Current date as YYYY-MM-DD
+ */
+export function getCurrentISODate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Validate and normalize a date value for storage
+ * @param {any} value - Date value to normalize
+ * @returns {{isValid: boolean, normalizedDate: string|null, originalValue: any}} Validation result
+ */
+export function validateAndNormalizeDate(value) {
+  const result = {
+    isValid: false,
+    normalizedDate: null,
+    originalValue: value
+  };
+
+  if (!value && value !== 0) {
+    return result;
+  }
+
+  const normalizedDate = parseToISODate(value);
+
+  if (normalizedDate) {
+    result.isValid = true;
+    result.normalizedDate = normalizedDate;
+  }
+
+  return result;
+}
+
+// Legacy compatibility functions (deprecated but maintained for backward compatibility)
+
+/**
+ * FIXED: Use formatDateForDisplay instead of deprecated function
+ */
+export function formatDateToDDMMYYYY(dateInput) {
+  console.warn('formatDateToDDMMYYYY is deprecated. Use formatDateForDisplay with EU format instead.');
+  const isoDate = parseToISODate(dateInput);
+  return isoDate ? formatDateForDisplay(isoDate, 'EU') : '';
+}
+
+/**
+ * @deprecated Use parseToISODate instead
+ */
+export function convertDDMMYYYYToISO(ddmmyyyy) {
+  console.warn('convertDDMMYYYYToISO is deprecated. Use parseToISODate instead.');
+  return parseToISODate(ddmmyyyy);
+}
+
+/**
+ * @deprecated Use parseToISODate instead
+ */
+export function parseDDMMYYYY(dateStr) {
+  console.warn('parseDDMMYYYY is deprecated. Use parseToISODate instead.');
+  const isoDate = parseToISODate(dateStr);
+  return isoDate ? new Date(isoDate) : null;
+}
+
+/**
+ * @deprecated Use getCurrentISODate instead
+ */
+export function getCurrentDateDDMMYYYY() {
+  console.warn('getCurrentDateDDMMYYYY is deprecated. Use getCurrentISODate instead.');
+  return formatDateForDisplay(getCurrentISODate(), 'EU');
+}
+
+/**
+ * @deprecated Use validateAndNormalizeDate instead
+ */
+export function isValidDDMMYYYY(dateStr) {
+  console.warn('isValidDDMMYYYY is deprecated. Use validateAndNormalizeDate instead.');
+  return validateAndNormalizeDate(dateStr).isValid;
 }

@@ -131,16 +131,19 @@ function analyzeTransactions(transactions) {
     idAnalysis: {
       withIds: 0,
       withoutIds: 0,
-      duplicateIds: 0
+      duplicateIds: 0,
+      uniqueIds: new Set()
     }
   };
 
   const seenIds = new Set();
 
   transactions.forEach((tx, index) => {
-    // ADDED: Analyze transaction IDs
+    // Enhanced ID analysis
     if (tx.id) {
       analysis.idAnalysis.withIds++;
+      analysis.idAnalysis.uniqueIds.add(tx.id);
+
       if (seenIds.has(tx.id)) {
         analysis.idAnalysis.duplicateIds++;
         analysis.issues.push(`Transaction ${index + 1}: Duplicate ID ${tx.id}`);
@@ -208,21 +211,14 @@ function analyzeTransactions(transactions) {
   analysis.avgAmount = transactions.length > 0 ?
     ((analysis.totalIncome + analysis.totalExpenses) / transactions.length).toFixed(2) : '0.00';
 
-  // Date range
-  if (analysis.dates.length > 0) {
-    const sortedDates = analysis.dates.sort();
-    const earliest = sortedDates[0].toLocaleDateString();
-    const latest = sortedDates[sortedDates.length - 1].toLocaleDateString();
-    analysis.dateRange = `${earliest} - ${latest}`;
-  } else {
-    analysis.dateRange = 'No dates available';
-  }
+  // Add ID consistency check
+  analysis.idConsistency = {
+    hasAllIds: analysis.idAnalysis.withoutIds === 0,
+    hasNoDuplicates: analysis.idAnalysis.duplicateIds === 0,
+    uniqueIdCount: analysis.idAnalysis.uniqueIds.size,
+    totalTransactions: analysis.total
+  };
 
-  // Format monetary values
-  analysis.totalIncome = analysis.totalIncome.toFixed(2);
-  analysis.totalExpenses = analysis.totalExpenses.toFixed(2);
-
-  // FIXED: Return the analysis
   return analysis;
 }
 

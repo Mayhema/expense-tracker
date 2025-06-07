@@ -2,6 +2,12 @@
 
 // Update imports
 import { AppState } from "../core/appState.js";
+import {
+  isExcelDate,
+  excelDateToJSDate,
+
+  validateAndNormalizeDate
+} from '../utils/dateUtils.js';
 
 console.log("XLSX object:", XLSX);
 
@@ -390,29 +396,38 @@ function simpleHash(str) {
   return Math.abs(hash).toString(36).substring(0, 12);
 }
 
-function excelDateToJSDate(excelDate) {
-  const date = new Date((excelDate - 25569) * 86400 * 1000); // Excel epoch starts on 1900-01-01
-  return date.toISOString().split("T")[0]; // Format: YYYY-MM-DD
+/**
+ * Helper function to check if a value is a potential Excel date
+ * @deprecated Use isExcelDate from dateUtils instead
+ */
+export function isExcelDateLocal(value) {
+  console.warn('fileHandler.isExcelDateLocal is deprecated. Use isExcelDate from dateUtils instead.');
+  return isExcelDate(value);
 }
 
-// Helper function to check if a value is a potential Excel date
-export function isExcelDate(value) {
-  const num = parseFloat(value);
-  return !isNaN(num) && num > 40000 && num < 50000;
-}
-
-// Helper function to be used in transactionManager.js
+/**
+ * Helper function to be used in transactionManager.js
+ */
 export function convertExcelDates(transactions) {
   return transactions.map(tx => {
-    if (tx.date && isExcelDate(tx.date)) {
-      tx.date = excelDateToJSDate(parseFloat(tx.date));
+    if (tx.date) {
+      const dateValidation = validateAndNormalizeDate(tx.date);
+      if (dateValidation.isValid) {
+        tx.date = dateValidation.normalizedDate;
+      }
     }
     return tx;
   });
 }
 
-// Export the excelDateToJSDate function for use in transactionManager.js
-export { excelDateToJSDate };
+/**
+ * Export the excelDateToJSDate function for use in transactionManager.js
+ * @deprecated Use excelDateToISOString from dateUtils instead
+ */
+export function excelDateToJSDateLocal(excelDate) {
+  console.warn('fileHandler.excelDateToJSDateLocal is deprecated. Use excelDateToISOString from dateUtils instead.');
+  return excelDateToJSDate(excelDate);
+}
 
 // Update the isDuplicateFile function
 
@@ -442,6 +457,32 @@ export function isDuplicateFile(fileName, signature) {
   });
 
   return duplicateBySig || null;
+}
+
+/**
+ * Ensure all transactions have unique IDs
+ * @param {Array} transactions - Array of transactions to process
+ * @returns {Array} Transactions with guaranteed unique IDs
+ */
+export function ensureTransactionIds(transactions) {
+  if (!Array.isArray(transactions)) return [];
+
+  const usedIds = new Set();
+
+  return transactions.map((tx, index) => {
+    if (!tx.id || usedIds.has(tx.id)) {
+      // Generate new unique ID
+      let newId;
+      do {
+        newId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      } while (usedIds.has(newId));
+
+      tx.id = newId;
+    }
+
+    usedIds.add(tx.id);
+    return tx;
+  });
 }
 
 // KEEP ONLY ONE VERSION of each function to fix duplicate declarations

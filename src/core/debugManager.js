@@ -114,11 +114,32 @@ export function debugTransactions() {
       amounts: {
         totalIncome: 0,
         totalExpenses: 0
+      },
+      idConsistency: {
+        withIds: 0,
+        withoutIds: 0,
+        duplicateIds: 0,
+        uniqueIds: new Set()
       }
     };
 
+    const seenIds = new Set();
+
     // Analyze transactions
     transactions.forEach(tx => {
+      // ID consistency analysis
+      if (tx.id) {
+        debugInfo.idConsistency.withIds++;
+        if (seenIds.has(tx.id)) {
+          debugInfo.idConsistency.duplicateIds++;
+        } else {
+          seenIds.add(tx.id);
+          debugInfo.idConsistency.uniqueIds.add(tx.id);
+        }
+      } else {
+        debugInfo.idConsistency.withoutIds++;
+      }
+
       // By file
       if (tx.fileName) {
         debugInfo.byFile[tx.fileName] = (debugInfo.byFile[tx.fileName] || 0) + 1;
@@ -128,7 +149,7 @@ export function debugTransactions() {
       const category = tx.category || 'Uncategorized';
       debugInfo.byCategory[category] = (debugInfo.byCategory[category] || 0) + 1;
 
-      // Date range - FIXED: Use formatDateToDDMMYYYY for consistent format
+      // Date range
       if (tx.date) {
         const date = new Date(tx.date);
         if (!debugInfo.dateRange.earliest || date < debugInfo.dateRange.earliest) {
@@ -150,11 +171,17 @@ export function debugTransactions() {
 
     console.group('📊 Debug Transactions Information');
     console.log('Total Transactions:', debugInfo.totalTransactions);
+    console.log('ID Consistency:', {
+      withIds: debugInfo.idConsistency.withIds,
+      withoutIds: debugInfo.idConsistency.withoutIds,
+      duplicateIds: debugInfo.idConsistency.duplicateIds,
+      uniqueIdsCount: debugInfo.idConsistency.uniqueIds.size
+    });
     console.log('By File:', debugInfo.byFile);
     console.log('By Category:', debugInfo.byCategory);
     console.log('Date Range:', {
-      earliest: debugInfo.dateRange.earliest ? formatDateToDDMMYYYY(debugInfo.dateRange.earliest) : null,
-      latest: debugInfo.dateRange.latest ? formatDateToDDMMYYYY(debugInfo.dateRange.latest) : null
+      earliest: debugInfo.dateRange.earliest ? debugInfo.dateRange.earliest.toISOString().split('T')[0] : null,
+      latest: debugInfo.dateRange.latest ? debugInfo.dateRange.latest.toISOString().split('T')[0] : null
     });
     console.log('Amounts:', {
       totalIncome: debugInfo.amounts.totalIncome.toFixed(2),

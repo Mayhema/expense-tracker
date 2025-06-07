@@ -485,11 +485,13 @@ export function updateCategory(oldName, newName, newColor) {
     delete AppState.categories[oldName];
     AppState.categories[newName] = updatedValue;
 
-    // Update transactions that use this category
+    // Update transactions that use this category - use ID-based approach
     if (AppState.transactions) {
       AppState.transactions.forEach(tx => {
         if (tx.category === oldName) {
           tx.category = newName;
+          // Mark as edited but preserve ID
+          tx.edited = true;
         }
       });
       localStorage.setItem('transactions', JSON.stringify(AppState.transactions));

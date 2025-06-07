@@ -135,6 +135,39 @@ export function setCurrentFileSignature(signature) {
   console.log('CRITICAL: Set current file signature:', signature);
 }
 
+/**
+ * Ensure all transactions in AppState have unique IDs
+ */
+export function ensureAllTransactionIds() {
+  if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
+    return;
+  }
+
+  const usedIds = new Set();
+  let idsAdded = 0;
+
+  AppState.transactions.forEach((tx, index) => {
+    if (!tx.id || usedIds.has(tx.id)) {
+      // Generate new unique ID
+      let newId;
+      do {
+        newId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      } while (usedIds.has(newId));
+
+      tx.id = newId;
+      idsAdded++;
+    }
+
+    usedIds.add(tx.id);
+  });
+
+  if (idsAdded > 0) {
+    console.log(`Added ${idsAdded} unique IDs to transactions`);
+    // Save updated transactions
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+  }
+}
+
 // FIXED: Add function to rebuild transactions from merged files
 function rebuildTransactionsFromFiles() {
   console.log('Rebuilding transactions from merged files...');
@@ -145,6 +178,19 @@ function rebuildTransactionsFromFiles() {
     if (file.transactions && Array.isArray(file.transactions)) {
       allTransactions = allTransactions.concat(file.transactions);
     }
+  });
+
+  // Ensure all transactions have unique IDs
+  const usedIds = new Set();
+  allTransactions.forEach((tx, index) => {
+    if (!tx.id || usedIds.has(tx.id)) {
+      let newId;
+      do {
+        newId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      } while (usedIds.has(newId));
+      tx.id = newId;
+    }
+    usedIds.add(tx.id);
   });
 
   AppState.transactions = allTransactions;

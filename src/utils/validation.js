@@ -2,6 +2,8 @@
  * Validation utilities for the expense tracker application
  */
 
+import { validateAndNormalizeDate, isValidDateString } from './dateUtils.js';
+
 /**
  * Validates row indices for file preview
  * @param {Array<Array>} data - The data array to validate against
@@ -87,7 +89,16 @@ export function clearValidationError(input) {
 }
 
 /**
- * Validates transaction data
+ * Validates if a string is a valid date
+ * @param {string} dateStr - Date string to validate
+ * @returns {boolean} True if valid date
+ */
+export function isValidDate(dateStr) {
+  return isValidDateString(dateStr);
+}
+
+/**
+ * Validates transaction data with enhanced date validation
  * @param {Object} transaction - Transaction object to validate
  * @returns {Object} Validation result with isValid and errors
  */
@@ -99,8 +110,19 @@ export function validateTransaction(transaction) {
     return { isValid: false, errors };
   }
 
+  // Add ID validation
+  if (!transaction.id) {
+    errors.push("Transaction ID is required");
+  }
+
+  // Enhanced date validation using centralized utilities
   if (!transaction.date) {
     errors.push("Transaction date is required");
+  } else {
+    const dateValidation = validateAndNormalizeDate(transaction.date);
+    if (!dateValidation.isValid) {
+      errors.push(`Invalid date format: ${transaction.date}`);
+    }
   }
 
   if (!transaction.description || transaction.description.trim() === '') {
@@ -121,27 +143,12 @@ export function validateTransaction(transaction) {
 }
 
 /**
- * Validates if a string is a valid date
- * @param {string} dateStr - Date string to validate
- * @returns {boolean} True if valid date
+ * Generates a unique transaction ID
+ * @param {number} index - Optional index for additional uniqueness
+ * @returns {string} Unique transaction ID
  */
-function isValidDate(dateStr) {
-  if (!dateStr) return false;
-
-  const date = new Date(dateStr);
-  return !isNaN(date.getTime());
-}
-
-/**
- * Validates if a value is a valid monetary amount
- * @param {any} amount - Amount to validate
- * @returns {boolean} True if valid amount
- */
-function isValidAmount(amount) {
-  if (amount === null || amount === undefined || amount === '') return false;
-
-  const num = parseFloat(amount);
-  return !isNaN(num) && isFinite(num);
+export function generateTransactionId(index = 0) {
+  return `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
 }
 
 /**

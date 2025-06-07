@@ -63,12 +63,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM loaded, initializing expense tracker...');
 
   try {
-    // Initialize the main application
-    await initializeMainApp();
-
-    // FIXED: Load debug utilities and console logger before anything else
+    // FIXED: Load debug utilities FIRST
     await import('./utils/debug.js');
     await import('./utils/console-logger.js');
+
+    // Then initialize the main application
+    await initializeMainApp();
 
     console.log('✅ Expense Tracker initialized successfully');
   } catch (error) {

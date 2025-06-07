@@ -4,39 +4,36 @@
  * Utility functions shared across the application
  */
 
+// Import the new date utilities
+import {
+  isExcelDate,
+  excelDateToJSDate,
+  excelDateToISOString,
+  parseToISODate,
+  isValidDateString,
+  formatDateForDisplay,
+  isDateColumn as isDateColumnUtil,
+  validateAndNormalizeDate
+} from './dateUtils.js';
+
+// Re-export date utilities for backward compatibility
+export {
+  isExcelDate,
+  excelDateToJSDate,
+  parseToISODate as parseToDateString,
+  isValidDateString as isValidDate,
+  formatDateForDisplay as formatDate,
+  isDateColumnUtil as isDateColumn,
+  validateAndNormalizeDate
+};
+
 /**
- * Checks if a value could be an Excel date (numeric between 35000-50000)
- * @param {any} value - The value to test
- * @return {boolean} True if the value appears to be an Excel date
+ * DEPRECATED: Use parseToISODate from dateUtils instead
+ * @deprecated
  */
-export function isExcelDate(value) {
-  if (!value && value !== 0) return false;
-
-  const num = parseFloat(value);
-  if (isNaN(num)) return false;
-
-  // Excel dates are typically between 1 (1900-01-01) and ~50000 (2037+)
-  // Most business data falls between 35000-50000 (1995-2037)
-  return num >= 1 && num <= 100000 && Number.isInteger(num);
-}
-
-/**
- * Converts an Excel date serial number to a JavaScript Date
- * @param {number} excelDate - Excel date serial number
- * @returns {Date|null} JavaScript Date object or null if invalid
- */
-export function excelDateToJSDate(excelDate) {
-  if (!isExcelDate(excelDate)) return null;
-
-  // Excel's epoch is 1900-01-01, but Excel incorrectly treats 1900 as a leap year
-  // So we need to account for this
-  const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
-  const msPerDay = 24 * 60 * 60 * 1000;
-
-  // Subtract 2 days to account for Excel's leap year bug and 0-based indexing
-  const jsDate = new Date(excelEpoch.getTime() + (excelDate - 2) * msPerDay);
-
-  return jsDate;
+export function excelDateToString(excelDate) {
+  console.warn('excelDateToString is deprecated. Use excelDateToISOString from dateUtils instead.');
+  return excelDateToISOString(excelDate);
 }
 
 /**
@@ -47,15 +44,10 @@ export function excelDateToJSDate(excelDate) {
 export function formatExcelDateForPreview(value) {
   if (!isExcelDate(value)) return String(value);
 
-  const jsDate = excelDateToJSDate(value);
-  if (!jsDate) return String(value);
+  const isoDate = excelDateToISOString(value);
+  if (!isoDate) return String(value);
 
-  // Format as YYYY-MM-DD for consistency
-  const year = jsDate.getFullYear();
-  const month = String(jsDate.getMonth() + 1).padStart(2, '0');
-  const day = String(jsDate.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day} (Excel: ${value})`;
+  return `${isoDate} (Excel: ${value})`;
 }
 
 /**
@@ -122,22 +114,6 @@ export function isDateColumn(columnValues) {
 
   // If at least 50% of non-empty values are dates, consider it a date column
   return totalValidValues > 0 && (dateCount / totalValidValues) >= 0.5;
-}
-
-/**
- * Converts an Excel numeric date to ISO string date (YYYY-MM-DD)
- * @param {number} excelDate - Excel date value
- * @return {string} ISO date string
- */
-export function excelDateToString(excelDate) {
-  try {
-    // Excel dates are days since 1900-01-01 (except Excel incorrectly thinks 1900 was a leap year)
-    const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
-    return jsDate.toISOString().split('T')[0];
-  } catch (err) {
-    console.error("Failed to convert Excel date:", excelDate, err);
-    return String(excelDate);
-  }
 }
 
 /**
@@ -449,8 +425,13 @@ function combineResults(data) {
 function processTransactions(transactions) {
   if (!transactions || !Array.isArray(transactions)) return [];
 
-  return transactions.map(tx => {
+  return transactions.map((tx, index) => {
     const processed = { ...tx };
+
+    // Ensure transaction has unique ID
+    if (!processed.id) {
+      processed.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+    }
 
     // Handle income and expenses
     if (tx.income) {
@@ -475,6 +456,32 @@ function processTransactions(transactions) {
 
     return processed;
   });
+}
+
+/**
+ * Find transaction by ID
+ * @param {Array} transactions - Array of transactions
+ * @param {string} transactionId - Transaction ID to find
+ * @returns {Object|null} Found transaction or null
+ */
+export function findTransactionById(transactions, transactionId) {
+  if (!transactions || !Array.isArray(transactions) || !transactionId) {
+    return null;
+  }
+  return transactions.find(tx => tx.id === transactionId) || null;
+}
+
+/**
+ * Find transaction index by ID
+ * @param {Array} transactions - Array of transactions
+ * @param {string} transactionId - Transaction ID to find
+ * @returns {number} Found transaction index or -1
+ */
+export function findTransactionIndexById(transactions, transactionId) {
+  if (!transactions || !Array.isArray(transactions) || !transactionId) {
+    return -1;
+  }
+  return transactions.findIndex(tx => tx.id === transactionId);
 }
 
 /**

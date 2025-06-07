@@ -1,7 +1,8 @@
 import { AppState, resetFileState } from '../core/appState.js';
 import { showToast } from './uiManager.js';
 import { showModal } from './modalManager.js';
-import { TRANSACTION_FIELDS, autoDetectFieldType } from '../constants/fieldMappings.js'; // FIXED: Correct import
+import { autoDetectFieldType } from '../constants/fieldMappings.js';
+import { isExcelDate, formatExcelDateForPreview, } from '../utils/dateUtils.js';
 
 // Global flag to prevent multiple file inputs
 let fileInputInProgress = false;
@@ -570,11 +571,10 @@ function showFilePreviewModal(data) {
           <tbody>
             <tr class="data-row">
               ${dataRow.map((cell, index) => {
-      // FIXED: Convert Excel dates for preview and clean display value
+      // FIXED: Use centralized date utilities for preview
       let displayValue = cell || '<em>empty</em>';
       if (cell && isExcelDate(cell)) {
-        const convertedDate = convertExcelDate(cell);
-        displayValue = `${convertedDate} <small>(was: ${cell})</small>`;
+        displayValue = formatExcelDateForPreview(cell);
       } else if (cell) {
         // CRITICAL FIX: Clean any unwanted text from display value
         displayValue = String(cell).replace(/data-field=.*$/i, '').trim() || '<em>empty</em>';
@@ -1000,23 +1000,28 @@ function getSampleData(data, dataRowIndex, columnIndex) {
   return samples.length > 0 ? samples.join(', ') : 'Empty';
 }
 
-// FIXED: Add Excel date detection and conversion functions
-function isExcelDate(value) {
-  if (!value) return false;
-  const num = parseFloat(value);
-  return !isNaN(num) && num > 25000 && num < 100000 && /^\d+(\.\d+)?$/.test(value.toString());
-}
-
+// FIXED: Use centralized Excel date conversion function
 function convertExcelDate(excelDate) {
   try {
     const num = parseFloat(excelDate);
-    if (isNaN(num)) return excelDate;
+    if (isNaN(num)) return String(excelDate);
 
-    // Excel date conversion (Excel epoch starts 1900-01-01, but with leap year bug)
-    const date = new Date((num - 25569) * 86400 * 1000);
-    return date.toISOString().split('T')[0];
+    // FIXED: Use the correct Excel epoch and calculation
+    // Excel's epoch is January 1, 1900, but Excel incorrectly considers 1900 a leap year
+    const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    // FIXED: Use (excelDate - 1) instead of (excelDate - 2) for correct date calculation
+    const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * msPerDay);
+
+    if (isNaN(jsDate.getTime())) {
+      return String(excelDate); // Return original if conversion fails
+    }
+
+    // Return ISO date string (YYYY-MM-DD)
+    return jsDate.toISOString().split('T')[0];
   } catch (error) {
     console.error('Error converting Excel date:', error);
-    return excelDate;
+    return String(excelDate);
   }
 }

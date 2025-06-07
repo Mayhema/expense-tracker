@@ -127,7 +127,8 @@ function isExcelDateColumn(values) {
   // Check if values look like Excel date numbers
   return values.every(val => {
     const num = parseFloat(val);
-    return !isNaN(num) && num > 35000 && num < 50000; // Excel date range
+    // FIXED: Use the same range as the centralized dateUtils
+    return !isNaN(num) && num >= 25000 && num <= 100000; // Excel date range
   });
 }
 
