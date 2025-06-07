@@ -243,3 +243,19 @@ export function validateHeaderMapping(mapping) {
     warnings
   };
 }
+
+/**
+ * Validates column mapping to ensure only one Date field
+ * @param {Array} mapping - Current column mapping
+ * @param {number} newIndex - Index of new Date field
+ * @param {string} newValue - New mapping value
+ * @returns {boolean} True if mapping is valid
+ */
+export function validateDateMapping(mapping, newIndex, newValue) {
+  if (newValue !== 'Date') return true;
+
+  // Count existing Date mappings
+  const dateCount = mapping.filter((field, index) => field === 'Date' && index !== newIndex).length;
+
+  return dateCount === 0;
+}

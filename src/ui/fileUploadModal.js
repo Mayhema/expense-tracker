@@ -5,6 +5,7 @@ import { addMergedFile } from "../main.js";
 import { generateFileSignature } from "../parsers/fileHandler.js";
 import { saveHeadersAndFormat } from "../mappings/mappingsManager.js";
 import { showToast } from "./uiManager.js";
+import { isExcelDate, formatExcelDateForPreview } from "../utils/dateUtils.js";
 
 /**
  * Shows the file upload and mapping modal
@@ -142,7 +143,77 @@ function updateTablePreview() {
 }
 
 /**
- * Creates the table preview HTML
+ * Updates the header mapping when a dropdown changes
+ */
+function updateHeaderMapping(select, index) {
+  const newValue = select.value;
+
+  // Skip further processing if setting to placeholder
+  if (newValue === "–") {
+    AppState.currentSuggestedMapping[index] = newValue;
+    // Update preview to remove date conversion
+    updateTablePreviewAfterMapping();
+    return;
+  }
+
+  // FIXED: Check for duplicates on required fields (especially Date)
+  if (newValue !== "Description") {
+    const existingIndex = AppState.currentSuggestedMapping.findIndex(
+      (value, i) => i !== index && value === newValue
+    );
+
+    // If this header type already exists elsewhere, reset the other one
+    if (existingIndex !== -1) {
+      const existingDropdown = document.querySelector(`.header-map[data-index="${existingIndex}"]`);
+      if (existingDropdown) {
+        existingDropdown.value = "–";
+      }
+
+      // Update the mapping
+      AppState.currentSuggestedMapping[existingIndex] = "–";
+    }
+  }
+
+  // Update the current mapping
+  AppState.currentSuggestedMapping[index] = newValue;
+
+  // FIXED: Update preview to show/hide date conversion
+  updateTablePreviewAfterMapping();
+}
+
+/**
+ * FIXED: Update table preview after mapping changes to show date conversion
+ */
+function updateTablePreviewAfterMapping() {
+  const tablePreview = document.querySelector('.table-preview');
+  if (!tablePreview || !AppState.currentFileData) return;
+
+  const headerRowInput = document.getElementById('headerRowInput');
+  const dataRowInput = document.getElementById('dataRowInput');
+
+  const headerRowIndex = headerRowInput ? parseInt(headerRowInput.value, 10) - 1 : 0;
+  const dataRowIndex = dataRowInput ? parseInt(dataRowInput.value, 10) - 1 : 1;
+
+  // Update the table preview with current mapping
+  tablePreview.innerHTML = createTablePreview(
+    AppState.currentFileData,
+    AppState.currentSuggestedMapping,
+    headerRowIndex,
+    dataRowIndex
+  );
+
+  // Re-add event listeners for mapping dropdowns
+  document.querySelectorAll('.header-map').forEach((select, index) => {
+    select.addEventListener('change', (e) => {
+      updateHeaderMapping(e.target, index);
+    });
+  });
+
+  updateSaveButtonState();
+}
+
+/**
+ * Creates the table preview HTML with proper date conversion display
  */
 function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1) {
   if (!data || !data.length) return '<p>No data to preview</p>';
@@ -183,7 +254,19 @@ function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1)
         </tr>
         <tr>
           <td>Sample</td>
-          ${dataRow.map(cell => `<td>${cell || "<em>empty</em>"}</td>`).join('')}
+          ${dataRow.map((cell, index) => {
+    // FIXED: Show converted date preview only if this column is mapped as Date
+    const isMappedAsDate = mapping && mapping[index] === 'Date';
+    let displayValue = cell || "<em>empty</em>";
+
+    if (cell && isMappedAsDate && isExcelDate(cell)) {
+      displayValue = formatExcelDateForPreview(cell);
+    } else if (cell) {
+      displayValue = String(cell);
+    }
+
+    return `<td>${displayValue}</td>`;
+  }).join('')}
         </tr>
       </table>
     </div>
@@ -193,37 +276,20 @@ function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1)
 }
 
 /**
- * Updates the header mapping when a dropdown changes
+ * Updates save button state based on mapping validation
  */
-function updateHeaderMapping(select, index) {
-  const newValue = select.value;
+function updateSaveButtonState() {
+  const saveBtn = document.getElementById('saveHeadersBtn');
+  if (!saveBtn) return;
 
-  // Skip further processing if setting to placeholder
-  if (newValue === "–") {
-    AppState.currentSuggestedMapping[index] = newValue;
-    return;
-  }
+  const mapping = AppState.currentSuggestedMapping || [];
+  const hasDate = mapping.includes('Date');
+  const hasAmount = mapping.includes('Income') || mapping.includes('Expenses');
 
-  // Check for duplicates on required fields
-  if (newValue !== "Description") {
-    const existingIndex = AppState.currentSuggestedMapping.findIndex(
-      (value, i) => i !== index && value === newValue
-    );
-
-    // If this header type already exists elsewhere, reset the other one
-    if (existingIndex !== -1) {
-      const existingDropdown = document.querySelector(`.header-map[data-index="${existingIndex}"]`);
-      if (existingDropdown) {
-        existingDropdown.value = "–";
-      }
-
-      // Update the mapping
-      AppState.currentSuggestedMapping[existingIndex] = "–";
-    }
-  }
-
-  // Update the current mapping
-  AppState.currentSuggestedMapping[index] = newValue;
+  saveBtn.disabled = !(hasDate && hasAmount);
+  saveBtn.title = hasDate && hasAmount ?
+    'Ready to import' :
+    'Need at least Date and Income/Expenses columns';
 }
 
 /**
@@ -240,6 +306,13 @@ function saveHeadersAndMergeFile(modal) {
 
     if (!hasDate || !hasAmount) {
       showToast("You must map at least Date and either Income or Expenses fields", "error");
+      return;
+    }
+
+    // FIXED: Validate only one Date column is mapped
+    const dateColumns = mapping.filter(field => field === "Date");
+    if (dateColumns.length > 1) {
+      showToast("Only one column can be mapped as Date", "error");
       return;
     }
 

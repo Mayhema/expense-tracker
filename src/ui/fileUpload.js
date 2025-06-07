@@ -571,12 +571,15 @@ function showFilePreviewModal(data) {
           <tbody>
             <tr class="data-row">
               ${dataRow.map((cell, index) => {
-      // FIXED: Use centralized date utilities for preview
+      // FIXED: Show date conversion preview only for columns mapped as Date
+      const mappings = getCurrentMapping();
+      const isMappedAsDate = mappings[index] === 'Date';
       let displayValue = cell || '<em>empty</em>';
-      if (cell && isExcelDate(cell)) {
+
+      if (cell && isMappedAsDate && isExcelDate(cell)) {
         displayValue = formatExcelDateForPreview(cell);
       } else if (cell) {
-        // CRITICAL FIX: Clean any unwanted text from display value
+        // FIXED: Keep original format for non-Date columns
         displayValue = String(cell).replace(/data-field=.*$/i, '').trim() || '<em>empty</em>';
       }
       return `
@@ -595,8 +598,26 @@ function showFilePreviewModal(data) {
 
     // Add change listeners
     document.querySelectorAll('.header-select').forEach(select => {
-      select.addEventListener('change', () => {
+      select.addEventListener('change', (e) => {
+        const newValue = e.target.value;
+        const index = parseInt(e.target.getAttribute('data-index'));
+
+        // FIXED: Prevent multiple Date mappings
+        if (newValue === 'Date') {
+          const currentMappings = getCurrentMapping();
+          const existingDateIndex = currentMappings.findIndex((field, i) => field === 'Date' && i !== index);
+
+          if (existingDateIndex !== -1) {
+            // Reset the existing Date mapping
+            const existingSelect = document.querySelector(`.header-select[data-index="${existingDateIndex}"]`);
+            if (existingSelect) {
+              existingSelect.value = '–';
+            }
+          }
+        }
+
         updateSaveButtonState();
+        updatePreview(); // Refresh preview to show/hide date conversions
       });
     });
 
@@ -775,20 +796,20 @@ export async function onSaveHeaders(modal) {
 
         console.log(`CRITICAL: Processing column ${colIndex}, field ${field}, value:`, value);
 
-        // FIXED: Apply Excel date conversion during processing
-        if (field === 'Date' && isExcelDate(value)) {
-          value = convertExcelDate(value);
-        }
-
-        // CRITICAL FIX: Ensure proper data type conversion and validation
-        if (field === 'Income' || field === 'Expenses') {
+        // FIXED: Apply Excel date conversion ONLY for Date field
+        if (field === 'Date') {
+          if (isExcelDate(value)) {
+            value = convertExcelDate(value);
+          }
+          transaction[field.toLowerCase()] = String(value).trim();
+        } else if (field === 'Income' || field === 'Expenses') {
           // Convert to number for amount fields
           const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
           if (numValue > 0) { // Only set if positive value
             transaction[field.toLowerCase()] = numValue;
           }
         } else {
-          // Convert to string for other fields
+          // FIXED: Keep original format for non-Date fields (no conversion)
           const cleanValue = String(value).trim();
           transaction[field.toLowerCase()] = cleanValue;
         }

@@ -1,5 +1,6 @@
 import { AppState } from './appState.js';
 import { showToast } from '../ui/uiManager.js';
+import { DEFAULT_CATEGORIES } from '../constants/categories.js';
 
 /**
  * Initialize debug mode functionality
@@ -247,6 +248,9 @@ export function resetApplication() {
       'expenseTrackerTransactions',
       'expenseTrackerMergedFiles',
       'expenseTrackerCategories',
+      'categories',
+      'transactions',
+      'mergedFiles',
       'categoryOrder',
       'darkMode',
       'debugMode'
@@ -260,6 +264,13 @@ export function resetApplication() {
     AppState.transactions = [];
     AppState.mergedFiles = [];
     AppState.categories = {};
+
+    // FIXED: Initialize with default categories immediately like the reset button does
+    AppState.categories = { ...DEFAULT_CATEGORIES };
+
+    // FIXED: Save categories immediately to localStorage
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+    console.log(`Reset and loaded ${Object.keys(AppState.categories).length} default categories automatically`);
 
     // Clear UI
     const transactionContainer = document.getElementById('transactionTableContainer');
@@ -277,12 +288,47 @@ export function resetApplication() {
     // Remove body classes
     document.body.classList.remove('dark-mode', 'debug-mode');
 
-    showToast('Application reset successfully', 'success');
+    showToast('Application reset successfully with default categories loaded', 'success');
 
-    // Reload the page after a short delay
+    // CRITICAL FIX: Call the exact same function as the Reset to Defaults button
+    import('../ui/categoryManager.js').then(categoryModule => {
+      if (categoryModule.resetToDefaultCategories) {
+        // This ensures the exact same process as clicking the reset button
+        categoryModule.resetToDefaultCategories();
+        console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
+      }
+    }).catch(error => {
+      console.warn('Could not call resetToDefaultCategories:', error);
+    });
+
+    // FIXED: Force immediate category UI update using the same method as reset button
+    import('./appState.js').then(appModule => {
+      if (appModule.initializeAppState) {
+        appModule.initializeAppState();
+      }
+    }).catch(error => {
+      console.warn('Could not re-initialize app state after reset:', error);
+    });
+
+    // FIXED: Update transaction UI immediately like reset button does
+    import('../ui/transactionManager.js').then(txModule => {
+      if (txModule.updateAllCategoryUI) {
+        txModule.updateAllCategoryUI();
+      }
+      if (txModule.renderTransactions) {
+        txModule.renderTransactions([], true);
+      }
+    }).catch(error => {
+      console.warn('Could not update transaction UI after reset:', error);
+    });
+
+    // FIXED: Ensure global state is immediately available
+    window.AppState = AppState;
+
+    // Reload the page after ensuring everything is saved
     setTimeout(() => {
       window.location.reload();
-    }, 1500);
+    }, 1000);
 
   } catch (error) {
     console.error('❌ Error resetting application:', error);

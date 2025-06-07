@@ -215,3 +215,13 @@ export function initCategoryMapping() {
   descriptionCategoryMap.init();
   console.log("Category mapping system initialized");
 }
+
+/**
+ * FIXED: Reset category mappings when categories are reset
+ */
+export function resetCategoryMappingsForDefaults() {
+  // Clear existing mappings when resetting to defaults
+  descriptionCategoryMap.map = {};
+  saveCategoryMappings();
+  console.log("Reset category mappings for default categories");
+}

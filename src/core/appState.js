@@ -217,6 +217,27 @@ function initializeDefaultCategories() {
 }
 
 /**
+ * FIXED: Force reset to default categories (called during app reset)
+ */
+export function forceResetToDefaultCategories() {
+  console.log("Force resetting to default categories...");
+
+  // Clear existing categories
+  AppState.categories = {};
+
+  // Load default categories
+  AppState.categories = { ...DEFAULT_CATEGORIES };
+
+  // Save immediately
+  try {
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+    console.log(`Force reset: Loaded ${Object.keys(AppState.categories).length} default categories`);
+  } catch (error) {
+    console.error('Error saving default categories during force reset:', error);
+  }
+}
+
+/**
  * Save categories to localStorage
  */
 export function saveCategories() {

@@ -69,7 +69,7 @@ async function initializeCategoryMapping() {
 
 // Import AppState and handle defaults internally
 import { AppState, saveCategories } from '../core/appState.js';
-import { DEFAULT_CATEGORIES } from '../core/constants.js';
+import { DEFAULT_CATEGORIES } from '../constants/categories.js';
 
 /**
  * Local function to ensure default categories

@@ -512,8 +512,33 @@ function _handleEditCategories() {
  */
 function _handleResetApp() {
   if (confirm('Are you sure you want to reset the application? This will clear all data.')) {
-    localStorage.clear();
-    sessionStorage.clear();
-    location.reload();
+    // CRITICAL FIX: Ensure default categories are loaded exactly like the reset button
+    import('../constants/categories.js').then(categoriesModule => {
+      import('../core/appState.js').then(appStateModule => {
+        // Clear all data
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // Initialize default categories immediately
+        appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
+        localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
+        console.log('Reset App: Loaded default categories');
+
+        // CRITICAL FIX: Call the exact same function as the Reset to Defaults button
+        import('./categoryManager.js').then(categoryModule => {
+          if (categoryModule.resetToDefaultCategories) {
+            categoryModule.resetToDefaultCategories();
+            console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
+          }
+        }).catch(error => {
+          console.warn('Could not call resetToDefaultCategories:', error);
+        });
+
+        // Reload after ensuring categories are saved
+        setTimeout(() => {
+          location.reload();
+        }, 500);
+      });
+    });
   }
 }

@@ -324,8 +324,18 @@ function initializeDebugActionButtons() {
     clearDataBtn.addEventListener('click', () => {
       if (confirm('This will clear all your data. Are you sure?')) {
         try {
+          // FIXED: Ensure default categories are loaded after clearing data
           localStorage.clear();
-          location.reload();
+
+          // Initialize default categories immediately
+          import('../constants/categories.js').then(categoriesModule => {
+            import('../core/appState.js').then(appStateModule => {
+              appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
+              localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
+              console.log('Clear Data: Restored default categories');
+              location.reload();
+            });
+          });
         } catch (error) {
           console.error('Error clearing data:', error);
           showToast('Error clearing data', 'error');

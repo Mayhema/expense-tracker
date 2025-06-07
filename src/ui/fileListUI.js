@@ -141,20 +141,36 @@ function handleRemoveFile(index, container, modal) {
   if (!file) return;
 
   if (confirm(`Are you sure you want to remove "${file.fileName}"?`)) {
+    // FIXED: Remove transactions associated with this file first
+    if (AppState.transactions) {
+      const originalTransactionCount = AppState.transactions.length;
+      AppState.transactions = AppState.transactions.filter(tx => tx.fileName !== file.fileName);
+      const removedTransactionCount = originalTransactionCount - AppState.transactions.length;
+
+      if (removedTransactionCount > 0) {
+        console.log(`Removed ${removedTransactionCount} transactions associated with file: ${file.fileName}`);
+        // Save updated transactions
+        localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+      }
+    }
+
     // Remove from merged files
     AppState.mergedFiles.splice(index, 1);
 
     // Save to localStorage
     try {
       localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
-      showToast(`File "${file.fileName}" removed successfully`, 'success');
+      showToast(`File "${file.fileName}" and its transactions removed successfully`, 'success');
 
       // Refresh the modal content
       container.innerHTML = buildMergedFilesContent();
       attachMergedFilesEventListeners(container, modal);
 
-      // Update transactions
+      // Update transactions UI
       import('./transactionManager.js').then(module => {
+        if (module.renderTransactions) {
+          module.renderTransactions(AppState.transactions, true);
+        }
         if (module.updateTransactions) {
           module.updateTransactions();
         }

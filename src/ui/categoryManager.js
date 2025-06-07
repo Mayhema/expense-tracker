@@ -750,7 +750,7 @@ function saveCategories() {
 }
 
 /**
- * FIXED: Reset categories to default values
+ * FIXED: Reset categories to default values - make sure this works exactly like the reset button
  */
 export function resetToDefaultCategories() {
   console.log("Resetting categories to defaults...");
@@ -758,9 +758,13 @@ export function resetToDefaultCategories() {
   try {
     // Import and use default categories
     import('../constants/categories.js').then(module => {
+      // FIXED: Clear existing categories first
+      AppState.categories = {};
+
+      // FIXED: Load default categories
       AppState.categories = { ...module.DEFAULT_CATEGORIES };
 
-      // Save to localStorage
+      // Save to localStorage immediately
       localStorage.setItem('categories', JSON.stringify(AppState.categories));
 
       // Update all category UI elements
