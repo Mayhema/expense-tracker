@@ -4,6 +4,21 @@
 
 let activeModal = null;
 
+// FIXED: Cache frequently accessed DOM elements
+const modalCache = {
+  overlay: null,
+  activeModals: new Map(),
+  eventListeners: new Map()
+};
+
+function getModalOverlay() {
+  // FIXED: Cache the overlay element
+  if (!modalCache.overlay) {
+    modalCache.overlay = document.getElementById('modalOverlay') || createModalOverlay();
+  }
+  return modalCache.overlay;
+}
+
 /**
  * Show a modal with the given configuration
  */
@@ -87,6 +102,32 @@ export function showModal(config) {
     color: #333;
   `;
 
+  // FIXED: Define closeModal function before using it
+  const closeModal = () => {
+    // FIXED: Proper cleanup sequence
+    backdrop.style.opacity = '0';
+    modal.style.transform = 'scale(0.7)';
+
+    // FIXED: Use transition end event instead of arbitrary timeout
+    const handleTransitionEnd = () => {
+      if (backdrop.parentNode) {
+        document.body.removeChild(backdrop);
+      }
+
+      // FIXED: Clean up all event listeners
+      cleanupFunctions.forEach(cleanup => cleanup());
+      modalCache.activeModals.delete(modalId);
+
+      backdrop.removeEventListener('transitionend', handleTransitionEnd);
+      activeModal = null;
+    };
+
+    backdrop.addEventListener('transitionend', handleTransitionEnd, { once: true });
+
+    // Fallback cleanup after 300ms if transition doesn't fire
+    setTimeout(handleTransitionEnd, 300);
+  };
+
   const closeBtn = document.createElement('button');
   closeBtn.className = 'modal-close';
   closeBtn.innerHTML = '×';
@@ -137,54 +178,43 @@ export function showModal(config) {
     modal.style.transform = 'scale(1)';
   });
 
-  // Event listeners for closing
+  const modalId = Date.now().toString();
+
+  // FIXED: Track modal and its cleanup functions
+  const cleanupFunctions = [];
+
+  // FIXED: Track event listeners for cleanup
   if (closeOnClickOutside) {
-    backdrop.addEventListener('click', (e) => {
+    const backdropClickHandler = (e) => {
       if (e.target === backdrop) {
         closeModal();
       }
-    });
+    };
+    backdrop.addEventListener('click', backdropClickHandler);
+    cleanupFunctions.push(() => backdrop.removeEventListener('click', backdropClickHandler));
   }
 
   // Prevent modal content clicks from bubbling to backdrop
-  modal.addEventListener('click', (e) => {
+  const modalClickHandler = (e) => {
     e.stopPropagation();
-  });
-
-  // ESC key listener
-  document.addEventListener('keydown', handleEscapeKey);
-
-  // Store reference
-  activeModal = {
-    backdrop,
-    modal,
-    close: closeModal
   };
+  modal.addEventListener('click', modalClickHandler);
+  cleanupFunctions.push(() => modal.removeEventListener('click', modalClickHandler));
 
-  function closeModal() {
-    if (!backdrop.parentNode) return;
-
-    // Remove event listener first
-    document.removeEventListener('keydown', handleEscapeKey);
-
-    backdrop.style.opacity = '0';
-    modal.style.transform = 'scale(0.7)';
-
-    setTimeout(() => {
-      if (backdrop.parentNode) {
-        document.body.removeChild(backdrop);
-      }
-      activeModal = null;
-    }, 300);
-  }
-
-  function handleEscapeKey(e) {
+  const escapeHandler = (e) => {
     if (e.key === 'Escape') {
       closeModal();
     }
-  }
+  };
+  document.addEventListener('keydown', escapeHandler);
+  cleanupFunctions.push(() => document.removeEventListener('keydown', escapeHandler));
 
-  return activeModal;
+  modalCache.activeModals.set(modalId, { modal, cleanup: cleanupFunctions });
+
+  // Set active modal
+  activeModal = { close: closeModal };
+
+  return { close: closeModal };
 }
 
 /**
@@ -201,4 +231,14 @@ export function closeAllModals() {
  */
 export function isModalOpen() {
   return activeModal !== null;
+}
+
+// FIXED: Cleanup function for memory management
+export function cleanupAllModals() {
+  modalCache.activeModals.forEach(({ cleanup }) => {
+    cleanup.forEach(fn => fn());
+  });
+  modalCache.activeModals.clear();
+  modalCache.overlay = null;
+  activeModal = null;
 }

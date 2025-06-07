@@ -76,6 +76,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+// FIXED: Track cleanup functions for proper memory management
+const cleanupFunctions = [];
+
+// FIXED: Register cleanup functions
+function registerCleanup(cleanupFn) {
+  cleanupFunctions.push(cleanupFn);
+}
+
+// FIXED: Initialize with performance optimizations
+async function initializeApp() {
+  // FIXED: Register cleanup functions
+  registerCleanup(() => {
+    import('./ui/chartManager.js').then(module => {
+      if (module.cleanupAllCharts) module.cleanupAllCharts();
+    });
+  });
+
+  registerCleanup(() => {
+    import('./ui/modalManager.js').then(module => {
+      if (module.cleanupAllModals) module.cleanupAllModals();
+    });
+  });
+
+  registerCleanup(() => {
+    import('./ui/transactionManager.js').then(module => {
+      if (module.cleanupTransactionManager) module.cleanupTransactionManager();
+    });
+  });
+
+  registerCleanup(() => {
+    import('./ui/fileUpload.js').then(module => {
+      if (module.cleanupFileUpload) module.cleanupFileUpload();
+    });
+  });
+}
+
+// FIXED: Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  cleanupFunctions.forEach(cleanup => {
+    try {
+      cleanup();
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+  });
+});
+
 // Make AppState available globally for debugging
 window.AppState = AppState;
 

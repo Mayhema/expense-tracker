@@ -1463,3 +1463,80 @@ export function updateTransactions() {
 
   console.groupEnd();
 }
+
+// FIXED: Cache DOM elements to avoid repeated queries
+const transactionCache = {
+  container: null,
+  filterElements: new Map(),
+  eventListeners: new Map()
+};
+
+function getTransactionContainer() {
+  // FIXED: Cache the main container
+  if (!transactionCache.container) {
+    transactionCache.container = document.getElementById('transactionsList') ||
+      document.querySelector('.transactions-container') ||
+      document.querySelector('#transactionsContainer');
+  }
+  return transactionCache.container;
+}
+
+function getCachedElement(id) {
+  // FIXED: Cache frequently accessed filter elements
+  if (!transactionCache.filterElements.has(id)) {
+    transactionCache.filterElements.set(id, document.getElementById(id));
+  }
+  return transactionCache.filterElements.get(id);
+}
+
+// Removed duplicate renderTransactions function - using the main one defined earlier
+
+// FIXED: Centralized event listener management - merged with existing function
+function attachTransactionEventListenersV2() {
+  const container = getTransactionContainer();
+  if (!container) return;
+
+  // FIXED: Use event delegation for better performance
+  const handleTransactionClick = (e) => {
+    const transactionElement = e.target.closest('.transaction-item');
+    if (!transactionElement) return;
+
+    const transactionId = transactionElement.dataset.transactionId;
+    if (e.target.matches('.edit-btn')) {
+      handleEditTransaction(transactionId);
+    } else if (e.target.matches('.delete-btn')) {
+      handleDeleteTransaction(transactionId);
+    } else if (e.target.matches('.category-btn')) {
+      handleCategoryChange(transactionId, e.target);
+    }
+  };
+
+  container.addEventListener('click', handleTransactionClick);
+
+  // FIXED: Track listeners for cleanup
+  if (!transactionCache.eventListeners.has('main')) {
+    transactionCache.eventListeners.set('main', []);
+  }
+  transactionCache.eventListeners.get('main').push({
+    element: container,
+    event: 'click',
+    handler: handleTransactionClick
+  });
+}
+
+// FIXED: Clean up event listeners to prevent memory leaks
+function clearTransactionEventListeners() {
+  transactionCache.eventListeners.forEach((listeners, key) => {
+    listeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+  });
+  transactionCache.eventListeners.clear();
+}
+
+// FIXED: Cleanup function for component unmounting
+export function cleanupTransactionManager() {
+  clearTransactionEventListeners();
+  transactionCache.container = null;
+  transactionCache.filterElements.clear();
+}

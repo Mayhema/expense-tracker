@@ -7,6 +7,13 @@ import { isExcelDate, formatExcelDateForPreview, } from '../utils/dateUtils.js';
 // Global flag to prevent multiple file inputs
 let fileInputInProgress = false;
 
+// FIXED: Add missing fileUploadCache object
+const fileUploadCache = {
+  activeInputs: new Map(),
+  modalElements: new Map(),
+  eventListeners: new Map()
+};
+
 /**
  * Cleanup any existing file input elements to prevent duplicates
  */
@@ -61,38 +68,80 @@ export function createNewFileInput() {
     fileInput.accept = '.csv,.xlsx,.xls,.xml';
     fileInput.style.display = 'none';
 
+    const inputId = Date.now().toString();
+
+    // FIXED: Track event listeners for proper cleanup
+    const eventListeners = [];
+
     // Add event listener for file selection
-    fileInput.addEventListener('change', handleFileSelection);
-
-    // FIXED: Add cancel handler to reset progress flag
-    fileInput.addEventListener('cancel', () => {
-      fileInputInProgress = false;
-      if (document.body.contains(fileInput)) {
-        document.body.removeChild(fileInput);
+    const handleFileSelection = (event) => {
+      const file = event.target.files[0];
+      if (!file) {
+        console.log("No file selected");
+        // FIXED: Reset progress flag if no file selected
+        fileInputInProgress = false;
+        return;
       }
-    });
 
-    // FIXED: Handle window focus to detect cancel
+      // FIXED: Only set progress flag when file is actually selected
+      fileInputInProgress = true;
+
+      console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
+
+      try {
+        // Process the file
+        handleFileUploadProcess(file);
+      } catch (error) {
+        console.error("Error processing file:", error);
+        handleFileUploadError(error);
+      } finally {
+        // Clean up the file input
+        if (event.target && event.target.parentNode) {
+          event.target.parentNode.removeChild(event.target);
+        }
+      }
+      // FIXED: Clean up this specific input after processing
+      cleanupFileInput(inputId);
+    };
+
+    const handleCancel = () => {
+      fileInputInProgress = false;
+      cleanupFileInput(inputId);
+    };
+
     const handleFocus = () => {
-      setTimeout(() => {
+      // FIXED: Use requestAnimationFrame instead of setTimeout
+      requestAnimationFrame(() => {
         if (!fileInput.files.length && document.body.contains(fileInput)) {
           fileInputInProgress = false;
-          document.body.removeChild(fileInput);
+          cleanupFileInput(inputId);
         }
-        window.removeEventListener('focus', handleFocus);
-      }, 300);
+      });
     };
-    window.addEventListener('focus', handleFocus);
 
-    // Add to DOM and trigger click
+    fileInput.addEventListener('change', handleFileSelection);
+    fileInput.addEventListener('cancel', handleCancel);
+    window.addEventListener('focus', handleFocus, { once: true });
+
+    // FIXED: Track listeners and element for cleanup
+    const inputData = {
+      element: fileInput,
+      listeners: [
+        { element: fileInput, event: 'change', handler: handleFileSelection },
+        { element: fileInput, event: 'cancel', handler: handleCancel },
+        { element: window, event: 'focus', handler: handleFocus }
+      ]
+    };
+
+    fileUploadCache.activeInputs.set(inputId, inputData);
+
     document.body.appendChild(fileInput);
 
-    // Small delay to ensure DOM is ready
-    setTimeout(() => {
+    // FIXED: Use requestAnimationFrame instead of setTimeout
+    requestAnimationFrame(() => {
       fileInput.click();
-    }, 10);
+    });
 
-    console.log("File input created and triggered");
     return fileInput;
 
   } catch (error) {
@@ -102,35 +151,25 @@ export function createNewFileInput() {
   }
 }
 
-/**
- * Handle file selection with proper error handling
- */
-function handleFileSelection(event) {
-  const file = event.target.files[0];
-  if (!file) {
-    console.log("No file selected");
-    // FIXED: Reset progress flag if no file selected
-    fileInputInProgress = false;
-    return;
+// FIXED: Improved cleanup function
+function cleanupFileInput(inputId) {
+  const inputData = fileUploadCache.activeInputs.get(inputId);
+  if (!inputData) return;
+
+  const { element, listeners } = inputData;
+
+  // Remove event listeners
+  listeners.forEach(({ element: el, event, handler }) => {
+    el.removeEventListener(event, handler);
+  });
+
+  // Remove from DOM
+  if (element && element.parentNode) {
+    element.parentNode.removeChild(element);
   }
 
-  // FIXED: Only set progress flag when file is actually selected
-  fileInputInProgress = true;
-
-  console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
-
-  try {
-    // Process the file
-    handleFileUploadProcess(file);
-  } catch (error) {
-    console.error("Error processing file:", error);
-    handleFileUploadError(error);
-  } finally {
-    // Clean up the file input
-    if (event.target && event.target.parentNode) {
-      event.target.parentNode.removeChild(event.target);
-    }
-  }
+  // Remove from cache
+  fileUploadCache.activeInputs.delete(inputId);
 }
 
 /**
@@ -757,33 +796,85 @@ function autoDetectColumn(header, sampleData) {
  * Set up modal event listeners with real-time preview updates
  */
 function setupModalEventListeners(modal, data, fileExt, updatePreview) {
-  // Update preview when row selects change
-  const headerRowSelect = document.getElementById('headerRowSelect');
-  const dataRowSelect = document.getElementById('dataRowSelect');
+  const modalContent = modal.content || getCachedModalElement('.file-preview-modal');
+  if (!modalContent) return;
 
-  if (headerRowSelect) {
-    headerRowSelect.addEventListener('change', updatePreview);
-  }
-  if (dataRowSelect) {
-    dataRowSelect.addEventListener('change', updatePreview);
-  }
+  // FIXED: Cache frequently accessed elements
+  const headerRowSelect = modalContent.querySelector('#headerRowSelect');
+  const dataRowSelect = modalContent.querySelector('#dataRowSelect');
+  const cancelBtn = modalContent.querySelector('#cancelPreviewBtn');
+  const saveBtn = modalContent.querySelector('#saveHeadersBtn');
 
-  // Cancel button
-  const cancelBtn = document.getElementById('cancelPreviewBtn');
+  // FIXED: Use event delegation for header selects
+  const handleSelectChange = (e) => {
+    if (e.target.matches('#headerRowSelect, #dataRowSelect')) {
+      // FIXED: Use requestAnimationFrame for smooth updates
+      requestAnimationFrame(updatePreview);
+    }
+  };
+
+  modalContent.addEventListener('change', handleSelectChange);
+
+  // FIXED: Track listeners for cleanup
+  const modalId = modal.id || Date.now().toString();
+  fileUploadCache.eventListeners.set(modalId, [
+    { element: modalContent, event: 'change', handler: handleSelectChange }
+  ]);
+
   if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
+    const handleCancel = () => {
       modal.close();
       clearPreview();
+      cleanupModalEventListeners(modalId);
+    };
+    cancelBtn.addEventListener('click', handleCancel);
+    fileUploadCache.eventListeners.get(modalId).push({
+      element: cancelBtn, event: 'click', handler: handleCancel
     });
   }
 
-  // Save button
-  const saveBtn = document.getElementById('saveHeadersBtn');
   if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
+    const handleSave = () => {
       onSaveHeaders(modal);
+      cleanupModalEventListeners(modalId);
+    };
+    saveBtn.addEventListener('click', handleSave);
+    fileUploadCache.eventListeners.get(modalId).push({
+      element: saveBtn, event: 'click', handler: handleSave
     });
   }
+}
+
+// FIXED: Clean up modal event listeners
+function cleanupModalEventListeners(modalId) {
+  const listeners = fileUploadCache.eventListeners.get(modalId);
+  if (!listeners) return;
+
+  listeners.forEach(({ element, event, handler }) => {
+    element.removeEventListener(event, handler);
+  });
+
+  fileUploadCache.eventListeners.delete(modalId);
+}
+
+// FIXED: Add missing getCachedModalElement function
+function getCachedModalElement(selector) {
+  if (!fileUploadCache.modalElements.has(selector)) {
+    fileUploadCache.modalElements.set(selector, document.querySelector(selector));
+  }
+  return fileUploadCache.modalElements.get(selector);
+}
+
+// FIXED: Cleanup function for component unmounting
+export function cleanupFileUpload() {
+  cleanupExistingFileInputs();
+  fileUploadCache.modalElements.clear();
+
+  fileUploadCache.eventListeners.forEach((listeners, modalId) => {
+    cleanupModalEventListeners(modalId);
+  });
+
+  fileUploadCache.activeInputs.clear();
 }
 
 /**
