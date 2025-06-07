@@ -244,7 +244,7 @@ function parseXMLToRows(xmlDoc) {
 }
 
 /**
- * Generates a signature for a file based on its structure
+ * FIXED: Generate structure-based signature that ignores file format
  * @param {string} fileName - The file name
  * @param {Array<Array>} data - File data as 2D array
  * @param {Array<string>} [mapping] - Optional column mapping
@@ -257,28 +257,33 @@ export function generateFileSignature(fileName, data, mapping = null, currency =
   }
 
   try {
-    // CRITICAL FIX: Create consistent signature based on file structure and headers only
+    // CRITICAL FIX: Create signature based on file STRUCTURE only, not format
     const columnCount = data[0] ? data[0].length : 0;
-    const fileExt = fileName.split('.').pop().toLowerCase();
 
-    // Include header content in signature for better uniqueness
-    const headerContent = data[0] ? data[0].map(cell =>
-      String(cell || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-    ).join('|') : '';
+    // FIXED: Include header content in signature for better uniqueness, normalized
+    const headerContent = data[0] ? data[0].map(cell => {
+      if (!cell) return '';
+      return String(cell).toLowerCase()
+        .replace(/[^a-z0-9]/g, '')  // Remove special chars
+        .substring(0, 10);          // Limit length
+    }).join('|') : '';
 
-    // CRITICAL FIX: Create signature based only on file structure, not mapping
-    // This ensures files with the same structure get the same signature
+    // FIXED: Analyze data patterns to create structure fingerprint
+    const dataPatterns = analyzeDataPatterns(data);
+
+    // CRITICAL FIX: Create signature based ONLY on structure, not file extension
     const structureData = {
-      extension: fileExt,
       columnCount: columnCount,
-      headerContent: headerContent.substring(0, 50), // Limit length but include content
-      hasSecondRow: data.length > 1
-      // REMOVED: mapping parameter to ensure consistent signatures
+      headerContent: headerContent,
+      hasSecondRow: data.length > 1,
+      rowCount: Math.min(data.length, 5), // First 5 rows for pattern
+      dataPatterns: dataPatterns
+      // REMOVED: file extension completely from signature
     };
 
     const structureString = JSON.stringify(structureData);
 
-    // Create a simple hash that's consistent
+    // Create a consistent hash
     let hash = 0;
     for (let i = 0; i < structureString.length; i++) {
       const char = structureString.charCodeAt(i);
@@ -286,13 +291,70 @@ export function generateFileSignature(fileName, data, mapping = null, currency =
       hash = hash & hash; // Convert to 32-bit integer
     }
 
-    const signature = `sig_${Math.abs(hash).toString(36)}`;
-    console.log('CRITICAL: Generated signature:', signature, 'for file:', fileName, 'structure:', structureData);
+    const signature = `struct_${Math.abs(hash).toString(36)}`;
+    console.log('CRITICAL: Generated STRUCTURE-BASED signature:', signature, 'for file:', fileName, 'structure:', structureData);
 
     return signature;
   } catch (error) {
     console.error('CRITICAL ERROR: Error generating signature:', error);
     return `fallback_${Date.now()}`;
+  }
+}
+
+/**
+ * FIXED: Analyze data patterns for better structure matching
+ * @param {Array<Array>} data - File data
+ * @returns {Object} Data patterns analysis
+ */
+function analyzeDataPatterns(data) {
+  if (!data || data.length < 2) {
+    return { hasData: false };
+  }
+
+  try {
+    // Analyze first few data rows (skip header)
+    const sampleRows = data.slice(1, Math.min(4, data.length));
+    const patterns = {
+      hasData: true,
+      columnTypes: [],
+      nonEmptyColumns: 0
+    };
+
+    // Analyze each column's data type pattern
+    for (let colIndex = 0; colIndex < (data[0]?.length || 0); colIndex++) {
+      const columnValues = sampleRows
+        .map(row => row[colIndex])
+        .filter(val => val !== null && val !== undefined && val !== '');
+
+      if (columnValues.length === 0) {
+        patterns.columnTypes[colIndex] = 'empty';
+        continue;
+      }
+
+      patterns.nonEmptyColumns++;
+
+      // Determine column type based on content
+      const hasNumbers = columnValues.some(val => !isNaN(parseFloat(val)));
+      const hasText = columnValues.some(val => isNaN(parseFloat(val)) && String(val).length > 2);
+      const hasDates = columnValues.some(val => {
+        return isExcelDate(val) || !isNaN(Date.parse(val));
+      });
+
+      if (hasDates) {
+        patterns.columnTypes[colIndex] = 'date';
+      } else if (hasNumbers && !hasText) {
+        patterns.columnTypes[colIndex] = 'number';
+      } else if (hasText) {
+        patterns.columnTypes[colIndex] = 'text';
+      } else {
+        patterns.columnTypes[colIndex] = 'mixed';
+      }
+    }
+
+    return patterns;
+  } catch (error) {
+    console.error('Error analyzing data patterns:', error);
+    return { hasData: false, error: true };
   }
 }
 

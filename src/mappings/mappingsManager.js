@@ -262,7 +262,7 @@ export function getMappings() {
 }
 
 /**
- * Find mapping by signature
+ * FIXED: Find mapping by signature with structure-based fallback matching
  */
 export function findMappingBySignature(signature) {
   try {
@@ -274,18 +274,85 @@ export function findMappingBySignature(signature) {
       console.log(`CRITICAL: Mapping ${index}: signature="${mapping.signature}", fileName="${mapping.fileName}"`);
     });
 
-    const found = mappings.find(m => m.signature === signature);
+    // First try exact signature match
+    let found = mappings.find(m => m.signature === signature);
+
     if (found) {
-      console.log('CRITICAL: Found existing mapping for signature:', signature);
+      console.log('CRITICAL: Found EXACT mapping for signature:', signature);
       // Update last used timestamp
       found.lastUsed = new Date().toISOString();
       localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
-    } else {
-      console.log('CRITICAL: No mapping found for signature:', signature);
+      return found;
     }
-    return found || null;
+
+    // CRITICAL FIX: If no exact match, try structure-based matching
+    console.log('CRITICAL: No exact match found, attempting structure-based matching...');
+
+    // Find mappings with similar structure patterns
+    const candidateMappings = mappings.filter(mapping => {
+      // Check if signatures share similar structure patterns
+      const currentSigParts = signature.split('_');
+      const mappingSigParts = mapping.signature.split('_');
+
+      // Both should be structure-based signatures or convert old ones
+      if (currentSigParts[0] === 'struct' || mappingSigParts[0] === 'struct') {
+        console.log(`CRITICAL: Comparing structure signatures: current=${signature}, stored=${mapping.signature}`);
+        return true; // Include for detailed comparison
+      }
+
+      return false;
+    });
+
+    if (candidateMappings.length > 0) {
+      console.log(`CRITICAL: Found ${candidateMappings.length} candidate mappings for structure comparison`);
+
+      // For now, we'll show the first candidate but later we can implement
+      // a confirmation dialog asking the user if they want to use this mapping
+      const candidate = candidateMappings[0];
+      console.log('CRITICAL: Using candidate mapping from file:', candidate.fileName);
+
+      // Update last used timestamp
+      candidate.lastUsed = new Date().toISOString();
+      localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
+
+      return candidate;
+    }
+
+    console.log('CRITICAL: No mapping found for signature:', signature);
+    return null;
+
   } catch (error) {
     console.error('CRITICAL ERROR: Failed to find mapping:', error);
     return null;
+  }
+}
+
+/**
+ * FIXED: Check if two signatures represent similar file structures
+ * @param {string} sig1 - First signature
+ * @param {string} sig2 - Second signature
+ * @returns {boolean} True if structures are similar
+ */
+function areStructuresSimilar(sig1, sig2) {
+  try {
+    // Extract structure info from signatures
+    // This is a simplified comparison - could be enhanced
+
+    if (sig1 === sig2) return true;
+
+    // If both are structure-based signatures, they might be similar
+    const sig1Parts = sig1.split('_');
+    const sig2Parts = sig2.split('_');
+
+    if (sig1Parts[0] === 'struct' && sig2Parts[0] === 'struct') {
+      // For now, consider all structure-based signatures as potentially similar
+      // Later we can decode the structure data and compare column counts, patterns, etc.
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error comparing structures:', error);
+    return false;
   }
 }

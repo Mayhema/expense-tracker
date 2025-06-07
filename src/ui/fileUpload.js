@@ -282,9 +282,11 @@ async function processUploadedData(file, data) {
   if (existingMapping) {
     console.log('CRITICAL: Found existing mapping, auto-applying:', existingMapping);
 
-    // FIXED: Auto-apply existing mapping - this should work for same signatures
-    console.log('CRITICAL: Auto-applying saved mapping for signature:', signature);
-    autoApplyMapping(file, data, existingMapping);
+    // FIXED: Just show a toast notification and auto-apply
+    showToast(`🎯 Using saved mapping from "${existingMapping.fileName}"`, "info");
+
+    // Auto-apply the mapping
+    await autoApplyMapping(file, data, existingMapping);
     return;
   } else {
     console.log('CRITICAL: No existing mapping found for signature:', signature, 'showing manual mapping');
@@ -298,7 +300,7 @@ async function processUploadedData(file, data) {
 }
 
 /**
- * Auto-apply existing mapping to file
+ * FIXED: Auto-apply existing mapping to file
  */
 async function autoApplyMapping(file, data, mapping) {
   try {
@@ -310,9 +312,9 @@ async function autoApplyMapping(file, data, mapping) {
 
     // Generate signature
     const { generateFileSignature } = await import('../parsers/fileHandler.js');
-    const signature = generateFileSignature(file.name, data, mapping.mapping);
+    const signature = generateFileSignature(file.name, data);
 
-    // Process transactions
+    // Process transactions using the existing mapping
     const transactions = [];
     for (let i = mapping.dataRowIndex || 1; i < data.length; i++) {
       const row = data[i];
@@ -328,22 +330,33 @@ async function autoApplyMapping(file, data, mapping) {
         expenses: 0
       };
 
+      // Apply mapping to row data
       mapping.mapping.forEach((field, colIndex) => {
-        if (field && field !== '–' && row[colIndex] !== undefined) {
-          const fieldName = field.toLowerCase();
-          transaction[fieldName] = row[colIndex];
+        if (field && field !== '–' && row[colIndex] !== undefined && row[colIndex] !== '') {
+          let value = row[colIndex];
+
+          if (field === 'Date') {
+            if (isExcelDate(value)) {
+              value = convertExcelDate(value);
+            }
+            transaction[field.toLowerCase()] = String(value).trim();
+          } else if (field === 'Income' || field === 'Expenses') {
+            const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
+            if (numValue > 0) {
+              transaction[field.toLowerCase()] = numValue;
+            }
+          } else {
+            transaction[field.toLowerCase()] = String(value).trim();
+          }
         }
       });
 
-      // Convert string numbers
-      if (transaction.income && typeof transaction.income === 'string') {
-        transaction.income = parseFloat(transaction.income.replace(/[^\d.-]/g, '')) || 0;
-      }
-      if (transaction.expenses && typeof transaction.expenses === 'string') {
-        transaction.expenses = parseFloat(transaction.expenses.replace(/[^\d.-]/g, '')) || 0;
-      }
+      // Only add if has essential data
+      const hasValidDate = transaction.date && transaction.date !== '';
+      const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
+      const hasValidDescription = transaction.description && transaction.description.trim() !== '';
 
-      if (transaction.date || transaction.description || transaction.income > 0 || transaction.expenses > 0) {
+      if (hasValidDate || hasValidAmount || hasValidDescription) {
         transactions.push(transaction);
       }
     }
@@ -382,13 +395,103 @@ async function autoApplyMapping(file, data, mapping) {
     setTimeout(() => {
       import('./transactionManager.js').then(module => {
         module.renderTransactions(AppState.transactions, true);
+      }).catch(error => {
+        console.error('CRITICAL ERROR: Failed to import transaction manager:', error);
       });
     }, 100);
 
   } catch (error) {
     console.error('CRITICAL ERROR: Auto-apply mapping failed:', error);
     showToast("Auto-mapping failed, showing manual mapping", "warning");
-    showFilePreviewModal(data);
+
+    // FIXED: Show the confirmation dialog only if auto-apply fails
+    showMappingConfirmationDialog(file, data, mapping, mapping.signature);
+  }
+}
+
+/**
+ * FIXED: Show confirmation dialog for existing mapping match (only when auto-apply fails)
+ */
+function showMappingConfirmationDialog(file, data, existingMapping, signature) {
+  const modalContent = document.createElement('div');
+  modalContent.className = 'mapping-confirmation-modal';
+
+  // Build the fields display
+  const mappingFields = existingMapping.mapping ?
+    existingMapping.mapping.map((field, index) =>
+      field !== '–' ? `Column ${index + 1}: ${field}` : null
+    ).filter(field => field !== null).join(', ') : 'No field mappings';
+
+  modalContent.innerHTML = `
+    <div class="confirmation-content">
+      <h3>⚠️ Auto-Mapping Failed</h3>
+      <p>The automatic mapping failed, but we found a similar file structure. Would you like to use the existing mapping or map manually?</p>
+
+      <div class="mapping-details">
+        <h4>Existing Mapping Details:</h4>
+        <p><strong>Original File:</strong> ${existingMapping.fileName || 'Unknown'}</p>
+        <p><strong>Fields Mapped:</strong> ${mappingFields}</p>
+        <p><strong>Header Row:</strong> ${(existingMapping.headerRowIndex || 0) + 1}</p>
+        <p><strong>Data Row:</strong> ${(existingMapping.dataRowIndex || 1) + 1}</p>
+        <p><strong>Currency:</strong> ${existingMapping.currency || 'USD'}</p>
+      </div>
+
+      <div class="file-info">
+        <h4>Current File:</h4>
+        <p><strong>File Name:</strong> ${file.name}</p>
+        <p><strong>Rows:</strong> ${data.length}</p>
+        <p><strong>Columns:</strong> ${data[0]?.length || 0}</p>
+      </div>
+    </div>
+
+    <div class="confirmation-actions">
+      <button id="retryMappingBtn" class="btn primary-btn">🔄 Retry Auto-Mapping</button>
+      <button id="manualMappingBtn" class="btn secondary-btn">⚙️ Map Manually</button>
+      <button id="cancelMappingBtn" class="btn danger-btn">❌ Cancel</button>
+    </div>
+  `;
+
+  const modal = showModal({
+    title: 'Auto-Mapping Failed',
+    content: modalContent,
+    size: 'large',
+    closeOnClickOutside: false
+  });
+
+  // Add event listeners
+  const retryMappingBtn = modalContent.querySelector('#retryMappingBtn');
+  const manualMappingBtn = modalContent.querySelector('#manualMappingBtn');
+  const cancelMappingBtn = modalContent.querySelector('#cancelMappingBtn');
+
+  if (retryMappingBtn) {
+    retryMappingBtn.addEventListener('click', async () => {
+      modal.close();
+      console.log('CRITICAL: User chose to retry auto-mapping');
+      // Try auto-apply again
+      await autoApplyMapping(file, data, existingMapping);
+    });
+  }
+
+  if (manualMappingBtn) {
+    manualMappingBtn.addEventListener('click', () => {
+      modal.close();
+      console.log('CRITICAL: User chose manual mapping');
+      // Store data and show manual mapping modal
+      storeFileDataInState(file, data);
+      showFilePreviewModal(data);
+      showToast(`File loaded: ${data.length} rows found - Manual mapping selected`, "info");
+      fileInputInProgress = false;
+    });
+  }
+
+  if (cancelMappingBtn) {
+    cancelMappingBtn.addEventListener('click', () => {
+      modal.close();
+      console.log('CRITICAL: User cancelled file upload');
+      resetFileState();
+      fileInputInProgress = false;
+      showToast('File upload cancelled', 'info');
+    });
   }
 }
 
