@@ -11,8 +11,35 @@ import { formatDateToDDMMYYYY } from '../utils/dateUtils.js';
 export function exportTransactionsAsCSV() {
   console.log("Exporting transactions as CSV...");
 
-  const transactions = AppState.transactions || [];
+  // FIXED: Use filtered and sorted transactions from transaction manager
+  let transactions;
+  try {
+    // Import the transaction manager to get filtered/sorted data
+    import('../ui/transactionManager.js').then(module => {
+      if (module.getFilteredAndSortedTransactions) {
+        transactions = module.getFilteredAndSortedTransactions();
+      } else {
+        // Fallback to AppState if function not available
+        transactions = AppState.transactions || [];
+      }
 
+      processCSVExport(transactions);
+    }).catch(error => {
+      console.warn('Could not import transaction manager, using AppState directly:', error);
+      transactions = AppState.transactions || [];
+      processCSVExport(transactions);
+    });
+  } catch (error) {
+    console.error('Error getting transactions for export:', error);
+    transactions = AppState.transactions || [];
+    processCSVExport(transactions);
+  }
+}
+
+/**
+ * FIXED: Process CSV export with the provided transactions
+ */
+function processCSVExport(transactions) {
   if (transactions.length === 0) {
     showToast("No transactions to export", "warning");
     return;
@@ -64,8 +91,35 @@ export function exportTransactionsAsCSV() {
 export function exportTransactionsAsJSON() {
   console.log("Exporting transactions as JSON...");
 
-  const transactions = AppState.transactions || [];
+  // FIXED: Use filtered and sorted transactions from transaction manager
+  let transactions;
+  try {
+    // Import the transaction manager to get filtered/sorted data
+    import('../ui/transactionManager.js').then(module => {
+      if (module.getFilteredAndSortedTransactions) {
+        transactions = module.getFilteredAndSortedTransactions();
+      } else {
+        // Fallback to AppState if function not available
+        transactions = AppState.transactions || [];
+      }
 
+      processJSONExport(transactions);
+    }).catch(error => {
+      console.warn('Could not import transaction manager, using AppState directly:', error);
+      transactions = AppState.transactions || [];
+      processJSONExport(transactions);
+    });
+  } catch (error) {
+    console.error('Error getting transactions for export:', error);
+    transactions = AppState.transactions || [];
+    processJSONExport(transactions);
+  }
+}
+
+/**
+ * FIXED: Process JSON export with the provided transactions
+ */
+function processJSONExport(transactions) {
   if (transactions.length === 0) {
     showToast("No transactions to export", "warning");
     return;

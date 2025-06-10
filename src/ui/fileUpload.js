@@ -70,9 +70,6 @@ export function createNewFileInput() {
 
     const inputId = Date.now().toString();
 
-    // FIXED: Track event listeners for proper cleanup
-    const eventListeners = [];
-
     // Add event listener for file selection
     const handleFileSelection = (event) => {
       const file = event.target.files[0];
@@ -800,8 +797,6 @@ function setupModalEventListeners(modal, data, fileExt, updatePreview) {
   if (!modalContent) return;
 
   // FIXED: Cache frequently accessed elements
-  const headerRowSelect = modalContent.querySelector('#headerRowSelect');
-  const dataRowSelect = modalContent.querySelector('#dataRowSelect');
   const cancelBtn = modalContent.querySelector('#cancelPreviewBtn');
   const saveBtn = modalContent.querySelector('#saveHeadersBtn');
 
@@ -1117,7 +1112,7 @@ function getCurrentMapping() {
   const mapping = [];
 
   // CRITICAL FIX: Only get mappings for actual select elements that exist
-  selects.forEach((select, index) => {
+  selects.forEach((select) => {
     const dataIndex = parseInt(select.getAttribute('data-index'));
     if (!isNaN(dataIndex)) {
       mapping[dataIndex] = select.value || '–';
@@ -1128,51 +1123,7 @@ function getCurrentMapping() {
   return mapping;
 }
 
-/**
- * Generate file signature for mapping identification
- */
-function generateFileSignature(data, headerMapping) {
-  try {
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      return 'empty-file';
-    }
 
-    // Create a simple signature based on structure, not content
-    const signature = {
-      columnCount: data[0] ? data[0].length : 0,
-      rowCount: Math.min(data.length, 5), // Only use first 5 rows
-      mapping: headerMapping || []
-    };
-
-    // Convert to string and encode safely
-    const signatureString = JSON.stringify(signature);
-
-    // Use a simple hash instead of btoa to avoid encoding issues
-    let hash = 0;
-    for (let i = 0; i < signatureString.length; i++) {
-      const char = signatureString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    return `sig_${Math.abs(hash).toString(36)}`;
-  } catch (error) {
-    console.error('Error generating file signature:', error);
-    // Return a fallback signature
-    return `fallback_${Date.now()}`;
-  }
-}
-
-/**
- * Save merged files to localStorage
- */
-function saveMergedFiles() {
-  try {
-    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
-  } catch (error) {
-    console.error('Error saving merged files:', error);
-  }
-}
 
 
 /**
@@ -1189,19 +1140,6 @@ function clearPreview() {
   cleanupExistingFileInputs();
 }
 
-/**
- * Auto-detect column types based on headers and sample data
- */
-function autoDetectColumns(headers, data, headerRowIndex, dataRowIndex) {
-  const mapping = [];
-
-  headers.forEach((header, index) => {
-    const sampleData = getSampleData(data, dataRowIndex, index);
-    mapping[index] = autoDetectColumn(header, sampleData);
-  });
-
-  return mapping;
-}
 
 /**
  * Get sample data for a column

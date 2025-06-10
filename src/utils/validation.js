@@ -98,43 +98,89 @@ export function isValidDate(dateStr) {
 }
 
 /**
- * Validates transaction data with enhanced date validation
- * @param {Object} transaction - Transaction object to validate
- * @returns {Object} Validation result with isValid and errors
+ * Validates transaction basic fields
+ * @param {Object} transaction - Transaction object
+ * @returns {Array<string>} Array of validation errors
  */
-export function validateTransaction(transaction) {
+function validateTransactionBasics(transaction) {
   const errors = [];
 
-  if (!transaction) {
-    errors.push("Transaction object is required");
-    return { isValid: false, errors };
-  }
-
-  // Add ID validation
   if (!transaction.id) {
     errors.push("Transaction ID is required");
-  }
-
-  // Enhanced date validation using centralized utilities
-  if (!transaction.date) {
-    errors.push("Transaction date is required");
-  } else {
-    const dateValidation = validateAndNormalizeDate(transaction.date);
-    if (!dateValidation.isValid) {
-      errors.push(`Invalid date format: ${transaction.date}`);
-    }
   }
 
   if (!transaction.description || transaction.description.trim() === '') {
     errors.push("Transaction description is required");
   }
 
+  return errors;
+}
+
+/**
+ * Validates transaction date
+ * @param {string} date - Date to validate
+ * @returns {Array<string>} Array of validation errors
+ */
+function validateTransactionDate(date) {
+  const errors = [];
+
+  if (!date) {
+    errors.push("Transaction date is required");
+  } else {
+    const dateValidation = validateAndNormalizeDate(date);
+    if (!dateValidation.isValid) {
+      errors.push(`Invalid date format: ${date}`);
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Validates transaction amounts
+ * @param {Object} transaction - Transaction object
+ * @returns {Array<string>} Array of validation errors
+ */
+function validateTransactionAmounts(transaction) {
+  const errors = [];
+
   const hasIncome = transaction.income && parseFloat(transaction.income) > 0;
   const hasExpenses = transaction.expenses && parseFloat(transaction.expenses) > 0;
 
   if (!hasIncome && !hasExpenses) {
-    errors.push("Transaction must have either income or expense amount");
+    errors.push("Transaction must have either income or expenses");
   }
+
+  if (hasIncome && hasExpenses) {
+    errors.push("Transaction cannot have both income and expenses");
+  }
+
+  if (transaction.income && (isNaN(parseFloat(transaction.income)) || parseFloat(transaction.income) < 0)) {
+    errors.push("Income must be a valid positive number");
+  }
+
+  if (transaction.expenses && (isNaN(parseFloat(transaction.expenses)) || parseFloat(transaction.expenses) < 0)) {
+    errors.push("Expenses must be a valid positive number");
+  }
+
+  return errors;
+}
+
+/**
+ * Validates transaction data with enhanced date validation
+ * @param {Object} transaction - Transaction object to validate
+ * @returns {Object} Validation result with isValid and errors
+ */
+export function validateTransaction(transaction) {
+  if (!transaction) {
+    return { isValid: false, errors: ["Transaction object is required"] };
+  }
+
+  const errors = [
+    ...validateTransactionBasics(transaction),
+    ...validateTransactionDate(transaction.date),
+    ...validateTransactionAmounts(transaction)
+  ];
 
   return {
     isValid: errors.length === 0,

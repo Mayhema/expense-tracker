@@ -131,53 +131,89 @@ export function parseToISODate(value) {
  * @returns {string|null} ISO date string or null if invalid
  */
 function parseCustomDateFormats(dateStr) {
-  // Try US format: MM/DD/YYYY
-  let match = dateStr.match(DATE_FORMATS.US);
+  // Try specific format parsers
+  return parseUSFormat(dateStr) ||
+    parseEUFormat(dateStr) ||
+    parseDotFormat(dateStr) ||
+    parseDashFormat(dateStr) ||
+    parseReverseFormat(dateStr) ||
+    parseNativeFormat(dateStr);
+}
+
+/**
+ * Try to parse US format: MM/DD/YYYY
+ */
+function parseUSFormat(dateStr) {
+  const match = dateStr.match(DATE_FORMATS.US);
   if (match) {
     const [, month, day, year] = match;
     if (isValidDateComponents(year, month, day)) {
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return formatISODate(year, month, day);
     }
   }
+  return null;
+}
 
-  // Try EU format: DD/MM/YYYY (assume if day > 12)
-  match = dateStr.match(DATE_FORMATS.EU);
+/**
+ * Try to parse EU format: DD/MM/YYYY (assume if day > 12)
+ */
+function parseEUFormat(dateStr) {
+  const match = dateStr.match(DATE_FORMATS.EU);
   if (match) {
     const [, part1, part2, year] = match;
-    // If first part > 12, assume DD/MM format
     if (parseInt(part1) > 12 && isValidDateComponents(year, part2, part1)) {
-      return `${year}-${part2.padStart(2, '0')}-${part1.padStart(2, '0')}`;
+      return formatISODate(year, part2, part1);
     }
   }
+  return null;
+}
 
-  // Try dot format: DD.MM.YYYY
-  match = dateStr.match(DATE_FORMATS.DOT);
+/**
+ * Try to parse dot format: DD.MM.YYYY
+ */
+function parseDotFormat(dateStr) {
+  const match = dateStr.match(DATE_FORMATS.DOT);
   if (match) {
     const [, day, month, year] = match;
     if (isValidDateComponents(year, month, day)) {
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return formatISODate(year, month, day);
     }
   }
+  return null;
+}
 
-  // Try dash format: DD-MM-YYYY
-  match = dateStr.match(DATE_FORMATS.DASH);
+/**
+ * Try to parse dash format: DD-MM-YYYY
+ */
+function parseDashFormat(dateStr) {
+  const match = dateStr.match(DATE_FORMATS.DASH);
   if (match) {
     const [, day, month, year] = match;
     if (isValidDateComponents(year, month, day)) {
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return formatISODate(year, month, day);
     }
   }
+  return null;
+}
 
-  // Try reverse format: YYYY/MM/DD
-  match = dateStr.match(DATE_FORMATS.REVERSE);
+/**
+ * Try to parse reverse format: YYYY/MM/DD
+ */
+function parseReverseFormat(dateStr) {
+  const match = dateStr.match(DATE_FORMATS.REVERSE);
   if (match) {
     const [, year, month, day] = match;
     if (isValidDateComponents(year, month, day)) {
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return formatISODate(year, month, day);
     }
   }
+  return null;
+}
 
-  // Try parsing as-is with Date constructor
+/**
+ * Try parsing with native Date constructor
+ */
+function parseNativeFormat(dateStr) {
   try {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
@@ -189,8 +225,14 @@ function parseCustomDateFormats(dateStr) {
   } catch (error) {
     console.warn('Failed to parse date string:', dateStr, error.message);
   }
-
   return null;
+}
+
+/**
+ * Format components into ISO date string
+ */
+function formatISODate(year, month, day) {
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
 /**

@@ -344,13 +344,9 @@ function areStructuresSimilar(sig1, sig2) {
     const sig1Parts = sig1.split('_');
     const sig2Parts = sig2.split('_');
 
-    if (sig1Parts[0] === 'struct' && sig2Parts[0] === 'struct') {
-      // For now, consider all structure-based signatures as potentially similar
-      // Later we can decode the structure data and compare column counts, patterns, etc.
-      return true;
-    }
-
-    return false;
+    // For now, consider all structure-based signatures as potentially similar
+    // Later we can decode the structure data and compare column counts, patterns, etc.
+    return sig1Parts[0] === 'struct' && sig2Parts[0] === 'struct';
   } catch (error) {
     console.error('Error comparing structures:', error);
     return false;

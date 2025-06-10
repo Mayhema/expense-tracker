@@ -1,6 +1,7 @@
 import { AppState } from '../core/appState.js';
 import { formatDateToDDMMYYYY, convertDDMMYYYYToISO, parseDDMMYYYY } from '../utils/dateUtils.js';
 import { CURRENCIES } from '../constants/currencies.js';
+import { createAdvancedFilterSection, initializeAdvancedFilters } from './filters/advancedFilters.js';
 
 /**
  * Helper function to get and update category counts
@@ -129,18 +130,19 @@ function ensureTransactionContainer() {
 }
 
 /**
- * FIXED: Render filters section
+ * FIXED: Render filters section using advanced filters
  */
 function renderFiltersSection(container, transactions) {
   const filtersContainer = container.querySelector('#transactionFilters');
   if (!filtersContainer) return;
 
-  filtersContainer.innerHTML = createFilterSection();
+  // Use the new advanced filter section
+  filtersContainer.innerHTML = createAdvancedFilterSection();
 
-  // Initialize filter controls
-  initializeFilters();
+  // Initialize advanced filters
+  initializeAdvancedFilters();
 
-  console.log('CRITICAL: Filters section rendered');
+  console.log('CRITICAL: Advanced filters section rendered');
 }
 
 /**
@@ -1462,6 +1464,46 @@ export function updateTransactions() {
   renderTransactions(allTransactions, true);
 
   console.groupEnd();
+}
+
+/**
+ * FIXED: Get currently filtered and sorted transactions for export
+ * This ensures exported data matches what's displayed in the UI
+ */
+export function getFilteredAndSortedTransactions() {
+  console.log('Getting filtered and sorted transactions for export...');
+
+  if (!AppState.transactions || AppState.transactions.length === 0) {
+    return [];
+  }
+
+  // Import the filter module to get current filtered transactions
+  return import('./filters/advancedFilters.js').then(module => {
+    if (module.filterTransactions && module.currentFilters) {
+      const filteredTransactions = module.filterTransactions(AppState.transactions, module.currentFilters);
+
+      // Apply the same sorting as the transaction table (oldest to newest by date)
+      const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+        const dateA = new Date(a.date || '1900-01-01');
+        const dateB = new Date(b.date || '1900-01-01');
+        return dateA - dateB;
+      });
+
+      console.log(`Export: ${sortedTransactions.length} transactions filtered and sorted`);
+      return sortedTransactions;
+    } else {
+      // Fallback to all transactions if filter module not available
+      const sortedTransactions = [...AppState.transactions].sort((a, b) => {
+        const dateA = new Date(a.date || '1900-01-01');
+        const dateB = new Date(b.date || '1900-01-01');
+        return dateA - dateB;
+      });
+      return sortedTransactions;
+    }
+  }).catch(error => {
+    console.warn('Could not import filter module, using all transactions:', error);
+    return AppState.transactions || [];
+  });
 }
 
 // FIXED: Cache DOM elements to avoid repeated queries
