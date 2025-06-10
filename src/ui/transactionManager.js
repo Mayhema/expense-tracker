@@ -18,24 +18,6 @@ function updateCategoryCounts(transactions) {
 }
 
 /**
- * Filters transactions by category
- * @param {string} category - Category to filter by (empty string for all)
- */
-function filterByCategory(category) {
-  console.log(`Filtering by category: "${category}"`);
-
-  try {
-    // Set the current filter in AppState
-    AppState.currentCategoryFilter = category;
-
-    // Apply the filter and re-render
-    renderTransactions(AppState.transactions || [], false);
-  } catch (error) {
-    console.error("Error filtering by category:", error);
-  }
-}
-
-/**
  * FIXED: Main render function with improved container management
  */
 export function renderTransactions(transactions = [], updateCharts = true) {
@@ -64,11 +46,6 @@ export function renderTransactions(transactions = [], updateCharts = true) {
 
   // FIXED: Render transaction table with proper structure
   renderTransactionTable(container, filteredTransactions);
-
-  // Render category buttons
-  setTimeout(() => {
-    renderCategoryButtons();
-  }, 100);
 
   // Update charts if requested
   if (updateCharts) {
@@ -103,7 +80,7 @@ function ensureTransactionContainer() {
     return null;
   }
 
-  // Create ONE clean transaction section
+  // Create ONE clean transaction section - REMOVED old category buttons container
   const section = document.createElement('div');
   section.className = 'section transactions-section';
   section.id = 'transactionsSection'; // Give it a unique ID to prevent duplicates
@@ -116,7 +93,6 @@ function ensureTransactionContainer() {
     </div>
     <div class="section-content">
       <div id="transactionFilters" class="transaction-filters"></div>
-      <div id="categoryButtons" class="category-buttons-container"></div>
       <div id="transactionTableWrapper" class="transaction-table-wrapper">
         <!-- Table will be rendered here -->
       </div>
@@ -1251,259 +1227,21 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 }
 
 /**
- * Render category buttons with improved styling - FIXED: Use proper ordering
+ * FIXED: Update transaction display (called by filter module)
  */
-export function renderCategoryButtons() {
-  console.log("CRITICAL: Rendering category buttons...");
+export function updateTransactionDisplay(filteredTransactions) {
+  console.log(`Updating transaction display with ${filteredTransactions.length} filtered transactions`);
 
-  const categories = AppState.categories || {};
-  const transactions = AppState.transactions || [];
+  const container = document.querySelector('.transactions-section');
+  if (!container) return;
 
-  // Find or create category buttons container
-  const container = createCategoryButtonsContainer();
-  if (!container) {
-    console.error("CRITICAL: Could not create category buttons container");
-    return;
-  }
+  // Update summary with filtered transactions
+  updateTransactionSummary(filteredTransactions);
 
-  // Count transactions by category
-  const categoryCounts = updateCategoryCounts(transactions);
+  // Render transaction table with filtered data
+  renderTransactionTable(container, filteredTransactions);
 
-  if (Object.keys(categories).length === 0 && transactions.length === 0) {
-    container.innerHTML = `
-      <div class="category-filter-header">
-        <h4>No categories available. Create categories in the sidebar.</h4>
-      </div>
-    `;
-    return;
-  }
-
-  // Build category buttons HTML with improved styling
-  let buttonsHTML = `
-    <div class="category-buttons-header">
-      <h4>📊 Filter by Category</h4>
-    </div>
-    <div class="category-buttons-grid">
-  `;
-
-  // Add "All" button
-  const totalCount = transactions.length;
-  const isAllActive = !AppState.currentCategoryFilter;
-  buttonsHTML += `
-    <button class="category-btn all ${isAllActive ? 'active' : ''}" data-category="">
-      <span class="category-color" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></span>
-      <div class="category-info">
-        <span class="category-name">All Categories</span>
-        <span class="category-count">${totalCount}</span>
-      </div>
-    </button>
-  `;
-
-  // FIXED: Use proper ordering for category buttons with same fix
-  const sortedCategories = Object.entries(categories)
-    .sort(([nameA, a], [nameB, b]) => {
-      const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
-      const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
-
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-
-      // If same order, sort alphabetically - FIXED: Use nameA and nameB
-      return nameA.localeCompare(nameB);
-    });
-
-  sortedCategories.forEach(([categoryName, categoryData]) => {
-    const count = categoryCounts[categoryName] || 0;
-    let color = '#cccccc';
-
-    if (typeof categoryData === 'string') {
-      color = categoryData;
-    } else if (categoryData && categoryData.color) {
-      color = categoryData.color;
-    }
-
-    const isActive = AppState.currentCategoryFilter === categoryName;
-    buttonsHTML += `
-      <button class="category-btn ${isActive ? 'active' : ''}" data-category="${categoryName}">
-        <span class="category-color" style="background: ${color};"></span>
-        <div class="category-info">
-          <span class="category-name">${categoryName}</span>
-          <span class="category-count">${count}</span>
-        </div>
-      </button>
-    `;
-  });
-
-  buttonsHTML += `</div>`;
-
-  container.innerHTML = buttonsHTML;
-
-  // Add event listeners - FIXED: Only handle main category clicks
-  container.querySelectorAll('.category-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const category = e.currentTarget.dataset.category;
-      filterByCategory(category);
-    });
-  });
-
-  console.log("CRITICAL: Category buttons rendered successfully");
-}
-
-/**
- * Creates the category buttons container if it doesn't exist
- */
-function createCategoryButtonsContainer() {
-  let container = document.getElementById('categoryButtons');
-
-  if (!container) {
-    // Find the transaction section
-    const transactionSection = document.querySelector('.transactions-section');
-    if (!transactionSection) {
-      console.error('Transaction section not found');
-      return null;
-    }
-
-    const sectionContent = transactionSection.querySelector('.section-content');
-    if (!sectionContent) {
-      console.error('Section content not found');
-      return null;
-    }
-
-    // Create category buttons container
-    container = document.createElement('div');
-    container.id = 'categoryButtons';
-    container.className = 'category-buttons-container';
-    sectionContent.appendChild(container);
-  }
-
-  return container;
-}
-
-/**
- * FIXED: Function to update all category UI elements when categories change
- */
-export function updateAllCategoryUI() {
-  // Update category filter dropdown
-  const categoryFilter = document.getElementById('filterCategory');
-  if (categoryFilter) {
-    updateCategoryFilterDropdown(categoryFilter);
-  }
-
-  // Update category buttons directly instead of importing
-  renderCategoryButtons();
-
-  // Re-render transactions to update category displays
-  renderTransactions(AppState.transactions || [], false);
-}
-
-/**
- * FIXED: Initialize transaction manager and load existing data
- */
-export function initializeTransactionManager() {
-  console.log("CRITICAL: Initializing transaction manager...");
-
-  // FIXED: Force immediate render with current AppState data
-  setTimeout(() => {
-    renderTransactions(AppState.transactions || [], true);
-  }, 100);
-}
-
-/**
- * FIXED: Update transactions from merged files
- */
-export function updateTransactions() {
-  console.group('🔄 UPDATE TRANSACTIONS CALLED');
-  console.log("Processing merged files...");
-
-  if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    console.log("No merged files found");
-    AppState.transactions = [];
-    renderTransactions([]);
-    console.groupEnd();
-    return;
-  }
-
-  // CRITICAL FIX: Process all merged files into transactions
-  let allTransactions = [];
-
-  AppState.mergedFiles.forEach(file => {
-    try {
-      console.log(`📂 Processing file: ${file.fileName}`, file);
-
-      // Use pre-processed transactions if available
-      if (file.transactions && Array.isArray(file.transactions) && file.transactions.length > 0) {
-        allTransactions = allTransactions.concat(file.transactions);
-        console.log(`✓ Loaded ${file.transactions.length} pre-processed transactions from ${file.fileName}`);
-      } else {
-        console.warn(`⚠️ File ${file.fileName} has no valid transaction data`);
-      }
-    } catch (error) {
-      console.error(`❌ Error processing file ${file.fileName}:`, error);
-    }
-  });
-
-  console.log(`📊 Total transactions processed: ${allTransactions.length}`);
-
-  // CRITICAL FIX: Ensure all transactions have unique IDs
-  ensureTransactionIds(allTransactions);
-
-  // CRITICAL: Store in AppState immediately
-  AppState.transactions = allTransactions;
-
-  // Save to localStorage
-  try {
-    localStorage.setItem('transactions', JSON.stringify(allTransactions));
-    console.log(`💾 Saved ${allTransactions.length} transactions to localStorage`);
-  } catch (error) {
-    console.error('❌ Error saving transactions to localStorage:', error);
-  }
-
-  // FORCE render with the actual transactions
-  console.log(`🔧 Forcing render of ${allTransactions.length} transactions`);
-  renderTransactions(allTransactions, true);
-
-  console.groupEnd();
-}
-
-/**
- * FIXED: Get currently filtered and sorted transactions for export
- * This ensures exported data matches what's displayed in the UI
- */
-export function getFilteredAndSortedTransactions() {
-  console.log('Getting filtered and sorted transactions for export...');
-
-  if (!AppState.transactions || AppState.transactions.length === 0) {
-    return [];
-  }
-
-  // Import the filter module to get current filtered transactions
-  return import('./filters/advancedFilters.js').then(module => {
-    if (module.filterTransactions && module.currentFilters) {
-      const filteredTransactions = module.filterTransactions(AppState.transactions, module.currentFilters);
-
-      // Apply the same sorting as the transaction table (oldest to newest by date)
-      const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-        const dateA = new Date(a.date || '1900-01-01');
-        const dateB = new Date(b.date || '1900-01-01');
-        return dateA - dateB;
-      });
-
-      console.log(`Export: ${sortedTransactions.length} transactions filtered and sorted`);
-      return sortedTransactions;
-    } else {
-      // Fallback to all transactions if filter module not available
-      const sortedTransactions = [...AppState.transactions].sort((a, b) => {
-        const dateA = new Date(a.date || '1900-01-01');
-        const dateB = new Date(b.date || '1900-01-01');
-        return dateA - dateB;
-      });
-      return sortedTransactions;
-    }
-  }).catch(error => {
-    console.warn('Could not import filter module, using all transactions:', error);
-    return AppState.transactions || [];
-  });
+  // REMOVED: Category buttons update - no longer needed
 }
 
 // FIXED: Cache DOM elements to avoid repeated queries
@@ -1581,4 +1319,71 @@ export function cleanupTransactionManager() {
   clearTransactionEventListeners();
   transactionCache.container = null;
   transactionCache.filterElements.clear();
+}
+
+// FIXED: Initialize transaction manager and load existing data
+export function initializeTransactionManager() {
+  console.log("CRITICAL: Initializing transaction manager...");
+
+  // FIXED: Force immediate render with current AppState data
+  setTimeout(() => {
+    renderTransactions(AppState.transactions || [], true);
+  }, 100);
+}
+
+/**
+ * FIXED: Update transactions from merged files
+ */
+export function updateTransactions() {
+  console.group('🔄 UPDATE TRANSACTIONS CALLED');
+  console.log("Processing merged files...");
+
+  if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
+    console.log("No merged files found");
+    AppState.transactions = [];
+    renderTransactions([]);
+    console.groupEnd();
+    return;
+  }
+
+  // CRITICAL FIX: Process all merged files into transactions
+  let allTransactions = [];
+
+  AppState.mergedFiles.forEach(file => {
+    try {
+      console.log(`📂 Processing file: ${file.fileName}`, file);
+
+      // Use pre-processed transactions if available
+      if (file.transactions && Array.isArray(file.transactions) && file.transactions.length > 0) {
+        allTransactions = allTransactions.concat(file.transactions);
+        console.log(`✓ Loaded ${file.transactions.length} pre-processed transactions from ${file.fileName}`);
+      } else {
+        console.warn(`⚠️ File ${file.fileName} has no valid transaction data`);
+      }
+    } catch (error) {
+      console.error(`❌ Error processing file ${file.fileName}:`, error);
+    }
+  });
+
+  console.log(`📊 Total transactions processed: ${allTransactions.length}`);
+
+  // CRITICAL FIX: Ensure all transactions have unique IDs
+  ensureTransactionIds(allTransactions);
+
+  // CRITICAL: Store in AppState immediately
+  AppState.transactions = allTransactions;
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('transactions', JSON.stringify(allTransactions));
+    console.log(`💾 Saved ${allTransactions.length} transactions to localStorage`);
+  } catch (error) {
+    console.error('❌ Error saving transactions to localStorage:', error);
+  }
+
+  // FORCE render with the actual transactions
+  console.log(`🔧 Forcing render of ${allTransactions.length} transactions`);
+  renderTransactions(allTransactions, true);
+
+  console.groupEnd();
 }

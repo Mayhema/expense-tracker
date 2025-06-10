@@ -1,5 +1,6 @@
 import { AppState } from '../../core/appState.js';
-import { parseToISODate } from '../../utils/dateUtils.js';
+import { parseToISODate, parseDDMMYYYY, formatDateToDDMMYYYY } from '../../utils/dateUtils.js';
+import { CURRENCIES } from '../../constants/currencies.js';
 
 // Current filter state
 const currentFilters = {
@@ -58,15 +59,15 @@ export function createAdvancedFilterSection() {
             </select>
           </div>
 
-          <!-- Custom Date Range -->
+          <!-- Custom Date Range - FIXED: Use text inputs with dd/mm/yyyy format -->
           <div class="filter-group custom-date-range" style="display: none;">
             <label for="customStartDate">From Date</label>
-            <input type="date" id="customStartDate" class="filter-input">
+            <input type="text" id="customStartDate" class="filter-input date-field" placeholder="dd/mm/yyyy">
           </div>
 
           <div class="filter-group custom-date-range" style="display: none;">
             <label for="customEndDate">To Date</label>
-            <input type="date" id="customEndDate" class="filter-input">
+            <input type="text" id="customEndDate" class="filter-input date-field" placeholder="dd/mm/yyyy">
           </div>
 
           <!-- Amount Range -->
@@ -80,14 +81,17 @@ export function createAdvancedFilterSection() {
             <input type="number" id="maxAmount" class="filter-input" placeholder="0.00" step="0.01" min="0">
           </div>
 
-          <!-- Currency Filter -->
+          <!-- FIXED: Currency Filter with symbols like transaction table -->
           <div class="filter-group">
             <label for="currencyFilter">Currency</label>
             <select id="currencyFilter" class="filter-select">
               <option value="all">All Currencies</option>
-              ${currencies.map(currency =>
-    `<option value="${currency}">${currency}</option>`
-  ).join('')}
+              ${currencies.map(currency => {
+    const currencyData = CURRENCIES[currency] || {};
+    const symbol = currencyData.symbol || '💱';
+    const name = currencyData.name || currency;
+    return `<option value="${currency}">${symbol} ${currency} - ${name}</option>`;
+  }).join('')}
             </select>
           </div>
         </div>
@@ -103,7 +107,7 @@ export function createAdvancedFilterSection() {
             </div>
           </div>
 
-          <!-- Category Selection -->
+          <!-- FIXED: Category Selection with checkboxes and colors like transaction table -->
           <div class="filter-group category-group">
             <label>Categories</label>
             <div class="category-filter-container">
@@ -127,7 +131,7 @@ export function createAdvancedFilterSection() {
                       <label class="category-option">
                         <input type="checkbox" value="${category}" class="category-checkbox">
                         <span class="category-color" style="background-color: ${color}"></span>
-                        <span class="category-label">${category}</span>
+                        <span class="category-label">● ${category}</span>
                       </label>
                     `;
   }).join('')}
@@ -252,6 +256,17 @@ function handleDateRangePresetChange(preset) {
     const { startDate, endDate } = calculateDateRange(preset);
     currentFilters.customStartDate = startDate;
     currentFilters.customEndDate = endDate;
+
+    // FIXED: Update the custom date inputs with formatted dates
+    const startDateInput = document.getElementById('customStartDate');
+    const endDateInput = document.getElementById('customEndDate');
+
+    if (startDateInput && startDate) {
+      startDateInput.value = formatDateToDDMMYYYY(startDate.toISOString());
+    }
+    if (endDateInput && endDate) {
+      endDateInput.value = formatDateToDDMMYYYY(endDate.toISOString());
+    }
   }
 
   applyCurrentFilters();
@@ -327,15 +342,16 @@ function calculateDateRange(preset) {
 }
 
 /**
- * Handle custom date input changes
+ * Handle custom date input changes - FIXED: Use dd/mm/yyyy format
  */
 function handleCustomDateChange() {
   const startDateInput = document.getElementById('customStartDate');
   const endDateInput = document.getElementById('customEndDate');
 
   if (startDateInput && endDateInput) {
-    currentFilters.customStartDate = startDateInput.value ? new Date(startDateInput.value) : null;
-    currentFilters.customEndDate = endDateInput.value ? new Date(endDateInput.value) : null;
+    // Parse dd/mm/yyyy format
+    currentFilters.customStartDate = startDateInput.value ? parseDDMMYYYY(startDateInput.value) : null;
+    currentFilters.customEndDate = endDateInput.value ? parseDDMMYYYY(endDateInput.value) : null;
     applyCurrentFilters();
   }
 }
@@ -538,7 +554,7 @@ export function filterTransactions(transactions, filters = currentFilters) {
 }
 
 /**
- * Clear all filters
+ * Clear all filters - FIXED: Reset date inputs to empty
  */
 function clearAllFilters() {
   Object.assign(currentFilters, {
@@ -559,11 +575,18 @@ function clearAllFilters() {
   const customDateInputs = document.querySelectorAll('.custom-date-range input');
   customDateInputs.forEach(input => input.value = '');
 
+  // FIXED: Hide custom date range inputs
+  const customRangeElements = document.querySelectorAll('.custom-date-range');
+  customRangeElements.forEach(el => el.style.display = 'none');
+
   const amountInputs = document.querySelectorAll('#minAmount, #maxAmount');
   amountInputs.forEach(input => input.value = '');
 
   const searchInput = document.getElementById('descriptionSearch');
   if (searchInput) searchInput.value = '';
+
+  const clearBtn = document.querySelector('.search-clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
 
   const currencySelect = document.getElementById('currencyFilter');
   if (currencySelect) currencySelect.value = 'all';

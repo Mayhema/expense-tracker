@@ -686,13 +686,48 @@ function saveSubcategoryChanges(parentCategory, subcategoryName, container) {
   console.log('Saving subcategory changes:', parentCategory, subcategoryName);
 }
 
-function resetToDefaultCategories() {
-  // Implementation for resetting to default categories
-  AppState.categories = {};
-  localStorage.setItem('categories', JSON.stringify(AppState.categories));
+/**
+ * Reset to default categories
+ */
+export function resetToDefaultCategories() {
+  // Import default categories
+  import('../constants/categories.js').then(categoriesModule => {
+    // Clear existing categories
+    AppState.categories = {};
 
-  import('./uiManager.js').then(module => {
-    module.showToast("Categories reset to defaults", "success");
+    // Set default categories
+    AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
+
+    // Save to localStorage
+    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+
+    // Clear any existing category mappings
+    import('./categoryMapping.js').then(mappingModule => {
+      if (mappingModule.resetCategoryMappingsForDefaults) {
+        mappingModule.resetCategoryMappingsForDefaults();
+      }
+    }).catch(error => {
+      console.warn('Could not reset category mappings:', error);
+    });
+
+    console.log(`Reset: Loaded ${Object.keys(AppState.categories).length} default categories`);
+
+    // Update all category UI elements
+    import('./transactionManager.js').then(module => {
+      if (module.renderTransactions) {
+        module.renderTransactions(AppState.transactions || [], true);
+      }
+    }).catch(error => {
+      console.warn('Could not update transaction UI:', error);
+    });
+
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Categories reset to defaults', 'success');
+      }
+    });
+  }).catch(error => {
+    console.error('Error loading default categories:', error);
   });
 }
 
