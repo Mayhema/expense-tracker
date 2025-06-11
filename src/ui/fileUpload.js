@@ -42,7 +42,10 @@ export function initializeFileUpload() {
     // Clean up any existing file inputs
     cleanupExistingFileInputs();
 
-    console.log("File upload initialized successfully");
+    // NEW: Initialize drag-and-drop
+    initializeDragAndDrop();
+
+    console.log("File upload initialized successfully with drag-and-drop");
   } catch (error) {
     console.error("Error initializing file upload:", error);
   }
@@ -1123,58 +1126,63 @@ function getCurrentMapping() {
   return mapping;
 }
 
-
-
-
 /**
- * Clear preview and reset state
+ * Initialize drag-and-drop functionality for file uploads
  */
-function clearPreview() {
-  console.log("Clearing preview and all temporary data");
+function initializeDragAndDrop() {
+  const dropOverlay = document.getElementById('dropOverlay');
 
-  // Reset state
-  resetFileState();
-  fileInputInProgress = false;
-
-  // Clean up any file input elements
-  cleanupExistingFileInputs();
-}
-
-
-/**
- * Get sample data for a column
- */
-function getSampleData(data, dataRowIndex, columnIndex) {
-  if (!data || dataRowIndex >= data.length) return 'No data';
-
-  const sampleRows = data.slice(dataRowIndex, Math.min(dataRowIndex + 3, data.length));
-  const samples = sampleRows.map(row => row[columnIndex] || '').filter(val => val).slice(0, 2);
-
-  return samples.length > 0 ? samples.join(', ') : 'Empty';
-}
-
-// FIXED: Use centralized Excel date conversion function
-function convertExcelDate(excelDate) {
-  try {
-    const num = parseFloat(excelDate);
-    if (isNaN(num)) return String(excelDate);
-
-    // FIXED: Use the correct Excel epoch and calculation
-    // Excel's epoch is January 1, 1900, but Excel incorrectly considers 1900 a leap year
-    const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
-    const msPerDay = 24 * 60 * 60 * 1000;
-
-    // FIXED: Use (excelDate - 1) instead of (excelDate - 2) for correct date calculation
-    const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * msPerDay);
-
-    if (isNaN(jsDate.getTime())) {
-      return String(excelDate); // Return original if conversion fails
-    }
-
-    // Return ISO date string (YYYY-MM-DD)
-    return jsDate.toISOString().split('T')[0];
-  } catch (error) {
-    console.error('Error converting Excel date:', error);
-    return String(excelDate);
+  if (!dropOverlay) {
+    console.warn('Drop overlay element not found');
+    return;
   }
+
+  // Prevent default drag behaviors
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    document.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  // Highlight drop area when item is dragged over it
+  ['dragenter', 'dragover'].forEach(eventName => {
+    document.body.addEventListener(eventName, highlight, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    document.body.addEventListener(eventName, unhighlight, false);
+  });
+
+  function highlight(e) {
+    if (e.dataTransfer.types.includes('Files')) {
+      dropOverlay.style.display = 'flex';
+      document.body.classList.add('drag-over');
+    }
+  }
+
+  function unhighlight(e) {
+    dropOverlay.style.display = 'none';
+    document.body.classList.remove('drag-over');
+  }
+
+  // Handle dropped files
+  document.body.addEventListener('drop', handleDrop, false);
+
+  function handleDrop(e) {
+    const files = e.dataTransfer.files;
+
+    if (files.length > 0) {
+      const file = files[0];
+      console.log('File dropped:', file.name);
+
+      // Process the dropped file
+      handleFileUploadProcess(file);
+    }
+  }
+
+  console.log('Drag and drop initialized successfully');
 }

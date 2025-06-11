@@ -303,11 +303,7 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
         console.error(`❌ Could not find row for transaction ${transactionId} to update UI`);
       }
 
-      // CRITICAL FIX: Force update category buttons to refresh counts immediately
-      setTimeout(() => {
-        renderCategoryButtons();
-        console.log('🔄 Category buttons re-rendered after category change');
-      }, 50);
+      console.log('🔄 Category updated successfully');
     }
 
     // FIXED: Update summary in real-time for currency changes
@@ -346,16 +342,50 @@ function generateTransactionTableHTML(transactions) {
 
   let html = `
     <div class="transaction-table-header">
-      <h4>📋 Transaction Data (${transactions.length} transactions)</h4>
-      <div class="table-info">
-        <span>Use the Edit button to modify transactions • Changes are saved automatically</span>
+      <div class="table-header-left">
+        <h4>📋 Transaction Data (${transactions.length} transactions)</h4>
+        <div class="table-info">
+          <span>Use the Edit button to modify transactions • Changes are saved automatically</span>
+        </div>
+      </div>
+      <div class="table-header-right">
+        <button id="bulkEditToggle" class="btn secondary-btn">📝 Bulk Edit</button>
       </div>
     </div>
+
+    <div id="bulkActions" class="bulk-actions" style="display: none;">
+      <div class="bulk-selection">
+        <input type="checkbox" id="selectAllCheckbox" class="bulk-checkbox" style="display: none;">
+        <label for="selectAllCheckbox" style="display: none;">Select All</label>
+        <span class="selected-count">0 selected</span>
+      </div>
+
+      <div class="bulk-category-assignment">
+        <select id="bulkCategorySelect" class="bulk-action-btn">
+          <option value="">Choose Category</option>
+          ${Object.keys(AppState.categories || {}).sort().map(cat =>
+    `<option value="${cat}">${cat}</option>`
+  ).join('')}
+        </select>
+        <button id="applyBulkCategory" class="bulk-action-btn primary-btn" disabled>Apply Category</button>
+      </div>
+
+      <div class="quick-categories">
+        ${Object.entries(AppState.categories || {}).slice(0, 6).map(([cat, catData]) => {
+    const color = typeof catData === 'string' ? catData : catData.color || '#cccccc';
+    return `<button class="quick-category-btn" data-category="${cat}" style="background-color: ${color};">${cat}</button>`;
+  }).join('')}
+      </div>
+    </div>
+
     <div class="table-container">
       <table class="transaction-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th>
+              <input type="checkbox" id="selectAllCheckbox" class="bulk-checkbox" style="display: none;">
+              #
+            </th>
             <th>Date</th>
             <th>Description</th>
             <th>Category</th>
@@ -402,7 +432,10 @@ function generateTransactionTableHTML(transactions) {
 
     html += `
       <tr data-transaction-id="${tx.id}" data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
-        <td class="counter-cell">${index + 1}</td>
+        <td class="counter-cell">
+          <input type="checkbox" class="transaction-checkbox" data-transaction-id="${tx.id}" style="display: none;">
+          ${index + 1}
+        </td>
         <td class="date-cell">
           <span class="display-value">${date}</span>
           <input type="text"
@@ -493,7 +526,44 @@ function generateTransactionTableHTML(transactions) {
 function attachTransactionEventListeners() {
   console.log('🔧 Attaching transaction event listeners');
 
-  // FIXED: Handle edit buttons
+  // Bulk edit toggle
+  const bulkEditToggle = document.getElementById('bulkEditToggle');
+  if (bulkEditToggle) {
+    bulkEditToggle.addEventListener('click', toggleBulkEditMode);
+  }
+
+  // Select all checkbox
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', toggleSelectAll);
+  }
+
+  // Individual transaction checkboxes
+  document.querySelectorAll('.transaction-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkActionState);
+  });
+
+  // Bulk category select
+  const bulkCategorySelect = document.getElementById('bulkCategorySelect');
+  if (bulkCategorySelect) {
+    bulkCategorySelect.addEventListener('change', updateBulkApplyButton);
+  }
+
+  // Apply bulk category button
+  const applyBulkCategory = document.getElementById('applyBulkCategory');
+  if (applyBulkCategory) {
+    applyBulkCategory.addEventListener('click', applyBulkCategoryChange);
+  }
+
+  // Quick category buttons
+  document.querySelectorAll('.quick-category-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const category = e.target.getAttribute('data-category');
+      applyQuickCategory(category);
+    });
+  });
+
+  // Handle edit buttons
   document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const transactionId = e.target.dataset.transactionId;
@@ -1386,4 +1456,141 @@ export function updateTransactions() {
   renderTransactions(allTransactions, true);
 
   console.groupEnd();
+}
+
+/**
+ * FIXED: Toggle bulk edit mode
+ */
+function toggleBulkEditMode() {
+  const bulkActions = document.getElementById('bulkActions');
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  const transactionCheckboxes = document.querySelectorAll('.transaction-checkbox');
+
+  if (bulkActions.style.display === 'none' || !bulkActions.style.display) {
+    // Show bulk edit mode
+    bulkActions.style.display = 'flex';
+    selectAllCheckbox.style.display = 'inline-block';
+    transactionCheckboxes.forEach(cb => cb.style.display = 'inline-block');
+    document.getElementById('bulkEditToggle').textContent = '❌ Exit Bulk Edit';
+  } else {
+    // Hide bulk edit mode
+    bulkActions.style.display = 'none';
+    selectAllCheckbox.style.display = 'none';
+    transactionCheckboxes.forEach(cb => {
+      cb.style.display = 'none';
+      cb.checked = false;
+    });
+    document.getElementById('bulkEditToggle').textContent = '📝 Bulk Edit';
+    updateBulkActionState();
+  }
+}
+
+/**
+ * FIXED: Toggle select all checkboxes
+ */
+function toggleSelectAll() {
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  const transactionCheckboxes = document.querySelectorAll('.transaction-checkbox');
+
+  transactionCheckboxes.forEach(checkbox => {
+    checkbox.checked = selectAllCheckbox.checked;
+  });
+
+  updateBulkActionState();
+}
+
+/**
+ * FIXED: Update bulk action state based on selected checkboxes
+ */
+function updateBulkActionState() {
+  const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+  const selectedCount = selectedCheckboxes.length;
+
+  const selectedCountSpan = document.querySelector('.selected-count');
+  const applyBulkCategory = document.getElementById('applyBulkCategory');
+
+  if (selectedCountSpan) {
+    selectedCountSpan.textContent = `${selectedCount} selected`;
+  }
+
+  if (applyBulkCategory) {
+    applyBulkCategory.disabled = selectedCount === 0;
+  }
+}
+
+/**
+ * FIXED: Update bulk apply button state
+ */
+function updateBulkApplyButton() {
+  const bulkCategorySelect = document.getElementById('bulkCategorySelect');
+  const applyBulkCategory = document.getElementById('applyBulkCategory');
+  const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+
+  if (applyBulkCategory) {
+    applyBulkCategory.disabled = selectedCheckboxes.length === 0 || !bulkCategorySelect.value;
+  }
+}
+
+/**
+ * FIXED: Apply bulk category change to selected transactions
+ */
+function applyBulkCategoryChange() {
+  const bulkCategorySelect = document.getElementById('bulkCategorySelect');
+  const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+  const selectedCategory = bulkCategorySelect.value;
+
+  if (!selectedCategory || selectedCheckboxes.length === 0) {
+    return;
+  }
+
+  selectedCheckboxes.forEach(checkbox => {
+    const transactionId = checkbox.getAttribute('data-transaction-id');
+    saveFieldChangeById(transactionId, 'category', selectedCategory);
+  });
+
+  // FIXED: Use import pattern for showToast
+  import('./uiManager.js').then(module => {
+    if (module.showToast) {
+      module.showToast(`Applied category "${selectedCategory}" to ${selectedCheckboxes.length} transactions`, 'success');
+    }
+  });
+
+  // Refresh the transaction display
+  setTimeout(() => {
+    renderTransactions(AppState.transactions, true);
+  }, 100);
+}
+
+/**
+ * FIXED: Apply quick category to selected transactions
+ */
+function applyQuickCategory(category) {
+  const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+
+  if (selectedCheckboxes.length === 0) {
+    // FIXED: Use import pattern for showToast
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Please select transactions first', 'warning');
+      }
+    });
+    return;
+  }
+
+  selectedCheckboxes.forEach(checkbox => {
+    const transactionId = checkbox.getAttribute('data-transaction-id');
+    saveFieldChangeById(transactionId, 'category', category);
+  });
+
+  // FIXED: Use import pattern for showToast
+  import('./uiManager.js').then(module => {
+    if (module.showToast) {
+      module.showToast(`Applied category "${category}" to ${selectedCheckboxes.length} transactions`, 'success');
+    }
+  });
+
+  // Refresh the transaction display
+  setTimeout(() => {
+    renderTransactions(AppState.transactions, true);
+  }, 100);
 }
