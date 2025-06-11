@@ -8,11 +8,6 @@ Category spending patterns
 Income vs expense forecasting
 Monthly/yearly comparisons
 6. Data Validation Improvements
-7. UI/UX Enhancements
-Bulk transaction editing
-Drag-and-drop file upload
-Transaction templates
-Quick category assignment buttons
 8. Data Backup & Sync
 9. Mobile Optimization
 Touch-friendly interfaces
