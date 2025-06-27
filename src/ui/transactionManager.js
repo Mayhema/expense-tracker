@@ -147,7 +147,7 @@ function renderTransactionTable(container, transactions) {
     return;
   }
 
-  // FIXED: Sort transactions by date (oldest to newest)
+  // FIXED: Sort transactions by date (oldest to newest) - ensure proper date parsing
   const sortedTransactions = [...transactions].sort((a, b) => {
     const dateA = new Date(a.date || '1900-01-01');
     const dateB = new Date(b.date || '1900-01-01');
@@ -211,6 +211,19 @@ function ensureTransactionIds(transactions) {
 }
 
 /**
+ * Check if a row has any changes
+ */
+function checkRowForChanges(row) {
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  for (let field of fields) {
+    if (field.value !== field.dataset.original) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * CRITICAL FIX: Save individual field change using transaction ID instead of index
  */
 function saveFieldChangeById(transactionId, fieldName, newValue) {
@@ -241,6 +254,23 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
   console.log(`  🏷️ Current category: "${transaction.category}"`);
   console.log(`  📂 Current subcategory: "${transaction.subcategory}"`);
 
+  // FIXED: Store original data before first edit
+  if (!transaction.originalData) {
+    transaction.originalData = {
+      date: transaction.date,
+      description: transaction.description,
+      income: transaction.income,
+      expenses: transaction.expenses,
+      category: transaction.category,
+      subcategory: transaction.subcategory
+    };
+  }
+
+  // FIXED: Track which fields have been edited
+  if (!transaction.editedFields) {
+    transaction.editedFields = {};
+  }
+
   // FIXED: Handle category with subcategory parsing
   if (fieldName === 'category') {
     const oldCategory = transaction.category;
@@ -256,10 +286,16 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
       transaction.subcategory = '';
       console.log(`🔄 Updated category from "${oldCategory}" to "${newValue}", cleared subcategory`);
     }
+
+    // FIXED: Mark category field as edited
+    transaction.editedFields.category = true;
   } else {
     const oldValue = transaction[fieldName];
     transaction[fieldName] = newValue;
     console.log(`🔄 Updated field ${fieldName} from "${oldValue}" to "${newValue}"`);
+
+    // FIXED: Mark this specific field as edited
+    transaction.editedFields[fieldName] = true;
   }
 
   // Mark as edited if it wasn't already
@@ -298,6 +334,10 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
 
         // Mark row as edited
         row.classList.add('edited-row');
+
+        // FIXED: Mark category cell as edited
+        categoryCell.classList.add('edited-cell');
+
         console.log(`🎨 Updated UI for transaction ${transactionId} with category ${transaction.category}`);
       } else {
         console.error(`❌ Could not find row for transaction ${transactionId} to update UI`);
@@ -306,10 +346,54 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
       console.log('🔄 Category updated successfully');
     }
 
+    // FIXED: Mark the edited cell and update UI immediately
+    const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+    if (row) {
+      let cellClass;
+      if (fieldName === 'income' || fieldName === 'expenses') {
+        cellClass = '.amount-cell';
+      } else if (fieldName === 'description') {
+        cellClass = '.description-cell';
+      } else if (fieldName === 'date') {
+        cellClass = '.date-cell';
+      } else {
+        cellClass = `.${fieldName}-cell`;
+      }
+
+      let cell;
+      if (fieldName === 'income') {
+        cell = row.querySelectorAll('.amount-cell')[0];
+      } else if (fieldName === 'expenses') {
+        cell = row.querySelectorAll('.amount-cell')[1];
+      } else {
+        cell = row.querySelector(cellClass);
+      }
+
+      if (cell) {
+        cell.classList.add('edited-cell');
+      }
+
+      // FIXED: Show revert-all button when edits are made
+      const revertAllBtn = row.querySelector('.btn-revert-all');
+      if (revertAllBtn) {
+        revertAllBtn.style.display = 'inline-block';
+      }
+    }
+
     // FIXED: Update summary in real-time for currency changes
     if (fieldName === 'currency') {
       const filteredTransactions = applyFilters(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
+    }
+
+    // FIXED: Re-sort and re-render table if date was changed
+    if (fieldName === 'date') {
+      console.log('🔄 Date changed, re-sorting table...');
+      setTimeout(() => {
+        // FIXED: Preserve all existing state when re-rendering after date change
+        const currentTransactions = AppState.transactions || [];
+        renderTransactions(currentTransactions, false);
+      }, 100);
     }
 
     // Show success feedback
@@ -329,6 +413,179 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
   }
 
   console.groupEnd();
+}
+
+/**
+ * Save changes to a transaction
+ */
+function saveTransactionChanges(index) {
+  if (!AppState.transactions || !AppState.transactions[index]) return;
+
+  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+  if (!row) return;
+
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const transaction = AppState.transactions[index];
+
+  // FIXED: Store original data before first edit
+  if (!transaction.originalData) {
+    transaction.originalData = {
+      date: transaction.date,
+      description: transaction.description,
+      income: transaction.income,
+      expenses: transaction.expenses,
+      category: transaction.category,
+      subcategory: transaction.subcategory
+    };
+  }
+
+  // FIXED: Track which fields have been edited
+  if (!transaction.editedFields) {
+    transaction.editedFields = {};
+  }
+
+  let dateChanged = false;
+
+  fields.forEach(field => {
+    const fieldName = field.dataset.field;
+    let newValue = field.value;
+    const originalValue = field.dataset.original;
+
+    // Skip if value hasn't changed
+    if (newValue === originalValue) return;
+
+    // FIXED: Convert date from dd/mm/yyyy to ISO format for storage - handle format correctly
+    if (fieldName === 'date' && newValue) {
+      // FIXED: Validate dd/mm/yyyy format before conversion
+      const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+      const match = newValue.match(datePattern);
+
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+
+        console.log(`🔍 Date input parsed: Day=${day}, Month=${month}, Year=${year} from "${newValue}"`);
+
+        // FIXED: Ensure proper dd/mm/yyyy to ISO conversion
+        const isoDate = convertDDMMYYYYToISO(newValue);
+        if (isoDate) {
+          newValue = isoDate;
+          dateChanged = true;
+          console.log(`🔄 Date converted: ${field.value} (dd/mm/yyyy) → ${isoDate} (ISO)`);
+        } else {
+          console.warn('Invalid date format:', newValue);
+          return; // Skip invalid dates
+        }
+      } else {
+        console.warn('Date does not match dd/mm/yyyy format:', newValue);
+        return;
+      }
+    }
+
+    // Update the transaction
+    transaction[fieldName] = newValue;
+
+    // FIXED: Mark this field as edited
+    transaction.editedFields[fieldName] = true;
+
+    // Update the original value (keep display format for dates)
+    if (fieldName === 'date') {
+      field.dataset.original = field.value; // Keep dd/mm/yyyy format
+    } else {
+      field.dataset.original = newValue;
+    }
+
+    // FIXED: Update display value in real-time with proper text content setting
+    const cell = field.closest('td');
+    const displayValue = cell.querySelector('.display-value');
+    if (displayValue) {
+      if (fieldName === 'income' || fieldName === 'expenses') {
+        const numValue = parseFloat(newValue) || 0;
+        displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : '';
+      } else if (fieldName === 'description') {
+        // FIXED: Clean the description value and remove any data-field artifacts
+        const cleanValue = String(newValue).replace(/\s*data-field=.*$/i, '').trim();
+        displayValue.textContent = cleanValue;
+        // Update the transaction with clean value
+        transaction[fieldName] = cleanValue;
+      } else {
+        // FIXED: For other text fields, properly update display text
+        displayValue.textContent = field.value;
+      }
+    }
+
+    // FIXED: Mark the cell as edited
+    if (cell) {
+      cell.classList.add('edited-cell');
+    }
+  });
+
+  // Mark as edited
+  transaction.edited = true;
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    // Exit edit mode
+    exitEditMode(index);
+
+    // Mark row as edited
+    row.classList.add('edited-row');
+
+    // FIXED: Show revert-all button when edits are made
+    const revertAllBtn = row.querySelector('.btn-revert-all');
+    if (revertAllBtn) {
+      revertAllBtn.style.display = 'inline-block';
+    }
+
+    // FIXED: Update summary in real-time
+    const filteredTransactions = applyFilters(AppState.transactions);
+    updateTransactionSummary(filteredTransactions);
+
+    // FIXED: Re-sort and re-render table if date was changed
+    if (dateChanged) {
+      console.log('🔄 Date changed in batch edit, re-sorting table...');
+      setTimeout(() => {
+        // FIXED: Preserve all existing transaction state when re-rendering
+        const currentTransactions = AppState.transactions || [];
+        renderTransactions(currentTransactions, false);
+      }, 100);
+    }
+
+    // Show success feedback
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Transaction updated', 'success');
+      }
+    });
+
+  } catch (error) {
+    console.error('Error saving transaction:', error);
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Error saving changes', 'error');
+      }
+    });
+  }
+}
+
+/**
+ * Revert changes to a transaction
+ */
+function revertTransactionChanges(index) {
+  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
+  if (!row) return;
+
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+
+  fields.forEach(field => {
+    field.value = field.dataset.original;
+  });
+
+  // Exit edit mode
+  exitEditMode(index);
 }
 
 /**
@@ -408,7 +665,7 @@ function generateTransactionTableHTML(transactions) {
     // CRITICAL LOG: Log transaction details for debugging
     console.log(`🔧 Rendering transaction ID ${tx.id} at index ${index}, category: "${tx.category}", description: "${tx.description?.substring(0, 50)}..."`);
 
-    // FIXED: Format date to dd/mm/yyyy for display
+    // FIXED: Format date to dd/mm/yyyy for display - ensure proper format
     const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
     // FIXED: Ensure description is clean and handle null/undefined with RTL detection
     const description = (tx.description || '').toString().replace(/\s*data-field=.*$/i, '').trim();
@@ -420,7 +677,7 @@ function generateTransactionTableHTML(transactions) {
     const currency = tx.currency || 'USD';
     const isEdited = tx.edited || false;
 
-    // FIXED: Get category color for cell background
+    // FIXED: Get category color for cell background - preserve category styling
     const categoryColor = getCategoryColor(category);
     const categoryStyle = category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
 
@@ -430,13 +687,24 @@ function generateTransactionTableHTML(transactions) {
       return `<option value="${currencyCode}" ${currency === currencyCode ? 'selected' : ''}>${symbol} ${currencyCode}</option>`;
     }).join('');
 
+    // FIXED: Check which fields have been edited for styling - preserve edited state
+    const editedFields = tx.editedFields || {};
+    const dateEditedClass = editedFields.date ? 'edited-cell' : '';
+    const descEditedClass = editedFields.description ? 'edited-cell' : '';
+    const categoryEditedClass = editedFields.category ? 'edited-cell' : '';
+    const incomeEditedClass = editedFields.income ? 'edited-cell' : '';
+    const expensesEditedClass = editedFields.expenses ? 'edited-cell' : '';
+
+    // FIXED: Check if transaction has any edits to show revert button
+    const hasEdits = isEdited || Object.keys(editedFields).length > 0;
+
     html += `
       <tr data-transaction-id="${tx.id}" data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
         <td class="counter-cell">
           <input type="checkbox" class="transaction-checkbox" data-transaction-id="${tx.id}" style="display: none;">
           ${index + 1}
         </td>
-        <td class="date-cell">
+        <td class="date-cell ${dateEditedClass}">
           <span class="display-value">${date}</span>
           <input type="text"
                  class="edit-field date-field"
@@ -448,7 +716,7 @@ function generateTransactionTableHTML(transactions) {
                  placeholder="dd/mm/yyyy"
                  style="display: none;">
         </td>
-        <td class="description-cell" ${isRTL ? 'dir="rtl"' : ''}>
+        <td class="description-cell ${descEditedClass}" ${isRTL ? 'dir="rtl"' : ''}>
           <span class="display-value" ${isRTL ? 'style="direction: rtl; text-align: right;"' : ''}>${description}</span>
           <input type="text"
                  class="edit-field description-field"
@@ -461,10 +729,10 @@ function generateTransactionTableHTML(transactions) {
                  ${isRTL ? 'dir="rtl"' : ''}
                  style="display: none; ${isRTL ? 'direction: rtl; text-align: right;' : ''}">
         </td>
-        <td class="category-cell" style="${categoryStyle}">
+        <td class="category-cell ${categoryEditedClass}" style="${categoryStyle}">
           ${generateCategoryDropdown(category, subcategory, tx.id)}
         </td>
-        <td class="amount-cell">
+        <td class="amount-cell ${incomeEditedClass}">
           <span class="display-value">${income > 0 ? income.toFixed(2) : ''}</span>
           <input type="number"
                  class="edit-field amount-field income-field"
@@ -478,7 +746,7 @@ function generateTransactionTableHTML(transactions) {
                  min="0"
                  style="display: none;">
         </td>
-        <td class="amount-cell">
+        <td class="amount-cell ${expensesEditedClass}">
           <span class="display-value">${expenses > 0 ? expenses.toFixed(2) : ''}</span>
           <input type="number"
                  class="edit-field amount-field expense-field"
@@ -505,6 +773,7 @@ function generateTransactionTableHTML(transactions) {
           <button class="btn-edit action-btn" data-transaction-id="${tx.id}" data-index="${index}" title="Edit transaction">✏️</button>
           <button class="btn-save action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Save changes">💾</button>
           <button class="btn-revert action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
+          <button class="btn-revert-all action-btn" data-transaction-id="${tx.id}" data-index="${index}" ${hasEdits ? '' : 'style="display: none;"'} title="Revert all changes to original">🔄</button>
         </td>
       </tr>
     `;
@@ -630,6 +899,16 @@ function attachTransactionEventListeners() {
     });
   });
 
+  // FIXED: Handle revert all buttons
+  document.querySelectorAll('.btn-revert-all').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const transactionId = e.target.dataset.transactionId;
+      const index = parseInt(e.target.dataset.index);
+      console.log(`🔄 Revert all button clicked for transaction ID: ${transactionId}, index: ${index}`);
+      revertAllChangesToOriginal(transactionId, index);
+    });
+  });
+
   console.log('✓ Transaction event listeners attached successfully');
 }
 
@@ -690,7 +969,7 @@ function exitEditMode(index) {
 }
 
 /**
- * FIXED: Save individual field change (for category and currency) - UPDATED TO USE INDEX FOR BACKWARD COMPATIBILITY
+ * CRITICAL FIX: Save individual field change (for category and currency) - UPDATED TO USE INDEX FOR BACKWARD COMPATIBILITY
  */
 function saveFieldChange(index, fieldName, newValue) {
   if (!AppState.transactions || !AppState.transactions[index]) return;
@@ -789,118 +1068,71 @@ function saveFieldChange(index, fieldName, newValue) {
 }
 
 /**
- * Check if a row has any changes
+ * FIXED: Revert all changes to original values from file upload
  */
-function checkRowForChanges(row) {
-  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
-  for (let field of fields) {
-    if (field.value !== field.dataset.original) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Save changes to a transaction
- */
-function saveTransactionChanges(index) {
+function revertAllChangesToOriginal(transactionId, index) {
   if (!AppState.transactions || !AppState.transactions[index]) return;
 
-  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
-  if (!row) return;
-
-  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
   const transaction = AppState.transactions[index];
 
-  fields.forEach(field => {
-    const fieldName = field.dataset.field;
-    let newValue = field.value;
+  // Check if we have original data to revert to
+  const hasOriginalData = transaction.originalData && Object.keys(transaction.originalData).length > 0;
+  const hasEditedFields = transaction.editedFields && Object.keys(transaction.editedFields).length > 0;
 
-    // FIXED: Convert date from dd/mm/yyyy to ISO format for storage
-    if (fieldName === 'date' && newValue) {
-      const isoDate = convertDDMMYYYYToISO(newValue);
-      if (isoDate) {
-        newValue = isoDate;
-      } else {
-        console.warn('Invalid date format:', newValue);
-        return; // Skip invalid dates
+  if (!hasOriginalData && !hasEditedFields) {
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('No changes to revert', 'info');
       }
-    }
+    });
+    return;
+  }
 
-    // Update the transaction
-    transaction[fieldName] = newValue;
+  // Confirm with user
+  if (!confirm('Revert all changes to the original values from the file upload?')) {
+    return;
+  }
 
-    // Update the original value (keep display format for dates)
-    if (fieldName === 'date') {
-      field.dataset.original = field.value; // Keep dd/mm/yyyy format
-    } else {
-      field.dataset.original = newValue;
-    }
+  // Revert to original data if available
+  if (hasOriginalData) {
+    const original = transaction.originalData;
+    transaction.date = original.date;
+    transaction.description = original.description;
+    transaction.income = original.income;
+    transaction.expenses = original.expenses;
+    transaction.category = original.category;
+    transaction.subcategory = original.subcategory;
+  }
 
-    // FIXED: Update display value in real-time with proper text content setting
-    const cell = field.closest('td');
-    const displayValue = cell.querySelector('.display-value');
-    if (displayValue) {
-      if (fieldName === 'income' || fieldName === 'expenses') {
-        const numValue = parseFloat(newValue) || 0;
-        displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : '';
-      } else {
-        // FIXED: For description and other text fields, properly update display text
-        displayValue.textContent = field.value;
-      }
-    }
-  });
-
-  // Mark as edited
-  transaction.edited = true;
+  // Clear edit tracking
+  delete transaction.originalData;
+  delete transaction.editedFields;
+  delete transaction.edited;
 
   // Save to localStorage
   try {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
 
-    // Exit edit mode
-    exitEditMode(index);
-
-    // Mark row as edited
-    row.classList.add('edited-row');
-
-    // FIXED: Update summary in real-time
+    // Update UI immediately
     const filteredTransactions = applyFilters(AppState.transactions);
     updateTransactionSummary(filteredTransactions);
 
-    // Show success feedback
+    // Re-render the table to show reverted values
+    renderTransactions(AppState.transactions, false);
+
     import('./uiManager.js').then(module => {
       if (module.showToast) {
-        module.showToast('Transaction updated', 'success');
+        module.showToast('Transaction reverted to original values', 'success');
       }
     });
-
   } catch (error) {
-    console.error('Error saving transaction:', error);
+    console.error('Error reverting transaction:', error);
     import('./uiManager.js').then(module => {
       if (module.showToast) {
-        module.showToast('Error saving changes', 'error');
+        module.showToast('Error reverting changes', 'error');
       }
     });
   }
-}
-
-/**
- * Revert changes to a transaction
- */
-function revertTransactionChanges(index) {
-  const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
-  if (!row) return;
-
-  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
-
-  fields.forEach(field => {
-    field.value = field.dataset.original;
-  });
-
-  // Exit edit mode
-  exitEditMode(index);
 }
 
 /**

@@ -694,66 +694,59 @@ div#transactionFilters div.filter-group {
   background-color: #991b1b;
 }
 
-/* FIXED: Category cell styling with color background */
-.transaction-table .category-cell {
-  border-radius: 4px;
-  padding: 8px 12px;
+/* Enhanced action button styling */
+.transaction-table .btn-revert-all {
+  background: #17a2b8;
+  color: white;
+  border: 1px solid #17a2b8;
+  padding: 4px 6px;
+  margin: 0 1px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
 }
 
-/* FIXED: Multi-currency summary styling - handle long numbers */
-.summary-card.currency-summary {
-  min-width: 220px !important;
-  flex: 1 1 auto !important;
-  max-width: none !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
+.transaction-table .btn-revert-all:hover {
+  background: #138496;
+  border-color: #117a8b;
+  transform: scale(1.05);
 }
 
-.currency-header {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
-  font-weight: 600 !important;
-  color: #495057 !important;
-  margin-bottom: 0.5rem !important;
-  white-space: nowrap !important;
+.dark-mode .transaction-table .btn-revert-all {
+  background: #20c997;
+  border-color: #20c997;
 }
 
-.currency-stats {
-  display: flex !important;
-  justify-content: space-between !important;
-  gap: 0.5rem !important;
-  flex-wrap: wrap !important;
+.dark-mode .transaction-table .btn-revert-all:hover {
+  background: #1ea080;
+  border-color: #1ea080;
 }
 
-.currency-stats>div {
-  text-align: center !important;
-  flex: 1 1 auto !important;
-  min-width: 60px !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
+/* Enhanced row styling for edited transactions - merged with existing styles */
+
+/* FIXED: Add styles for edited cells */
+.transaction-table .edited-cell {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.3) !important;
 }
 
-.currency-stats .stat-label {
-  font-size: 0.75rem !important;
-  color: #6c757d !important;
-  text-transform: uppercase !important;
-  margin-bottom: 0.25rem !important;
-  white-space: nowrap !important;
+.transaction-table .edited-cell::before {
+  content: "✏️";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  opacity: 0.7;
+  z-index: 1;
 }
 
-.currency-stats .stat-value {
-  font-size: 1rem !important;
-  font-weight: 600 !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  line-height: 1.2 !important;
-}
-
-/* Dark mode support for multi-currency */
-.dark-mode .summary-card.currency-summary {
-  background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
-  border-color: #6c757d !important;
+.dark-mode .transaction-table .edited-cell {
+  background-color: #533f03 !important;
+  border-left-color: #ffc107 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.2) !important;
 }
 
 .dark-mode .currency-header {
@@ -762,4 +755,25 @@ div#transactionFilters div.filter-group {
 
 .dark-mode .currency-stats .stat-label {
   color: #adb5bd !important;
+}
+
+/* FIXED: Add styles for edited cells */
+.transaction-table .edited-cell {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  position: relative;
+}
+
+.transaction-table .edited-cell::before {
+  content: "✏️";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.dark-mode .transaction-table .edited-cell {
+  background-color: #533f03 !important;
+  border-left-color: #ffc107 !important;
 }

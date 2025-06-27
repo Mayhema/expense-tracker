@@ -354,18 +354,55 @@ export function validateAndNormalizeDate(value) {
 /**
  * FIXED: Use formatDateForDisplay instead of deprecated function
  */
-export function formatDateToDDMMYYYY(dateInput) {
+export function formatDateToDDMMYYYYDeprecated(dateInput) {
   console.warn('formatDateToDDMMYYYY is deprecated. Use formatDateForDisplay with EU format instead.');
   const isoDate = parseToISODate(dateInput);
   return isoDate ? formatDateForDisplay(isoDate, 'EU') : '';
 }
 
 /**
- * @deprecated Use parseToISODate instead
+ * FIXED: Convert dd/mm/yyyy format to ISO date string with proper validation
+ * @param {string} ddmmyyyy - Date in dd/mm/yyyy format
+ * @returns {string|null} ISO date string or null if invalid
  */
 export function convertDDMMYYYYToISO(ddmmyyyy) {
-  console.warn('convertDDMMYYYYToISO is deprecated. Use parseToISODate instead.');
-  return parseToISODate(ddmmyyyy);
+  if (!ddmmyyyy || typeof ddmmyyyy !== 'string') {
+    return null;
+  }
+
+  // FIXED: Strict dd/mm/yyyy pattern matching
+  const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+  const match = ddmmyyyy.trim().match(datePattern);
+
+  if (!match) {
+    console.warn('Date format does not match dd/mm/yyyy:', ddmmyyyy);
+    return null;
+  }
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+
+  // FIXED: Validate date components
+  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+    console.warn('Invalid date components:', { day, month, year });
+    return null;
+  }
+
+  // FIXED: Create date with explicit day/month order - Use UTC to avoid timezone issues
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  // FIXED: Verify the date was created correctly (handles invalid dates like 31/02)
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== (month - 1) || date.getUTCDate() !== day) {
+    console.warn('Invalid date created:', ddmmyyyy, 'resulted in:', date);
+    return null;
+  }
+
+  // FIXED: Return ISO string in YYYY-MM-DD format using UTC
+  const isoString = date.toISOString().split('T')[0];
+  console.log(`✓ Date conversion: ${ddmmyyyy} → ${isoString} (Day: ${day}, Month: ${month}, Year: ${year})`);
+
+  return isoString;
 }
 
 /**
@@ -391,4 +428,45 @@ export function getCurrentDateDDMMYYYY() {
 export function isValidDDMMYYYY(dateStr) {
   console.warn('isValidDDMMYYYY is deprecated. Use validateAndNormalizeDate instead.');
   return validateAndNormalizeDate(dateStr).isValid;
+}
+
+/**
+ * FIXED: Format ISO date or Date object to dd/mm/yyyy with proper validation
+ * @param {string|Date} date - ISO date string or Date object
+ * @returns {string} Formatted date as dd/mm/yyyy
+ */
+export function formatDateToDDMMYYYY(date) {
+  if (!date) return '';
+
+  let dateObj;
+  if (typeof date === 'string') {
+    // FIXED: Parse ISO date string using UTC to avoid timezone shifts
+    if (date.includes('T')) {
+      dateObj = new Date(date);
+    } else {
+      // For YYYY-MM-DD format, parse as UTC to avoid timezone issues
+      const [year, month, day] = date.split('-').map(num => parseInt(num, 10));
+      dateObj = new Date(Date.UTC(year, month - 1, day));
+    }
+  } else if (date instanceof Date) {
+    dateObj = date;
+  } else {
+    return '';
+  }
+
+  // FIXED: Validate date object
+  if (isNaN(dateObj.getTime())) {
+    console.warn('Invalid date for formatting:', date);
+    return '';
+  }
+
+  // FIXED: Format as dd/mm/yyyy using UTC to maintain consistency
+  const day = String(dateObj.getUTCDate()).padStart(2, '0');
+  const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+  const year = dateObj.getUTCFullYear();
+
+  const formatted = `${day}/${month}/${year}`;
+  console.log(`✓ Date formatting: ${date} → ${formatted}`);
+
+  return formatted;
 }
