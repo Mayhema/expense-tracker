@@ -420,44 +420,73 @@ function handleCategorySelection(checkbox) {
   const value = checkbox.value;
 
   if (value === 'all') {
-    // Handle "All Categories" selection
-    const allCheckboxes = document.querySelectorAll('.category-checkbox');
-    const isChecked = checkbox.checked;
-
-    allCheckboxes.forEach(cb => {
-      cb.checked = isChecked;
-    });
-
-    currentFilters.categories = isChecked ? [] : Object.keys(AppState.categories || {});
+    handleAllCategoriesSelection(checkbox);
   } else {
-    // Handle individual category selection
-    const allCheckbox = document.querySelector('.category-checkbox[value="all"]');
-
-    if (checkbox.checked) {
-      // Add category to filter
-      if (!currentFilters.categories.includes(value)) {
-        currentFilters.categories.push(value);
-      }
-    } else {
-      // Remove category from filter
-      currentFilters.categories = currentFilters.categories.filter(cat => cat !== value);
-
-      // Uncheck "All Categories" if any individual category is unchecked
-      if (allCheckbox) {
-        allCheckbox.checked = false;
-      }
-    }
-
-    // Check "All Categories" if all individual categories are selected
-    const totalCategories = Object.keys(AppState.categories || {}).length;
-    if (currentFilters.categories.length === totalCategories && allCheckbox) {
-      allCheckbox.checked = true;
-      currentFilters.categories = [];
-    }
+    handleIndividualCategorySelection(checkbox, value);
   }
 
   updateCategoryButtonText();
   applyCurrentFilters();
+}
+
+/**
+ * Handle "All Categories" checkbox selection
+ */
+function handleAllCategoriesSelection(checkbox) {
+  const allCheckboxes = document.querySelectorAll('.category-checkbox');
+  const isChecked = checkbox.checked;
+
+  allCheckboxes.forEach(cb => {
+    cb.checked = isChecked;
+  });
+
+  currentFilters.categories = isChecked ? [] : Object.keys(AppState.categories || {});
+}
+
+/**
+ * Handle individual category checkbox selection
+ */
+function handleIndividualCategorySelection(checkbox, value) {
+  const allCheckbox = document.querySelector('.category-checkbox[value="all"]');
+
+  if (checkbox.checked) {
+    addCategoryToFilter(value);
+  } else {
+    removeCategoryFromFilter(value, allCheckbox);
+  }
+
+  checkAllCategoriesIfNeeded(allCheckbox);
+}
+
+/**
+ * Add category to filter if not already included
+ */
+function addCategoryToFilter(value) {
+  if (!currentFilters.categories.includes(value)) {
+    currentFilters.categories.push(value);
+  }
+}
+
+/**
+ * Remove category from filter and uncheck "All Categories"
+ */
+function removeCategoryFromFilter(value, allCheckbox) {
+  currentFilters.categories = currentFilters.categories.filter(cat => cat !== value);
+
+  if (allCheckbox) {
+    allCheckbox.checked = false;
+  }
+}
+
+/**
+ * Check "All Categories" if all individual categories are selected
+ */
+function checkAllCategoriesIfNeeded(allCheckbox) {
+  const totalCategories = Object.keys(AppState.categories || {}).length;
+  if (currentFilters.categories.length === totalCategories && allCheckbox) {
+    allCheckbox.checked = true;
+    currentFilters.categories = [];
+  }
 }
 
 /**
@@ -497,59 +526,76 @@ export function applyCurrentFilters() {
 }
 
 /**
+ * Check if transaction passes date range filter
+ */
+function passesDateFilter(tx, filters) {
+  if (!filters.customStartDate && !filters.customEndDate) {
+    return true;
+  }
+
+  const txDate = parseToISODate(tx.date);
+  if (!txDate) return false;
+
+  const transactionDate = new Date(txDate);
+
+  if (filters.customStartDate && transactionDate < filters.customStartDate) {
+    return false;
+  }
+
+  return !(filters.customEndDate && transactionDate > filters.customEndDate);
+}
+
+/**
+ * Check if transaction passes amount range filter
+ */
+function passesAmountFilter(tx, filters) {
+  const amount = parseFloat(tx.income || tx.expenses || 0);
+
+  return !(filters.minAmount !== null && amount < filters.minAmount) &&
+    !(filters.maxAmount !== null && amount > filters.maxAmount);
+}
+
+/**
+ * Check if transaction passes category filter
+ */
+function passesCategoryFilter(tx, filters) {
+  if (filters.categories.length === 0) {
+    return true;
+  }
+
+  const txCategory = tx.category || 'Uncategorized';
+  return filters.categories.includes(txCategory);
+}
+
+/**
+ * Check if transaction passes currency filter
+ */
+function passesCurrencyFilter(tx, filters) {
+  return filters.currency === 'all' || tx.currency === filters.currency;
+}
+
+/**
+ * Check if transaction passes description search filter
+ */
+function passesDescriptionFilter(tx, filters) {
+  if (!filters.searchText) {
+    return true;
+  }
+
+  const description = (tx.description || '').toLowerCase();
+  return description.includes(filters.searchText);
+}
+
+/**
  * Filter transactions based on current filters
  */
 export function filterTransactions(transactions, filters = currentFilters) {
   return transactions.filter(tx => {
-    // Date range filter
-    if (filters.customStartDate || filters.customEndDate) {
-      const txDate = parseToISODate(tx.date);
-      if (!txDate) return false;
-
-      const transactionDate = new Date(txDate);
-
-      if (filters.customStartDate && transactionDate < filters.customStartDate) {
-        return false;
-      }
-
-      if (filters.customEndDate && transactionDate > filters.customEndDate) {
-        return false;
-      }
-    }
-
-    // Amount range filter
-    const amount = parseFloat(tx.income || tx.expenses || 0);
-
-    if (filters.minAmount !== null && amount < filters.minAmount) {
-      return false;
-    }
-
-    if (filters.maxAmount !== null && amount > filters.maxAmount) {
-      return false;
-    }
-
-    // Category filter
-    if (filters.categories.length > 0) {
-      const txCategory = tx.category || 'Uncategorized';
-      if (!filters.categories.includes(txCategory)) {
-        return false;
-      }
-    }
-
-    // Currency filter
-    if (filters.currency !== 'all' && tx.currency !== filters.currency) {
-      return false;
-    }
-
-    // Description search filter
-    if (filters.searchText) {
-      const description = (tx.description || '').toLowerCase();
-      if (!description.includes(filters.searchText)) {
-        return false;
-      }
-    }
-
-    return true;
+    return passesDateFilter(tx, filters) &&
+      passesAmountFilter(tx, filters) &&
+      passesCategoryFilter(tx, filters) &&
+      passesCurrencyFilter(tx, filters) &&
+      passesDescriptionFilter(tx, filters);
   });
 }
 

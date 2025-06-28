@@ -272,23 +272,7 @@ function initializeActionButtons() {
   // Export button - FIXED: Use the correct export function
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn) {
-    exportBtn.addEventListener("click", () => {
-      // FIXED: Import the correct export manager module
-      import('../exports/exportManager.js').then(module => {
-        if (module.exportTransactionsAsCSV) {
-          module.exportTransactionsAsCSV();
-        } else {
-          console.error('exportTransactionsAsCSV function not found');
-        }
-      }).catch(err => {
-        console.error('Error loading export manager:', err);
-        import('../ui/uiManager.js').then(uiModule => {
-          if (uiModule.showToast) {
-            uiModule.showToast('Error loading export function', 'error');
-          }
-        });
-      });
-    });
+    exportBtn.addEventListener("click", handleExportClick);
   }
 
   // Debug buttons
@@ -330,51 +314,23 @@ function initializeDebugButtons() {
       }
     },
     {
-      id: "saveLogBtn", handler: () => {
-        // FIXED: Properly import and use console logger
-        if (window.saveConsoleLogs) {
-          window.saveConsoleLogs();
-        } else {
-          // Import console logger if not available
-          import('../utils/console-logger.js').then(() => {
-            setTimeout(() => {
-              if (window.saveConsoleLogs) {
-                window.saveConsoleLogs();
-              } else {
-                console.error("Console logger failed to initialize");
-                import('../ui/uiManager.js').then(uiModule => {
-                  if (uiModule.showToast) {
-                    uiModule.showToast('Console logger not available', 'error');
-                  }
-                });
-              }
-            }, 100);
-          }).catch(err => {
-            console.error("Failed to load console logger:", err);
-            import('../ui/uiManager.js').then(uiModule => {
-              if (uiModule.showToast) {
-                uiModule.showToast('Failed to load console logger', 'error');
-              }
-            });
-          });
-        }
-      }
+      id: "saveLogBtn", handler: handleSaveLogClick
     },
-    { id: "resetAppBtn", handler: _handleResetApp }
+    {
+      id: "resetAppBtn", handler: () => {
+        import("../utils/debug.js").then(module => {
+          if (module.resetApplication) {
+            module.resetApplication();
+          }
+        });
+      }
+    }
   ];
 
-  debugButtons.forEach(({ id, handler }) => {
-    const button = document.getElementById(id);
-    if (button) {
-      // Remove existing listeners
-      const newButton = button.cloneNode(true);
-      button.parentNode.replaceChild(newButton, button);
-
-      // Add new listener
-      newButton.addEventListener("click", handler);
-      console.log(`Debug button ${id} initialized`);
-    } else {
-      console.warn(`Debug button ${id} not found`);
+  debugButtons.forEach(button => {
+    const element = document.getElementById(button.id);
+    if (element) {
+      element.addEventListener("click", button.handler);
     }
   });
 }
@@ -512,35 +468,120 @@ function _handleEditCategories() {
 /**
  * Reset application data
  */
-function _handleResetApp() {
+async function _handleResetApp() {
   if (confirm('Are you sure you want to reset the application? This will clear all data.')) {
-    // CRITICAL FIX: Ensure default categories are loaded exactly like the reset button
-    import('../constants/categories.js').then(categoriesModule => {
-      import('../core/appState.js').then(appStateModule => {
-        // Clear all data
-        localStorage.clear();
-        sessionStorage.clear();
+    await performAppReset();
+  }
+}
 
-        // Initialize default categories immediately
-        appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
-        localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
-        console.log('Reset App: Loaded default categories');
+/**
+ * Performs the actual app reset operation
+ */
+async function performAppReset() {
+  try {
+    const [categoriesModule, appStateModule] = await Promise.all([
+      import('../constants/categories.js'),
+      import('../core/appState.js')
+    ]);
 
-        // CRITICAL FIX: Call the exact same function as the Reset to Defaults button
-        import('./categoryManager.js').then(categoryModule => {
-          if (categoryModule.resetToDefaultCategories) {
-            categoryModule.resetToDefaultCategories();
-            console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
-          }
-        }).catch(error => {
-          console.warn('Could not call resetToDefaultCategories:', error);
-        });
+    // Clear all data
+    localStorage.clear();
+    sessionStorage.clear();
 
-        // Reload after ensuring categories are saved
-        setTimeout(() => {
-          location.reload();
-        }, 500);
-      });
-    });
+    // Initialize default categories immediately
+    appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
+    localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
+    console.log('Reset App: Loaded default categories');
+
+    await resetToDefaultCategories();
+
+    // Reload after ensuring categories are saved
+    setTimeout(() => {
+      location.reload();
+    }, 500);
+  } catch (error) {
+    console.error('Error during app reset:', error);
+  }
+}
+
+/**
+ * Resets categories to default
+ */
+async function resetToDefaultCategories() {
+  try {
+    const categoryModule = await import('./categoryManager.js');
+    if (categoryModule.resetToDefaultCategories) {
+      categoryModule.resetToDefaultCategories();
+      console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
+    }
+  } catch (error) {
+    console.warn('Could not call resetToDefaultCategories:', error);
+  }
+}
+
+/**
+ * Handles export button click
+ */
+async function handleExportClick() {
+  try {
+    const module = await import('../exports/exportManager.js');
+    if (module.exportTransactionsAsCSV) {
+      module.exportTransactionsAsCSV();
+    } else {
+      console.error('exportTransactionsAsCSV function not found');
+    }
+  } catch (err) {
+    console.error('Error loading export manager:', err);
+    await showErrorToast('Error loading export function');
+  }
+}
+
+/**
+ * Handles save log button click
+ */
+async function handleSaveLogClick() {
+  if (window.saveConsoleLogs) {
+    window.saveConsoleLogs();
+    return;
+  }
+
+  try {
+    await import('../utils/console-logger.js');
+    await waitForConsoleLogger();
+  } catch (err) {
+    console.error("Failed to load console logger:", err);
+    await showErrorToast('Failed to load console logger');
+  }
+}
+
+/**
+ * Waits for console logger to initialize
+ */
+async function waitForConsoleLogger() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      if (window.saveConsoleLogs) {
+        window.saveConsoleLogs();
+        resolve();
+      } else {
+        console.error("Console logger failed to initialize");
+        showErrorToast('Console logger not available');
+        resolve();
+      }
+    }, 100);
+  });
+}
+
+/**
+ * Shows error toast message
+ */
+async function showErrorToast(message) {
+  try {
+    const uiModule = await import('../ui/uiManager.js');
+    if (uiModule.showToast) {
+      uiModule.showToast(message, 'error');
+    }
+  } catch (error) {
+    console.error('Could not show error toast:', error);
   }
 }

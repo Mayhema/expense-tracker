@@ -295,14 +295,14 @@ function handlePlaceholderSelection(selectElement, selectedValue) {
   console.log(`Handling placeholder selection: ${selectedValue} for column ${columnIndex}`);
 
   // Update the current mapping array
-  if (!currentMapping) {
-    currentMapping = new Array(document.querySelectorAll('.header-select').length).fill('–');
+  if (!AppState.currentSuggestedMapping) {
+    AppState.currentSuggestedMapping = new Array(document.querySelectorAll('.header-select').length).fill('–');
   }
-  if (columnIndex >= 0 && columnIndex < currentMapping.length) {
-    currentMapping[columnIndex] = selectedValue;
+  if (columnIndex >= 0 && columnIndex < AppState.currentSuggestedMapping.length) {
+    AppState.currentSuggestedMapping[columnIndex] = selectedValue;
   }
 
-  console.log("Updated mapping:", currentMapping);
+  console.log("Updated mapping:", AppState.currentSuggestedMapping);
 }
 
 function isDuplicateMapping(selectedValue, currentColumnIndex) {

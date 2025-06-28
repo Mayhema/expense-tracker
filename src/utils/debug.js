@@ -394,9 +394,65 @@ function attachDebugButtonListeners() {
 }
 
 /**
+ * Helper function to handle category manager import and reset
+ */
+async function resetCategoriesAndFinalize(appStateModule) {
+  try {
+    const categoryModule = await import('../ui/categoryManager.js');
+    if (categoryModule.resetToDefaultCategories) {
+      categoryModule.resetToDefaultCategories();
+      console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
+    }
+  } catch (error) {
+    console.warn('Could not call resetToDefaultCategories:', error);
+  }
+
+  // Show confirmation and reload
+  setTimeout(async () => {
+    try {
+      const uiModule = await import('../ui/uiManager.js');
+      if (uiModule.showToast) {
+        uiModule.showToast('Application reset complete with default categories loaded. Reloading...', 'success');
+      }
+    } catch (error) {
+      console.warn('Could not show toast:', error);
+    }
+    window.location.reload();
+  }, 500);
+}
+
+/**
+ * Helper function to handle app state setup
+ */
+async function setupAppStateWithDefaults(categoriesModule) {
+  const appStateModule = await import('../core/appState.js');
+  appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
+
+  // Save categories immediately to localStorage
+  localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
+  console.log(`Reset: Loaded ${Object.keys(appStateModule.AppState.categories).length} default categories`);
+
+  await resetCategoriesAndFinalize(appStateModule);
+}
+
+/**
+ * Helper function to show error toast
+ */
+async function showResetError() {
+  try {
+    const uiModule = await import('../ui/uiManager.js');
+    if (uiModule.showToast) {
+      uiModule.showToast('Error occurred during reset. Please refresh the page manually.', 'error');
+    }
+  } catch (error) {
+    console.warn('Could not show error toast:', error);
+  }
+}
+
+/**
  * Reset application function with improved error handling
  */
-export function resetApplication() {
+export async function resetApplication() {
   console.log("Reset application triggered");
 
   if (confirm('Are you sure you want to reset the application? This will clear all data and reload the page.')) {
@@ -408,34 +464,12 @@ export function resetApplication() {
       sessionStorage.clear();
 
       // CRITICAL FIX: Initialize default categories immediately like the reset button does
-      import('../constants/categories.js').then(categoriesModule => {
-        // Set default categories in AppState
-        import('../core/appState.js').then(appStateModule => {
-          appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
-
-          // Save categories immediately to localStorage
-          localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
-          console.log(`Reset: Loaded ${Object.keys(appStateModule.AppState.categories).length} default categories`);
-
-          // CRITICAL FIX: Call the exact same function as the Reset to Defaults button
-          import('../ui/categoryManager.js').then(categoryModule => {
-            if (categoryModule.resetToDefaultCategories) {
-              categoryModule.resetToDefaultCategories();
-              console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
-            }
-          }).catch(error => {
-            console.warn('Could not call resetToDefaultCategories:', error);
-          });
-
-          // Show confirmation and reload
-          alert('Application reset complete with default categories loaded. The page will now reload.');
-          window.location.reload();
-        });
-      });
+      const categoriesModule = await import('../constants/categories.js');
+      await setupAppStateWithDefaults(categoriesModule);
 
     } catch (error) {
       console.error('Error during reset:', error);
-      alert('Error occurred during reset. Please refresh the page manually.');
+      await showResetError();
     }
   }
 }
