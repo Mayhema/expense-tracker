@@ -371,6 +371,7 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
 
       if (cell) {
         cell.classList.add('edited-cell');
+        console.log(`✏️ Marked ${fieldName} cell as edited for transaction ${transactionId}`);
       }
 
       // FIXED: Show revert-all button when edits are made
@@ -518,6 +519,7 @@ function saveTransactionChanges(index) {
     // FIXED: Mark the cell as edited
     if (cell) {
       cell.classList.add('edited-cell');
+      console.log(`✏️ Marked ${fieldName} cell as edited for transaction at index ${index}`);
     }
   });
 
@@ -720,7 +722,7 @@ function generateTransactionTableHTML(transactions) {
           <span class="display-value" ${isRTL ? 'style="direction: rtl; text-align: right;"' : ''}>${description}</span>
           <input type="text"
                  class="edit-field description-field"
-                 value="${description.replace(/"/g, '&quot;')}
+                 value="${description.replace(/"/g, '&quot;')}"
                  data-field="description"
                  data-transaction-id="${tx.id}"
                  data-index="${index}"

@@ -20,26 +20,48 @@ function getModalOverlay() {
 }
 
 /**
- * Show a modal with the given configuration
+ * Show a modal with the given options
  */
-export function showModal(config) {
+export function showModal(options = {}) {
+  console.log('CRITICAL: showModal called with options:', options);
+
   const {
     title = 'Modal',
     content = '',
     size = 'medium',
     closeOnClickOutside = true,
-    className = ''
-  } = config;
+    showCloseButton = true
+  } = options;
 
-  // Close any existing modal first
-  if (activeModal) {
-    activeModal.close();
+  // CRITICAL FIX: Ensure modal container exists and is properly styled
+  let modalContainer = document.getElementById('modalContainer');
+  if (!modalContainer) {
+    modalContainer = document.createElement('div');
+    modalContainer.id = 'modalContainer';
+    modalContainer.className = 'modal-container';
+    modalContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10000;
+      pointer-events: auto;
+      display: block;
+    `;
+    document.body.appendChild(modalContainer);
+    console.log('CRITICAL: Created modal container');
+  } else {
+    // CRITICAL FIX: Ensure existing container is properly visible
+    modalContainer.style.pointerEvents = 'auto';
+    modalContainer.style.display = 'block';
+    console.log('CRITICAL: Using existing modal container');
   }
 
-  // Create modal backdrop
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.style.cssText = `
+  // Create modal overlay
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
+  modalOverlay.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -47,174 +69,129 @@ export function showModal(config) {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 10000;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    justify-content: center;
+    pointer-events: auto;
+    visibility: visible;
+    opacity: 1;
+    z-index: 10001;
   `;
 
-  // Create modal container
-  const modal = document.createElement('div');
-  modal.className = `modal-container ${size} ${className}`;
-  modal.style.cssText = `
-    background: white;
+  // Create modal dialog
+  const modalDialog = document.createElement('div');
+  modalDialog.className = `modal-dialog modal-${size}`;
+  modalDialog.style.cssText = `
+    background-color: white;
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    max-width: 90vw;
+    max-width: ${size === 'large' ? '90vw' : '600px'};
     max-height: 90vh;
-    overflow: hidden;
-    transform: scale(0.7);
-    transition: transform 0.3s ease;
-    display: flex;
-    flex-direction: column;
+    overflow: auto;
+    margin: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 10002;
   `;
 
-  // Set modal size
-  if (size === 'small') {
-    modal.style.width = '400px';
-  } else if (size === 'medium') {
-    modal.style.width = '600px';
-  } else if (size === 'large') {
-    modal.style.width = '800px';
-  } else if (size === 'xlarge') {
-    modal.style.width = '1000px';
-  }
+  // Create modal content structure
+  const modalContentWrapper = document.createElement('div');
+  modalContentWrapper.className = 'modal-content';
 
-  // Create modal header
-  const header = document.createElement('div');
-  header.className = 'modal-header';
-  header.style.cssText = `
-    padding: 20px;
+  // Modal header
+  const modalHeader = document.createElement('div');
+  modalHeader.className = 'modal-header';
+  modalHeader.style.cssText = `
+    padding: 20px 24px 0 24px;
     border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f8f9fa;
+    position: relative;
+  `;
+  modalHeader.innerHTML = `
+    <h3 class="modal-title" style="margin: 0 0 16px 0; font-size: 1.25rem; font-weight: 600;">${title}</h3>
+    ${showCloseButton ? '<button class="modal-close-btn" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>' : ''}
   `;
 
-  const titleEl = document.createElement('h3');
-  titleEl.className = 'modal-title';
-  titleEl.textContent = title;
-  titleEl.style.cssText = `
-    margin: 0;
-    font-size: 1.25rem;
-    color: #333;
+  // Modal body
+  const modalBody = document.createElement('div');
+  modalBody.className = 'modal-body';
+  modalBody.style.cssText = `
+    padding: 24px;
   `;
 
-  // FIXED: Define closeModal function before using it
-  const closeModal = () => {
-    // FIXED: Proper cleanup sequence
-    backdrop.style.opacity = '0';
-    modal.style.transform = 'scale(0.7)';
-
-    // FIXED: Use transition end event instead of arbitrary timeout
-    const handleTransitionEnd = () => {
-      if (backdrop.parentNode) {
-        document.body.removeChild(backdrop);
-      }
-
-      // FIXED: Clean up all event listeners
-      cleanupFunctions.forEach(cleanup => cleanup());
-      modalCache.activeModals.delete(modalId);
-
-      backdrop.removeEventListener('transitionend', handleTransitionEnd);
-      activeModal = null;
-    };
-
-    backdrop.addEventListener('transitionend', handleTransitionEnd, { once: true });
-
-    // Fallback cleanup after 300ms if transition doesn't fire
-    setTimeout(handleTransitionEnd, 300);
-  };
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'modal-close';
-  closeBtn.innerHTML = '×';
-  closeBtn.style.cssText = `
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #666;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  `;
-  closeBtn.addEventListener('click', closeModal);
-
-  header.appendChild(titleEl);
-  header.appendChild(closeBtn);
-
-  // Create modal body
-  const body = document.createElement('div');
-  body.className = 'modal-body';
-  body.style.cssText = `
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-  `;
-
+  // Handle content - can be string or element
   if (typeof content === 'string') {
-    body.innerHTML = content;
-  } else if (content instanceof HTMLElement) {
-    body.appendChild(content);
+    modalBody.innerHTML = content;
+  } else if (content instanceof Element) {
+    modalBody.appendChild(content);
+  } else {
+    console.error('CRITICAL ERROR: Invalid content type for modal');
+    modalBody.innerHTML = '<p>Error loading modal content</p>';
   }
 
   // Assemble modal
-  modal.appendChild(header);
-  modal.appendChild(body);
-  backdrop.appendChild(modal);
+  modalContentWrapper.appendChild(modalHeader);
+  modalContentWrapper.appendChild(modalBody);
+  modalDialog.appendChild(modalContentWrapper);
+  modalOverlay.appendChild(modalDialog);
+  modalContainer.appendChild(modalOverlay);
 
-  // Add to DOM
-  document.body.appendChild(backdrop);
+  console.log('CRITICAL: Modal DOM structure created and appended');
 
-  // Trigger animation
-  requestAnimationFrame(() => {
-    backdrop.style.opacity = '1';
-    modal.style.transform = 'scale(1)';
-  });
+  // CRITICAL FIX: Ensure modal is visible immediately
+  modalContainer.style.pointerEvents = 'auto';
+  modalContainer.style.display = 'block';
+  modalOverlay.style.display = 'flex';
 
-  const modalId = Date.now().toString();
-
-  // FIXED: Track modal and its cleanup functions
-  const cleanupFunctions = [];
-
-  // FIXED: Track event listeners for cleanup
-  if (closeOnClickOutside) {
-    const backdropClickHandler = (e) => {
-      if (e.target === backdrop) {
-        closeModal();
+  // Create modal object with methods
+  const modal = {
+    element: modalOverlay,
+    content: modalBody,
+    close: () => {
+      console.log('CRITICAL: Closing modal');
+      if (modalOverlay && modalOverlay.parentNode) {
+        modalOverlay.parentNode.removeChild(modalOverlay);
       }
-    };
-    backdrop.addEventListener('click', backdropClickHandler);
-    cleanupFunctions.push(() => backdrop.removeEventListener('click', backdropClickHandler));
-  }
-
-  // Prevent modal content clicks from bubbling to backdrop
-  const modalClickHandler = (e) => {
-    e.stopPropagation();
-  };
-  modal.addEventListener('click', modalClickHandler);
-  cleanupFunctions.push(() => modal.removeEventListener('click', modalClickHandler));
-
-  const escapeHandler = (e) => {
-    if (e.key === 'Escape') {
-      closeModal();
+      // CRITICAL FIX: Hide container if no more modals
+      if (modalContainer && modalContainer.children.length === 0) {
+        modalContainer.style.display = 'none';
+        modalContainer.style.pointerEvents = 'none';
+      }
     }
   };
-  document.addEventListener('keydown', escapeHandler);
-  cleanupFunctions.push(() => document.removeEventListener('keydown', escapeHandler));
 
-  modalCache.activeModals.set(modalId, { modal, cleanup: cleanupFunctions });
+  // Event listeners
+  if (showCloseButton) {
+    const closeBtn = modalHeader.querySelector('.modal-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', modal.close);
+    }
+  }
 
-  // Set active modal
-  activeModal = { close: closeModal };
+  if (closeOnClickOutside) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modal.close();
+      }
+    });
+  }
 
-  return { close: closeModal };
+  // Handle escape key
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      modal.close();
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+
+  console.log('CRITICAL: Modal created successfully, returning modal object');
+
+  // CRITICAL FIX: Force display update
+  requestAnimationFrame(() => {
+    console.log('CRITICAL: Modal should now be visible');
+    console.log('CRITICAL: Modal container display:', modalContainer.style.display);
+    console.log('CRITICAL: Modal overlay display:', modalOverlay.style.display);
+  });
+
+  return modal;
 }
 
 /**

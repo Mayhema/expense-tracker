@@ -230,9 +230,11 @@ function initializeActionButtons() {
   const fileUploadBtn = document.getElementById("fileUploadBtn");
   if (fileUploadBtn) {
     fileUploadBtn.addEventListener("click", () => {
+      console.log("CRITICAL: Upload button clicked - initiating file upload");
       // Import and use the file upload functionality
       import("../ui/fileUpload.js").then(module => {
         if (module.createNewFileInput) {
+          console.log("CRITICAL: Calling createNewFileInput()");
           module.createNewFileInput();
         } else {
           console.error("createNewFileInput function not found");

@@ -2,7 +2,7 @@ import { AppState, resetFileState } from '../core/appState.js';
 import { showToast } from './uiManager.js';
 import { showModal } from './modalManager.js';
 import { autoDetectFieldType } from '../constants/fieldMappings.js';
-import { isExcelDate, formatExcelDateForPreview, } from '../utils/dateUtils.js';
+import { isExcelDate, formatExcelDateForPreview } from '../utils/dateUtils.js';
 
 // Global flag to prevent multiple file inputs
 let fileInputInProgress = false;
@@ -57,7 +57,7 @@ export function initializeFileUpload() {
 export function createNewFileInput() {
   // FIXED: Only check if input is in progress when actually processing
   if (fileInputInProgress) {
-    console.log("File input already in progress");
+    console.log("CRITICAL: File input already in progress, returning");
     return null;
   }
 
@@ -72,12 +72,14 @@ export function createNewFileInput() {
     fileInput.style.display = 'none';
 
     const inputId = Date.now().toString();
+    console.log("CRITICAL: Created file input with ID:", inputId);
 
     // Add event listener for file selection
     const handleFileSelection = (event) => {
+      console.log("CRITICAL: File selection event triggered");
       const file = event.target.files[0];
       if (!file) {
-        console.log("No file selected");
+        console.log("CRITICAL: No file selected in event");
         // FIXED: Reset progress flag if no file selected
         fileInputInProgress = false;
         return;
@@ -86,66 +88,80 @@ export function createNewFileInput() {
       // FIXED: Only set progress flag when file is actually selected
       fileInputInProgress = true;
 
-      console.log(`Processing file: ${file.name} (${file.type}, ${file.size} bytes)`);
+      console.log(`CRITICAL: File selected and processing: ${file.name} (${file.type}, ${file.size} bytes)`);
 
       try {
         // Process the file
         handleFileUploadProcess(file);
       } catch (error) {
-        console.error("Error processing file:", error);
+        console.error("CRITICAL ERROR: Error processing file:", error);
         handleFileUploadError(error);
-      } finally {
-        // Clean up the file input
-        if (event.target && event.target.parentNode) {
-          event.target.parentNode.removeChild(event.target);
-        }
       }
-      // FIXED: Clean up this specific input after processing
-      cleanupFileInput(inputId);
+      // FIXED: Don't clean up immediately - let the processing complete
     };
 
     const handleCancel = () => {
+      console.log("CRITICAL: File selection cancelled");
       fileInputInProgress = false;
       cleanupFileInput(inputId);
     };
 
+    // CRITICAL FIX: Delay the focus event listener to prevent premature cleanup
     const handleFocus = () => {
-      // FIXED: Use requestAnimationFrame instead of setTimeout
-      requestAnimationFrame(() => {
-        if (!fileInput.files.length && document.body.contains(fileInput)) {
+      console.log("CRITICAL: Window focus event - checking if file was selected");
+      // FIXED: Add longer delay and better file selection detection
+      setTimeout(() => {
+        // Check if file input still exists and is in the DOM
+        if (!document.body.contains(fileInput)) {
+          console.log("CRITICAL: File input already removed from DOM");
+          return;
+        }
+
+        // Check if file was actually selected
+        if (!fileInput.files || fileInput.files.length === 0) {
+          console.log("CRITICAL: No file selected on focus, cleaning up");
           fileInputInProgress = false;
           cleanupFileInput(inputId);
+        } else {
+          console.log("CRITICAL: File was selected on focus check:", fileInput.files[0].name);
         }
-      });
+      }, 500); // Increased delay to allow file selection to complete
     };
 
     fileInput.addEventListener('change', handleFileSelection);
     fileInput.addEventListener('cancel', handleCancel);
-    window.addEventListener('focus', handleFocus, { once: true });
+
+    // CRITICAL FIX: Add focus listener with delay to prevent immediate triggering
+    setTimeout(() => {
+      window.addEventListener('focus', handleFocus, { once: true });
+      console.log("CRITICAL: Focus event listener added with delay");
+    }, 100);
 
     // FIXED: Track listeners and element for cleanup
     const inputData = {
       element: fileInput,
       listeners: [
         { element: fileInput, event: 'change', handler: handleFileSelection },
-        { element: fileInput, event: 'cancel', handler: handleCancel },
-        { element: window, event: 'focus', handler: handleFocus }
+        { element: fileInput, event: 'cancel', handler: handleCancel }
+        // Note: focus listener added separately with delay
       ]
     };
 
     fileUploadCache.activeInputs.set(inputId, inputData);
 
     document.body.appendChild(fileInput);
+    console.log("CRITICAL: File input appended to DOM, triggering click");
 
     // FIXED: Use requestAnimationFrame instead of setTimeout
     requestAnimationFrame(() => {
       fileInput.click();
+      console.log("CRITICAL: File input click triggered");
     });
 
     return fileInput;
 
   } catch (error) {
-    console.error("Error creating file input:", error);
+    console.error("CRITICAL ERROR: Error creating file input:", error);
     fileInputInProgress = false;
     return null;
   }
@@ -176,13 +192,16 @@ function cleanupFileInput(inputId) {
  * Handle file upload process
  */
 function handleFileUploadProcess(file) {
+  console.log(`CRITICAL: handleFileUploadProcess called for: ${file.name}`);
+
   // Store file name in AppState
   AppState.currentFileName = file.name;
 
-  console.log(`Processing upload for: ${file.name}`);
+  console.log(`CRITICAL: Processing upload for: ${file.name}`);
 
   // Check for duplicate file
   if (checkForDuplicateFile(file)) {
+    console.log("CRITICAL: Duplicate file detected, handling...");
     handleDuplicateFile(file);
     return;
   }
@@ -192,6 +211,7 @@ function handleFileUploadProcess(file) {
 
   // Process the file based on its type
   const fileExt = file.name.split('.').pop().toLowerCase();
+  console.log(`CRITICAL: File extension detected: ${fileExt}`);
 
   if (fileExt === 'csv') {
     handleCSVFile(file);
@@ -200,6 +220,7 @@ function handleFileUploadProcess(file) {
   } else if (fileExt === 'xml') {
     handleXMLFile(file);
   } else {
+    console.error(`CRITICAL ERROR: Unsupported file type: ${fileExt}`);
     handleFileUploadError(new Error(`Unsupported file type: ${fileExt}`));
   }
 }
@@ -208,18 +229,22 @@ function handleFileUploadProcess(file) {
  * Handle CSV file upload
  */
 function handleCSVFile(file) {
+  console.log(`CRITICAL: Processing CSV file: ${file.name}`);
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
       const csvText = e.target.result;
+      console.log(`CRITICAL: CSV file read successfully, length: ${csvText.length}`);
       const lines = csvText.split('\n').filter(line => line.trim());
       const data = lines.map(line => {
         // Simple CSV parsing - could be enhanced
         return line.split(',').map(field => field.replace(/^"(.*)"$/, '$1').trim());
       });
 
+      console.log(`CRITICAL: CSV parsed into ${data.length} rows`);
       processUploadedData(file, data);
     } catch (error) {
+      console.error("CRITICAL ERROR: CSV processing failed:", error);
       handleFileUploadError(error);
     }
   };
@@ -230,22 +255,27 @@ function handleCSVFile(file) {
  * Handle Excel file upload
  */
 function handleExcelFile(file) {
+  console.log(`CRITICAL: Processing Excel file: ${file.name}`);
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
       // This would require XLSX library
       if (typeof XLSX === 'undefined') {
+        console.error('CRITICAL ERROR: XLSX library not loaded');
         throw new Error('XLSX library not loaded');
       }
 
+      console.log(`CRITICAL: Excel file read successfully`);
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
+      console.log(`CRITICAL: Excel parsed into ${jsonData.length} rows`);
       processUploadedData(file, jsonData);
     } catch (error) {
+      console.error("CRITICAL ERROR: Excel processing failed:", error);
       handleFileUploadError(error);
     }
   };
@@ -292,7 +322,10 @@ function handleXMLFile(file) {
  * Process uploaded data
  */
 async function processUploadedData(file, data) {
+  console.log(`CRITICAL: processUploadedData called with file: ${file.name}, data rows: ${data?.length}`);
+
   if (!data || data.length === 0) {
+    console.error("CRITICAL ERROR: No data found in file");
     handleFileUploadError(new Error("No data found in file"));
     return;
   }
@@ -300,42 +333,49 @@ async function processUploadedData(file, data) {
   // CRITICAL FIX: Check for duplicate file first
   const isDuplicate = checkForDuplicateFile(file);
   if (isDuplicate) {
+    console.log(`CRITICAL: Duplicate file detected: ${file.name}`);
     handleDuplicateFile(file);
     return;
   }
 
-  // CRITICAL FIX: Generate signature and set as current
-  const { generateFileSignature } = await import('../parsers/fileHandler.js');
-  const { findMappingBySignature } = await import('../mappings/mappingsManager.js');
-  const { setCurrentFileSignature } = await import('../core/appState.js');
+  try {
+    // CRITICAL FIX: Generate signature and set as current
+    const { generateFileSignature } = await import('../parsers/fileHandler.js');
+    const { findMappingBySignature } = await import('../mappings/mappingsManager.js');
+    const { setCurrentFileSignature } = await import('../core/appState.js');
 
-  const signature = generateFileSignature(file.name, data);
+    const signature = generateFileSignature(file.name, data);
 
-  // FIXED: Set current file signature for display
-  setCurrentFileSignature(signature);
+    // FIXED: Set current file signature for display
+    setCurrentFileSignature(signature);
 
-  console.log('CRITICAL: Generated signature for file:', file.name, 'signature:', signature);
+    console.log('CRITICAL: Generated signature for file:', file.name, 'signature:', signature);
 
-  const existingMapping = findMappingBySignature(signature);
+    const existingMapping = findMappingBySignature(signature);
 
-  if (existingMapping) {
-    console.log('CRITICAL: Found existing mapping, auto-applying:', existingMapping);
+    if (existingMapping) {
+      console.log('CRITICAL: Found existing mapping, auto-applying:', existingMapping);
 
-    // FIXED: Just show a toast notification and auto-apply
-    showToast(`🎯 Using saved mapping from "${existingMapping.fileName}"`, "info");
+      // FIXED: Just show a toast notification and auto-apply
+      showToast(`🎯 Using saved mapping from "${existingMapping.fileName}"`, "info");
 
-    // Auto-apply the mapping
-    await autoApplyMapping(file, data, existingMapping);
-    return;
-  } else {
-    console.log('CRITICAL: No existing mapping found for signature:', signature, 'showing manual mapping');
+      // Auto-apply the mapping
+      await autoApplyMapping(file, data, existingMapping);
+      return;
+    } else {
+      console.log('CRITICAL: No existing mapping found for signature:', signature, 'showing manual mapping');
+    }
+
+    // Store data and show preview
+    console.log('CRITICAL: Storing file data and showing preview modal');
+    storeFileDataInState(file, data);
+    showFilePreviewModal(data);
+    showToast(`File loaded: ${data.length} rows found`, "success");
+    fileInputInProgress = false;
+  } catch (error) {
+    console.error('CRITICAL ERROR: Error in processUploadedData:', error);
+    handleFileUploadError(error);
   }
-
-  // Store data and show preview
-  storeFileDataInState(file, data);
-  showFilePreviewModal(data);
-  showToast(`File loaded: ${data.length} rows found`, "success");
-  fileInputInProgress = false;
 }
 
 /**
@@ -352,6 +392,18 @@ async function autoApplyMapping(file, data, mapping) {
     // Generate signature
     const { generateFileSignature } = await import('../parsers/fileHandler.js');
     const signature = generateFileSignature(file.name, data);
+
+    // FIXED: Import date conversion function with error handling
+    let convertExcelDate;
+    try {
+      const excelParserModule = await import('../parser/excelParser.js');
+      const excelParser = excelParserModule.excelParser || new excelParserModule.default();
+      convertExcelDate = (value) => excelParser.convertExcelDate(value);
+    } catch (error) {
+      console.error('CRITICAL: Failed to import convertExcelDate:', error);
+      // Fallback function if import fails
+      convertExcelDate = (value) => String(value);
+    }
 
     // Process transactions using the existing mapping
     const transactions = [];
@@ -443,8 +495,11 @@ async function autoApplyMapping(file, data, mapping) {
     console.error('CRITICAL ERROR: Auto-apply mapping failed:', error);
     showToast("Auto-mapping failed, showing manual mapping", "warning");
 
-    // FIXED: Show the confirmation dialog only if auto-apply fails
-    showMappingConfirmationDialog(file, data, mapping, mapping.signature);
+    // FIXED: Show manual mapping modal when auto-apply fails
+    storeFileDataInState(file, data);
+    showFilePreviewModal(data);
+    showToast(`File loaded: ${data.length} rows found - Manual mapping required`, "info");
+    fileInputInProgress = false;
   }
 }
 
@@ -617,6 +672,16 @@ const MAPPING_FIELDS = ['Date', 'Income', 'Expenses', 'Description', 'Currency']
  * FIXED: Show simplified file preview modal with clean structure
  */
 function showFilePreviewModal(data) {
+  console.log('CRITICAL: showFilePreviewModal called with data length:', data?.length);
+
+  if (!data || data.length === 0) {
+    console.error('CRITICAL ERROR: No data provided to showFilePreviewModal');
+    showToast('No data to preview', 'error');
+    return;
+  }
+
+  console.log('CRITICAL: Creating file preview modal for:', AppState.currentFileName);
+
   const fileExt = AppState.currentFileName ? AppState.currentFileName.split('.').pop().toLowerCase() : '';
 
   const modalContent = document.createElement('div');
@@ -637,13 +702,17 @@ function showFilePreviewModal(data) {
       <div class="config-row">
         <label for="headerRowSelect">Header Row:</label>
         <select id="headerRowSelect">
-          ${data.map((_, index) => `<option value="${index}" ${index === 0 ? 'selected' : ''}>${index + 1}</option>`).join('')}
+          ${data
+      .map((_, index) => `<option value="${index}" ${index === 0 ? 'selected' : ''}>${index + 1}</option>`)
+      .join('')}
         </select>
       </div>
       <div class="config-row">
         <label for="dataRowSelect">Data Row:</label>
         <select id="dataRowSelect">
-          ${data.map((_, index) => `<option value="${index}" ${index === 1 ? 'selected' : ''}>${index + 1}</option>`).join('')}
+          ${data
+      .map((_, index) => `<option value="${index}" ${index === 1 ? 'selected' : ''}>${index + 1}</option>`)
+      .join('')}
         </select>
       </div>
     </div>
@@ -656,25 +725,61 @@ function showFilePreviewModal(data) {
     </div>
   `;
 
-  const modal = showModal({
-    title: 'Import File: Column Mapping',
-    content: modalContent,
-    size: 'large',
-    closeOnClickOutside: false
-  });
+  console.log('CRITICAL: Creating modal with showModal...');
 
-  // Update preview function
+  // CRITICAL FIX: Create modal immediately and ensure it shows
+  try {
+    const modal = showModal({
+      title: 'Import File: Column Mapping',
+      content: modalContent,
+      size: 'large',
+      closeOnClickOutside: false,
+    });
+
+    if (!modal) {
+      console.error('CRITICAL ERROR: Modal creation failed - showModal returned null/undefined');
+      showToast('Error creating file preview modal', 'error');
+      return;
+    }
+
+    console.log('CRITICAL: Modal created successfully, modal object:', modal);
+
+    // CRITICAL FIX: Set up event listeners immediately after modal is created
+    setupModalEventListeners(modal, data, fileExt, () => {
+      console.log('CRITICAL: Calling updatePreview...');
+      updatePreview();
+    });
+
+    // CRITICAL FIX: Run initial preview update immediately
+    console.log('CRITICAL: Running initial preview update...');
+    updatePreview();
+    console.log('CRITICAL: File preview modal setup complete');
+
+  } catch (error) {
+    console.error('CRITICAL ERROR: Error creating modal:', error);
+    showToast('Error creating file preview modal', 'error');
+    return;
+  }
+
+  // Update preview function (move inside to access current data)
   function updatePreview() {
-    const headerRowIndex = parseInt(document.getElementById('headerRowSelect').value);
-    const dataRowIndex = parseInt(document.getElementById('dataRowSelect').value);
+    console.log('CRITICAL: updatePreview called');
+    const headerRowIndex = parseInt(document.getElementById('headerRowSelect')?.value || 0);
+    const dataRowIndex = parseInt(document.getElementById('dataRowSelect')?.value || 1);
 
     if (headerRowIndex >= data.length || dataRowIndex >= data.length) {
+      console.log('CRITICAL: Invalid row indices');
       return;
     }
 
     const headers = data[headerRowIndex] || [];
     const dataRow = data[dataRowIndex] || [];
     const previewContainer = document.getElementById('previewContainer');
+
+    if (!previewContainer) {
+      console.error('CRITICAL: Preview container not found');
+      return;
+    }
 
     // CRITICAL FIX: Only create mapping dropdowns for actual columns that exist
     const actualColumnCount = headers.length;
@@ -686,50 +791,56 @@ function showFilePreviewModal(data) {
         <table class="column-mapping-table">
           <thead>
             <tr class="mapping-row">
-              ${headers.map((header, index) => {
-      const suggested = autoDetectFieldType(header) || '–';
-      // FIXED: Only show essential mapping fields
-      const validSuggestion = MAPPING_FIELDS.includes(suggested) ? suggested : '–';
-      return `
+              ${headers
+        .map((header, index) => {
+          const suggested = autoDetectFieldType(header) || '–';
+          // FIXED: Only show essential mapping fields
+          const validSuggestion = MAPPING_FIELDS.includes(suggested) ? suggested : '–';
+          return `
                   <th class="mapping-cell">
                     <select class="header-select" data-index="${index}">
                       <option value="–" ${validSuggestion === '–' ? 'selected' : ''}>-ignore-</option>
-                      ${MAPPING_FIELDS.map(field =>
-        `<option value="${field}" ${validSuggestion === field ? 'selected' : ''}>${field}</option>`
-      ).join('')}
+                      ${MAPPING_FIELDS.map(
+            (field) => `<option value="${field}" ${validSuggestion === field ? 'selected' : ''}>${field}</option>`
+          ).join('')}
                     </select>
                   </th>
                 `;
-    }).join('')}
+        })
+        .join('')}
             </tr>
             <tr class="header-row">
-              ${headers.map(header => `
+              ${headers
+        .map(
+          (header) => `
                 <th class="header-cell">
                   ${header || '<em>empty</em>'}
                 </th>
-              `).join('')}
+              `
+        )
+        .join('')}
             </tr>
           </thead>
           <tbody>
             <tr class="data-row">
               ${dataRow.map((cell, index) => {
-      // FIXED: Show date conversion preview only for columns mapped as Date
-      const mappings = getCurrentMapping();
-      const isMappedAsDate = mappings[index] === 'Date';
-      let displayValue = cell || '<em>empty</em>';
+          // FIXED: Show date conversion preview only for columns mapped as Date
+          const mappings = getCurrentMapping();
+          const isMappedAsDate = mappings[index] === 'Date';
+          let displayValue = cell || '<em>empty</em>';
 
-      if (cell && isMappedAsDate && isExcelDate(cell)) {
-        displayValue = formatExcelDateForPreview(cell);
-      } else if (cell) {
-        // FIXED: Keep original format for non-Date columns
-        displayValue = String(cell).replace(/data-field=.*$/i, '').trim() || '<em>empty</em>';
-      }
-      return `
+          if (cell && isMappedAsDate && isExcelDate(cell)) {
+            displayValue = formatExcelDateForPreview(cell);
+          } else if (cell) {
+            // FIXED: Keep original format for non-Date columns
+            displayValue = String(cell).replace(/data-field=.*$/i, '').trim() || '<em>empty</em>';
+          }
+          return `
                   <td class="data-cell">
                     ${displayValue}
                   </td>
                 `;
-    }).join('')}
+        }).join('')}
             </tr>
           </tbody>
         </table>
@@ -741,6 +852,7 @@ function showFilePreviewModal(data) {
     // Add change listeners
     document.querySelectorAll('.header-select').forEach(select => {
       select.addEventListener('change', (e) => {
+        console.log('CRITICAL: Header select changed:', e.target.value);
         const newValue = e.target.value;
         const index = parseInt(e.target.getAttribute('data-index'));
 
@@ -774,22 +886,9 @@ function showFilePreviewModal(data) {
       const hasAmount = mappings.includes('Income') || mappings.includes('Expenses');
 
       saveBtn.disabled = !(hasDate && hasAmount);
-      saveBtn.title = hasDate && hasAmount ?
-        'Ready to import' :
-        'Need at least Date and Income/Expenses columns';
+      saveBtn.title = hasDate && hasAmount ? 'Ready to import' : 'Need at least Date and Income/Expenses columns';
     }
   }
-
-  // Set up event listeners
-  setupModalEventListeners(modal, data, fileExt, updatePreview);
-
-  // Initial render
-  updatePreview();
-}
-
-function autoDetectColumn(header, sampleData) {
-  // FIXED: Use the utility function from fieldMappings
-  return autoDetectFieldType(header);
 }
 
 /**
@@ -822,7 +921,9 @@ function setupModalEventListeners(modal, data, fileExt, updatePreview) {
   if (cancelBtn) {
     const handleCancel = () => {
       modal.close();
-      clearPreview();
+      // FIXED: Add missing clearPreview function
+      resetFileState();
+      fileInputInProgress = false;
       cleanupModalEventListeners(modalId);
     };
     cancelBtn.addEventListener('click', handleCancel);
@@ -940,6 +1041,18 @@ export async function onSaveHeaders(modal) {
     // CRITICAL FIX: Generate signature consistently - without mapping parameter
     const { generateFileSignature } = await import('../parsers/fileHandler.js');
     const { saveHeadersAndFormat } = await import('../mappings/mappingsManager.js');
+
+    // FIXED: Import date conversion function with error handling
+    let convertExcelDate;
+    try {
+      const excelParserModule = await import('../parser/excelParser.js');
+      const excelParser = excelParserModule.excelParser || new excelParserModule.default();
+      convertExcelDate = (value) => excelParser.convertExcelDate(value);
+    } catch (error) {
+      console.error('CRITICAL: Failed to import convertExcelDate:', error);
+      // Fallback function if import fails
+      convertExcelDate = (value) => String(value);
+    }
 
     // FIXED: Generate signature without mapping to ensure consistency
     const signature = generateFileSignature(fileName, data);

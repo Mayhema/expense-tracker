@@ -445,8 +445,8 @@ export function formatDateToDDMMYYYY(date) {
       dateObj = new Date(date);
     } else {
       // For YYYY-MM-DD format, parse as UTC to avoid timezone issues
-      const [year, month, day] = date.split('-').map(num => parseInt(num, 10));
-      dateObj = new Date(Date.UTC(year, month - 1, day));
+      const [yearPart, monthPart, dayPart] = date.split('-').map(num => parseInt(num, 10));
+      dateObj = new Date(Date.UTC(yearPart, monthPart - 1, dayPart));
     }
   } else if (date instanceof Date) {
     dateObj = date;

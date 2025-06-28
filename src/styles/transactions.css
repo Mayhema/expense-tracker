@@ -756,24 +756,3 @@ div#transactionFilters div.filter-group {
 .dark-mode .currency-stats .stat-label {
   color: #adb5bd !important;
 }
-
-/* FIXED: Add styles for edited cells */
-.transaction-table .edited-cell {
-  background-color: #fff3cd !important;
-  border-left: 3px solid #ffc107 !important;
-  position: relative;
-}
-
-.transaction-table .edited-cell::before {
-  content: "✏️";
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  font-size: 10px;
-  opacity: 0.7;
-}
-
-.dark-mode .transaction-table .edited-cell {
-  background-color: #533f03 !important;
-  border-left-color: #ffc107 !important;
-}
