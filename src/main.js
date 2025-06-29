@@ -41,31 +41,45 @@ async function initializeMainApp() {
     console.log("CRITICAL: Initializing transaction manager...");
     initializeTransactionManager();
 
-    // Initialize charts after a delay to ensure DOM is ready
-    setTimeout(() => {
-      import('./ui/charts.js').then(module => {
-        if (module.initializeCharts) {
-          module.initializeCharts();
-        }
-      }).catch(error => {
-        console.log('Charts not available:', error.message);
-      });
-    }, 500);
+    // FIXED: Initialize charts with proper error handling and timeout
+    try {
+      const chartsModule = await Promise.race([
+        import('./ui/charts.js'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Charts import timeout')), 2000))
+      ]);
+
+      if (chartsModule && chartsModule.initializeCharts) {
+        await chartsModule.initializeCharts();
+        console.log("Charts initialized successfully");
+      }
+    } catch (error) {
+      console.log('Charts not available or failed to initialize:', error.message);
+    }
 
     console.log("CRITICAL: App initialization complete");
   } catch (error) {
     console.error("CRITICAL ERROR: App initialization failed:", error);
+    // Don't throw the error, just log it to prevent unhandled promise rejection
   }
 }
 
-// Initialize the application when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('DOM loaded, initializing expense tracker...');
-
+// FIXED: Improved initialization with proper error handling
+async function safeInitialization() {
   try {
-    // FIXED: Load debug utilities FIRST
-    await import('./utils/debug.js');
-    await import('./utils/console-logger.js');
+    console.log('DOM loaded, initializing expense tracker...');
+
+    // FIXED: Load debug utilities with timeout and error handling
+    try {
+      await Promise.race([
+        Promise.all([
+          import('./utils/debug.js').catch(() => console.log('Debug utils not available')),
+          import('./utils/console-logger.js').catch(() => console.log('Console logger not available'))
+        ]),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Debug utilities timeout')), 3000))
+      ]);
+    } catch (error) {
+      console.log('Debug utilities failed to load:', error.message);
+    }
 
     // Then initialize the main application
     await initializeMainApp();
@@ -73,8 +87,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('✅ Expense Tracker initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize Expense Tracker:', error);
+    // Show user-friendly error message
+    showInitializationError(error);
   }
-});
+}
+
+// FIXED: Show initialization error to user
+function showInitializationError(error) {
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent) {
+    mainContent.innerHTML = `
+      <div style="padding: 40px; text-align: center; color: #dc3545;">
+        <h2>⚠️ Application Initialization Error</h2>
+        <p>There was an error starting the expense tracker.</p>
+        <p>Please refresh the page or check the browser console for details.</p>
+        <button onclick="location.reload()" style="
+          padding: 12px 24px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 16px;
+          margin-top: 20px;
+        ">Refresh Page</button>
+      </div>
+    `;
+  }
+}
+
+// FIXED: Initialize the application when DOM is ready with proper event handling
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', safeInitialization);
+} else {
+  // DOM is already ready
+  setTimeout(safeInitialization, 0);
+}
 
 // FIXED: Track cleanup functions for proper memory management
 const cleanupFunctions = [];
@@ -84,35 +132,37 @@ function registerCleanup(cleanupFn) {
   cleanupFunctions.push(cleanupFn);
 }
 
-// FIXED: Initialize with performance optimizations
-async function initializeApp() {
-  // FIXED: Register cleanup functions
-  registerCleanup(() => {
-    import('./ui/chartManager.js').then(module => {
-      if (module.cleanupAllCharts) module.cleanupAllCharts();
-    });
-  });
+// FIXED: Initialize cleanup handlers
+function initializeCleanupHandlers() {
+  // Register cleanup functions for various modules
+  const cleanupModules = [
+    { module: './ui/chartManager.js', cleanup: 'cleanupAllCharts' },
+    { module: './ui/modalManager.js', cleanup: 'cleanupAllModals' },
+    { module: './ui/transactionManager.js', cleanup: 'cleanupTransactionManager' },
+    { module: './ui/fileUpload.js', cleanup: 'cleanupFileUpload' }
+  ];
 
-  registerCleanup(() => {
-    import('./ui/modalManager.js').then(module => {
-      if (module.cleanupAllModals) module.cleanupAllModals();
-    });
-  });
-
-  registerCleanup(() => {
-    import('./ui/transactionManager.js').then(module => {
-      if (module.cleanupTransactionManager) module.cleanupTransactionManager();
-    });
-  });
-
-  registerCleanup(() => {
-    import('./ui/fileUpload.js').then(module => {
-      if (module.cleanupFileUpload) module.cleanupFileUpload();
+  cleanupModules.forEach(({ module, cleanup }) => {
+    registerCleanup(() => {
+      try {
+        import(module).then(moduleInstance => {
+          if (moduleInstance[cleanup]) {
+            moduleInstance[cleanup]();
+          }
+        }).catch(() => {
+          // Module might not exist, ignore error
+        });
+      } catch (error) {
+        console.warn(`Cleanup failed for ${module}:`, error);
+      }
     });
   });
 }
 
-// FIXED: Cleanup on page unload
+// Initialize cleanup handlers
+initializeCleanupHandlers();
+
+// FIXED: Cleanup on page unload with error handling
 window.addEventListener('beforeunload', () => {
   cleanupFunctions.forEach(cleanup => {
     try {
@@ -126,13 +176,46 @@ window.addEventListener('beforeunload', () => {
 // Make AppState available globally for debugging
 window.AppState = AppState;
 
-// Add error handler for unhandled promise rejections
+// FIXED: Add improved error handlers
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
-  event.preventDefault(); // Prevent default browser error handling
+
+  // Check if it's a browser extension related error
+  if (event.reason?.message?.includes('message channel closed') ||
+    event.reason?.message?.includes('listener indicated an asynchronous response')) {
+    console.log('Browser extension related error, ignoring...');
+    event.preventDefault();
+    return;
+  }
+
+  // Prevent default browser error handling for other errors too
+  event.preventDefault();
 });
 
-// Add error handler for general JavaScript errors
+// FIXED: Add error handler for general JavaScript errors
 window.addEventListener('error', (event) => {
   console.error('JavaScript error:', event.error);
+
+  // Check if it's a browser extension related error
+  if (event.error?.message?.includes('Extension context invalidated') ||
+    event.error?.message?.includes('message channel closed')) {
+    console.log('Browser extension related error, ignoring...');
+    event.preventDefault();
+    return;
+  }
 });
+
+// FIXED: Add a safety timeout to ensure initialization doesn't hang
+setTimeout(() => {
+  if (!window.AppState || !window.AppState.initialized) {
+    console.warn('Application may not have initialized properly');
+
+    // Try to initialize again as a fallback
+    if (document.readyState === 'complete') {
+      console.log('Attempting fallback initialization...');
+      safeInitialization().catch(error => {
+        console.error('Fallback initialization also failed:', error);
+      });
+    }
+  }
+}, 5000);
