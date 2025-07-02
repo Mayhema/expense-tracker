@@ -607,138 +607,13 @@ body.debug-mode .debug-only {
   opacity: 1 !important;
 }
 
-/* Special handling for flex/inline debug elements */
-.debug-mode .debug-only.chart-controls {
-  display: flex !important;
+/* FIXED: Charts are now always visible - removed debug-only restrictions */
+.charts-section {
+  display: block !important;
 }
 
-.debug-mode .debug-only.inline-element {
-  display: inline-block !important;
-}
-
-.debug-mode .debug-only.flex-element {
-  display: flex !important;
-}
-
-/* Chart Controls - enhanced styling for debug mode */
-.chart-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.chart-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 12px;
-  background: var(--secondary-color, #f8f9fa);
-  border: 1px solid var(--border-color, #dee2e6);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: all 0.3s ease;
-}
-
-.chart-toggle-btn:hover {
-  background: var(--primary-color-light, #e3f2fd);
-  border-color: var(--primary-color, #2196f3);
-}
-
-.chart-toggle-btn.active {
-  background: var(--primary-color, #2196f3);
-  color: white;
-  border-color: var(--primary-color, #2196f3);
-}
-
-.chart-toggle-btn .action-icon {
-  font-size: 1em;
-}
-
-.chart-toggle-btn .action-text {
-  font-weight: 500;
-}
-
-/* Toasts - Clean design without close button */
-.toast-container {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-  max-width: 400px;
-  width: auto;
-}
-
-.toast {
-  background: #4a90e2;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
-  min-width: 200px;
-  max-width: 350px;
-  pointer-events: auto;
-  animation: toastSlideIn 0.3s ease;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 1.4;
-  text-align: center;
-  border: none;
-}
-
-.toast.success {
-  background: #28a745;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.toast.error {
-  background: #dc3545;
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-}
-
-.toast.warning {
-  background: #ffc107;
-  color: #212529;
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-}
-
-.toast.info {
-  background: #17a2b8;
-  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
-}
-
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes toastSlideOut {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-}
-
-.toast.removing {
-  animation: toastSlideOut 0.3s ease-in-out forwards;
+.charts-section .charts-grid {
+  display: grid !important;
 }
 
 /* CRITICAL: Chart container constraints to prevent infinite expansion */
@@ -751,156 +626,125 @@ body.debug-mode .debug-only {
   overflow: hidden !important;
   position: relative !important;
   box-sizing: border-box !important;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
-/* Constrain canvas elements */
-.chart-container canvas,
-.chart-wrapper canvas {
+/* CRITICAL FIX: Ensure all chart wrappers are visible by default */
+.chart-wrapper {
   width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  display: block !important;
-}
-
-/* Prevent flex containers from expanding charts infinitely */
-.charts-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-top: 20px;
-  margin-bottom: 30px;
-}
-
-.charts-section>div {
-  flex: 1 1 45%;
-  min-width: 300px;
-  max-width: 600px;
   height: 400px !important;
+  max-width: 100% !important;
   max-height: 400px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: block !important;
+  /* Force visible by default */
+  visibility: visible !important;
+  /* Force visible by default */
 }
 
-/* Responsive chart behavior */
-@media (max-width: 768px) {
-
-  .chart-container,
-  .chart-wrapper {
-    height: 300px !important;
-    max-height: 300px !important;
-  }
-
-  .charts-section>div {
-    flex: 1 1 100%;
-    height: 300px !important;
-    max-height: 300px !important;
-  }
+/* CRITICAL FIX: Override any hiding from chart toggle system when we have data */
+.chart-wrapper.has-data {
+  display: block !important;
+  visibility: visible !important;
 }
 
-/* Charts Section - Enhanced layout */
-
+/* FIXED: Charts grid layout - always visible and showing all three charts */
 .charts-grid {
   display: grid;
-  grid-template-rows: auto auto;
-  gap: 20px;
-  padding: 20px;
-}
-
-.charts-row-top {
-  display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-rows: auto auto;
+  gap: 1.5rem;
+  margin-top: 1rem;
 }
 
-.charts-row-bottom {
-  display: grid;
-  grid-template-columns: 1fr;
+/* CRITICAL FIX: Make sure all chart wrappers show by default */
+#expenseChartWrapper,
+#incomeExpenseChartWrapper,
+#timelineChartWrapper {
+  display: block !important;
+  visibility: visible !important;
 }
 
-.chart-container {
-  background: var(--bg-color, #ffffff);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* FIXED: Timeline chart takes full width in second row */
+#timelineChartWrapper {
+  grid-column: 1 / -1;
 }
 
-.chart-container.pie-chart {
-  min-height: 300px;
+/* Dark mode chart containers */
+.dark-mode .chart-container,
+.dark-mode .chart-wrapper {
+  background: #2a2a2a;
+  border-color: #444;
 }
 
-.chart-container.timeline-chart {
-  min-height: 250px;
-}
-
-.chart-container h3 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  color: var(--text-color, #333);
-  text-align: center;
-}
-
-.chart-container canvas {
-  width: 100% !important;
-  height: auto !important;
-  max-height: 250px;
-}
-
-/* Category Filter Buttons - FIXED: Smaller size for better fit */
-.category-buttons {
-  background: var(--bg-color, #ffffff);
-  border-radius: 8px;
-  padding: 15px;
-  margin: 15px 0;
-  border: 1px solid var(--border-color, #e0e0e0);
-}
-
-.category-buttons-header {
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-}
-
-.category-buttons-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--text-color, #333);
-  font-weight: 600;
-}
-
-.category-button-grid {
+/* Chart toggle buttons styling - keep in debug mode only */
+.chart-controls {
   display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 8px;
   align-items: center;
 }
 
-.category-filter-btn {
+.chart-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: var(--bg-color, #f8f9fa);
-  border: 1px solid var(--border-color, #dee2e6);
-  border-radius: 20px;
+  gap: 5px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
-  min-height: 32px;
-  white-space: nowrap;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
-.category-filter-btn:hover {
-  background: var(--hover-color, #e9ecef);
-  border-color: var(--hover-border, #adb5bd);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.chart-toggle-btn:hover {
+  background: #e3f2fd;
+  border-color: #2196f3;
 }
 
-.category-filter-btn.active {
-  background: #007bff;
-  border-color: #007bff;
+.chart-toggle-btn.active {
+  background: #2196f3;
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  border-color: #2196f3;
+}
+
+.chart-toggle-btn .action-icon {
+  font-size: 1em;
+}
+
+.chart-toggle-btn .action-text {
+  font-weight: 500;
+}
+
+/* Dark mode support for chart buttons */
+.dark-mode .chart-toggle-btn {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.dark-mode .chart-toggle-btn:hover {
+  background: #333;
+  border-color: #555;
+}
+
+.dark-mode .chart-toggle-btn.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
 }
 
 .category-color {

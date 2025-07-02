@@ -522,6 +522,19 @@ export function applyCurrentFilters() {
     }
   });
 
+  // FIXED: Update charts with filtered data properly
+  setTimeout(async () => {
+    try {
+      const chartsModule = await import('../charts.js');
+      if (chartsModule && chartsModule.updateChartsWithFilteredData) {
+        chartsModule.updateChartsWithFilteredData(filteredTransactions);
+        console.log("Charts updated with filtered data");
+      }
+    } catch (error) {
+      console.log('Charts not available for filter update:', error.message);
+    }
+  }, 100);
+
   console.log(`Applied filters: ${filteredTransactions.length} of ${transactions.length} transactions shown`);
 }
 

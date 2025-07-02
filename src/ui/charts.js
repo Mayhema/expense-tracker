@@ -1,9 +1,9 @@
 import { AppState } from '../core/appState.js';
 
 let chartInstances = {
-  categoryChart: null,
-  monthlyChart: null,
-  trendChart: null
+  category: null,
+  monthly: null,
+  trend: null
 };
 
 /**
@@ -22,6 +22,9 @@ export async function initializeCharts() {
       return false;
     }
 
+    // Initialize individual charts
+    initializeIndividualCharts();
+
     console.log("Charts initialized successfully");
     return true;
   } catch (error) {
@@ -31,34 +34,155 @@ export async function initializeCharts() {
 }
 
 /**
+ * Initialize individual chart canvases
+ */
+function initializeIndividualCharts() {
+  const chartConfigs = [
+    { id: 'categoryChart', type: 'doughnut', key: 'category' },
+    { id: 'monthlyChart', type: 'bar', key: 'monthly' },
+    { id: 'trendChart', type: 'line', key: 'trend' }
+  ];
+
+  chartConfigs.forEach(config => {
+    const canvas = document.getElementById(config.id);
+    if (canvas) {
+      try {
+        // Destroy existing chart if any
+        if (chartInstances[config.key]) {
+          chartInstances[config.key].destroy();
+        }
+
+        // Create empty chart
+        const ctx = canvas.getContext('2d');
+        const chart = new Chart(ctx, getEmptyChartConfig(config.type));
+        chartInstances[config.key] = chart;
+
+        console.log(`Initialized ${config.id}`);
+      } catch (error) {
+        console.error(`Error initializing ${config.id}:`, error);
+      }
+    }
+  });
+
+  // Initialize chart toggle buttons
+  initializeChartToggleButtons();
+}
+
+/**
+ * Initialize chart toggle buttons in debug mode
+ */
+function initializeChartToggleButtons() {
+  const toggleButtons = document.querySelectorAll('.chart-toggle-btn');
+
+  toggleButtons.forEach(button => {
+    // FIXED: Remove existing listeners first
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+
+    newButton.addEventListener('click', function () {
+      const chartType = this.getAttribute('data-chart');
+      toggleChart(chartType);
+
+      // Update button state
+      document.querySelectorAll('.chart-toggle-btn').forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  console.log("Chart toggle buttons initialized");
+}
+
+/**
+ * Toggle chart visibility
+ */
+function toggleChart(chartType) {
+  const chartWrappers = {
+    'expense': 'expenseChartWrapper',
+    'income': 'incomeExpenseChartWrapper',
+    'timeline': 'timelineChartWrapper'
+  };
+
+  // Hide all charts
+  Object.values(chartWrappers).forEach(wrapperId => {
+    const wrapper = document.getElementById(wrapperId);
+    if (wrapper) {
+      wrapper.style.display = 'none';
+    }
+  });
+
+  // Show selected chart
+  const selectedWrapper = document.getElementById(chartWrappers[chartType]);
+  if (selectedWrapper) {
+    selectedWrapper.style.display = 'block';
+    console.log(`Showing ${chartType} chart`);
+  }
+}
+
+/**
+ * Get empty chart configuration
+ */
+function getEmptyChartConfig(type) {
+  const isDarkMode = document.body.classList.contains('dark-mode');
+
+  const baseConfig = {
+    type: type,
+    data: {
+      labels: [],
+      datasets: []
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: isDarkMode ? '#e0e0e0' : '#333'
+          }
+        }
+      }
+    }
+  };
+
+  if (type === 'bar' || type === 'line') {
+    baseConfig.options.scales = {
+      x: {
+        ticks: {
+          color: isDarkMode ? '#e0e0e0' : '#666'
+        },
+        grid: {
+          color: isDarkMode ? '#444' : '#e0e0e0'
+        }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: isDarkMode ? '#e0e0e0' : '#666'
+        },
+        grid: {
+          color: isDarkMode ? '#444' : '#e0e0e0'
+        }
+      }
+    };
+  }
+
+  return baseConfig;
+}
+
+/**
  * Create chart containers if they don't exist
  */
 function createChartContainers() {
-  // Find or create charts section
+  // FIXED: Use the existing charts section from HTML instead of creating new one
+  const existingChartsSection = document.querySelector('.section .charts-section');
+  if (existingChartsSection) {
+    console.log("Using existing charts section from HTML");
+    return;
+  }
+
+  // Only create if completely missing
   let chartsSection = document.getElementById('chartsSection');
   if (!chartsSection) {
     chartsSection = createChartsSection();
-  }
-
-  // Create chart containers in a grid layout
-  const sectionContent = chartsSection.querySelector('.section-content');
-  if (sectionContent && !sectionContent.querySelector('.charts-grid')) {
-    sectionContent.innerHTML = `
-      <div class="charts-grid">
-        <div class="chart-container" id="categoryChartContainer">
-          <h3>Category Distribution</h3>
-          <canvas id="categoryChart"></canvas>
-        </div>
-        <div class="chart-container" id="monthlyChartContainer">
-          <h3>Monthly Trends</h3>
-          <canvas id="monthlyChart"></canvas>
-        </div>
-        <div class="chart-container full-width" id="trendChartContainer">
-          <h3>Spending Timeline</h3>
-          <canvas id="trendChart"></canvas>
-        </div>
-      </div>
-    `;
   }
 }
 
@@ -72,9 +196,17 @@ function createChartsSection() {
     return null;
   }
 
+  // FIXED: Don't create new section if charts already exist in HTML
+  const existingCharts = document.querySelector('.charts-section');
+  if (existingCharts) {
+    console.log("Charts section already exists in HTML");
+    return existingCharts.closest('.section');
+  }
+
+  // If no existing section found, create new one
   const section = document.createElement('div');
   section.id = 'chartsSection';
-  section.className = 'section charts-section debug-only';
+  section.className = 'section charts-section';
   section.innerHTML = `
     <div class="section-header">
       <h2>📊 Charts & Analytics</h2>
@@ -84,7 +216,14 @@ function createChartsSection() {
     </div>
   `;
 
-  mainContent.appendChild(section);
+  // Insert after the first section (Financial Overview)
+  const firstSection = mainContent.querySelector('.section');
+  if (firstSection && firstSection.nextSibling) {
+    mainContent.insertBefore(section, firstSection.nextSibling);
+  } else {
+    mainContent.appendChild(section);
+  }
+
   return section;
 }
 
@@ -98,15 +237,79 @@ export function updateCharts() {
   }
 
   const transactions = AppState.transactions || [];
+  console.log(`Updating charts with ${transactions.length} transactions`);
+
   if (transactions.length === 0) {
     console.log("No transactions available for charts");
+    clearAllCharts();
     return;
   }
 
-  // Update all charts
+  // FIXED: Update all charts with actual data and ensure they stay visible
   updateCategoryChart(transactions);
   updateMonthlyChart(transactions);
   updateTrendChart(transactions);
+
+  // CRITICAL FIX: Ensure all chart wrappers are visible after update
+  setTimeout(() => {
+    const chartWrappers = document.querySelectorAll('.chart-wrapper');
+    chartWrappers.forEach(wrapper => {
+      wrapper.style.display = 'block';
+      wrapper.style.visibility = 'visible';
+    });
+
+    // CRITICAL FIX: Make sure the first chart (category) is always visible after upload
+    const expenseWrapper = document.getElementById('expenseChartWrapper');
+    if (expenseWrapper) {
+      expenseWrapper.style.display = 'block';
+    }
+
+    console.log("All chart containers forced to visible state");
+  }, 50);
+
+  console.log("All charts updated successfully");
+}
+
+/**
+ * FIXED: Update charts with filtered data specifically
+ */
+export function updateChartsWithFilteredData(filteredTransactions) {
+  if (typeof Chart === 'undefined') {
+    console.warn("Chart.js not available, skipping chart updates");
+    return;
+  }
+
+  console.log(`Updating charts with ${filteredTransactions.length} filtered transactions`);
+
+  if (filteredTransactions.length === 0) {
+    console.log("No filtered transactions available for charts");
+    clearAllCharts();
+    return;
+  }
+
+  // Update all charts with filtered data
+  updateCategoryChart(filteredTransactions);
+  updateMonthlyChart(filteredTransactions);
+  updateTrendChart(filteredTransactions);
+
+  // CRITICAL FIX: Ensure all chart wrappers are visible when we have data
+  setTimeout(() => {
+    const chartWrappers = document.querySelectorAll('.chart-wrapper');
+    chartWrappers.forEach(wrapper => {
+      wrapper.style.display = 'block';
+      wrapper.style.visibility = 'visible';
+    });
+
+    // Make sure the first chart is visible
+    const expenseWrapper = document.getElementById('expenseChartWrapper');
+    if (expenseWrapper) {
+      expenseWrapper.style.display = 'block';
+    }
+
+    console.log("All chart containers forced to visible state after filter");
+  }, 50);
+
+  console.log("All charts updated with filtered data successfully");
 }
 
 /**
@@ -117,8 +320,8 @@ function updateCategoryChart(transactions) {
   if (!canvas) return;
 
   // Destroy existing chart
-  if (chartInstances.categoryChart) {
-    chartInstances.categoryChart.destroy();
+  if (chartInstances.category) {
+    chartInstances.category.destroy();
   }
 
   // Process data for category chart
@@ -126,13 +329,16 @@ function updateCategoryChart(transactions) {
   transactions.forEach(tx => {
     const category = tx.category || 'Uncategorized';
     const amount = Math.abs(parseFloat(tx.expenses) || 0);
-    categoryData[category] = (categoryData[category] || 0) + amount;
+    if (amount > 0) {
+      categoryData[category] = (categoryData[category] || 0) + amount;
+    }
   });
 
   const labels = Object.keys(categoryData);
   const data = Object.values(categoryData);
 
   if (labels.length === 0) {
+    console.log("No expense data for category chart");
     return;
   }
 
@@ -140,7 +346,7 @@ function updateCategoryChart(transactions) {
   const ctx = canvas.getContext('2d');
   const isDarkMode = document.body.classList.contains('dark-mode');
 
-  chartInstances.categoryChart = new Chart(ctx, {
+  chartInstances.category = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: labels,
@@ -161,6 +367,8 @@ function updateCategoryChart(transactions) {
       }
     }
   });
+
+  console.log(`Category chart updated with ${labels.length} categories`);
 }
 
 /**
@@ -171,8 +379,8 @@ function updateMonthlyChart(transactions) {
   if (!canvas) return;
 
   // Destroy existing chart
-  if (chartInstances.monthlyChart) {
-    chartInstances.monthlyChart.destroy();
+  if (chartInstances.monthly) {
+    chartInstances.monthly.destroy();
   }
 
   // Process data for monthly chart
@@ -181,6 +389,8 @@ function updateMonthlyChart(transactions) {
     if (!tx.date) return;
 
     const date = new Date(tx.date);
+    if (isNaN(date.getTime())) return;
+
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
     if (!monthlyData[monthKey]) {
@@ -196,17 +406,25 @@ function updateMonthlyChart(transactions) {
   const expenseData = sortedMonths.map(month => monthlyData[month].expenses);
 
   if (sortedMonths.length === 0) {
+    console.log("No date data for monthly chart");
     return;
   }
+
+  // Format labels for display
+  const labels = sortedMonths.map(month => {
+    const [year, monthNum] = month.split('-');
+    const date = new Date(year, monthNum - 1);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  });
 
   // Create chart with dark mode support
   const ctx = canvas.getContext('2d');
   const isDarkMode = document.body.classList.contains('dark-mode');
 
-  chartInstances.monthlyChart = new Chart(ctx, {
+  chartInstances.monthly = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: sortedMonths,
+      labels: labels,
       datasets: [
         {
           label: 'Income',
@@ -251,6 +469,8 @@ function updateMonthlyChart(transactions) {
       }
     }
   });
+
+  console.log(`Monthly chart updated with ${sortedMonths.length} months`);
 }
 
 /**
@@ -261,8 +481,8 @@ function updateTrendChart(transactions) {
   if (!canvas) return;
 
   // Destroy existing chart
-  if (chartInstances.trendChart) {
-    chartInstances.trendChart.destroy();
+  if (chartInstances.trend) {
+    chartInstances.trend.destroy();
   }
 
   // Process data for trend chart
@@ -282,6 +502,7 @@ function updateTrendChart(transactions) {
   const expenseData = sortedDates.map(date => dailyData[date]);
 
   if (sortedDates.length === 0) {
+    console.log("No date data for trend chart");
     return;
   }
 
@@ -289,7 +510,7 @@ function updateTrendChart(transactions) {
   const ctx = canvas.getContext('2d');
   const isDarkMode = document.body.classList.contains('dark-mode');
 
-  chartInstances.trendChart = new Chart(ctx, {
+  chartInstances.trend = new Chart(ctx, {
     type: 'line',
     data: {
       labels: sortedDates,
@@ -298,7 +519,8 @@ function updateTrendChart(transactions) {
         data: expenseData,
         borderColor: 'rgba(54, 162, 235, 1)',
         backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        fill: true
+        fill: true,
+        tension: 0.1
       }]
     },
     options: {
@@ -332,6 +554,8 @@ function updateTrendChart(transactions) {
       }
     }
   });
+
+  console.log(`Trend chart updated with ${sortedDates.length} days`);
 }
 
 /**
@@ -348,4 +572,21 @@ function generateColors(count) {
     result.push(colors[i % colors.length]);
   }
   return result;
+}
+
+/**
+ * Clear all charts
+ */
+function clearAllCharts() {
+  Object.keys(chartInstances).forEach(key => {
+    if (chartInstances[key]) {
+      try {
+        chartInstances[key].data.labels = [];
+        chartInstances[key].data.datasets = [];
+        chartInstances[key].update('none');
+      } catch (error) {
+        console.error(`Error clearing chart ${key}:`, error);
+      }
+    }
+  });
 }

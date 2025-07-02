@@ -94,17 +94,17 @@
         <div class="action-buttons">
           <button id="debugFilesBtn" class="action-button" title="Debug Files">
             <span class="action-icon">🗂️</span>
-            <span class="action-text">Debug Files</span>
+            <span class="action-text">Files</span>
           </button>
 
           <button id="debugSignaturesBtn" class="action-button" title="Debug Signatures">
             <span class="action-icon">🔍</span>
-            <span class="action-text">Debug Signatures</span>
+            <span class="action-text">Signatures</span>
           </button>
 
           <button id="debugTransactionsBtn" class="action-button" title="Debug Transactions">
             <span class="action-icon">📊</span>
-            <span class="action-text">Debug Transactions</span>
+            <span class="action-text">Transactions</span>
           </button>
 
           <button id="saveLogBtn" class="action-button" title="Save Debug Log">
@@ -114,7 +114,7 @@
 
           <button id="resetAppBtn" class="action-button danger" title="Reset Application">
             <span class="action-icon">🔄</span>
-            <span class="action-text">Reset App</span>
+            <span class="action-text">Reset</span>
           </button>
         </div>
       </div>
@@ -173,26 +173,26 @@
         <div class="charts-section">
           <div class="charts-grid">
             <!-- Expense Chart -->
-            <div class="chart-wrapper" id="expenseChartWrapper">
+            <div class="chart-wrapper" id="expenseChartWrapper" style="display: block;">
               <h3>📊 Expenses by Category</h3>
               <div class="chart-container">
-                <canvas id="expenseChart"></canvas>
+                <canvas id="categoryChart"></canvas>
               </div>
             </div>
 
             <!-- Income vs Expense Chart -->
-            <div class="chart-wrapper" id="incomeExpenseChartWrapper">
+            <div class="chart-wrapper" id="incomeExpenseChartWrapper" style="display: none;">
               <h3>💰 Income vs Expenses</h3>
               <div class="chart-container">
-                <canvas id="incomeExpenseChart"></canvas>
+                <canvas id="monthlyChart"></canvas>
               </div>
             </div>
 
             <!-- Timeline Chart -->
-            <div class="chart-wrapper" id="timelineChartWrapper">
+            <div class="chart-wrapper" id="timelineChartWrapper" style="display: none;">
               <h3>📈 Spending Timeline</h3>
               <div class="chart-container">
-                <canvas id="timelineChart"></canvas>
+                <canvas id="trendChart"></canvas>
               </div>
             </div>
           </div>

@@ -34,8 +34,18 @@ function initializeHamburgerMenu() {
     return;
   }
 
+  // FIXED: Remove existing event listeners by cloning the element
+  const newHamburgerMenu = hamburgerMenu.cloneNode(true);
+  hamburgerMenu.parentNode.replaceChild(newHamburgerMenu, hamburgerMenu);
+
+  // FIXED: Remove existing overlay listeners
+  const newSidebarOverlay = sidebarOverlay.cloneNode(true);
+  sidebarOverlay.parentNode.replaceChild(newSidebarOverlay, sidebarOverlay);
+
   // Toggle sidebar on hamburger click
-  hamburgerMenu.addEventListener("click", () => {
+  newHamburgerMenu.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const isOpen = sidebar.classList.contains("open");
     if (isOpen) {
       closeSidebar();
@@ -45,7 +55,7 @@ function initializeHamburgerMenu() {
   });
 
   // Close sidebar when overlay is clicked
-  sidebarOverlay.addEventListener("click", closeSidebar);
+  newSidebarOverlay.addEventListener("click", closeSidebar);
 
   // Close sidebar on escape key
   document.addEventListener("keydown", (e) => {
@@ -56,7 +66,8 @@ function initializeHamburgerMenu() {
 
   function openSidebar() {
     sidebar.classList.add("open");
-    sidebarOverlay.classList.add("active");
+    newSidebarOverlay.classList.add("active");
+    newHamburgerMenu.classList.add("active");
     if (mainContent) {
       mainContent.classList.add("sidebar-open");
     }
@@ -64,7 +75,8 @@ function initializeHamburgerMenu() {
 
   function closeSidebar() {
     sidebar.classList.remove("open");
-    sidebarOverlay.classList.remove("active");
+    newSidebarOverlay.classList.remove("active");
+    newHamburgerMenu.classList.remove("active");
     if (mainContent) {
       mainContent.classList.remove("sidebar-open");
     }

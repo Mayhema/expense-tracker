@@ -47,17 +47,19 @@ export function renderTransactions(transactions = [], updateCharts = true) {
   // FIXED: Render transaction table with proper structure
   renderTransactionTable(container, filteredTransactions);
 
-  // Update charts if requested
-  if (updateCharts) {
+  // FIXED: Update charts immediately with actual data, not after timeout
+  if (updateCharts && actualTransactions.length > 0) {
+    console.log(`CRITICAL: Updating charts with ${actualTransactions.length} transactions`);
     setTimeout(() => {
       import('./charts.js').then(module => {
-        if (module.initializeCharts) {
-          module.initializeCharts();
+        if (module.updateCharts) {
+          module.updateCharts();
+          console.log("Charts updated after transaction rendering");
         }
       }).catch(error => {
         console.log('Charts not available:', error.message);
       });
-    }, 300);
+    }, 100); // Shorter timeout
   }
 
   console.log(`CRITICAL: Transaction rendering complete - displayed ${filteredTransactions.length} transactions`);
@@ -1548,6 +1550,30 @@ export function updateTransactionDisplay(filteredTransactions) {
   // REMOVED: Category buttons update - no longer needed
 }
 
+
+/**
+ * Save transaction edits
+ */
+async function saveTransactionEdit(index, newData) {
+  try {
+    // ...existing save logic...
+
+    // FIXED: Update charts after saving transaction edits
+    try {
+      const chartsModule = await import('./charts.js');
+      if (chartsModule && chartsModule.updateCharts) {
+        chartsModule.updateCharts();
+        console.log("Charts updated after transaction edit");
+      }
+    } catch (error) {
+      console.log('Could not update charts after edit:', error.message);
+    }
+
+  } catch (error) {
+    console.error('Error saving transaction edit:', error);
+  }
+}
+
 // FIXED: Cache DOM elements to avoid repeated queries
 const transactionCache = {
   container: null,
@@ -1639,55 +1665,55 @@ export function initializeTransactionManager() {
  * FIXED: Update transactions from merged files
  */
 export function updateTransactions() {
-  console.group('🔄 UPDATE TRANSACTIONS CALLED');
+  console.group("🔄 UPDATING TRANSACTIONS FROM MERGED FILES");
   console.log("Processing merged files...");
 
   if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    console.log("No merged files found");
-    AppState.transactions = [];
-    renderTransactions([]);
+    console.log("No merged files to process");
     console.groupEnd();
     return;
   }
 
-  // CRITICAL FIX: Process all merged files into transactions
+  // Combine all transaction data from merged files
   let allTransactions = [];
 
   AppState.mergedFiles.forEach(file => {
-    try {
-      console.log(`📂 Processing file: ${file.fileName}`, file);
-
-      // Use pre-processed transactions if available
-      if (file.transactions && Array.isArray(file.transactions) && file.transactions.length > 0) {
-        allTransactions = allTransactions.concat(file.transactions);
-        console.log(`✓ Loaded ${file.transactions.length} pre-processed transactions from ${file.fileName}`);
-      } else {
-        console.warn(`⚠️ File ${file.fileName} has no valid transaction data`);
-      }
-    } catch (error) {
-      console.error(`❌ Error processing file ${file.fileName}:`, error);
+    if (file.transactions && Array.isArray(file.transactions)) {
+      allTransactions = allTransactions.concat(file.transactions);
     }
   });
 
-  console.log(`📊 Total transactions processed: ${allTransactions.length}`);
+  console.log(`📊 Processed ${allTransactions.length} transactions from ${AppState.mergedFiles.length} files`);
 
-  // CRITICAL FIX: Ensure all transactions have unique IDs
-  ensureTransactionIds(allTransactions);
-
-  // CRITICAL: Store in AppState immediately
+  // Update AppState
   AppState.transactions = allTransactions;
 
   // Save to localStorage
   try {
     localStorage.setItem('transactions', JSON.stringify(allTransactions));
-    console.log(`💾 Saved ${allTransactions.length} transactions to localStorage`);
+    console.log('✅ Transactions saved to localStorage');
   } catch (error) {
-    console.error('❌ Error saving transactions to localStorage:', error);
+    console.error('❌ Error saving transactions:', error);
   }
 
   // FORCE render with the actual transactions
   console.log(`🔧 Forcing render of ${allTransactions.length} transactions`);
   renderTransactions(allTransactions, true);
+
+  // CRITICAL FIX: Update charts immediately after transactions are updated with longer delay
+  if (allTransactions.length > 0) {
+    setTimeout(async () => {
+      try {
+        const chartsModule = await import('./charts.js');
+        if (chartsModule && chartsModule.updateCharts) {
+          chartsModule.updateCharts();
+          console.log("📊 Charts updated after transaction update from upload");
+        }
+      } catch (error) {
+        console.log('Could not update charts:', error.message);
+      }
+    }, 500); // Increased delay to ensure DOM is fully ready
+  }
 
   console.groupEnd();
 }

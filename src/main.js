@@ -51,6 +51,15 @@ async function initializeMainApp() {
       if (chartsModule && chartsModule.initializeCharts) {
         await chartsModule.initializeCharts();
         console.log("Charts initialized successfully");
+
+        // CRITICAL FIX: Force update charts immediately if we have transaction data
+        if (AppState.transactions && AppState.transactions.length > 0) {
+          // Add delay to ensure DOM is ready
+          setTimeout(() => {
+            chartsModule.updateCharts();
+            console.log("Charts updated with existing transaction data on startup");
+          }, 300);
+        }
       }
     } catch (error) {
       console.log('Charts not available or failed to initialize:', error.message);
@@ -185,11 +194,10 @@ window.addEventListener('unhandledrejection', (event) => {
     event.reason?.message?.includes('listener indicated an asynchronous response')) {
     console.log('Browser extension related error, ignoring...');
     event.preventDefault();
-    return;
+  } else {
+    // Prevent default browser error handling for other errors too
+    event.preventDefault();
   }
-
-  // Prevent default browser error handling for other errors too
-  event.preventDefault();
 });
 
 // FIXED: Add error handler for general JavaScript errors
@@ -201,7 +209,6 @@ window.addEventListener('error', (event) => {
     event.error?.message?.includes('message channel closed')) {
     console.log('Browser extension related error, ignoring...');
     event.preventDefault();
-    return;
   }
 });
 

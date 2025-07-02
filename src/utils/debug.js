@@ -5,24 +5,25 @@ import { showModal } from '../ui/modalManager.js';
  * Enhanced debug function for transaction data with detailed analysis
  */
 export function inspectTransactionData() {
-  const modalContent = document.createElement('div');
-  const transactions = AppState.transactions || [];
-  const transactionCount = transactions.length;
+  console.log("Opening transaction data inspection modal...");
 
-  if (transactionCount === 0) {
-    modalContent.innerHTML = '<p>No transaction data available to inspect.</p>';
-    showModal({
-      title: "Transaction Debug Analysis",
-      content: modalContent,
-      size: "medium"
-    });
+  const transactions = AppState.transactions || [];
+
+  if (transactions.length === 0) {
+    showModal("Transaction Data Analysis", `
+      <div class="debug-info">
+        <p style="text-align: center; color: #666; padding: 40px;">
+          No transactions available to analyze
+        </p>
+      </div>
+    `);
     return;
   }
 
-  // Comprehensive analysis
-  const analysis = analyzeTransactions(transactions);
+  // Analyze transaction data
+  const analysis = analyzeTransactionData(transactions);
 
-  modalContent.innerHTML = `
+  const modalContent = `
     <div class="debug-info" style="max-height: 500px; overflow-y: auto;">
       <div class="debug-section">
         <h3>Transaction Summary</h3>
@@ -106,118 +107,98 @@ export function inspectTransactionData() {
     </div>
   `;
 
-  showModal({
-    title: "Transaction Debug Analysis",
-    content: modalContent,
-    size: "large"
-  });
+  showModal("Transaction Data Analysis", modalContent, "large");
 }
 
 /**
- * Comprehensive transaction analysis
+ * Analyze transaction data for insights
  */
-function analyzeTransactions(transactions) {
+function analyzeTransactionData(transactions) {
   const analysis = {
     total: transactions.length,
     totalIncome: 0,
     totalExpenses: 0,
+    netBalance: 0,
     currencies: new Set(),
-    categories: new Set(),
-    sourceFiles: new Set(),
-    uncategorized: 0,
     categoryBreakdown: {},
+    categoryCount: 0,
+    uncategorized: 0,
+    sourceFiles: new Set(),
     issues: [],
-    dates: [],
-    idAnalysis: {
-      withIds: 0,
-      withoutIds: 0,
-      duplicateIds: 0,
-      uniqueIds: new Set()
-    }
+    dateRange: 'N/A',
+    avgAmount: 0
   };
 
-  const seenIds = new Set();
+  let validDates = [];
+  let totalAbsoluteAmount = 0;
 
-  transactions.forEach((tx, index) => {
-    // Enhanced ID analysis
-    if (tx.id) {
-      analysis.idAnalysis.withIds++;
-      analysis.idAnalysis.uniqueIds.add(tx.id);
-
-      if (seenIds.has(tx.id)) {
-        analysis.idAnalysis.duplicateIds++;
-        analysis.issues.push(`Transaction ${index + 1}: Duplicate ID ${tx.id}`);
-      } else {
-        seenIds.add(tx.id);
-      }
-    } else {
-      analysis.idAnalysis.withoutIds++;
-      analysis.issues.push(`Transaction ${index + 1}: Missing ID`);
-    }
-
-    // Analyze income/expenses
+  transactions.forEach(tx => {
+    // Income and expenses
     const income = parseFloat(tx.income) || 0;
     const expenses = parseFloat(tx.expenses) || 0;
+
     analysis.totalIncome += income;
     analysis.totalExpenses += expenses;
+    totalAbsoluteAmount += Math.abs(income) + Math.abs(expenses);
 
-    // Analyze currencies
+    // Currencies
     if (tx.currency) {
       analysis.currencies.add(tx.currency);
     }
 
-    // Analyze categories
+    // Categories
     const category = tx.category || 'Uncategorized';
-    analysis.categories.add(category);
-
-    if (!tx.category) {
+    if (category === 'Uncategorized') {
       analysis.uncategorized++;
     }
 
-    // Category breakdown
     if (!analysis.categoryBreakdown[category]) {
       analysis.categoryBreakdown[category] = { count: 0, amount: 0 };
     }
     analysis.categoryBreakdown[category].count++;
-    analysis.categoryBreakdown[category].amount += (income + expenses);
+    analysis.categoryBreakdown[category].amount += expenses;
 
     // Source files
     if (tx.fileName) {
       analysis.sourceFiles.add(tx.fileName);
     }
 
-    // Dates
+    // Date validation
     if (tx.date) {
-      analysis.dates.push(new Date(tx.date));
+      const date = new Date(tx.date);
+      if (!isNaN(date.getTime())) {
+        validDates.push(date);
+      } else {
+        analysis.issues.push(`Invalid date format: ${tx.date}`);
+      }
+    } else {
+      analysis.issues.push('Transaction missing date');
     }
 
     // Data quality checks
-    if (!tx.date) {
-      analysis.issues.push(`Transaction ${index + 1}: Missing date`);
+    if (!tx.description || tx.description.trim() === '') {
+      analysis.issues.push('Transaction missing description');
     }
-    if (!tx.description) {
-      analysis.issues.push(`Transaction ${index + 1}: Missing description`);
-    }
+
     if (income === 0 && expenses === 0) {
-      analysis.issues.push(`Transaction ${index + 1}: Zero amount`);
+      analysis.issues.push('Transaction with zero amount');
     }
   });
 
-  // Finalize analysis
+  // Calculate derived values
+  analysis.netBalance = analysis.totalIncome - analysis.totalExpenses;
   analysis.currencies = Array.from(analysis.currencies);
   analysis.sourceFiles = Array.from(analysis.sourceFiles);
-  analysis.categoryCount = analysis.categories.size;
-  analysis.netBalance = (analysis.totalIncome - analysis.totalExpenses).toFixed(2);
-  analysis.avgAmount = transactions.length > 0 ?
-    ((analysis.totalIncome + analysis.totalExpenses) / transactions.length).toFixed(2) : '0.00';
+  analysis.categoryCount = Object.keys(analysis.categoryBreakdown).length;
+  analysis.avgAmount = transactions.length > 0 ? (totalAbsoluteAmount / transactions.length) : 0;
 
-  // Add ID consistency check
-  analysis.idConsistency = {
-    hasAllIds: analysis.idAnalysis.withoutIds === 0,
-    hasNoDuplicates: analysis.idAnalysis.duplicateIds === 0,
-    uniqueIdCount: analysis.idAnalysis.uniqueIds.size,
-    totalTransactions: analysis.total
-  };
+  // Date range
+  if (validDates.length > 0) {
+    validDates.sort((a, b) => a - b);
+    const earliest = validDates[0].toDateString();
+    const latest = validDates[validDates.length - 1].toDateString();
+    analysis.dateRange = earliest === latest ? earliest : `${earliest} - ${latest}`;
+  }
 
   return analysis;
 }
