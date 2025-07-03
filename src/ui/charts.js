@@ -1,4 +1,5 @@
 import { AppState } from '../core/appState.js';
+import { CURRENCIES } from '../constants/currencies.js';
 
 let chartInstances = {
   category: null,
@@ -182,7 +183,7 @@ function createChartContainers() {
   // Only create if completely missing
   let chartsSection = document.getElementById('chartsSection');
   if (!chartsSection) {
-    chartsSection = createChartsSection();
+    createChartsSection();
   }
 }
 
@@ -324,13 +325,17 @@ function updateCategoryChart(transactions) {
     chartInstances.category.destroy();
   }
 
-  // Process data for category chart
+  // FIXED: Process data for category chart - handle multiple currencies
   const categoryData = {};
   transactions.forEach(tx => {
     const category = tx.category || 'Uncategorized';
     const amount = Math.abs(parseFloat(tx.expenses) || 0);
+    const currency = tx.currency || 'USD';
+
     if (amount > 0) {
-      categoryData[category] = (categoryData[category] || 0) + amount;
+      // Create category key with currency info for display
+      const displayCategory = currency !== 'USD' ? `${category} (${currency})` : category;
+      categoryData[displayCategory] = (categoryData[displayCategory] || 0) + amount;
     }
   });
 
@@ -363,6 +368,19 @@ function updateCategoryChart(transactions) {
           labels: {
             color: isDarkMode ? '#e0e0e0' : '#333'
           }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.parsed;
+              const label = context.label;
+              // Extract currency from label if present
+              const currencyMatch = label.match(/\(([A-Z]{3})\)$/);
+              const currency = currencyMatch ? currencyMatch[1] : 'USD';
+              const symbol = CURRENCIES[currency]?.symbol || '$';
+              return `${label}: ${symbol}${value.toFixed(2)}`;
+            }
+          }
         }
       }
     }
@@ -383,8 +401,10 @@ function updateMonthlyChart(transactions) {
     chartInstances.monthly.destroy();
   }
 
-  // Process data for monthly chart
+  // FIXED: Process data for monthly chart - group by currency and month
   const monthlyData = {};
+  const currencies = new Set();
+
   transactions.forEach(tx => {
     if (!tx.date) return;
 
@@ -392,18 +412,22 @@ function updateMonthlyChart(transactions) {
     if (isNaN(date.getTime())) return;
 
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const currency = tx.currency || 'USD';
+
+    currencies.add(currency);
 
     if (!monthlyData[monthKey]) {
-      monthlyData[monthKey] = { income: 0, expenses: 0 };
+      monthlyData[monthKey] = {};
+    }
+    if (!monthlyData[monthKey][currency]) {
+      monthlyData[monthKey][currency] = { income: 0, expenses: 0 };
     }
 
-    monthlyData[monthKey].income += parseFloat(tx.income) || 0;
-    monthlyData[monthKey].expenses += parseFloat(tx.expenses) || 0;
+    monthlyData[monthKey][currency].income += parseFloat(tx.income) || 0;
+    monthlyData[monthKey][currency].expenses += parseFloat(tx.expenses) || 0;
   });
 
   const sortedMonths = Object.keys(monthlyData).sort();
-  const incomeData = sortedMonths.map(month => monthlyData[month].income);
-  const expenseData = sortedMonths.map(month => monthlyData[month].expenses);
 
   if (sortedMonths.length === 0) {
     console.log("No date data for monthly chart");
@@ -417,6 +441,37 @@ function updateMonthlyChart(transactions) {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   });
 
+  // Create datasets for each currency
+  const datasets = [];
+  const currencyArray = Array.from(currencies).sort();
+
+  currencyArray.forEach((currency, index) => {
+    const incomeData = sortedMonths.map(month =>
+      monthlyData[month][currency]?.income || 0
+    );
+    const expenseData = sortedMonths.map(month =>
+      monthlyData[month][currency]?.expenses || 0
+    );
+
+    // Add income dataset for this currency
+    datasets.push({
+      label: `Income (${currency})`,
+      data: incomeData,
+      backgroundColor: `rgba(40, 167, 69, ${0.8 - (index * 0.2)})`,
+      borderColor: `rgba(40, 167, 69, 1)`,
+      borderWidth: 1
+    });
+
+    // Add expense dataset for this currency
+    datasets.push({
+      label: `Expenses (${currency})`,
+      data: expenseData,
+      backgroundColor: `rgba(220, 53, 69, ${0.8 - (index * 0.2)})`,
+      borderColor: `rgba(220, 53, 69, 1)`,
+      borderWidth: 1
+    });
+  });
+
   // Create chart with dark mode support
   const ctx = canvas.getContext('2d');
   const isDarkMode = document.body.classList.contains('dark-mode');
@@ -425,18 +480,7 @@ function updateMonthlyChart(transactions) {
     type: 'bar',
     data: {
       labels: labels,
-      datasets: [
-        {
-          label: 'Income',
-          data: incomeData,
-          backgroundColor: 'rgba(40, 167, 69, 0.8)'
-        },
-        {
-          label: 'Expenses',
-          data: expenseData,
-          backgroundColor: 'rgba(220, 53, 69, 0.8)'
-        }
-      ]
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -445,6 +489,19 @@ function updateMonthlyChart(transactions) {
         legend: {
           labels: {
             color: isDarkMode ? '#e0e0e0' : '#333'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.parsed.y;
+              const label = context.dataset.label;
+              // Extract currency from label
+              const currencyMatch = label.match(/\(([A-Z]{3})\)$/);
+              const currency = currencyMatch ? currencyMatch[1] : 'USD';
+              const symbol = CURRENCIES[currency]?.symbol || '$';
+              return `${label}: ${symbol}${value.toFixed(2)}`;
+            }
           }
         }
       },
@@ -460,7 +517,11 @@ function updateMonthlyChart(transactions) {
         y: {
           beginAtZero: true,
           ticks: {
-            color: isDarkMode ? '#e0e0e0' : '#666'
+            color: isDarkMode ? '#e0e0e0' : '#666',
+            callback: function (value) {
+              // Show values with appropriate currency symbol
+              return value.toFixed(0);
+            }
           },
           grid: {
             color: isDarkMode ? '#444' : '#e0e0e0'
@@ -470,7 +531,7 @@ function updateMonthlyChart(transactions) {
     }
   });
 
-  console.log(`Monthly chart updated with ${sortedMonths.length} months`);
+  console.log(`Monthly chart updated with ${sortedMonths.length} months and ${currencyArray.length} currencies`);
 }
 
 /**
@@ -485,26 +546,52 @@ function updateTrendChart(transactions) {
     chartInstances.trend.destroy();
   }
 
-  // Process data for trend chart
+  // FIXED: Process data for trend chart - handle multiple currencies
   const dailyData = {};
+  const currencies = new Set();
+
   transactions.forEach(tx => {
     if (!tx.date) return;
 
     const dateKey = tx.date.split('T')[0]; // Get just the date part
+    const currency = tx.currency || 'USD';
+
+    currencies.add(currency);
+
     if (!dailyData[dateKey]) {
-      dailyData[dateKey] = 0;
+      dailyData[dateKey] = {};
+    }
+    if (!dailyData[dateKey][currency]) {
+      dailyData[dateKey][currency] = 0;
     }
 
-    dailyData[dateKey] += parseFloat(tx.expenses) || 0;
+    dailyData[dateKey][currency] += parseFloat(tx.expenses) || 0;
   });
 
   const sortedDates = Object.keys(dailyData).sort();
-  const expenseData = sortedDates.map(date => dailyData[date]);
 
   if (sortedDates.length === 0) {
     console.log("No date data for trend chart");
     return;
   }
+
+  // Create datasets for each currency
+  const datasets = [];
+  const currencyArray = Array.from(currencies).sort();
+  const colors = ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'];
+
+  currencyArray.forEach((currency, index) => {
+    const expenseData = sortedDates.map(date => dailyData[date][currency] || 0);
+
+    datasets.push({
+      label: `Daily Expenses (${currency})`,
+      data: expenseData,
+      borderColor: colors[index % colors.length],
+      backgroundColor: colors[index % colors.length].replace('1)', '0.2)'),
+      fill: false,
+      tension: 0.1
+    });
+  });
 
   // Create chart with dark mode support
   const ctx = canvas.getContext('2d');
@@ -514,14 +601,7 @@ function updateTrendChart(transactions) {
     type: 'line',
     data: {
       labels: sortedDates,
-      datasets: [{
-        label: 'Daily Expenses',
-        data: expenseData,
-        borderColor: 'rgba(54, 162, 235, 1)',
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        fill: true,
-        tension: 0.1
-      }]
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -530,6 +610,19 @@ function updateTrendChart(transactions) {
         legend: {
           labels: {
             color: isDarkMode ? '#e0e0e0' : '#333'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.parsed.y;
+              const label = context.dataset.label;
+              // Extract currency from label
+              const currencyMatch = label.match(/\(([A-Z]{3})\)$/);
+              const currency = currencyMatch ? currencyMatch[1] : 'USD';
+              const symbol = CURRENCIES[currency]?.symbol || '$';
+              return `${label}: ${symbol}${value.toFixed(2)}`;
+            }
           }
         }
       },
@@ -555,7 +648,7 @@ function updateTrendChart(transactions) {
     }
   });
 
-  console.log(`Trend chart updated with ${sortedDates.length} days`);
+  console.log(`Trend chart updated with ${sortedDates.length} days and ${currencyArray.length} currencies`);
 }
 
 /**

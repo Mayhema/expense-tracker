@@ -240,7 +240,7 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
     return;
   }
 
-  // CRITICAL FIX: Find transaction by ID instead of using index
+  // Find transaction by ID instead of using index
   const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
 
   if (transactionIndex === -1) {
@@ -256,57 +256,65 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
   console.log(`  🏷️ Current category: "${transaction.category}"`);
   console.log(`  📂 Current subcategory: "${transaction.subcategory}"`);
 
-  // FIXED: Store original data before first edit
-  if (!transaction.originalData) {
+  // FIXED: Store original data before first edit - only for data fields
+  const isDataField = ['date', 'description', 'income', 'expenses'].includes(fieldName);
+
+  if (isDataField && !transaction.originalData) {
     transaction.originalData = {
       date: transaction.date,
       description: transaction.description,
       income: transaction.income,
-      expenses: transaction.expenses,
-      category: transaction.category,
-      subcategory: transaction.subcategory
+      expenses: transaction.expenses
     };
   }
 
-  // FIXED: Track which fields have been edited
+  // Track which fields have been edited
   if (!transaction.editedFields) {
     transaction.editedFields = {};
   }
 
-  // FIXED: Handle category with subcategory parsing
+  // Handle category with subcategory parsing
   if (fieldName === 'category') {
     const oldCategory = transaction.category;
     const oldSubcategory = transaction.subcategory;
 
+    // Store original category/subcategory only if not already stored
+    if (transaction.originalCategory === undefined) {
+      transaction.originalCategory = oldCategory;
+    }
+    if (transaction.originalSubcategory === undefined) {
+      transaction.originalSubcategory = oldSubcategory;
+    }
+
     if (newValue.includes(':')) {
-      const [category, subcategory] = newValue.split(':');
-      transaction.category = category;
-      transaction.subcategory = subcategory;
-      console.log(`🔄 Updated category from "${oldCategory}:${oldSubcategory}" to "${category}:${subcategory}"`);
+      const [mainCategory, subCategory] = newValue.split(':');
+      transaction.category = mainCategory.trim();
+      transaction.subcategory = subCategory.trim();
+      console.log(`🔄 Updated category from "${oldCategory}:${oldSubcategory}" to "${mainCategory}:${subCategory}"`);
     } else {
       transaction.category = newValue;
       transaction.subcategory = '';
       console.log(`🔄 Updated category from "${oldCategory}" to "${newValue}", cleared subcategory`);
     }
 
-    // FIXED: Mark category field as edited
+    // Mark category field as edited but don't mark as "edited" for revert button
     transaction.editedFields.category = true;
   } else {
     const oldValue = transaction[fieldName];
     transaction[fieldName] = newValue;
     console.log(`🔄 Updated field ${fieldName} from "${oldValue}" to "${newValue}"`);
 
-    // FIXED: Mark this specific field as edited
+    // Mark this specific field as edited
     transaction.editedFields[fieldName] = true;
   }
 
-  // Mark as edited if it wasn't already
-  if (!transaction.edited) {
+  // Mark as edited if it wasn't already - only for data fields
+  if (isDataField && !transaction.edited) {
     transaction.edited = true;
     console.log(`✏️ Marked transaction ${transactionId} as edited`);
   }
 
-  // CRITICAL FIX: Save to localStorage immediately and verify
+  // Save to localStorage immediately and verify
   try {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
     console.log(`💾 Saved transaction ${transactionId} field ${fieldName} to localStorage`);
@@ -315,13 +323,9 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
     const savedData = localStorage.getItem('transactions');
     if (savedData) {
       const parsedData = JSON.parse(savedData);
-      const savedTransaction = parsedData.find(tx => tx.id === transactionId);
+      const savedTransaction = parsedData.find(t => t.id === transactionId);
       if (savedTransaction) {
-        console.log(`✓ Verified save - transaction ${transactionId}:`);
-        console.log(`  🏷️ Category: "${savedTransaction.category}"`);
-        console.log(`  📂 Subcategory: "${savedTransaction.subcategory}"`);
-      } else {
-        console.error(`❌ Transaction ${transactionId} not found in saved data after save!`);
+        console.log(`✅ Verified: ${fieldName} = "${savedTransaction[fieldName]}" in localStorage`);
       }
     }
 
@@ -330,87 +334,72 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
       const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
       if (row) {
         const categoryCell = row.querySelector('.category-cell');
-        const categoryColor = getCategoryColor(transaction.category);
-        const categoryStyle = transaction.category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
-        categoryCell.style.cssText = categoryStyle;
-
-        // Mark row as edited
-        row.classList.add('edited-row');
-
-        // FIXED: Mark category cell as edited
-        categoryCell.classList.add('edited-cell');
-
-        console.log(`🎨 Updated UI for transaction ${transactionId} with category ${transaction.category}`);
-      } else {
-        console.error(`❌ Could not find row for transaction ${transactionId} to update UI`);
+        if (categoryCell && newValue) {
+          const categoryColor = getCategoryColor(newValue);
+          categoryCell.style.cssText = `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};`;
+        }
       }
-
       console.log('🔄 Category updated successfully');
     }
 
-    // FIXED: Mark the edited cell and update UI immediately
-    const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
-    if (row) {
-      let cellClass;
-      if (fieldName === 'income' || fieldName === 'expenses') {
-        cellClass = '.amount-cell';
-      } else if (fieldName === 'description') {
-        cellClass = '.description-cell';
-      } else if (fieldName === 'date') {
-        cellClass = '.date-cell';
-      } else {
-        cellClass = `.${fieldName}-cell`;
-      }
+    // FIXED: Only mark cells and show revert button for data fields, not category/currency
+    if (isDataField) {
+      // Mark the edited cell and update UI immediately only for data fields
+      const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+      if (row) {
+        let cellClass;
+        if (fieldName === 'income' || fieldName === 'expenses') {
+          cellClass = '.amount-cell';
+        } else if (fieldName === 'description') {
+          cellClass = '.description-cell';
+        } else if (fieldName === 'date') {
+          cellClass = '.date-cell';
+        } else {
+          cellClass = `.${fieldName}-cell`;
+        }
 
-      let cell;
-      if (fieldName === 'income') {
-        cell = row.querySelectorAll('.amount-cell')[0];
-      } else if (fieldName === 'expenses') {
-        cell = row.querySelectorAll('.amount-cell')[1];
-      } else {
-        cell = row.querySelector(cellClass);
-      }
+        let cell;
+        if (fieldName === 'income') {
+          cell = row.querySelectorAll('.amount-cell')[0];
+        } else if (fieldName === 'expenses') {
+          cell = row.querySelectorAll('.amount-cell')[1];
+        } else {
+          cell = row.querySelector(cellClass);
+        }
 
-      if (cell) {
-        cell.classList.add('edited-cell');
-        console.log(`✏️ Marked ${fieldName} cell as edited for transaction ${transactionId}`);
-      }
+        if (cell) {
+          cell.classList.add('edited-cell');
+          console.log(`✏️ Marked ${fieldName} cell as edited for transaction ${transactionId}`);
+        }
 
-      // FIXED: Show revert-all button when edits are made
-      const revertAllBtn = row.querySelector('.btn-revert-all');
-      if (revertAllBtn) {
-        revertAllBtn.style.display = 'inline-block';
+        // Show revert-all button only when data edits are made
+        const revertAllBtn = row.querySelector('.btn-revert-all');
+        if (revertAllBtn) {
+          revertAllBtn.style.display = 'inline-block';
+        }
       }
     }
 
-    // FIXED: Update summary in real-time for currency changes
-    if (fieldName === 'currency') {
-      const filteredTransactions = applyFilters(AppState.transactions);
-      updateTransactionSummary(filteredTransactions);
-    }
-
-    // FIXED: Re-sort and re-render table if date was changed
-    if (fieldName === 'date') {
-      console.log('🔄 Date changed, re-sorting table...');
-      setTimeout(() => {
-        // FIXED: Preserve all existing state when re-rendering after date change
-        const currentTransactions = AppState.transactions || [];
-        renderTransactions(currentTransactions, false);
+    // Update charts when data changes
+    if (isDataField || fieldName === 'category') {
+      setTimeout(async () => {
+        try {
+          const chartsModule = await import('./charts.js');
+          if (chartsModule && chartsModule.updateCharts) {
+            chartsModule.updateCharts();
+            console.log("Charts updated after data change");
+          }
+        } catch (error) {
+          console.log('Charts not available for update:', error.message);
+        }
       }, 100);
     }
-
-    // Show success feedback
-    import('./uiManager.js').then(module => {
-      if (module.showToast) {
-        module.showToast(`${fieldName} updated`, 'success');
-      }
-    });
 
   } catch (error) {
     console.error('❌ Error saving transaction:', error);
     import('./uiManager.js').then(module => {
       if (module.showToast) {
-        module.showToast('Error saving changes', 'error');
+        module.showToast('Error saving transaction', 'error');
       }
     });
   }
@@ -430,15 +419,13 @@ function saveTransactionChanges(index) {
   const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
   const transaction = AppState.transactions[index];
 
-  // FIXED: Store original data before first edit
+  // FIXED: Store original data before first edit - only for data fields
   if (!transaction.originalData) {
     transaction.originalData = {
       date: transaction.date,
       description: transaction.description,
       income: transaction.income,
-      expenses: transaction.expenses,
-      category: transaction.category,
-      subcategory: transaction.subcategory
+      expenses: transaction.expenses
     };
   }
 
@@ -474,6 +461,8 @@ function saveTransactionChanges(index) {
         const isoDate = convertDDMMYYYYToISO(newValue);
         if (isoDate) {
           newValue = isoDate;
+          dateChanged = true;
+          console.log(`🔄 Date converted: ${field.value} (dd/mm/yyyy) → ${isoDate} (ISO)`);
           dateChanged = true;
           console.log(`🔄 Date converted: ${field.value} (dd/mm/yyyy) → ${isoDate} (ISO)`);
         } else {
@@ -558,6 +547,19 @@ function saveTransactionChanges(index) {
       }, 100);
     }
 
+    // FIXED: Update charts when data changes
+    setTimeout(async () => {
+      try {
+        const chartsModule = await import('./charts.js');
+        if (chartsModule && chartsModule.updateCharts) {
+          chartsModule.updateCharts();
+          console.log("Charts updated after transaction save");
+        }
+      } catch (error) {
+        console.log('Charts not available for update:', error.message);
+      }
+    }, 100);
+
     // Show success feedback
     import('./uiManager.js').then(module => {
       if (module.showToast) {
@@ -598,7 +600,7 @@ function revertTransactionChanges(index) {
 function generateTransactionTableHTML(transactions) {
   console.log(`🔧 Generating table HTML for ${transactions.length} transactions`);
 
-  // CRITICAL FIX: Ensure all transactions have IDs before rendering
+  // Ensure all transactions have IDs before rendering
   ensureTransactionIds(transactions);
 
   let html = `
@@ -660,18 +662,18 @@ function generateTransactionTableHTML(transactions) {
   `;
 
   transactions.forEach((tx, index) => {
-    // CRITICAL FIX: Ensure each transaction has a unique ID
+    // Ensure each transaction has a unique ID
     if (!tx.id) {
       tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
-      console.log(`🆔 CRITICAL: Assigned new ID ${tx.id} to transaction at index ${index}`);
+      console.log(`🆔 GENERATED ID: ${tx.id} for transaction at index ${index}`);
     }
 
-    // CRITICAL LOG: Log transaction details for debugging
+    // Log transaction details for debugging
     console.log(`🔧 Rendering transaction ID ${tx.id} at index ${index}, category: "${tx.category}", description: "${tx.description?.substring(0, 50)}..."`);
 
-    // FIXED: Format date to dd/mm/yyyy for display - ensure proper format
+    // Format date to dd/mm/yyyy for display - ensure proper format
     const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
-    // FIXED: Ensure description is clean and handle null/undefined with RTL detection
+    // Ensure description is clean and handle null/undefined with RTL detection
     const description = (tx.description || '').toString().replace(/\s*data-field=.*$/i, '').trim();
     const isRTL = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F]/.test(description);
     const category = tx.category || '';
@@ -681,17 +683,18 @@ function generateTransactionTableHTML(transactions) {
     const currency = tx.currency || 'USD';
     const isEdited = tx.edited || false;
 
-    // FIXED: Get category color for cell background - preserve category styling
+    // Get category color for cell background - preserve category styling
     const categoryColor = getCategoryColor(category);
     const categoryStyle = category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
 
-    // FIXED: Generate currency dropdown with proper symbols (fix symbol issue)
+    // Generate currency dropdown with proper symbols
     const currencyOptions = Object.entries(CURRENCIES).sort(([a], [b]) => a.localeCompare(b)).map(([currencyCode, currencyData]) => {
-      const symbol = currencyData?.symbol || '💱';
-      return `<option value="${currencyCode}" ${currency === currencyCode ? 'selected' : ''}>${symbol} ${currencyCode}</option>`;
+      const isSelected = currency === currencyCode ? 'selected' : '';
+      const symbol = currencyData.symbol || currencyCode;
+      return `<option value="${currencyCode}" ${isSelected}>${symbol} ${currencyCode}</option>`;
     }).join('');
 
-    // FIXED: Check which fields have been edited for styling - preserve edited state
+    // Check which fields have been edited for styling - preserve edited state
     const editedFields = tx.editedFields || {};
     const dateEditedClass = editedFields.date ? 'edited-cell' : '';
     const descEditedClass = editedFields.description ? 'edited-cell' : '';
@@ -699,8 +702,8 @@ function generateTransactionTableHTML(transactions) {
     const incomeEditedClass = editedFields.income ? 'edited-cell' : '';
     const expensesEditedClass = editedFields.expenses ? 'edited-cell' : '';
 
-    // FIXED: Check if transaction has any edits to show revert button
-    const hasEdits = isEdited || Object.keys(editedFields).length > 0;
+    // FIXED: Check if transaction has data field edits to show revert button - only for data fields
+    const hasDataEdits = tx.originalData && Object.keys(tx.originalData).length > 0;
 
     html += `
       <tr data-transaction-id="${tx.id}" data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
@@ -777,7 +780,7 @@ function generateTransactionTableHTML(transactions) {
           <button class="btn-edit action-btn" data-transaction-id="${tx.id}" data-index="${index}" title="Edit transaction">✏️</button>
           <button class="btn-save action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Save changes">💾</button>
           <button class="btn-revert action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
-          <button class="btn-revert-all action-btn" data-transaction-id="${tx.id}" data-index="${index}" ${hasEdits ? '' : 'style="display: none;"'} title="Revert all changes to original">🔄</button>
+          <button class="btn-revert-all action-btn" data-transaction-id="${tx.id}" data-index="${index}" ${hasDataEdits ? '' : 'style="display: none;"'} title="Revert all changes to original">🔄</button>
         </td>
       </tr>
     `;
@@ -1104,8 +1107,6 @@ function revertAllChangesToOriginal(transactionId, index) {
     transaction.description = original.description;
     transaction.income = original.income;
     transaction.expenses = original.expenses;
-    transaction.category = original.category;
-    transaction.subcategory = original.subcategory;
   }
 
   // Clear edit tracking
@@ -1137,6 +1138,19 @@ function revertAllChangesToOriginal(transactionId, index) {
       }
     });
   }
+
+  // FIXED: Update charts after reverting changes
+  setTimeout(async () => {
+    try {
+      const chartsModule = await import('./charts.js');
+      if (chartsModule && chartsModule.updateCharts) {
+        chartsModule.updateCharts();
+        console.log("Charts updated after revert");
+      }
+    } catch (error) {
+      console.log('Charts not available for update:', error.message);
+    }
+  }, 100);
 }
 
 /**

@@ -14,28 +14,28 @@ export function revertTransactionById(transactionId) {
     return;
   }
 
-  // Check if we have original data to revert to
+  // Check if we have original data to revert to - ONLY data fields count
   const hasOriginalData = tx.originalData &&
     Object.keys(tx.originalData).length > 0;
 
-  // If no actual edit data, just return
-  if (!hasOriginalData && !tx.originalCategory && !tx.originalSubcategory) {
-    showToast("No changes to revert", "info");
+  // If no actual data field edits, just return
+  if (!hasOriginalData) {
+    showToast("No data changes to revert", "info");
     return;
   }
 
-  // Confirm with user if there are actual data edits
-  if (hasOriginalData) {
-    if (!confirm("Revert this transaction to its original state?")) return;
-  }
+  // Confirm with user
+  if (!confirm("Revert this transaction to its original state?")) return;
 
-  // Revert actual data if present
+  // Revert actual data fields only
   if (hasOriginalData) {
     const original = tx.originalData;
-    tx.date = original.date;
-    tx.description = original.description;
-    tx.income = original.income;
-    tx.expenses = original.expenses;
+
+    // Only revert actual data fields, not category/currency
+    if (original.date !== undefined) tx.date = original.date;
+    if (original.description !== undefined) tx.description = original.description;
+    if (original.income !== undefined) tx.income = original.income;
+    if (original.expenses !== undefined) tx.expenses = original.expenses;
 
     // Remove edit markers
     delete tx.originalData;
@@ -44,7 +44,8 @@ export function revertTransactionById(transactionId) {
     showToast("Transaction data reverted to original", "success");
   }
 
-  // Also revert category data if present
+  // Category and currency changes are separate and don't trigger revert button
+  // Only handle them if they exist but don't show revert button for these
   if (tx.originalCategory !== undefined) {
     tx.category = tx.originalCategory;
     delete tx.originalCategory;
@@ -60,6 +61,19 @@ export function revertTransactionById(transactionId) {
 
   // Update UI
   renderTransactions(AppState.transactions);
+
+  // Update charts after reverting
+  setTimeout(async () => {
+    try {
+      const chartsModule = await import('./charts.js');
+      if (chartsModule && chartsModule.updateCharts) {
+        chartsModule.updateCharts();
+        console.log("Charts updated after revert");
+      }
+    } catch (error) {
+      console.log('Charts not available for update:', error.message);
+    }
+  }, 100);
 }
 
 /**
@@ -77,28 +91,28 @@ export function revertTransaction(index) {
   }
 
   // Legacy fallback for transactions without IDs
-  // Check if we have original data to revert to
+  // Check if we have original data to revert to - ONLY data fields count
   const hasOriginalData = tx.originalData &&
     Object.keys(tx.originalData).length > 0;
 
-  // If no actual edit data, just return
-  if (!hasOriginalData && !tx.originalCategory && !tx.originalSubcategory) {
-    showToast("No changes to revert", "info");
+  // If no actual data field edits, just return
+  if (!hasOriginalData) {
+    showToast("No data changes to revert", "info");
     return;
   }
 
-  // Confirm with user if there are actual data edits
-  if (hasOriginalData) {
-    if (!confirm("Revert this transaction to its original state?")) return;
-  }
+  // Confirm with user
+  if (!confirm("Revert this transaction to its original state?")) return;
 
-  // Revert actual data if present
+  // Revert actual data fields only
   if (hasOriginalData) {
     const original = tx.originalData;
-    tx.date = original.date;
-    tx.description = original.description;
-    tx.income = original.income;
-    tx.expenses = original.expenses;
+
+    // Only revert actual data fields, not category/currency
+    if (original.date !== undefined) tx.date = original.date;
+    if (original.description !== undefined) tx.description = original.description;
+    if (original.income !== undefined) tx.income = original.income;
+    if (original.expenses !== undefined) tx.expenses = original.expenses;
 
     // Remove edit markers
     delete tx.originalData;
@@ -107,7 +121,8 @@ export function revertTransaction(index) {
     showToast("Transaction data reverted to original", "success");
   }
 
-  // Also revert category data if present
+  // Category and currency changes are separate and don't trigger revert button
+  // Only handle them if they exist but don't show revert button for these
   if (tx.originalCategory !== undefined) {
     tx.category = tx.originalCategory;
     delete tx.originalCategory;
@@ -123,6 +138,19 @@ export function revertTransaction(index) {
 
   // Update UI
   renderTransactions(AppState.transactions);
+
+  // Update charts after reverting
+  setTimeout(async () => {
+    try {
+      const chartsModule = await import('./charts.js');
+      if (chartsModule && chartsModule.updateCharts) {
+        chartsModule.updateCharts();
+        console.log("Charts updated after revert");
+      }
+    } catch (error) {
+      console.log('Charts not available for update:', error.message);
+    }
+  }, 100);
 }
 
 // Attach both functions to window for global access

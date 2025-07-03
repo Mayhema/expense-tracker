@@ -170,9 +170,13 @@ function classifyMonetaryColumn(values, state) {
   } else if (hasPositive && !state.incomeColumnFound) {
     state.incomeColumnFound = true;
     return "Income";
-  } else if (!state.expensesColumnFound)
+  } else if (!state.expensesColumnFound && !state.incomeColumnFound) {
+    // Fallback: if neither income nor expenses found yet, default to expenses
+    state.expensesColumnFound = true;
+    return "Expenses";
+  }
 
-    return "–";
+  return "–";
 }
 
 // Helper functions to reduce complexity
