@@ -540,6 +540,7 @@ table tbody tr:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-lg);
+  align-items: start;
 }
 
 .chart-container {
@@ -547,6 +548,13 @@ table tbody tr:hover {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: var(--spacing-md);
+  /* FIXED: Allow flexible heights for chart content */
+  height: auto;
+  min-height: 350px;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-container.full-width {
@@ -557,11 +565,16 @@ table tbody tr:hover {
   margin: 0 0 var(--spacing-md) 0;
   font-size: 1rem;
   color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 .chart-container canvas {
   max-width: 100%;
-  height: 250px;
+  /* FIXED: Allow canvas height to grow with content */
+  height: auto !important;
+  min-height: 250px !important;
+  max-height: none !important;
+  flex: 1;
 }
 
 /* ===== DEBUG ELEMENTS ===== */
@@ -653,6 +666,14 @@ table tbody tr:hover {
 
   .charts-grid {
     grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    min-height: 300px;
+  }
+
+  .chart-container canvas {
+    min-height: 200px !important;
   }
 
   .filter-row {

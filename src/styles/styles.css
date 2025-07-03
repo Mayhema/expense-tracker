@@ -633,13 +633,14 @@ body.debug-mode .debug-only {
   margin-bottom: 1rem;
 }
 
-/* CRITICAL FIX: Ensure all chart wrappers are visible by default */
+/* CRITICAL FIX: Ensure all chart wrappers accommodate full chart content */
 .chart-wrapper {
   width: 100% !important;
-  height: 400px !important;
-  max-width: 100% !important;
-  max-height: 400px !important;
-  overflow: hidden !important;
+  /* FIXED: Allow height to grow with chart content */
+  height: auto !important;
+  min-height: 400px !important;
+  max-height: none !important;
+  overflow: visible !important;
   position: relative !important;
   box-sizing: border-box !important;
   background: white;
@@ -647,38 +648,43 @@ body.debug-mode .debug-only {
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
-  display: block !important;
+  display: flex !important;
+  flex-direction: column !important;
   /* Force visible by default */
   visibility: visible !important;
-  /* Force visible by default */
 }
 
 /* CRITICAL FIX: Override any hiding from chart toggle system when we have data */
 .chart-wrapper.has-data {
-  display: block !important;
+  display: flex !important;
   visibility: visible !important;
 }
 
-/* FIXED: Charts grid layout - always visible and showing all three charts */
+/* FIXED: Charts grid layout - allow flexible heights */
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto;
   gap: 1.5rem;
   margin-top: 1rem;
+  align-items: start;
 }
 
-/* CRITICAL FIX: Make sure all chart wrappers show by default */
+/* CRITICAL FIX: Make sure all chart wrappers show by default with proper sizing */
 #expenseChartWrapper,
 #incomeExpenseChartWrapper,
 #timelineChartWrapper {
-  display: block !important;
+  display: flex !important;
   visibility: visible !important;
+  height: auto !important;
+  min-height: 400px !important;
+  max-height: none !important;
 }
 
 /* FIXED: Timeline chart takes full width in second row */
 #timelineChartWrapper {
   grid-column: 1 / -1;
+  min-height: 350px !important;
 }
 
 /* Dark mode chart containers */

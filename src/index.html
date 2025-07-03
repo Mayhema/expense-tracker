@@ -173,26 +173,29 @@
         <div class="charts-section">
           <div class="charts-grid">
             <!-- Expense Chart -->
-            <div class="chart-wrapper" id="expenseChartWrapper" style="display: block;">
+            <div class="chart-wrapper" id="expenseChartWrapper"
+              style="display: block; height: auto; min-height: 400px;">
               <h3>📊 Expenses by Category</h3>
-              <div class="chart-container">
-                <canvas id="categoryChart"></canvas>
+              <div class="chart-container" style="height: auto; min-height: 350px; flex: 1;">
+                <canvas id="categoryChart" style="height: auto !important; min-height: 300px !important;"></canvas>
               </div>
             </div>
 
             <!-- Income vs Expense Chart -->
-            <div class="chart-wrapper" id="incomeExpenseChartWrapper" style="display: none;">
+            <div class="chart-wrapper" id="incomeExpenseChartWrapper"
+              style="display: none; height: auto; min-height: 400px;">
               <h3>💰 Income vs Expenses</h3>
-              <div class="chart-container">
-                <canvas id="monthlyChart"></canvas>
+              <div class="chart-container" style="height: auto; min-height: 350px; flex: 1;">
+                <canvas id="monthlyChart" style="height: auto !important; min-height: 300px !important;"></canvas>
               </div>
             </div>
 
             <!-- Timeline Chart -->
-            <div class="chart-wrapper" id="timelineChartWrapper" style="display: none;">
+            <div class="chart-wrapper" id="timelineChartWrapper"
+              style="display: none; height: auto; min-height: 400px;">
               <h3>📈 Spending Timeline</h3>
-              <div class="chart-container">
-                <canvas id="trendChart"></canvas>
+              <div class="chart-container" style="height: auto; min-height: 350px; flex: 1;">
+                <canvas id="trendChart" style="height: auto !important; min-height: 300px !important;"></canvas>
               </div>
             </div>
           </div>

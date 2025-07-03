@@ -7,11 +7,11 @@ const chartInstances = new Map();
 const registeredCharts = new Map(); // Add this missing declaration
 
 /**
- * Default chart configuration with fixed dimensions
+ * Default chart configuration with flexible dimensions
  */
 export const defaultChartConfig = {
   responsive: true,
-  maintainAspectRatio: false, // CRITICAL: Prevent aspect ratio issues
+  maintainAspectRatio: false, // CRITICAL: Allow height to adjust for content
   interaction: {
     intersect: false,
     mode: 'index'
@@ -19,12 +19,39 @@ export const defaultChartConfig = {
   plugins: {
     legend: {
       display: true,
-      position: 'top'
+      position: 'top',
+      // FIXED: Ensure legend has proper spacing and wrapping
+      labels: {
+        padding: 15,
+        usePointStyle: true,
+        boxWidth: 12,
+        boxHeight: 12,
+        generateLabels: function (chart) {
+          const original = Chart.defaults.plugins.legend.labels.generateLabels;
+          const labels = original.call(this, chart);
+
+          // Ensure labels wrap properly
+          labels.forEach(label => {
+            if (label.text && label.text.length > 20) {
+              label.text = label.text.substring(0, 20) + '...';
+            }
+          });
+
+          return labels;
+        }
+      }
     },
     tooltip: {
       enabled: true,
       mode: 'index',
-      intersect: false
+      intersect: false,
+      // FIXED: Ensure tooltips don't get cut off
+      position: 'nearest',
+      bodySpacing: 4,
+      titleSpacing: 4,
+      footerSpacing: 4,
+      xPadding: 8,
+      yPadding: 8
     }
   },
   scales: {
@@ -32,6 +59,11 @@ export const defaultChartConfig = {
       display: true,
       grid: {
         display: true
+      },
+      // FIXED: Ensure x-axis labels don't get cut off
+      ticks: {
+        maxRotation: 45,
+        minRotation: 0
       }
     },
     y: {
@@ -39,29 +71,31 @@ export const defaultChartConfig = {
       beginAtZero: true,
       grid: {
         display: true
+      },
+      // FIXED: Ensure y-axis has proper padding
+      ticks: {
+        padding: 10
       }
     }
   },
-  // CRITICAL: Set fixed dimensions to prevent infinite expansion
+  // FIXED: Ensure proper padding for all chart elements
   layout: {
     padding: {
-      top: 10,
-      bottom: 10,
-      left: 10,
-      right: 10
+      top: 20,
+      bottom: 20,
+      left: 20,
+      right: 20
     }
   },
   // Prevent animations from causing memory leaks
   animation: {
     duration: 400,
     easing: 'easeInOutQuart'
-  },
-  // CRITICAL: Disable resize observer to prevent infinite loops
-  resizeDelay: 0
+  }
 };
 
 /**
- * Creates a chart with proper memory management and fixed dimensions
+ * Creates a chart with proper memory management and flexible dimensions
  * @param {HTMLCanvasElement} canvas - The canvas element
  * @param {string} type - Chart type
  * @param {Object} data - Chart data
@@ -81,16 +115,45 @@ export function createChart(canvas, type, data, options = {}) {
     // Destroy existing chart if it exists
     destroyChart(canvasId);
 
+    // FIXED: Ensure canvas has proper initial dimensions
+    const container = canvas.parentElement;
+    if (container) {
+      const containerWidth = container.offsetWidth || 400;
+      // FIXED: Allow height to be flexible based on content
+      const containerHeight = Math.max(container.offsetHeight || 350, 350);
+
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+    }
+
+    // FIXED: Merge options with special handling for chart-specific configurations
+    const chartOptions = { ...defaultChartConfig, ...options };
+
+    // FIXED: Special handling for pie/doughnut charts to ensure legend fits
+    if (type === 'pie' || type === 'doughnut') {
+      chartOptions.plugins.legend.position = 'bottom';
+      chartOptions.layout.padding.bottom = 30;
+    }
+
     // Create new chart
     const chart = new Chart(canvas, {
       type: type,
       data: data,
-      options: { ...defaultChartConfig, ...options }
+      options: chartOptions
     });
 
     // Register the chart
     registeredCharts.set(canvasId, chart);
     console.log(`Chart registered: ${canvasId}`);
+
+    // FIXED: Ensure chart resizes properly when container changes
+    setTimeout(() => {
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize();
+      }
+    }, 100);
 
     return chart;
   } catch (error) {
@@ -297,27 +360,30 @@ export function cleanupAllCharts() {
 }
 
 /**
- * Initialize chart containers with proper CSS
+ * Initialize chart containers with proper CSS for flexible heights
  */
 export function initializeChartContainers() {
   const chartContainers = document.querySelectorAll('.chart-container, .chart-wrapper');
 
   chartContainers.forEach(container => {
-    // CRITICAL: Set container CSS to prevent expansion
+    // FIXED: Set container CSS to allow flexible heights
     container.style.width = '100%';
-    container.style.height = '400px';
-    container.style.maxWidth = '100%';
-    container.style.maxHeight = '400px';
-    container.style.overflow = 'hidden';
+    container.style.height = 'auto';
+    container.style.minHeight = '400px';
+    container.style.maxHeight = 'none';
+    container.style.overflow = 'visible';
     container.style.position = 'relative';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
 
     // Find canvas inside container
     const canvas = container.querySelector('canvas');
     if (canvas) {
       canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.maxWidth = '100%';
-      canvas.style.maxHeight = '100%';
+      canvas.style.height = 'auto';
+      canvas.style.minHeight = '300px';
+      canvas.style.maxHeight = 'none';
+      canvas.style.flex = '1';
     }
   });
 }
