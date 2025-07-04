@@ -260,6 +260,92 @@ export function showPageLoadingOverlay(message = 'Loading...') {
 }
 
 /**
+ * Shows chart loading with blink effect
+ */
+export function showChartLoading(elementId, message = 'Loading chart...') {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  // FIXED: Store original content more carefully
+  if (!element.dataset.originalContent) {
+    element.dataset.originalContent = element.innerHTML;
+  }
+
+  // FIXED: Add loading with blink effect while preserving chart structure
+  const originalContent = element.innerHTML;
+  element.innerHTML = `
+    <div class="chart-loading-overlay" style="
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 1000;
+      animation: chartLoadingBlink 1.5s ease-in-out infinite;
+      border-radius: 8px;
+    ">
+      <div class="chart-loading-spinner" style="
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e3e3e3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      "></div>
+      <div class="chart-loading-text" style="
+        color: #667eea;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-align: center;
+        animation: chartTextPulse 2s ease-in-out infinite;
+      ">${message}</div>
+    </div>
+    ${originalContent}
+    <style>
+      @keyframes chartLoadingBlink {
+        0%, 100% { opacity: 0.8; background-color: rgba(255, 255, 255, 0.8); }
+        50% { opacity: 1; background-color: rgba(102, 126, 234, 0.1); }
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes chartTextPulse {
+        0%, 100% { opacity: 0.7; }
+        50% { opacity: 1; }
+      }
+    </style>
+  `;
+
+  // FIXED: Ensure wrapper is positioned relative for overlay
+  element.style.position = 'relative';
+}
+
+/**
+ * Hides chart loading and restores original content
+ */
+export function hideChartLoading(elementId) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  // FIXED: Remove only the loading overlay, preserve chart content
+  const overlay = element.querySelector('.chart-loading-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+
+  // FIXED: Don't restore original content, just ensure visibility
+  element.style.visibility = 'visible';
+  element.style.display = 'block';
+}
+
+/**
  * Set up sidebar functionality
  */
 function setupSidebar() {
@@ -281,21 +367,15 @@ function setupUIEventListeners() {
   console.log('UI event listeners set up');
 }
 
-
 /**
  * Initialize theme based on saved preferences
  */
-function initializeTheme() {
+export function initializeTheme() {
   const isDarkMode = localStorage.getItem('darkMode') === 'true';
-  document.body.classList.toggle('dark-mode', isDarkMode);
-
-  // Update toggle state if it exists
-  const darkModeToggle = document.getElementById('darkModeToggle');
-  if (darkModeToggle) {
-    darkModeToggle.checked = isDarkMode;
+  if (isDarkMode) {
+    document.body.classList.add('dark-mode');
   }
 }
-
 
 /**
  * Hide element utility (overloaded to accept element object or id string)

@@ -6,6 +6,13 @@ import { initializeFileUpload } from './ui/fileUpload.js';
 import { setupSidebarManager } from './ui/sidebarManager.js';
 import { initializeTransactionManager } from './ui/transactionManager.js';
 
+// FIXED: Global chart initialization state to prevent multiple loads
+let chartInitializationState = {
+  initialized: false,
+  initializing: false,
+  hasData: false
+};
+
 /**
  * Initialize the entire application
  */
@@ -37,38 +44,61 @@ async function initializeMainApp() {
     console.log("CRITICAL: Initializing file upload...");
     initializeFileUpload();
 
-    // Initialize transaction manager (this will create the section and render data)
+    // Initialize transaction manager (this will create the section and render data WITHOUT updating charts)
     console.log("CRITICAL: Initializing transaction manager...");
     initializeTransactionManager();
 
-    // FIXED: Initialize charts with proper error handling and timeout
-    try {
-      const chartsModule = await Promise.race([
-        import('./ui/charts.js'),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Charts import timeout')), 2000))
-      ]);
-
-      if (chartsModule && chartsModule.initializeCharts) {
-        await chartsModule.initializeCharts();
-        console.log("Charts initialized successfully");
-
-        // CRITICAL FIX: Force update charts immediately if we have transaction data
-        if (AppState.transactions && AppState.transactions.length > 0) {
-          // Add delay to ensure DOM is ready
-          setTimeout(() => {
-            chartsModule.updateCharts();
-            console.log("Charts updated with existing transaction data on startup");
-          }, 300);
-        }
-      }
-    } catch (error) {
-      console.log('Charts not available or failed to initialize:', error.message);
-    }
+    // FIXED: Initialize charts LAST and update them ONCE if we have data
+    await initializeChartsOnce();
 
     console.log("CRITICAL: App initialization complete");
   } catch (error) {
     console.error("CRITICAL ERROR: App initialization failed:", error);
     // Don't throw the error, just log it to prevent unhandled promise rejection
+  }
+}
+
+/**
+ * FIXED: Initialize charts only once with proper loading indicators
+ */
+async function initializeChartsOnce() {
+  // Prevent multiple initialization
+  if (chartInitializationState.initialized || chartInitializationState.initializing) {
+    console.log("Charts already initialized or initializing, skipping...");
+    return;
+  }
+
+  chartInitializationState.initializing = true;
+
+  try {
+    const chartsModule = await Promise.race([
+      import('./ui/charts.js'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Charts import timeout')), 2000))
+    ]);
+
+    if (chartsModule && chartsModule.initializeCharts) {
+      console.log("Initializing charts...");
+      await chartsModule.initializeCharts();
+      chartInitializationState.initialized = true;
+      console.log("Charts initialized successfully");
+
+      // FIXED: Only update charts ONCE if we have data - prevent double updates
+      if (AppState.transactions && AppState.transactions.length > 0) {
+        console.log(`Performing SINGLE chart update with ${AppState.transactions.length} transactions`);
+        // FIXED: Add delay to ensure DOM is ready and prevent double update
+        setTimeout(() => {
+          chartsModule.updateCharts();
+          chartInitializationState.hasData = true;
+          console.log("Charts updated with existing transaction data - SINGLE UPDATE COMPLETE");
+        }, 500);
+      } else {
+        console.log("No transaction data available for initial chart update");
+      }
+    }
+  } catch (error) {
+    console.log('Charts not available or failed to initialize:', error.message);
+  } finally {
+    chartInitializationState.initializing = false;
   }
 }
 

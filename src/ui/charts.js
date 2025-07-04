@@ -7,10 +7,24 @@ let chartInstances = {
   trend: null
 };
 
+// FIXED: Global chart initialization state to prevent multiple loads
+let chartInitializationState = {
+  initialized: false,
+  initializing: false,
+  hasData: false
+};
+
 /**
  * Initialize charts functionality
  */
 export async function initializeCharts() {
+  // Prevent multiple initialization
+  if (chartInitializationState.initialized || chartInitializationState.initializing) {
+    console.log("Charts already initialized or initializing, skipping...");
+    return chartInitializationState.initialized;
+  }
+
+  chartInitializationState.initializing = true;
   console.log("Initializing charts...");
 
   try {
@@ -26,11 +40,14 @@ export async function initializeCharts() {
     // Initialize individual charts
     initializeIndividualCharts();
 
+    chartInitializationState.initialized = true;
     console.log("Charts initialized successfully");
     return true;
   } catch (error) {
     console.error("Error initializing charts:", error);
     return false;
+  } finally {
+    chartInitializationState.initializing = false;
   }
 }
 
@@ -229,16 +246,24 @@ function createChartsSection() {
 }
 
 /**
- * Update all charts
+ * FIXED: Update all charts with blink effect
  */
 export function updateCharts() {
+  // Check if charts are initialized
+  if (!chartInitializationState.initialized) {
+    console.log("Charts not initialized yet, skipping update");
+    return;
+  }
+
   if (typeof Chart === 'undefined') {
     console.warn("Chart.js not available, skipping chart updates");
     return;
   }
 
+  console.log("Updating charts with transaction data...");
+
   const transactions = AppState.transactions || [];
-  console.log(`Updating charts with ${transactions.length} transactions`);
+  console.log(`Processing ${transactions.length} transactions for charts`);
 
   if (transactions.length === 0) {
     console.log("No transactions available for charts");
@@ -246,35 +271,104 @@ export function updateCharts() {
     return;
   }
 
-  // FIXED: Update all charts with actual data and ensure they stay visible
-  updateCategoryChart(transactions);
-  updateMonthlyChart(transactions);
-  updateTrendChart(transactions);
+  // FIXED: Show loading indicators with blink effect only for initial load
+  if (!chartInitializationState.hasData) {
+    showChartLoadingWithBlink();
+  }
 
-  // CRITICAL FIX: Ensure all chart wrappers are visible after update
+  // FIXED: Update charts with delay only on first load, immediate on subsequent updates
+  const updateDelay = chartInitializationState.hasData ? 0 : 1200;
+
   setTimeout(() => {
-    const chartWrappers = document.querySelectorAll('.chart-wrapper');
-    chartWrappers.forEach(wrapper => {
-      wrapper.style.display = 'block';
-      wrapper.style.visibility = 'visible';
-    });
+    try {
+      updateCategoryChart(transactions);
+      updateMonthlyChart(transactions);
+      updateTrendChart(transactions);
 
-    // CRITICAL FIX: Make sure the first chart (category) is always visible after upload
-    const expenseWrapper = document.getElementById('expenseChartWrapper');
-    if (expenseWrapper) {
-      expenseWrapper.style.display = 'block';
+      // FIXED: Only hide loading indicators if we showed them
+      if (!chartInitializationState.hasData) {
+        hideChartLoadingIndicators();
+      }
+
+      // Ensure all chart wrappers are visible after update
+      setTimeout(() => {
+        const chartWrappers = document.querySelectorAll('.chart-wrapper');
+        chartWrappers.forEach(wrapper => {
+          wrapper.style.display = 'block';
+          wrapper.style.visibility = 'visible';
+        });
+
+        const expenseWrapper = document.getElementById('expenseChartWrapper');
+        if (expenseWrapper) {
+          expenseWrapper.style.display = 'block';
+        }
+
+        console.log("All chart containers forced to visible state");
+      }, 100);
+
+      console.log("All charts updated successfully");
+      chartInitializationState.hasData = true; // Mark as having data
+    } catch (error) {
+      console.error("Error updating charts:", error);
+      if (!chartInitializationState.hasData) {
+        hideChartLoadingIndicators();
+      }
     }
-
-    console.log("All chart containers forced to visible state");
-  }, 50);
-
-  console.log("All charts updated successfully");
+  }, updateDelay);
 }
 
 /**
- * FIXED: Update charts with filtered data specifically
+ * FIXED: Show chart loading with blink effect
+ */
+function showChartLoadingWithBlink() {
+  try {
+    import('./uiManager.js').then(uiModule => {
+      if (uiModule.showChartLoading) {
+        uiModule.showChartLoading('expenseChartWrapper', 'Loading expense chart...');
+        if (document.getElementById('incomeExpenseChartWrapper')) {
+          uiModule.showChartLoading('incomeExpenseChartWrapper', 'Loading income chart...');
+        }
+        if (document.getElementById('timelineChartWrapper')) {
+          uiModule.showChartLoading('timelineChartWrapper', 'Loading timeline chart...');
+        }
+      }
+    });
+  } catch (error) {
+    console.log('Loading indicators not available:', error.message);
+  }
+}
+
+/**
+ * FIXED: Hide loading indicators
+ */
+function hideChartLoadingIndicators() {
+  try {
+    import('./uiManager.js').then(uiModule => {
+      if (uiModule.hideChartLoading) {
+        uiModule.hideChartLoading('expenseChartWrapper');
+        if (document.getElementById('incomeExpenseChartWrapper')) {
+          uiModule.hideChartLoading('incomeExpenseChartWrapper');
+        }
+        if (document.getElementById('timelineChartWrapper')) {
+          uiModule.hideChartLoading('timelineChartWrapper');
+        }
+      }
+    });
+  } catch (error) {
+    console.log('Loading indicators not available:', error.message);
+  }
+}
+
+/**
+ * FIXED: Update charts with filtered data - for filtering only
  */
 export function updateChartsWithFilteredData(filteredTransactions) {
+  // Only allow this if charts already have initial data
+  if (!chartInitializationState.hasData) {
+    console.log("Charts don't have initial data yet, using regular update");
+    return updateCharts();
+  }
+
   if (typeof Chart === 'undefined') {
     console.warn("Chart.js not available, skipping chart updates");
     return;
@@ -288,12 +382,12 @@ export function updateChartsWithFilteredData(filteredTransactions) {
     return;
   }
 
-  // Update all charts with filtered data
+  // Update all charts with filtered data (no loading indicators for filters)
   updateCategoryChart(filteredTransactions);
   updateMonthlyChart(filteredTransactions);
   updateTrendChart(filteredTransactions);
 
-  // CRITICAL FIX: Ensure all chart wrappers are visible when we have data
+  // Ensure all chart wrappers are visible when we have data
   setTimeout(() => {
     const chartWrappers = document.querySelectorAll('.chart-wrapper');
     chartWrappers.forEach(wrapper => {
@@ -301,7 +395,6 @@ export function updateChartsWithFilteredData(filteredTransactions) {
       wrapper.style.visibility = 'visible';
     });
 
-    // Make sure the first chart is visible
     const expenseWrapper = document.getElementById('expenseChartWrapper');
     if (expenseWrapper) {
       expenseWrapper.style.display = 'block';

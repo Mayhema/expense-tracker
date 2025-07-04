@@ -18,16 +18,16 @@ function updateCategoryCounts(transactions) {
 }
 
 /**
- * FIXED: Main render function with improved container management
+ * FIXED: Main render function - removed chart updates to prevent double loading
  */
-export function renderTransactions(transactions = [], updateCharts = true) {
+export function renderTransactions(transactions = [], updateCharts = false) {
   console.log(`CRITICAL: renderTransactions called with ${transactions.length} transactions`);
 
-  // FIXED: Always use AppState.transactions if no transactions passed
+  // Always use AppState.transactions if no transactions passed
   const actualTransactions = transactions.length > 0 ? transactions : (AppState.transactions || []);
   console.log(`CRITICAL: Using ${actualTransactions.length} transactions for rendering`);
 
-  // FIXED: Ensure main container exists first AND remove any duplicates
+  // Ensure main container exists first AND remove any duplicates
   let container = ensureTransactionContainer();
   if (!container) {
     console.error('CRITICAL: Could not create transaction container');
@@ -38,31 +38,17 @@ export function renderTransactions(transactions = [], updateCharts = true) {
   const filteredTransactions = applyFilters(actualTransactions);
   console.log(`CRITICAL: Filtered to ${filteredTransactions.length} transactions for display`);
 
-  // Update summary - FIXED: Add missing function
+  // Update summary
   updateTransactionSummary(filteredTransactions);
 
-  // FIXED: Render filters section
+  // Render filters section
   renderFiltersSection(container, actualTransactions);
 
-  // FIXED: Render transaction table with proper structure
+  // Render transaction table with proper structure
   renderTransactionTable(container, filteredTransactions);
 
-  // FIXED: Update charts immediately with actual data, not after timeout
-  if (updateCharts && actualTransactions.length > 0) {
-    console.log(`CRITICAL: Updating charts with ${actualTransactions.length} transactions`);
-    setTimeout(() => {
-      import('./charts.js').then(module => {
-        if (module.updateCharts) {
-          module.updateCharts();
-          console.log("Charts updated after transaction rendering");
-        }
-      }).catch(error => {
-        console.log('Charts not available:', error.message);
-      });
-    }, 100); // Shorter timeout
-  }
-
-  console.log(`CRITICAL: Transaction rendering complete - displayed ${filteredTransactions.length} transactions`);
+  // FIXED: NEVER update charts from here - charts are updated once in main.js
+  console.log(`CRITICAL: Transaction rendering complete - displayed ${filteredTransactions.length} transactions (no chart update)`);
 }
 
 /**
@@ -1669,9 +1655,16 @@ export function cleanupTransactionManager() {
 export function initializeTransactionManager() {
   console.log("CRITICAL: Initializing transaction manager...");
 
-  // FIXED: Force immediate render with current AppState data
+  // FIXED: Force immediate render with current AppState data without chart updates
   setTimeout(() => {
-    renderTransactions(AppState.transactions || [], true);
+    const transactions = AppState.transactions || [];
+    if (transactions.length > 0) {
+      console.log(`CRITICAL: Rendering ${transactions.length} existing transactions without chart updates`);
+      renderTransactions(transactions, false); // FIXED: Never update charts from here
+    } else {
+      console.log("CRITICAL: No existing transactions to render");
+      renderTransactions([], false);
+    }
   }, 100);
 }
 
