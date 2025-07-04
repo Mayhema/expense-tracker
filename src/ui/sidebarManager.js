@@ -111,14 +111,14 @@ function initializeDebugModeToggle() {
   // Get current state from localStorage
   const isDebugMode = localStorage.getItem("debugMode") === "true";
 
-  // Set initial state immediately
-  debugModeToggle.checked = isDebugMode;
-  document.body.classList.toggle("debug-mode", isDebugMode);
-  updateDebugVisibility(isDebugMode);
-
   // Remove any existing event listeners
   const newToggle = debugModeToggle.cloneNode(true);
   debugModeToggle.parentNode.replaceChild(newToggle, debugModeToggle);
+
+  // FIXED: Set initial state AFTER cloning to ensure the new element has the correct state
+  newToggle.checked = isDebugMode;
+  document.body.classList.toggle("debug-mode", isDebugMode);
+  updateDebugVisibility(isDebugMode);
 
   // Add the event listener ONLY to the checkbox input
   newToggle.addEventListener('change', (e) => {
@@ -130,6 +130,9 @@ function initializeDebugModeToggle() {
     // Re-initialize debug button listeners if debug mode is enabled
     if (isEnabled) {
       setTimeout(() => {
+        // FIXED: Re-initialize debug buttons when debug mode is enabled
+        initializeDebugButtons();
+
         import('../utils/debug.js').then(module => {
           if (module.attachDebugFunctions) {
             module.attachDebugFunctions();
@@ -141,8 +144,54 @@ function initializeDebugModeToggle() {
     console.log(`Debug mode ${isEnabled ? 'enabled' : 'disabled'}`);
   });
 
-  // FIXED: Remove the conflicting click event on toggle switch container
-  // The label click will automatically trigger the checkbox change event
+  // FIXED: Add click listeners to toggle switch visual elements to make them clickable
+  const toggleContainer = newToggle.parentNode;
+  const slider = toggleContainer.querySelector('.slider');
+
+  // FIXED: Also add click listener to the label to ensure visual state updates
+  const label = document.querySelector('label[for="debugModeToggle"]');
+
+  if (label) {
+    label.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Debug label clicked, current state:', newToggle.checked);
+      newToggle.checked = !newToggle.checked;
+      console.log('Debug label new state:', newToggle.checked);
+      // Trigger the same enhanced behavior as toggle clicks
+      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  if (toggleContainer && toggleContainer.classList.contains('toggle-switch')) {
+    toggleContainer.addEventListener('click', (e) => {
+      // Prevent double triggering if clicking the checkbox itself
+      if (e.target !== newToggle) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Debug toggle container clicked, current state:', newToggle.checked);
+        newToggle.checked = !newToggle.checked;
+        console.log('Debug toggle new state:', newToggle.checked);
+        // Use both change and input events to ensure CSS updates
+        newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+        newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
+  if (slider) {
+    slider.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Debug slider clicked, current state:', newToggle.checked);
+      newToggle.checked = !newToggle.checked;
+      console.log('Debug slider new state:', newToggle.checked);
+      // Use both change and input events to ensure CSS updates
+      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
 
   console.log("Debug mode toggle initialized successfully");
 }
@@ -160,13 +209,13 @@ function initializeDarkModeToggle() {
   // Get current state from localStorage
   const isDarkMode = localStorage.getItem("darkMode") === "true";
 
-  // Set initial state
-  darkModeToggle.checked = isDarkMode;
-  document.body.classList.toggle("dark-mode", isDarkMode);
-
   // Remove any existing event listeners
   const newToggle = darkModeToggle.cloneNode(true);
   darkModeToggle.parentNode.replaceChild(newToggle, darkModeToggle);
+
+  // FIXED: Set initial state AFTER cloning to ensure the new element has the correct state
+  newToggle.checked = isDarkMode;
+  document.body.classList.toggle("dark-mode", isDarkMode);
 
   // Add event listener ONLY to the checkbox input
   newToggle.addEventListener('change', (e) => {
@@ -176,8 +225,54 @@ function initializeDarkModeToggle() {
     console.log(`Dark mode ${isDark ? 'enabled' : 'disabled'}`);
   });
 
-  // FIXED: Remove the conflicting click event on toggle switch container
-  // The label click will automatically trigger the checkbox change event
+  // FIXED: Add click listeners to toggle switch visual elements to make them clickable
+  const toggleContainer = newToggle.parentNode;
+  const slider = toggleContainer.querySelector('.slider');
+
+  // FIXED: Also add click listener to the label to ensure visual state updates
+  const label = document.querySelector('label[for="darkModeToggle"]');
+
+  if (label) {
+    label.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Dark mode label clicked, current state:', newToggle.checked);
+      newToggle.checked = !newToggle.checked;
+      console.log('Dark mode label new state:', newToggle.checked);
+      // Trigger the same enhanced behavior as toggle clicks
+      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  if (toggleContainer && toggleContainer.classList.contains('toggle-switch')) {
+    toggleContainer.addEventListener('click', (e) => {
+      // Prevent double triggering if clicking the checkbox itself
+      if (e.target !== newToggle) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Dark mode toggle container clicked, current state:', newToggle.checked);
+        newToggle.checked = !newToggle.checked;
+        console.log('Dark mode toggle new state:', newToggle.checked);
+        // Use both change and input events to ensure CSS updates
+        newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+        newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
+  if (slider) {
+    slider.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Dark mode slider clicked, current state:', newToggle.checked);
+      newToggle.checked = !newToggle.checked;
+      console.log('Dark mode slider new state:', newToggle.checked);
+      // Use both change and input events to ensure CSS updates
+      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
 
   console.log("Dark mode toggle initialized successfully");
 }
@@ -216,33 +311,30 @@ function updateDebugVisibility(isDebugMode) {
  * Initialize action buttons
  */
 function initializeActionButtons() {
-  // FIXED: Remove existing event listeners from upload button to prevent double triggers
+  // FIXED: Handle upload button with cloning to completely remove any duplicate listeners
   const fileUploadBtn = document.getElementById("fileUploadBtn");
   if (fileUploadBtn) {
-    // Clone the button to remove all event listeners
+    // Clone the element to remove ALL existing event listeners
     const newUploadBtn = fileUploadBtn.cloneNode(true);
     fileUploadBtn.parentNode.replaceChild(newUploadBtn, fileUploadBtn);
 
-    // Add single event listener
-    newUploadBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("CRITICAL: Upload button clicked - initiating file upload");
+    // Add single clean event listener
+    newUploadBtn.addEventListener("click", handleFileUploadClick);
+    console.log("Upload button initialized with clean event listener");
+  }
 
-      import("../ui/fileUpload.js").then(module => {
-        if (module.createNewFileInput) {
-          console.log("CRITICAL: Calling createNewFileInput()");
-          const input = module.createNewFileInput();
-          if (input) {
-            input.click();
-          }
-        } else {
-          console.error("createNewFileInput function not found");
-        }
-      }).catch(err => {
-        console.error("Error loading file upload module:", err);
-      });
-    });
+  // FIXED: Add missing category manager button handler for the main header button
+  const categoryManagerBtn = document.getElementById("categoryManagerBtn");
+  if (categoryManagerBtn) {
+    categoryManagerBtn.removeEventListener("click", handleCategoryManagerClick);
+    categoryManagerBtn.addEventListener("click", handleCategoryManagerClick);
+  }
+
+  // FIXED: Add missing export button handler for the main header button
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) {
+    exportBtn.removeEventListener("click", handleExportClick);
+    exportBtn.addEventListener("click", handleExportClick);
   }
 
   // FIXED: Remove existing event listeners from other buttons to prevent double modals
@@ -279,18 +371,6 @@ function initializeActionButtons() {
       e.preventDefault();
       e.stopPropagation();
       _handleEditCategories();
-    });
-  }
-
-  const exportBtn = document.getElementById("exportBtn");
-  if (exportBtn) {
-    const newExportBtn = exportBtn.cloneNode(true);
-    exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
-
-    newExportBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleExportClick();
     });
   }
 
@@ -349,7 +429,12 @@ function initializeDebugButtons() {
   debugButtons.forEach(button => {
     const element = document.getElementById(button.id);
     if (element) {
+      // FIXED: Remove any existing listeners first to prevent duplicates
+      element.removeEventListener("click", button.handler);
       element.addEventListener("click", button.handler);
+      console.log(`Debug button initialized: ${button.id}`);
+    } else {
+      console.warn(`Debug button element not found: ${button.id}`);
     }
   });
 }
@@ -484,18 +569,83 @@ function _handleEditCategories() {
   });
 }
 
+/**
+ * FIXED: File upload button click handler - prevents double file dialogs
+ */
+function handleFileUploadClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log("CRITICAL: Upload button clicked - initiating file upload");
 
-// FIXED: Add missing save log handler
-function handleSaveLogClick() {
-  import('../utils/debug.js').then(module => {
-    if (module.saveDebugLog) {
-      module.saveDebugLog();
+  import("../ui/fileUpload.js").then(module => {
+    if (module.createNewFileInput) {
+      console.log("CRITICAL: Calling createNewFileInput()");
+      // FIXED: Don't call input.click() here - createNewFileInput() already handles the click
+      module.createNewFileInput();
     } else {
-      console.error('saveDebugLog function not found');
+      console.error("createNewFileInput function not found");
     }
   }).catch(err => {
-    console.error('Error loading debug utils:', err);
+    console.error("Error loading file upload module:", err);
   });
+}
+
+/**
+ * FIXED: Category manager button click handler
+ */
+function handleCategoryManagerClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log("Category manager button clicked");
+
+  try {
+    import("../ui/categoryManager.js").then(module => {
+      if (module.showCategoryManagerModal) {
+        module.showCategoryManagerModal();
+      } else {
+        console.error("showCategoryManagerModal function not found");
+      }
+    }).catch(err => {
+      console.error("Error loading category manager module:", err);
+      // Fallback to alternative category modal
+      import("../ui/categoryModal.js").then(fallbackModule => {
+        if (fallbackModule.showCategoryManagerModal) {
+          fallbackModule.showCategoryManagerModal();
+        }
+      }).catch(fallbackErr => {
+        console.error("Error loading fallback category modal:", fallbackErr);
+      });
+    });
+  } catch (error) {
+    console.error("Error handling category manager click:", error);
+  }
+}
+
+/**
+ * FIXED: Add missing save log handler for debug buttons
+ */
+function handleSaveLogClick() {
+  console.log("Save log button clicked");
+
+  try {
+    // Check if console logger is available
+    if (window.saveConsoleLogs && typeof window.saveConsoleLogs === 'function') {
+      window.saveConsoleLogs();
+    } else {
+      // Try to wait for console logger to initialize
+      setTimeout(() => {
+        if (window.saveConsoleLogs && typeof window.saveConsoleLogs === 'function') {
+          window.saveConsoleLogs();
+        } else {
+          console.error("Console logger not available");
+          showErrorToast('Console logger not available');
+        }
+      }, 100);
+    }
+  } catch (error) {
+    console.error("Error saving console logs:", error);
+    showErrorToast('Error saving console logs');
+  }
 }
 
 /**
@@ -518,11 +668,25 @@ async function resetToDefaultCategories() {
  */
 async function handleExportClick() {
   try {
+    // FIXED: Check if export modal exists first, then fallback to direct export
+    try {
+      const exportModalModule = await import('../ui/exportManager.js');
+      if (exportModalModule.showExportModal) {
+        exportModalModule.showExportModal();
+        return;
+      }
+    } catch (modalError) {
+      console.log('Export modal not available, using direct export:', modalError.message);
+      // Intentionally continue to fallback
+    }
+
+    // Fallback to direct export
     const module = await import('../exports/exportManager.js');
     if (module.exportTransactionsAsCSV) {
       module.exportTransactionsAsCSV();
     } else {
       console.error('exportTransactionsAsCSV function not found');
+      await showErrorToast('Export function not available');
     }
   } catch (err) {
     console.error('Error loading export manager:', err);

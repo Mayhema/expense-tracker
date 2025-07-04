@@ -61,6 +61,9 @@ export function createNewFileInput() {
     return null;
   }
 
+  // FIXED: Set flag immediately to prevent race conditions
+  fileInputInProgress = true;
+
   try {
     // Clean up existing inputs first
     cleanupExistingFileInputs();
@@ -85,22 +88,23 @@ export function createNewFileInput() {
         console.log("CRITICAL: No file selected in event");
         // FIXED: Reset progress flag if no file selected
         fileInputInProgress = false;
+        cleanupFileInput(inputId);
         return;
       }
-
-      // FIXED: Only set progress flag when file is actually selected
-      fileInputInProgress = true;
 
       console.log(`CRITICAL: File selected and processing: ${file.name} (${file.type}, ${file.size} bytes)`);
 
       try {
         // Process the file
         handleFileUploadProcess(file);
+        // FIXED: Clean up input after processing starts
+        setTimeout(() => cleanupFileInput(inputId), 500);
       } catch (error) {
         console.error("CRITICAL ERROR: Error processing file:", error);
         handleFileUploadError(error);
+        fileInputInProgress = false;
+        cleanupFileInput(inputId);
       }
-      // FIXED: Don't clean up immediately - let the processing complete
     };
 
     const handleCancel = () => {
@@ -109,36 +113,11 @@ export function createNewFileInput() {
       cleanupFileInput(inputId);
     };
 
-    // CRITICAL FIX: Delay the focus event listener to prevent premature cleanup
-    const handleFocus = () => {
-      console.log("CRITICAL: Window focus event - checking if file was selected");
-      // FIXED: Add longer delay and better file selection detection
-      setTimeout(() => {
-        // Check if file input still exists and is in the DOM
-        if (!document.body.contains(fileInput)) {
-          console.log("CRITICAL: File input already removed from DOM");
-          return;
-        }
-
-        // Check if file was actually selected
-        if (!fileInput.files || fileInput.files.length === 0) {
-          console.log("CRITICAL: No file selected on focus, cleaning up");
-          fileInputInProgress = false;
-          cleanupFileInput(inputId);
-        } else {
-          console.log("CRITICAL: File was selected on focus check:", fileInput.files[0].name);
-        }
-      }, 500); // Increased delay to allow file selection to complete
-    };
-
     fileInput.addEventListener('change', handleFileSelection);
     fileInput.addEventListener('cancel', handleCancel);
 
-    // CRITICAL FIX: Add focus listener with delay to prevent immediate triggering
-    setTimeout(() => {
-      window.addEventListener('focus', handleFocus, { once: true });
-      console.log("CRITICAL: Focus event listener added with delay");
-    }, 100);
+    // FIXED: Remove problematic focus listener that was causing double prompts
+    // The window focus event was unnecessarily interfering with file selection
 
     // FIXED: Track listeners and element for cleanup
     const inputData = {
@@ -366,10 +345,36 @@ async function processUploadedData(file, data) {
       await autoApplyMapping(file, data, existingMapping);
       return;
     } else {
-      console.log('CRITICAL: No existing mapping found for signature:', signature, 'showing manual mapping');
+      console.log('CRITICAL: No existing mapping found for signature:', signature, 'using auto-detection');
+
+      // FIXED: Instead of showing modal, try auto-detection first
+      try {
+        const { autoDetectFieldType } = await import('../constants/fieldMappings.js');
+        const headers = data[0] || [];
+        const autoMapping = headers.map(header => autoDetectFieldType(header));
+
+        console.log('CRITICAL: Auto-detected mapping:', autoMapping);
+
+        // Check if auto-detection found reasonable mappings
+        const validMappings = autoMapping.filter(m => m && m !== '–').length;
+        if (validMappings >= 2) { // Need at least date and amount fields
+          console.log('CRITICAL: Auto-detection successful, processing file automatically');
+
+          // Store data and process with auto-detected mapping
+          storeFileDataInState(file, data);
+
+          // Apply the auto-detected mapping
+          await autoApplyDetectedMapping(file, data, autoMapping);
+          return;
+        } else {
+          console.log('CRITICAL: Auto-detection insufficient, showing manual mapping modal');
+        }
+      } catch (autoError) {
+        console.log('CRITICAL: Auto-detection failed, showing manual mapping modal:', autoError);
+      }
     }
 
-    // Store data and show preview
+    // Store data and show preview only if auto-detection failed
     console.log('CRITICAL: Storing file data and showing preview modal');
     storeFileDataInState(file, data);
     showFilePreviewModal(data);
@@ -599,7 +604,7 @@ function handleFileUploadError(error) {
   console.error("File upload error:", error);
   showToast(`Error processing file: ${error.message}`, "error");
   resetFileState();
-  fileInputInProgress = false;
+  fileInputInProgress = false; // FIXED: Reset flag on error
 }
 
 /**
@@ -1301,4 +1306,124 @@ function initializeDragAndDrop() {
   }
 
   console.log('Drag and drop initialized successfully');
+}
+
+/**
+ * FIXED: Auto-apply detected mapping to file without showing modal
+ */
+async function autoApplyDetectedMapping(file, data, autoMapping) {
+  try {
+    console.log('CRITICAL: Auto-applying detected mapping:', autoMapping);
+
+    // Store file data
+    AppState.currentPreviewData = data;
+    AppState.currentFileName = file.name;
+
+    // Process transactions using the auto-detected mapping
+    const transactions = [];
+    const dataStartRow = 1;
+
+    for (let i = dataStartRow; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
+
+      const transaction = {
+        fileName: file.name,
+        sourceFile: file.name,
+        originalRowIndex: i
+      };
+
+      // Map fields based on auto-detected mapping
+      autoMapping.forEach((fieldType, colIndex) => {
+        const cellValue = row[colIndex] || '';
+
+        switch (fieldType) {
+          case 'Date':
+            transaction.date = cellValue;
+            break;
+          case 'Description':
+            transaction.description = cellValue;
+            break;
+          case 'Income':
+            transaction.income = parseFloat(cellValue) || 0;
+            break;
+          case 'Expenses':
+            transaction.expenses = parseFloat(cellValue) || 0;
+            break;
+          case 'Amount': {
+            const amount = parseFloat(cellValue) || 0;
+            if (amount >= 0) {
+              transaction.income = amount;
+              transaction.expenses = 0;
+            } else {
+              transaction.income = 0;
+              transaction.expenses = Math.abs(amount);
+            }
+            break;
+          }
+          case 'Category':
+            transaction.category = cellValue;
+            break;
+          case 'Currency':
+            transaction.currency = cellValue;
+            break;
+          default:
+            // Store unmapped fields as custom properties
+            if (fieldType && fieldType !== '–') {
+              transaction[fieldType.toLowerCase()] = cellValue;
+            }
+        }
+      });
+
+      // Set defaults
+      if (!transaction.income && !transaction.expenses) {
+        transaction.income = 0;
+        transaction.expenses = 0;
+      }
+      if (!transaction.category) {
+        transaction.category = 'Uncategorized';
+      }
+      if (!transaction.currency) {
+        transaction.currency = 'USD';
+      }
+
+      transactions.push(transaction);
+    }
+
+    // Update AppState
+    AppState.mergedFiles.push({
+      fileName: file.name,
+      data: data,
+      signature: AppState.currentFileSignature,
+      mappings: autoMapping,
+      uploadDate: new Date().toISOString(),
+      autoDetected: true
+    });
+
+    AppState.transactions.push(...transactions);
+
+    // Save to localStorage
+    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+
+    fileInputInProgress = false;
+    showToast(`File processed automatically: ${transactions.length} transactions imported`, "success");
+
+    // Force UI update
+    setTimeout(() => {
+      import('./transactionManager.js').then(module => {
+        module.renderTransactions(AppState.transactions, true);
+      }).catch(error => {
+        console.error('CRITICAL ERROR: Failed to import transaction manager:', error);
+      });
+    }, 100);
+
+  } catch (error) {
+    console.error('CRITICAL ERROR: Auto-detected mapping failed:', error);
+    showToast("Auto-processing failed, showing manual mapping", "warning");
+
+    // Fall back to manual mapping
+    showFilePreviewModal(data);
+    fileInputInProgress = false;
+  }
 }

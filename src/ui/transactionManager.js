@@ -1873,15 +1873,13 @@ function applyQuickCategory(category) {
 export function initializeTransactionManager() {
   console.log("CRITICAL: Initializing transaction manager...");
 
-  // FIXED: Force immediate render with current AppState data without chart updates
-  setTimeout(() => {
-    const transactions = AppState.transactions || [];
-    if (transactions.length > 0) {
-      console.log(`CRITICAL: Rendering ${transactions.length} existing transactions without chart updates`);
-      renderTransactions(transactions, false); // FIXED: Never update charts from here
-    } else {
-      console.log("CRITICAL: No existing transactions to render");
-      renderTransactions([], false);
-    }
-  }, 100);
+  // FIXED: Render immediately without setTimeout to prevent blinking
+  const transactions = AppState.transactions || [];
+  if (transactions.length > 0) {
+    console.log(`CRITICAL: Rendering ${transactions.length} existing transactions without chart updates`);
+    renderTransactions(transactions, false); // FIXED: Never update charts from here
+  } else {
+    console.log("CRITICAL: No existing transactions to render");
+    renderTransactions([], false);
+  }
 }

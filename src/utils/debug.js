@@ -10,13 +10,16 @@ export function inspectTransactionData() {
   const transactions = AppState.transactions || [];
 
   if (transactions.length === 0) {
-    showModal("Transaction Data Analysis", `
-      <div class="debug-info">
-        <p style="text-align: center; color: #666; padding: 40px;">
-          No transactions available to analyze
-        </p>
-      </div>
-    `);
+    showModal({
+      title: "Transaction Data Analysis",
+      content: `
+        <div class="debug-info">
+          <p style="text-align: center; color: #666; padding: 40px;">
+            No transactions available to analyze
+          </p>
+        </div>
+      `
+    });
     return;
   }
 
@@ -107,7 +110,11 @@ export function inspectTransactionData() {
     </div>
   `;
 
-  showModal("Transaction Data Analysis", modalContent, "large");
+  showModal({
+    title: "Transaction Data Analysis",
+    content: modalContent,
+    size: "large"
+  });
 }
 
 /**
