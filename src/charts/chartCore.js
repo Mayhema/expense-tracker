@@ -115,21 +115,38 @@ export function createChart(canvas, type, data, options = {}) {
     // Destroy existing chart if it exists
     destroyChart(canvasId);
 
-    // FIXED: Ensure canvas has proper initial dimensions
+    // FIXED: Ensure canvas has proper responsive dimensions
     const container = canvas.parentElement;
     if (container) {
-      const containerWidth = container.offsetWidth || 400;
-      // FIXED: Allow height to be flexible based on content
-      const containerHeight = Math.max(container.offsetHeight || 350, 350);
-
+      // FIXED: Don't set fixed dimensions, use CSS for responsiveness
       canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.width = containerWidth;
-      canvas.height = containerHeight;
+      canvas.style.height = 'auto';
+      canvas.style.maxWidth = '100%';
+      canvas.style.maxHeight = '100%';
+      canvas.style.display = 'block';
+      canvas.style.boxSizing = 'border-box';
     }
 
     // FIXED: Merge options with special handling for chart-specific configurations
-    const chartOptions = { ...defaultChartConfig, ...options };
+    const chartOptions = {
+      ...defaultChartConfig,
+      ...options,
+      responsive: true,
+      maintainAspectRatio: false,
+      // FIXED: Add resize handling
+      onResize: (chart, size) => {
+        // Ensure chart doesn't grow beyond container
+        const container = chart.canvas.parentElement;
+        if (container) {
+          const maxWidth = container.offsetWidth;
+          const maxHeight = Math.min(container.offsetHeight, window.innerHeight * 0.8);
+
+          if (size.width > maxWidth || size.height > maxHeight) {
+            chart.resize(Math.min(size.width, maxWidth), Math.min(size.height, maxHeight));
+          }
+        }
+      }
+    };
 
     // FIXED: Special handling for pie/doughnut charts to ensure legend fits
     if (type === 'pie' || type === 'doughnut') {
@@ -148,6 +165,9 @@ export function createChart(canvas, type, data, options = {}) {
     registeredCharts.set(canvasId, chart);
     console.log(`Chart registered: ${canvasId}`);
 
+    // FIXED: Add zoom change monitoring
+    addZoomMonitoring(canvas, chart);
+
     // FIXED: Ensure chart resizes properly when container changes
     setTimeout(() => {
       if (chart && typeof chart.resize === 'function') {
@@ -160,6 +180,42 @@ export function createChart(canvas, type, data, options = {}) {
     console.error("Error creating chart:", error);
     return null;
   }
+}
+
+/**
+ * FIXED: Add zoom monitoring for individual charts
+ */
+function addZoomMonitoring(canvas, chart) {
+  let lastDevicePixelRatio = window.devicePixelRatio;
+
+  const checkZoom = () => {
+    const currentDevicePixelRatio = window.devicePixelRatio;
+    if (Math.abs(currentDevicePixelRatio - lastDevicePixelRatio) > 0.1) {
+      lastDevicePixelRatio = currentDevicePixelRatio;
+
+      setTimeout(() => {
+        if (chart && chart.canvas && chart.canvas.isConnected) {
+          // Reset canvas styling
+          canvas.style.width = '100%';
+          canvas.style.height = 'auto';
+          canvas.style.maxWidth = '100%';
+          canvas.style.maxHeight = '100%';
+
+          // Force resize
+          chart.resize();
+          console.log(`Chart ${canvas.id} resized for zoom change`);
+        }
+      }, 50);
+    }
+  };
+
+  window.addEventListener('resize', checkZoom);
+
+  // Store for cleanup
+  if (!canvas._zoomHandlers) {
+    canvas._zoomHandlers = [];
+  }
+  canvas._zoomHandlers.push(checkZoom);
 }
 
 /**
@@ -466,6 +522,13 @@ function handleResize() {
           registeredCharts.delete(canvasId);
           return;
         }
+
+        // FIXED: Reset canvas dimensions before resize
+        const canvas = chart.canvas;
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        canvas.style.maxWidth = '100%';
+        canvas.style.maxHeight = '100%';
 
         if (typeof chart.resize === 'function') {
           chart.resize();

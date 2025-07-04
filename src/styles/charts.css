@@ -17,12 +17,15 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid #e0e0e0;
   min-height: 350px;
-  /* FIXED: Allow height to grow for chart content */
+  /* FIXED: Allow height to grow for chart content but constrain for zoom */
   height: auto;
-  max-height: none;
-  overflow: visible;
+  max-height: 80vh;
+  max-width: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* FIXED: Prevent container from growing beyond viewport */
+  box-sizing: border-box;
 }
 
 .chart-container.full-width {
@@ -39,11 +42,14 @@
 
 .chart-container canvas {
   width: 100% !important;
-  /* FIXED: Allow canvas height to grow with content */
+  /* FIXED: Allow canvas height to grow with content but constrain for zoom */
   height: auto !important;
   min-height: 250px !important;
-  max-height: none !important;
+  max-height: calc(80vh - 100px) !important;
+  max-width: 100% !important;
   flex: 1;
+  display: block !important;
+  box-sizing: border-box !important;
 }
 
 /* Dark mode styles for charts */
@@ -67,9 +73,13 @@
 
   .chart-container {
     min-height: 300px;
+    /* FIXED: Adjust max height for mobile */
+    max-height: 70vh;
   }
 
   .chart-container canvas {
     min-height: 200px !important;
+    /* FIXED: Adjust max height for mobile */
+    max-height: calc(70vh - 80px) !important;
   }
 }

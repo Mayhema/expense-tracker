@@ -70,10 +70,16 @@ function initializeIndividualCharts() {
           chartInstances[config.key].destroy();
         }
 
+        // FIXED: Set proper canvas sizing for zoom responsiveness
+        setupCanvasForResponsiveZoom(canvas);
+
         // Create empty chart
         const ctx = canvas.getContext('2d');
         const chart = new Chart(ctx, getEmptyChartConfig(config.type));
         chartInstances[config.key] = chart;
+
+        // FIXED: Add zoom change detection
+        addZoomChangeHandler(canvas, chart);
 
         console.log(`Initialized ${config.id}`);
       } catch (error) {
@@ -84,6 +90,117 @@ function initializeIndividualCharts() {
 
   // Initialize chart toggle buttons
   initializeChartToggleButtons();
+
+  // FIXED: Add global zoom handler
+  setupGlobalZoomHandler();
+}
+
+/**
+ * FIXED: Setup canvas for responsive zoom behavior
+ */
+function setupCanvasForResponsiveZoom(canvas) {
+  // Remove any fixed dimensions that might interfere with zoom
+  canvas.style.removeProperty('width');
+  canvas.style.removeProperty('height');
+
+  // Set responsive CSS properties
+  canvas.style.maxWidth = '100%';
+  canvas.style.maxHeight = '100%';
+  canvas.style.display = 'block';
+
+  // Ensure container has proper constraints
+  const container = canvas.closest('.chart-wrapper, .chart-container');
+  if (container) {
+    container.style.maxWidth = '100vw';
+    container.style.overflow = 'hidden';
+    container.style.position = 'relative';
+  }
+}
+
+/**
+ * FIXED: Add zoom change detection for individual charts
+ */
+function addZoomChangeHandler(canvas, chart) {
+  let lastZoom = window.devicePixelRatio;
+  let resizeTimeout;
+
+  const checkZoomChange = () => {
+    const currentZoom = window.devicePixelRatio;
+    if (Math.abs(currentZoom - lastZoom) > 0.1) {
+      lastZoom = currentZoom;
+
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (chart && chart.canvas && chart.canvas.isConnected) {
+          // Force canvas to recalculate dimensions
+          chart.resize();
+          console.log(`Chart resized due to zoom change: ${canvas.id}`);
+        }
+      }, 100);
+    }
+  };
+
+  // Check on various events that might indicate zoom
+  window.addEventListener('resize', checkZoomChange);
+  window.addEventListener('orientationchange', checkZoomChange);
+
+  // Store handler for cleanup
+  canvas._zoomHandler = checkZoomChange;
+}
+
+/**
+ * FIXED: Setup global zoom handler for all charts
+ */
+function setupGlobalZoomHandler() {
+  let lastDevicePixelRatio = window.devicePixelRatio;
+  let zoomTimeout;
+
+  const handleZoomChange = () => {
+    const currentDevicePixelRatio = window.devicePixelRatio;
+
+    // Detect significant zoom changes
+    if (Math.abs(currentDevicePixelRatio - lastDevicePixelRatio) > 0.1) {
+      lastDevicePixelRatio = currentDevicePixelRatio;
+
+      clearTimeout(zoomTimeout);
+      zoomTimeout = setTimeout(() => {
+        console.log('Zoom change detected, resizing all charts...');
+        resizeAllCharts();
+      }, 150);
+    }
+  };
+
+  // Monitor for zoom changes
+  window.addEventListener('resize', handleZoomChange);
+
+  // Also monitor for zoom via media queries
+  const mediaQuery = window.matchMedia('(min-resolution: 1dppx)');
+  if (mediaQuery.addEventListener) {
+    mediaQuery.addEventListener('change', handleZoomChange);
+  }
+}
+
+/**
+ * FIXED: Resize all charts properly
+ */
+function resizeAllCharts() {
+  Object.keys(chartInstances).forEach(key => {
+    const chart = chartInstances[key];
+    if (chart && chart.canvas && chart.canvas.isConnected) {
+      try {
+        // Reset canvas style dimensions
+        const canvas = chart.canvas;
+        setupCanvasForResponsiveZoom(canvas);
+
+        // Force chart to resize
+        chart.resize();
+
+        console.log(`Resized chart: ${key}`);
+      } catch (error) {
+        console.error(`Error resizing chart ${key}:`, error);
+      }
+    }
+  });
 }
 
 /**
