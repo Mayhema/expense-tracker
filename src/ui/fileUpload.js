@@ -65,6 +65,9 @@ export function createNewFileInput() {
     // Clean up existing inputs first
     cleanupExistingFileInputs();
 
+    // FIXED: DON'T clone the upload button here - it's already handled in sidebarManager
+    // This was causing the double file browser issue
+
     // Create new file input
     const fileInput = document.createElement('input');
     fileInput.type = 'file';

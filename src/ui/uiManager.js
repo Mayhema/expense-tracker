@@ -47,159 +47,80 @@ function updateDarkModeToggle(isDarkMode) {
 }
 
 /**
- * Shows a simple toast notification at the top of the screen
- */
-export function showToast(message, type = 'info', duration = 3000) {
-  try {
-    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<span class="toast-message">${message}</span>`;
-
-    toastContainer.appendChild(toast);
-
-    // Auto-remove after duration
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.classList.add('removing');
-        setTimeout(() => {
-          if (toast.parentElement) {
-            toast.remove();
-          }
-        }, 300);
-      }
-    }, duration);
-
-  } catch (error) {
-    console.error('Error showing toast:', error);
-    // Fallback to console log
-    console.log(`Toast ${type}: ${message}`);
-  }
-}
-
-/**
- * Creates toast container if it doesn't exist
- */
-function createToastContainer() {
-  let container = document.getElementById('toastContainer');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-  }
-  return container;
-}
-
-/**
- * Removes a toast with animation
- */
-function removeToast(toast) {
-  if (!toast || !document.body.contains(toast)) return;
-
-  toast.style.transform = 'translateX(400px)';
-  setTimeout(() => {
-    if (document.body.contains(toast)) {
-      document.body.removeChild(toast);
-    }
-    if (activeToast === toast) {
-      activeToast = null;
-    }
-  }, 300);
-}
-
-export function handleError(error, userMessage = "An error occurred.") {
-  console.error(error);
-  showToast(userMessage, "error");
-}
-
-export function initializeDragAndDrop(onFileUpload) {
-  const dropZone = document.body;
-
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (files.length > 0 && onFileUpload) {
-      onFileUpload({ target: { files } });
-    }
-  });
-}
-
-/**
- * Updates UI elements based on debug mode state
- */
-export function updateDebugModeUI(isDebugMode) {
-  const debugActions = document.querySelectorAll('.debug-action');
-  debugActions.forEach(action => {
-    action.style.display = isDebugMode ? 'flex' : 'none';
-  });
-
-  // Save the debug mode state
-  localStorage.setItem('debugMode', isDebugMode);
-
-  // Update the toggle icon state
-  updateDebugModeToggle(isDebugMode);
-}
-
-/**
  * Updates the debug mode toggle icon state
  */
 function updateDebugModeToggle(isDebugMode) {
-  const debugToggle = document.getElementById('debugToggle');
+  const debugToggle = document.getElementById('debugModeToggle');
   if (debugToggle) {
-    const icon = debugToggle.querySelector('.toggle-icon');
-    if (icon) {
-      icon.textContent = isDebugMode ? '🐛' : '🔧';
-    }
-    debugToggle.classList.toggle('active', isDebugMode);
+    debugToggle.checked = isDebugMode;
   }
-
-  // Update debug mode UI elements
-  document.body.classList.toggle('debug-mode', isDebugMode);
-  localStorage.setItem('debugMode', isDebugMode);
-
-  console.log(`Debug mode ${isDebugMode ? 'enabled' : 'disabled'}`);
 }
 
 /**
- * Initialize all UI components
+ * Shows a simple toast notification at the top of the screen
  */
-export function initializeUI() {
-  console.log('Initializing UI components...');
+export function showToast(message, type = 'info', duration = 3000) {
+  console.log(`Toast: ${type} - ${message}`);
 
-  try {
-    // Set up sidebar functionality
-    setupSidebar();
+  // Create toast container if it doesn't exist
+  let toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toastContainer';
+    toastContainer.className = 'toast-container';
+    toastContainer.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    `;
+    document.body.appendChild(toastContainer);
+  }
 
-    // Set up all UI event listeners
-    setupUIEventListeners();
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.style.cssText = `
+    background: white;
+    border-left: 4px solid ${getToastColor(type)};
+    padding: 12px 16px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-width: 300px;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    font-size: 14px;
+    color: #333;
+  `;
+  toast.textContent = message;
 
-    // Initialize dark mode from localStorage
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (savedDarkMode) {
-      document.body.classList.add('dark-mode');
-    }
-    updateDarkModeToggle(savedDarkMode);
+  toastContainer.appendChild(toast);
 
-    // Initialize debug mode from localStorage
-    const savedDebugMode = localStorage.getItem('debugMode') === 'true';
-    updateDebugModeUI(savedDebugMode);
+  // Animate in
+  setTimeout(() => {
+    toast.style.transform = 'translateX(0)';
+  }, 10);
 
-    // Initialize dark mode toggle functionality
-    initializeDarkModeToggle();
+  // Remove after duration
+  setTimeout(() => {
+    toast.style.transform = 'translateX(400px)';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, duration);
+}
 
-    // Initialize debug action buttons
-    initializeDebugActionButtons();
-
-    console.log('UI components initialized successfully');
-  } catch (error) {
-    console.error('Error initializing UI components:', error);
+function getToastColor(type) {
+  switch (type) {
+    case 'success': return '#28a745';
+    case 'error': return '#dc3545';
+    case 'warning': return '#ffc107';
+    default: return '#17a2b8';
   }
 }
 
@@ -453,6 +374,43 @@ function initializeDebugActionButtons() {
 }
 
 /**
+ * Updates UI elements based on debug mode state
+ */
+export function updateDebugVisibility(isDebugMode) {
+  const debugElements = document.querySelectorAll('.debug-only');
+  console.log(`Found ${debugElements.length} debug elements to ${isDebugMode ? 'show' : 'hide'}`);
+
+  debugElements.forEach(element => {
+    if (isDebugMode) {
+      // Show the element with proper display type
+      if (element.classList.contains('inline-element')) {
+        element.style.display = 'inline-block';
+      } else if (element.classList.contains('flex-element')) {
+        element.style.display = 'flex';
+      } else {
+        element.style.display = 'block';
+      }
+      element.style.visibility = 'visible';
+      element.style.opacity = '1';
+    } else {
+      // Hide the element
+      element.style.display = 'none';
+      element.style.visibility = 'hidden';
+      element.style.opacity = '0';
+    }
+  });
+
+  // Update console logs button visibility
+  const saveButton = document.querySelector('button[onclick*="saveLogs"]');
+  if (saveButton) {
+    saveButton.style.display = isDebugMode ? 'block' : 'none';
+  }
+
+  console.log(`Debug visibility updated: ${isDebugMode ? 'shown' : 'hidden'} for ${debugElements.length} elements`);
+}
+
+
+/**
  * Initialize dark mode toggle functionality
  */
 function initializeDarkModeToggle() {
@@ -492,40 +450,4 @@ function toggleDebugMode() {
   showToast(`Debug mode ${newDebugMode ? "enabled" : "disabled"}`, "info");
 
   console.log(`Debug mode toggled: ${newDebugMode}`);
-}
-
-/**
- * Updates UI elements based on debug mode state
- */
-export function updateDebugVisibility(isDebugMode) {
-  const debugElements = document.querySelectorAll('.debug-only');
-  console.log(`Found ${debugElements.length} debug elements to ${isDebugMode ? 'show' : 'hide'}`);
-
-  debugElements.forEach(element => {
-    if (isDebugMode) {
-      // Show the element with proper display type
-      if (element.classList.contains('inline-element')) {
-        element.style.display = 'inline-block';
-      } else if (element.classList.contains('flex-element')) {
-        element.style.display = 'flex';
-      } else {
-        element.style.display = 'block';
-      }
-      element.style.visibility = 'visible';
-      element.style.opacity = '1';
-    } else {
-      // Hide the element
-      element.style.display = 'none';
-      element.style.visibility = 'hidden';
-      element.style.opacity = '0';
-    }
-  });
-
-  // Update console logs button visibility
-  const saveButton = document.querySelector('button[onclick*="saveLogs"]');
-  if (saveButton) {
-    saveButton.style.display = isDebugMode ? 'block' : 'none';
-  }
-
-  console.log(`Debug visibility updated: ${isDebugMode ? 'shown' : 'hidden'} for ${debugElements.length} elements`);
 }

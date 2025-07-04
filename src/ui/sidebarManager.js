@@ -216,16 +216,26 @@ function updateDebugVisibility(isDebugMode) {
  * Initialize action buttons
  */
 function initializeActionButtons() {
-  // File upload button
+  // FIXED: Remove existing event listeners from upload button to prevent double triggers
   const fileUploadBtn = document.getElementById("fileUploadBtn");
   if (fileUploadBtn) {
-    fileUploadBtn.addEventListener("click", () => {
+    // Clone the button to remove all event listeners
+    const newUploadBtn = fileUploadBtn.cloneNode(true);
+    fileUploadBtn.parentNode.replaceChild(newUploadBtn, fileUploadBtn);
+
+    // Add single event listener
+    newUploadBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       console.log("CRITICAL: Upload button clicked - initiating file upload");
-      // Import and use the file upload functionality
+
       import("../ui/fileUpload.js").then(module => {
         if (module.createNewFileInput) {
           console.log("CRITICAL: Calling createNewFileInput()");
-          module.createNewFileInput();
+          const input = module.createNewFileInput();
+          if (input) {
+            input.click();
+          }
         } else {
           console.error("createNewFileInput function not found");
         }
@@ -235,34 +245,53 @@ function initializeActionButtons() {
     });
   }
 
-  // Show mappings button
+  // FIXED: Remove existing event listeners from other buttons to prevent double modals
   const showMappingsBtn = document.getElementById("showMappingsBtn");
   if (showMappingsBtn) {
-    showMappingsBtn.addEventListener("click", () => {
+    const newMappingsBtn = showMappingsBtn.cloneNode(true);
+    showMappingsBtn.parentNode.replaceChild(newMappingsBtn, showMappingsBtn);
+
+    newMappingsBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       _handleShowMappings();
     });
   }
 
-  // Show merged files button
   const showMergedFilesBtn = document.getElementById("showMergedFilesBtn");
   if (showMergedFilesBtn) {
-    showMergedFilesBtn.addEventListener("click", () => {
+    const newMergedFilesBtn = showMergedFilesBtn.cloneNode(true);
+    showMergedFilesBtn.parentNode.replaceChild(newMergedFilesBtn, showMergedFilesBtn);
+
+    newMergedFilesBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       _handleShowMergedFiles();
     });
   }
 
-  // Edit categories button
   const editCategoriesBtn = document.getElementById("editCategoriesSidebarBtn");
   if (editCategoriesBtn) {
-    editCategoriesBtn.addEventListener("click", () => {
+    const newCategoriesBtn = editCategoriesBtn.cloneNode(true);
+    editCategoriesBtn.parentNode.replaceChild(newCategoriesBtn, editCategoriesBtn);
+
+    newCategoriesBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       _handleEditCategories();
     });
   }
 
-  // Export button - FIXED: Use the correct export function
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn) {
-    exportBtn.addEventListener("click", handleExportClick);
+    const newExportBtn = exportBtn.cloneNode(true);
+    exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
+
+    newExportBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleExportClick();
+    });
   }
 
   // Debug buttons
@@ -455,43 +484,18 @@ function _handleEditCategories() {
   });
 }
 
-/**
- * Reset application data
- */
-async function _handleResetApp() {
-  if (confirm('Are you sure you want to reset the application? This will clear all data.')) {
-    await performAppReset();
-  }
-}
 
-/**
- * Performs the actual app reset operation
- */
-async function performAppReset() {
-  try {
-    const [categoriesModule, appStateModule] = await Promise.all([
-      import('../constants/categories.js'),
-      import('../core/appState.js')
-    ]);
-
-    // Clear all data
-    localStorage.clear();
-    sessionStorage.clear();
-
-    // Initialize default categories immediately
-    appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
-    localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
-    console.log('Reset App: Loaded default categories');
-
-    await resetToDefaultCategories();
-
-    // Reload after ensuring categories are saved
-    setTimeout(() => {
-      location.reload();
-    }, 500);
-  } catch (error) {
-    console.error('Error during app reset:', error);
-  }
+// FIXED: Add missing save log handler
+function handleSaveLogClick() {
+  import('../utils/debug.js').then(module => {
+    if (module.saveDebugLog) {
+      module.saveDebugLog();
+    } else {
+      console.error('saveDebugLog function not found');
+    }
+  }).catch(err => {
+    console.error('Error loading debug utils:', err);
+  });
 }
 
 /**
@@ -526,23 +530,6 @@ async function handleExportClick() {
   }
 }
 
-/**
- * Handles save log button click
- */
-async function handleSaveLogClick() {
-  if (window.saveConsoleLogs) {
-    window.saveConsoleLogs();
-    return;
-  }
-
-  try {
-    await import('../utils/console-logger.js');
-    await waitForConsoleLogger();
-  } catch (err) {
-    console.error("Failed to load console logger:", err);
-    await showErrorToast('Failed to load console logger');
-  }
-}
 
 /**
  * Waits for console logger to initialize

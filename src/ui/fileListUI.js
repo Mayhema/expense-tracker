@@ -2,9 +2,20 @@ import { AppState } from '../core/appState.js';
 import { showToast } from './uiManager.js';
 
 /**
+ * FIXED: Add singleton pattern to prevent duplicate modals
+ */
+let fileListModalInstance = null;
+
+/**
  * Show merged files modal
  */
 export function showMergedFilesModal() {
+  // FIXED: Prevent multiple modals
+  if (fileListModalInstance) {
+    console.log('File list modal already open');
+    return fileListModalInstance;
+  }
+
   console.log("Opening merged files modal...");
 
   const modalContent = document.createElement('div');
@@ -21,6 +32,14 @@ export function showMergedFilesModal() {
       size: 'large',
       closeOnClickOutside: true
     });
+
+    // Store reference and override close method
+    fileListModalInstance = modal;
+    const originalClose = modal.close;
+    modal.close = function () {
+      fileListModalInstance = null;
+      originalClose.call(this);
+    };
 
     // Attach event listeners
     attachMergedFilesEventListeners(modalContent, modal);

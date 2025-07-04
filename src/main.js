@@ -1,4 +1,4 @@
-console.log("Executing main.js - Version: 2024-07-29_02");
+console.log("Executing main.js - Version: 2025-06-29_02");
 
 // Import only JavaScript modules - all CSS is loaded via HTML
 import { AppState, loadAppState } from './core/appState.js';

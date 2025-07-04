@@ -3,6 +3,7 @@
  */
 
 let activeModal = null;
+let modalCreationInProgress = false;
 
 // FIXED: Cache frequently accessed DOM elements
 const modalCache = {
@@ -23,6 +24,21 @@ function getModalOverlay() {
  * Show a modal with the given options
  */
 export function showModal(options = {}) {
+  // FIXED: Prevent multiple modals from being created simultaneously
+  if (modalCreationInProgress) {
+    console.log('CRITICAL: Modal creation already in progress, skipping...');
+    return activeModal;
+  }
+
+  // FIXED: Close any existing modal before creating a new one
+  if (activeModal) {
+    console.log('CRITICAL: Closing existing modal before creating new one');
+    activeModal.close();
+    activeModal = null;
+  }
+
+  modalCreationInProgress = true;
+
   console.log('CRITICAL: showModal called with options:', options);
 
   const {
@@ -154,8 +170,14 @@ export function showModal(options = {}) {
         modalContainer.style.display = 'none';
         modalContainer.style.pointerEvents = 'none';
       }
+      activeModal = null;
+      modalCreationInProgress = false;
     }
   };
+
+  // Set as active modal
+  activeModal = modal;
+  modalCreationInProgress = false;
 
   // Event listeners
   if (showCloseButton) {

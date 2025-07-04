@@ -3,9 +3,20 @@ import { showModal } from './modalManager.js';
 import { showToast } from './uiManager.js';
 
 /**
+ * Ensure category modal uses singleton pattern:
+ */
+let categoryManagerModalInstance = null;
+
+/**
  * Show the category manager modal
  */
 export function showCategoryManagerModal() {
+  // FIXED: Prevent multiple modals
+  if (categoryManagerModalInstance) {
+    console.log('Category manager modal already open');
+    return categoryManagerModalInstance;
+  }
+
   console.log("Opening category manager modal...");
 
   const modalContent = document.createElement('div');
@@ -19,7 +30,17 @@ export function showCategoryManagerModal() {
     closeOnClickOutside: false
   });
 
+  // Store reference and override close method
+  categoryManagerModalInstance = modal;
+  const originalClose = modal.close;
+  modal.close = function () {
+    categoryManagerModalInstance = null;
+    originalClose.call(this);
+  };
+
   attachCategoryManagerEventListeners(modalContent, modal);
+
+  return modal;
 }
 
 function buildCategoryManagerHTML() {
