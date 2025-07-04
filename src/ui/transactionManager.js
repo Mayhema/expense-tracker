@@ -1483,6 +1483,11 @@ function createFilterSection() {
  */
 function generateCategoryDropdown(selectedCategory, selectedSubcategory, transactionId) {
   const categories = AppState.categories || {};
+
+  // FIXED: Get the transaction to determine which categories to show
+  const transaction = AppState.transactions?.find(tx => tx.id === transactionId);
+  const relevantCategories = transaction ? getRelevantCategories(transaction) : Object.keys(categories);
+
   let html = `
     <select class="edit-field category-select"
             data-field="category"
@@ -1491,8 +1496,9 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
       <option value="">Select Category</option>
   `;
 
-  // Get sorted categories by order - FIXED: Use same sorting logic as filter
+  // Get sorted categories by order - FIXED: Filter to only relevant categories
   const sortedCategories = Object.entries(categories)
+    .filter(([categoryName]) => relevantCategories.includes(categoryName))
     .sort(([nameA, a], [nameB, b]) => {
       const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
       const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
@@ -1501,7 +1507,7 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
         return orderA - orderB;
       }
 
-      // If same order, sort alphabetically - FIXED: Use nameA and nameB instead of a[0] and b[0]
+      // If same order, sort alphabetically
       return nameA.localeCompare(nameB);
     });
 
@@ -1533,153 +1539,152 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 }
 
 /**
- * FIXED: Update transaction display (called by filter module)
+ * FIXED: Get relevant categories based on transaction type (income/expense) - Enhanced logic
  */
-export function updateTransactionDisplay(filteredTransactions) {
-  console.log(`Updating transaction display with ${filteredTransactions.length} filtered transactions`);
+function getRelevantCategories(transaction) {
+  const income = parseFloat(transaction.income) || 0;
+  const expenses = parseFloat(transaction.expenses) || 0;
 
-  const container = document.querySelector('.transactions-section');
-  if (!container) return;
+  // If both income and expenses exist, show all categories
+  if (income > 0 && expenses > 0) {
+    console.log(`Transaction ${transaction.id}: Both income (${income}) and expenses (${expenses}) present - showing all categories`);
+    return Object.keys(AppState.categories || {}).sort();
+  }
 
-  // Update summary with filtered transactions
-  updateTransactionSummary(filteredTransactions);
+  // If only income, show only income-related categories
+  if (income > 0 && expenses === 0) {
+    console.log(`Transaction ${transaction.id}: Only income (${income}) - showing income categories`);
+    return getIncomeCategories();
+  }
 
-  // Render transaction table with filtered data
-  renderTransactionTable(container, filteredTransactions);
+  // If only expenses, show only expense-related categories
+  if (expenses > 0 && income === 0) {
+    console.log(`Transaction ${transaction.id}: Only expenses (${expenses}) - showing expense categories`);
+    return getExpenseCategories();
+  }
 
-  // REMOVED: Category buttons update - no longer needed
+  // Default: show all categories if no amounts or both are zero
+  console.log(`Transaction ${transaction.id}: No amounts or both zero - showing all categories`);
+  return Object.keys(AppState.categories || {}).sort();
 }
 
-
 /**
- * Save transaction edits
+ * FIXED: Get categories that are typically used for income - Enhanced detection
  */
-async function saveTransactionEdit(index, newData) {
-  try {
-    // ...existing save logic...
+function getIncomeCategories() {
+  const allCategories = AppState.categories || {};
+  const incomeKeywords = [
+    'income', 'salary', 'wage', 'pay', 'freelance', 'business', 'work',
+    'investment', 'dividend', 'interest', 'bonus', 'commission',
+    'refund', 'return', 'cashback', 'rebate',
+    'gift', 'allowance', 'grant', 'loan', 'credit',
+    'revenue', 'earning', 'profit', 'royalty'
+  ];
 
-    // FIXED: Update charts after saving transaction edits
-    try {
-      const chartsModule = await import('./charts.js');
-      if (chartsModule && chartsModule.updateCharts) {
-        chartsModule.updateCharts();
-        console.log("Charts updated after transaction edit");
+  const incomeCategories = Object.keys(allCategories).filter(category => {
+    const categoryLower = category.toLowerCase();
+    return incomeKeywords.some(keyword => categoryLower.includes(keyword));
+  });
+
+  // If no specific income categories found, include some by structure
+  if (incomeCategories.length === 0) {
+    // Look for categories that might be income-related by subcategory names
+    const potentialIncomeCategories = Object.keys(allCategories).filter(category => {
+      const categoryData = allCategories[category];
+      if (typeof categoryData === 'object' && categoryData.subcategories) {
+        const subcategoryKeys = Object.keys(categoryData.subcategories).join(' ').toLowerCase();
+        return incomeKeywords.some(keyword => subcategoryKeys.includes(keyword));
       }
-    } catch (error) {
-      console.log('Could not update charts after edit:', error.message);
-    }
-
-  } catch (error) {
-    console.error('Error saving transaction edit:', error);
-  }
-}
-
-// FIXED: Cache DOM elements to avoid repeated queries
-const transactionCache = {
-  container: null,
-  filterElements: new Map(),
-  eventListeners: new Map()
-};
-
-function getTransactionContainer() {
-  // FIXED: Cache the main container
-  if (!transactionCache.container) {
-    transactionCache.container = document.getElementById('transactionsList') ||
-      document.querySelector('.transactions-container') ||
-      document.querySelector('#transactionsContainer');
-  }
-  return transactionCache.container;
-}
-
-function getCachedElement(id) {
-  // FIXED: Cache frequently accessed filter elements
-  if (!transactionCache.filterElements.has(id)) {
-    transactionCache.filterElements.set(id, document.getElementById(id));
-  }
-  return transactionCache.filterElements.get(id);
-}
-
-// Removed duplicate renderTransactions function - using the main one defined earlier
-
-// FIXED: Centralized event listener management - merged with existing function
-function attachTransactionEventListenersV2() {
-  const container = getTransactionContainer();
-  if (!container) return;
-
-  // FIXED: Use event delegation for better performance
-  const handleTransactionClick = (e) => {
-    const transactionElement = e.target.closest('.transaction-item');
-    if (!transactionElement) return;
-
-    const transactionId = transactionElement.dataset.transactionId;
-    if (e.target.matches('.edit-btn')) {
-      handleEditTransaction(transactionId);
-    } else if (e.target.matches('.delete-btn')) {
-      handleDeleteTransaction(transactionId);
-    } else if (e.target.matches('.category-btn')) {
-      handleCategoryChange(transactionId, e.target);
-    }
-  };
-
-  container.addEventListener('click', handleTransactionClick);
-
-  // FIXED: Track listeners for cleanup
-  if (!transactionCache.eventListeners.has('main')) {
-    transactionCache.eventListeners.set('main', []);
-  }
-  transactionCache.eventListeners.get('main').push({
-    element: container,
-    event: 'click',
-    handler: handleTransactionClick
-  });
-}
-
-// FIXED: Clean up event listeners to prevent memory leaks
-function clearTransactionEventListeners() {
-  transactionCache.eventListeners.forEach((listeners, key) => {
-    listeners.forEach(({ element, event, handler }) => {
-      element.removeEventListener(event, handler);
+      return false;
     });
-  });
-  transactionCache.eventListeners.clear();
-}
 
-// FIXED: Cleanup function for component unmounting
-export function cleanupTransactionManager() {
-  clearTransactionEventListeners();
-  transactionCache.container = null;
-  transactionCache.filterElements.clear();
-}
-
-// FIXED: Initialize transaction manager and load existing data
-export function initializeTransactionManager() {
-  console.log("CRITICAL: Initializing transaction manager...");
-
-  // FIXED: Force immediate render with current AppState data without chart updates
-  setTimeout(() => {
-    const transactions = AppState.transactions || [];
-    if (transactions.length > 0) {
-      console.log(`CRITICAL: Rendering ${transactions.length} existing transactions without chart updates`);
-      renderTransactions(transactions, false); // FIXED: Never update charts from here
-    } else {
-      console.log("CRITICAL: No existing transactions to render");
-      renderTransactions([], false);
+    if (potentialIncomeCategories.length > 0) {
+      return potentialIncomeCategories.sort();
     }
-  }, 100);
+
+    // Final fallback: look for any category that doesn't seem expense-related
+    const expenseKeywords = [
+      'food', 'transport', 'shopping', 'entertainment', 'bills', 'utilities',
+      'rent', 'mortgage', 'insurance', 'medical', 'health', 'education',
+      'travel', 'clothing', 'electronics', 'home', 'car', 'gas', 'fuel'
+    ];
+
+    const nonExpenseCategories = Object.keys(allCategories).filter(category => {
+      const categoryLower = category.toLowerCase();
+      return !expenseKeywords.some(keyword => categoryLower.includes(keyword));
+    });
+
+    return nonExpenseCategories.length > 0 ? nonExpenseCategories.sort() : Object.keys(allCategories).sort();
+  }
+
+  console.log(`Found ${incomeCategories.length} income categories:`, incomeCategories);
+  return incomeCategories.sort();
 }
 
 /**
- * FIXED: Update transactions from merged files
+ * FIXED: Get categories that are typically used for expenses - Enhanced detection
  */
-export function updateTransactions() {
-  console.group("🔄 UPDATING TRANSACTIONS FROM MERGED FILES");
-  console.log("Processing merged files...");
+function getExpenseCategories() {
+  const allCategories = AppState.categories || {};
+  const expenseKeywords = [
+    'food', 'dining', 'restaurant', 'groceries', 'meal',
+    'transport', 'transportation', 'travel', 'gas', 'fuel', 'parking', 'taxi', 'uber',
+    'shopping', 'retail', 'store', 'purchase',
+    'entertainment', 'movie', 'game', 'event', 'concert', 'sport',
+    'bills', 'utilities', 'electricity', 'water', 'internet', 'phone', 'cable',
+    'rent', 'mortgage', 'housing', 'property',
+    'insurance', 'premium', 'coverage',
+    'medical', 'health', 'doctor', 'hospital', 'pharmacy', 'dental',
+    'education', 'school', 'university', 'course', 'training',
+    'clothing', 'fashion', 'apparel',
+    'electronics', 'technology', 'gadget',
+    'home', 'house', 'furniture', 'appliance',
+    'car', 'vehicle', 'auto', 'maintenance', 'repair',
+    'subscription', 'membership', 'fee'
+  ];
 
-  if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    console.log("No merged files to process");
-    console.groupEnd();
-    return;
+  const expenseCategories = Object.keys(allCategories).filter(category => {
+    const categoryLower = category.toLowerCase();
+
+    // Exclude categories that are clearly income-related
+    const incomeKeywords = [
+      'income', 'salary', 'wage', 'freelance', 'business', 'investment',
+      'dividend', 'interest', 'bonus', 'commission', 'earning', 'revenue'
+    ];
+    const isIncomeCategory = incomeKeywords.some(keyword => categoryLower.includes(keyword));
+
+    if (isIncomeCategory) {
+      return false;
+    }
+
+    // Include if it matches expense keywords
+    return expenseKeywords.some(keyword => categoryLower.includes(keyword));
+  });
+
+  // If no specific expense categories found, exclude obvious income categories
+  if (expenseCategories.length === 0) {
+    const incomeKeywords = [
+      'income', 'salary', 'wage', 'freelance', 'business', 'investment',
+      'dividend', 'interest', 'bonus', 'commission', 'earning', 'revenue'
+    ];
+
+    const nonIncomeCategories = Object.keys(allCategories).filter(category => {
+      const categoryLower = category.toLowerCase();
+      return !incomeKeywords.some(keyword => categoryLower.includes(keyword));
+    });
+
+    return nonIncomeCategories.length > 0 ? nonIncomeCategories.sort() : Object.keys(allCategories).sort();
   }
+
+  console.log(`Found ${expenseCategories.length} expense categories:`, expenseCategories);
+  return expenseCategories.sort();
+}
+
+/**
+ * FIXED: Update transactions from uploaded files
+ */
+export function updateTransactionsFromUpload() {
+  console.group('📤 UPDATING TRANSACTIONS FROM UPLOAD');
 
   // Combine all transaction data from merged files
   let allTransactions = [];
@@ -1859,5 +1864,24 @@ function applyQuickCategory(category) {
   // Refresh the transaction display
   setTimeout(() => {
     renderTransactions(AppState.transactions, true);
+  }, 100);
+}
+
+/**
+ * FIXED: Initialize transaction manager and load existing data
+ */
+export function initializeTransactionManager() {
+  console.log("CRITICAL: Initializing transaction manager...");
+
+  // FIXED: Force immediate render with current AppState data without chart updates
+  setTimeout(() => {
+    const transactions = AppState.transactions || [];
+    if (transactions.length > 0) {
+      console.log(`CRITICAL: Rendering ${transactions.length} existing transactions without chart updates`);
+      renderTransactions(transactions, false); // FIXED: Never update charts from here
+    } else {
+      console.log("CRITICAL: No existing transactions to render");
+      renderTransactions([], false);
+    }
   }, 100);
 }
