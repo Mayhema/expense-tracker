@@ -120,7 +120,7 @@ function initializeDebugModeToggle() {
   const newToggle = debugModeToggle.cloneNode(true);
   debugModeToggle.parentNode.replaceChild(newToggle, debugModeToggle);
 
-  // Add the event listener to the checkbox input
+  // Add the event listener ONLY to the checkbox input
   newToggle.addEventListener('change', (e) => {
     const isEnabled = e.target.checked;
     document.body.classList.toggle("debug-mode", isEnabled);
@@ -141,19 +141,8 @@ function initializeDebugModeToggle() {
     console.log(`Debug mode ${isEnabled ? 'enabled' : 'disabled'}`);
   });
 
-  // Also add click event to the toggle switch container for better UX
-  const toggleSwitch = newToggle.closest('.toggle-switch');
-  if (toggleSwitch) {
-    toggleSwitch.addEventListener('click', (e) => {
-      // Prevent double-firing if clicking directly on the input
-      if (e.target === newToggle) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      newToggle.checked = !newToggle.checked;
-      newToggle.dispatchEvent(new Event('change'));
-    });
-  }
+  // FIXED: Remove the conflicting click event on toggle switch container
+  // The label click will automatically trigger the checkbox change event
 
   console.log("Debug mode toggle initialized successfully");
 }
@@ -179,7 +168,7 @@ function initializeDarkModeToggle() {
   const newToggle = darkModeToggle.cloneNode(true);
   darkModeToggle.parentNode.replaceChild(newToggle, darkModeToggle);
 
-  // Add event listener to the checkbox input
+  // Add event listener ONLY to the checkbox input
   newToggle.addEventListener('change', (e) => {
     const isDark = e.target.checked;
     document.body.classList.toggle("dark-mode", isDark);
@@ -187,19 +176,8 @@ function initializeDarkModeToggle() {
     console.log(`Dark mode ${isDark ? 'enabled' : 'disabled'}`);
   });
 
-  // Also add click event to the toggle switch container for better UX
-  const toggleSwitch = newToggle.closest('.toggle-switch');
-  if (toggleSwitch) {
-    toggleSwitch.addEventListener('click', (e) => {
-      // Prevent double-firing if clicking directly on the input
-      if (e.target === newToggle) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      newToggle.checked = !newToggle.checked;
-      newToggle.dispatchEvent(new Event('change'));
-    });
-  }
+  // FIXED: Remove the conflicting click event on toggle switch container
+  // The label click will automatically trigger the checkbox change event
 
   console.log("Dark mode toggle initialized successfully");
 }

@@ -527,8 +527,9 @@ div#transactionFilters div.filter-group {
 
 /* Dark mode support */
 .dark-mode .summary-card {
-  background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
-  border-color: #6c757d !important;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%) !important;
+  border-color: #444 !important;
+  color: #e0e0e0 !important;
 }
 
 .dark-mode .summary-label {
@@ -557,6 +558,46 @@ div#transactionFilters div.filter-group {
 
 .dark-mode .summary-card.count .summary-value {
   color: #42a5f5 !important;
+}
+
+/* FIXED: Dark mode summary icons */
+.dark-mode .summary-card .summary-icon {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .summary-card.income .summary-icon {
+  background: rgba(76, 175, 80, 0.2) !important;
+  color: #4caf50 !important;
+}
+
+.dark-mode .summary-card.expenses .summary-icon {
+  background: rgba(244, 67, 54, 0.2) !important;
+  color: #f44336 !important;
+}
+
+.dark-mode .summary-card.net.positive .summary-icon {
+  background: rgba(76, 175, 80, 0.2) !important;
+  color: #4caf50 !important;
+}
+
+.dark-mode .summary-card.net.negative .summary-icon {
+  background: rgba(244, 67, 54, 0.2) !important;
+  color: #f44336 !important;
+}
+
+.dark-mode .summary-card.count .summary-icon {
+  background: rgba(66, 165, 245, 0.2) !important;
+  color: #42a5f5 !important;
+}
+
+/* FIXED: Additional dark mode transaction summary overrides */
+.dark-mode .transaction-summary {
+  background: transparent !important;
+}
+
+.dark-mode .summary-cards-row {
+  background: transparent !important;
 }
 
 /* Mobile responsiveness - FIXED: Force row layout even on mobile */

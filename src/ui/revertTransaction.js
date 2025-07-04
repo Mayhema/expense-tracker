@@ -77,52 +77,28 @@ export function revertTransactionById(transactionId) {
 }
 
 /**
- * Reverts a transaction to its original state (legacy index-based)
- * @param {number} index - Index of the transaction to revert
+ * Helper function to perform the actual revert logic
+ * @param {Object} tx - Transaction to revert
  */
-export function revertTransaction(index) {
-  const tx = AppState.transactions[index];
-  if (!tx) return;
+function performRevert(tx) {
+  const hasOriginalData = tx.originalData && Object.keys(tx.originalData).length > 0;
 
-  // If transaction has ID, use ID-based approach
-  if (tx.id) {
-    revertTransactionById(tx.id);
-    return;
-  }
-
-  // Legacy fallback for transactions without IDs
-  // Check if we have original data to revert to - ONLY data fields count
-  const hasOriginalData = tx.originalData &&
-    Object.keys(tx.originalData).length > 0;
-
-  // If no actual data field edits, just return
   if (!hasOriginalData) {
     showToast("No data changes to revert", "info");
-    return;
+    return false;
   }
 
-  // Confirm with user
-  if (!confirm("Revert this transaction to its original state?")) return;
+  if (!confirm("Revert this transaction to its original state?")) return false;
 
-  // Revert actual data fields only
-  if (hasOriginalData) {
-    const original = tx.originalData;
+  const original = tx.originalData;
+  if (original.date !== undefined) tx.date = original.date;
+  if (original.description !== undefined) tx.description = original.description;
+  if (original.income !== undefined) tx.income = original.income;
+  if (original.expenses !== undefined) tx.expenses = original.expenses;
 
-    // Only revert actual data fields, not category/currency
-    if (original.date !== undefined) tx.date = original.date;
-    if (original.description !== undefined) tx.description = original.description;
-    if (original.income !== undefined) tx.income = original.income;
-    if (original.expenses !== undefined) tx.expenses = original.expenses;
+  delete tx.originalData;
+  delete tx.edited;
 
-    // Remove edit markers
-    delete tx.originalData;
-    delete tx.edited;
-
-    showToast("Transaction data reverted to original", "success");
-  }
-
-  // Category and currency changes are separate and don't trigger revert button
-  // Only handle them if they exist but don't show revert button for these
   if (tx.originalCategory !== undefined) {
     tx.category = tx.originalCategory;
     delete tx.originalCategory;
@@ -133,13 +109,28 @@ export function revertTransaction(index) {
     delete tx.originalSubcategory;
   }
 
-  // Save to localStorage
-  localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+  showToast("Transaction data reverted to original", "success");
+  return true;
+}
 
-  // Update UI
+/**
+ * Reverts a transaction to its original state (legacy index-based)
+ * @param {number} index - Index of the transaction to revert
+ */
+export function revertTransaction(index) {
+  const tx = AppState.transactions[index];
+  if (!tx) return;
+
+  if (tx.id) {
+    revertTransactionById(tx.id);
+    return;
+  }
+
+  if (!performRevert(tx)) return;
+
+  localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
   renderTransactions(AppState.transactions);
 
-  // Update charts after reverting
   setTimeout(async () => {
     try {
       const chartsModule = await import('./charts.js');

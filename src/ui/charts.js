@@ -576,10 +576,18 @@ function updateCategoryChart(transactions) {
       plugins: {
         legend: {
           labels: {
-            color: isDarkMode ? '#e0e0e0' : '#333'
+            color: isDarkMode ? '#e0e0e0' : '#333',
+            font: {
+              size: 12
+            }
           }
         },
         tooltip: {
+          titleColor: isDarkMode ? '#e0e0e0' : '#333',
+          bodyColor: isDarkMode ? '#e0e0e0' : '#333',
+          backgroundColor: isDarkMode ? '#2a2a2a' : '#fff',
+          borderColor: isDarkMode ? '#444' : '#ddd',
+          borderWidth: 1,
           callbacks: {
             label: function (context) {
               const value = context.parsed;
@@ -698,10 +706,18 @@ function updateMonthlyChart(transactions) {
       plugins: {
         legend: {
           labels: {
-            color: isDarkMode ? '#e0e0e0' : '#333'
+            color: isDarkMode ? '#e0e0e0' : '#333',
+            font: {
+              size: 12
+            }
           }
         },
         tooltip: {
+          titleColor: isDarkMode ? '#e0e0e0' : '#333',
+          bodyColor: isDarkMode ? '#e0e0e0' : '#333',
+          backgroundColor: isDarkMode ? '#2a2a2a' : '#fff',
+          borderColor: isDarkMode ? '#444' : '#ddd',
+          borderWidth: 1,
           callbacks: {
             label: function (context) {
               const value = context.parsed.y;
@@ -718,7 +734,10 @@ function updateMonthlyChart(transactions) {
       scales: {
         x: {
           ticks: {
-            color: isDarkMode ? '#e0e0e0' : '#666'
+            color: isDarkMode ? '#e0e0e0' : '#666',
+            font: {
+              size: 11
+            }
           },
           grid: {
             color: isDarkMode ? '#444' : '#e0e0e0'
@@ -728,6 +747,9 @@ function updateMonthlyChart(transactions) {
           beginAtZero: true,
           ticks: {
             color: isDarkMode ? '#e0e0e0' : '#666',
+            font: {
+              size: 11
+            },
             callback: function (value) {
               // Show values with appropriate currency symbol
               return value.toFixed(0);
@@ -819,10 +841,18 @@ function updateTrendChart(transactions) {
       plugins: {
         legend: {
           labels: {
-            color: isDarkMode ? '#e0e0e0' : '#333'
+            color: isDarkMode ? '#e0e0e0' : '#333',
+            font: {
+              size: 12
+            }
           }
         },
         tooltip: {
+          titleColor: isDarkMode ? '#e0e0e0' : '#333',
+          bodyColor: isDarkMode ? '#e0e0e0' : '#333',
+          backgroundColor: isDarkMode ? '#2a2a2a' : '#fff',
+          borderColor: isDarkMode ? '#444' : '#ddd',
+          borderWidth: 1,
           callbacks: {
             label: function (context) {
               const value = context.parsed.y;
@@ -839,7 +869,10 @@ function updateTrendChart(transactions) {
       scales: {
         x: {
           ticks: {
-            color: isDarkMode ? '#e0e0e0' : '#666'
+            color: isDarkMode ? '#e0e0e0' : '#666',
+            font: {
+              size: 11
+            }
           },
           grid: {
             color: isDarkMode ? '#444' : '#e0e0e0'
@@ -848,7 +881,10 @@ function updateTrendChart(transactions) {
         y: {
           beginAtZero: true,
           ticks: {
-            color: isDarkMode ? '#e0e0e0' : '#666'
+            color: isDarkMode ? '#e0e0e0' : '#666',
+            font: {
+              size: 11
+            }
           },
           grid: {
             color: isDarkMode ? '#444' : '#e0e0e0'
