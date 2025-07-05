@@ -46,10 +46,13 @@ function processCSVExport(transactions) {
   }
 
   try {
-    // FIXED: Match transaction data columns exactly
-    const headers = ['Date', 'Description', 'Category', 'Income', 'Expenses', 'Currency', 'File Name'];
+    // ENHANCED: Include original data columns for edited transactions
+    const headers = [
+      'Date', 'Description', 'Category', 'Income', 'Expenses', 'Currency', 'File Name',
+      'Original Date', 'Original Description', 'Original Income', 'Original Expenses', 'Is Edited'
+    ];
 
-    // Create CSV content with improved data handling and Hebrew support
+    // Create CSV content with improved data handling and original data columns
     const csvRows = [
       headers.join(','),
       ...transactions.map(tx => {
@@ -59,6 +62,14 @@ function processCSVExport(transactions) {
         // Clean description for export
         const cleanDescription = (tx.description || '').trim();
 
+        // Get original data if available
+        const originalData = tx.originalData || {};
+        const isEdited = tx.edited || false;
+
+        // Format original date if available
+        const originalDate = originalData.date ? formatDateToDDMMYYYY(originalData.date) : '';
+        const originalDescription = (originalData.description || '').trim();
+
         return [
           formattedDate,
           `"${cleanDescription.replace(/"/g, '""')}"`, // Proper CSV escaping
@@ -66,7 +77,13 @@ function processCSVExport(transactions) {
           (parseFloat(tx.income) || 0).toFixed(2),
           (parseFloat(tx.expenses) || 0).toFixed(2),
           tx.currency || 'USD',
-          `"${(tx.fileName || 'Unknown').replace(/"/g, '""')}"`
+          `"${(tx.fileName || 'Unknown').replace(/"/g, '""')}"`,
+          // Original data columns
+          originalDate,
+          `"${originalDescription.replace(/"/g, '""')}"`,
+          (parseFloat(originalData.income) || 0).toFixed(2),
+          (parseFloat(originalData.expenses) || 0).toFixed(2),
+          isEdited ? 'Yes' : 'No'
         ].join(',');
       })
     ];
@@ -126,16 +143,31 @@ function processJSONExport(transactions) {
   }
 
   try {
-    // FIXED: Format dates to dd/mm/yyyy in JSON export
-    const formattedTransactions = transactions.map(tx => ({
-      date: tx.date ? formatDateToDDMMYYYY(tx.date) : '',
-      description: (tx.description || '').trim(),
-      category: tx.category || 'Uncategorized',
-      income: parseFloat(tx.income) || 0,
-      expenses: parseFloat(tx.expenses) || 0,
-      currency: tx.currency || 'USD',
-      fileName: tx.fileName || 'Unknown'
-    }));
+    // ENHANCED: Include original data for edited transactions in JSON export
+    const formattedTransactions = transactions.map(tx => {
+      const baseData = {
+        date: tx.date ? formatDateToDDMMYYYY(tx.date) : '',
+        description: (tx.description || '').trim(),
+        category: tx.category || 'Uncategorized',
+        income: parseFloat(tx.income) || 0,
+        expenses: parseFloat(tx.expenses) || 0,
+        currency: tx.currency || 'USD',
+        fileName: tx.fileName || 'Unknown',
+        isEdited: tx.edited || false
+      };
+
+      // Add original data if transaction was edited
+      if (tx.originalData && Object.keys(tx.originalData).length > 0) {
+        baseData.originalData = {
+          date: tx.originalData.date ? formatDateToDDMMYYYY(tx.originalData.date) : '',
+          description: (tx.originalData.description || '').trim(),
+          income: parseFloat(tx.originalData.income) || 0,
+          expenses: parseFloat(tx.originalData.expenses) || 0
+        };
+      }
+
+      return baseData;
+    });
 
     const jsonContent = JSON.stringify(formattedTransactions, null, 2);
     const currentDate = formatDateToDDMMYYYY(new Date()).replace(/\//g, '-');

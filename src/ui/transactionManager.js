@@ -506,6 +506,16 @@ function saveTransactionChanges(index) {
   // Save to localStorage
   try {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    console.log(`✅ TRANSACTION SAVED: Index ${index} saved to localStorage`);
+    console.log(`📝 SAVE VERIFICATION: Transaction marked as edited = ${transaction.edited}`);
+
+    // Immediate verification of the save
+    const verification = localStorage.getItem('transactions');
+    if (verification) {
+      const parsed = JSON.parse(verification);
+      const savedTx = parsed[index];
+      console.log(`🔍 VERIFICATION: Saved transaction has edited flag = ${savedTx ? savedTx.edited : 'NOT FOUND'}`);
+    }
 
     // Exit edit mode
     exitEditMode(index);
@@ -555,6 +565,222 @@ function saveTransactionChanges(index) {
 
   } catch (error) {
     console.error('Error saving transaction:', error);
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Error saving changes', 'error');
+      }
+    });
+  }
+}
+
+/**
+ * CRITICAL FIX: Save changes to a transaction using transaction ID (safer than index)
+ */
+function saveTransactionChangesById(transactionId) {
+  console.log(`💾 SAVING BY ID: Transaction ${transactionId}`);
+
+  if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
+    console.error('❌ No transactions array in AppState');
+    return;
+  }
+
+  // Find transaction by ID instead of relying on index
+  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  if (transactionIndex === -1) {
+    console.error(`❌ Transaction with ID ${transactionId} not found`);
+    return;
+  }
+
+  const transaction = AppState.transactions[transactionIndex];
+  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  if (!row) {
+    console.error(`❌ Row not found for transaction ID ${transactionId}`);
+    return;
+  }
+
+  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+
+  // Store original data before first edit
+  if (!transaction.originalData) {
+    transaction.originalData = {
+      date: transaction.date,
+      description: transaction.description,
+      income: transaction.income,
+      expenses: transaction.expenses
+    };
+  }
+
+  // Track which fields have been edited
+  if (!transaction.editedFields) {
+    transaction.editedFields = {};
+  }
+
+  let dateChanged = false;
+  let hasChanges = false;
+
+  fields.forEach(field => {
+    const fieldName = field.dataset.field;
+    let newValue = field.value;
+    const originalValue = field.dataset.original;
+
+    // Skip if value hasn't changed
+    if (newValue === originalValue) return;
+
+    hasChanges = true;
+
+    // Handle date conversion for storage
+    if (fieldName === 'date' && newValue) {
+      const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+      const match = newValue.match(datePattern);
+
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+
+        console.log(`🔍 Date input parsed: Day=${day}, Month=${month}, Year=${year} from "${newValue}"`);
+
+        const isoDate = convertDDMMYYYYToISO(newValue);
+        if (isoDate) {
+          newValue = isoDate;
+          dateChanged = true;
+          console.log(`🔄 Date converted: ${field.value} (dd/mm/yyyy) → ${isoDate} (ISO)`);
+        } else {
+          console.warn('Invalid date format:', newValue);
+          return;
+        }
+      } else {
+        console.warn('Date does not match dd/mm/yyyy format:', newValue);
+        return;
+      }
+    }
+
+    // Update the transaction
+    transaction[fieldName] = newValue;
+    transaction.editedFields[fieldName] = true;
+
+    // Update the original value
+    if (fieldName === 'date') {
+      field.dataset.original = field.value; // Keep dd/mm/yyyy format
+    } else {
+      field.dataset.original = newValue;
+    }
+
+    // Update display value
+    const cell = field.closest('td');
+    const displayValue = cell.querySelector('.display-value');
+    if (displayValue) {
+      if (fieldName === 'income' || fieldName === 'expenses') {
+        const numValue = parseFloat(newValue) || 0;
+        displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : '';
+      } else if (fieldName === 'description') {
+        const cleanValue = String(newValue).replace(/\s*data-field=.*$/i, '').trim();
+        displayValue.textContent = cleanValue;
+        transaction[fieldName] = cleanValue;
+      } else {
+        displayValue.textContent = field.value;
+      }
+    }
+
+    // Mark the cell as edited
+    if (cell) {
+      cell.classList.add('edited-cell');
+      console.log(`✏️ Marked ${fieldName} cell as edited for transaction ${transactionId}`);
+    }
+  });
+
+  if (!hasChanges) {
+    console.log(`ℹ️ No changes detected for transaction ${transactionId}`);
+    return;
+  }
+
+  // Mark as edited
+  transaction.edited = true;
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    console.log(`✅ TRANSACTION SAVED BY ID: ${transactionId} saved to localStorage`);
+    console.log(`📝 SAVE VERIFICATION: Transaction marked as edited = ${transaction.edited}`);
+
+    // Immediate verification
+    const verification = localStorage.getItem('transactions');
+    if (verification) {
+      const parsed = JSON.parse(verification);
+      const savedTx = parsed.find(tx => tx.id === transactionId);
+      console.log(`🔍 VERIFICATION: Saved transaction has edited flag = ${savedTx ? savedTx.edited : 'NOT FOUND'}`);
+    }
+
+    // Exit edit mode using transaction ID for reliable lookup
+    exitEditModeById(transactionId);
+
+    // Mark row as edited
+    row.classList.add('edited-row');
+
+    // Show revert-all button when edits are made
+    const revertAllBtn = row.querySelector('.btn-revert-all');
+    if (revertAllBtn) {
+      revertAllBtn.style.display = 'inline-block';
+    }
+
+    // CRITICAL FIX: Update category dropdown if income/expense amounts changed
+    // Check if the transaction now has different amounts that would affect category relevance
+    const currentIncome = parseFloat(transaction.income) || 0;
+    const currentExpenses = parseFloat(transaction.expenses) || 0;
+    const originalIncome = parseFloat(transaction.originalData?.income) || 0;
+    const originalExpenses = parseFloat(transaction.originalData?.expenses) || 0;
+
+    const transactionTypeChanged =
+      (originalIncome > 0 && originalExpenses === 0 && currentExpenses > 0) || // Was income-only, now has expenses
+      (originalExpenses > 0 && originalIncome === 0 && currentIncome > 0) ||   // Was expense-only, now has income
+      (originalIncome > 0 && originalExpenses > 0 && currentIncome === 0) ||   // Was both, now only expenses
+      (originalIncome > 0 && originalExpenses > 0 && currentExpenses === 0) || // Was both, now only income
+      (originalIncome === 0 && originalExpenses === 0 && (currentIncome > 0 || currentExpenses > 0)); // Was neither, now has amounts
+
+    if (transactionTypeChanged) {
+      console.log('💰 Transaction type changed, updating category dropdown...');
+      console.log(`📊 Original: Income=${originalIncome}, Expenses=${originalExpenses}`);
+      console.log(`📊 Current: Income=${currentIncome}, Expenses=${currentExpenses}`);
+
+      const categorySelect = row.querySelector('.category-select');
+      if (categorySelect) {
+        const currentCategory = categorySelect.value;
+        const newCategoryDropdown = generateCategoryDropdown(currentCategory, '', transactionId);
+        categorySelect.outerHTML = newCategoryDropdown;
+
+        // Re-attach event listener for the new dropdown
+        const newCategorySelect = row.querySelector('.category-select');
+        if (newCategorySelect) {
+          newCategorySelect.addEventListener('change', (e) => {
+            saveFieldChangeById(transactionId, 'category', e.target.value);
+          });
+        }
+        console.log('✅ Category dropdown updated with new transaction type options');
+      }
+    }
+
+    // Update summary in real-time
+    const filteredTransactions = applyFilters(AppState.transactions);
+    updateTransactionSummary(filteredTransactions);
+
+    // Re-sort and re-render table if date was changed
+    if (dateChanged) {
+      console.log('🔄 Date changed in ID-based save, re-sorting table...');
+      setTimeout(() => {
+        const currentTransactions = AppState.transactions || [];
+        renderTransactions(currentTransactions, false);
+      }, 100);
+    }
+
+    // Show success feedback
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Transaction updated', 'success');
+      }
+    });
+
+  } catch (error) {
+    console.error('Error saving transaction by ID:', error);
     import('./uiManager.js').then(module => {
       if (module.showToast) {
         module.showToast('Error saving changes', 'error');
@@ -878,7 +1104,14 @@ function attachTransactionEventListeners() {
       const transactionId = e.target.dataset.transactionId;
       const index = parseInt(e.target.dataset.index);
       console.log(`💾 Save button clicked for transaction ID: ${transactionId}, index: ${index}`);
-      saveTransactionChanges(index);
+
+      // CRITICAL FIX: Use transaction ID instead of index for safer saving
+      if (transactionId) {
+        saveTransactionChangesById(transactionId);
+      } else {
+        console.warn('⚠️ No transaction ID found, falling back to index-based save');
+        saveTransactionChanges(index);
+      }
     });
   });
 
@@ -959,6 +1192,42 @@ function exitEditMode(index) {
   editBtn.style.display = 'inline-block';
   saveBtn.style.display = 'none';
   revertBtn.style.display = 'none';
+}
+
+/**
+ * FIXED: Exit edit mode for a specific row using transaction ID (more reliable)
+ */
+function exitEditModeById(transactionId) {
+  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  if (!row) {
+    console.warn(`⚠️ Row not found for transaction ID ${transactionId} in exitEditModeById`);
+    return;
+  }
+
+  console.log(`🔄 EXITING EDIT MODE: Transaction ID ${transactionId}`);
+
+  // Unset edit mode
+  row.dataset.editMode = 'false';
+  row.classList.remove('editing-mode', 'has-changes');
+
+  // FIXED: Show display values and hide input fields (except currency and category)
+  const displayValues = row.querySelectorAll('.display-value');
+  const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+
+  displayValues.forEach(span => span.style.display = 'block');
+  editFields.forEach(input => input.style.display = 'none');
+
+  // Show edit button, hide save/revert buttons
+  const editBtn = row.querySelector('.btn-edit');
+  const saveBtn = row.querySelector('.btn-save');
+  const revertBtn = row.querySelector('.btn-revert'); // This is the "Cancel changes" button
+
+  if (editBtn) editBtn.style.display = 'inline-block';
+  if (saveBtn) saveBtn.style.display = 'none';
+  if (revertBtn) {
+    revertBtn.style.display = 'none';
+    console.log(`✅ HIDDEN: Cancel changes button (↶) for transaction ${transactionId}`);
+  }
 }
 
 /**
@@ -1061,18 +1330,46 @@ function saveFieldChange(index, fieldName, newValue) {
 }
 
 /**
- * FIXED: Revert all changes to original values from file upload
+ * FIXED: Revert all changes to original values from file upload using transaction ID
  */
 function revertAllChangesToOriginal(transactionId, index) {
-  if (!AppState.transactions || !AppState.transactions[index]) return;
+  console.log(`🔄 REVERTING BY ID: Transaction ${transactionId}`);
 
-  const transaction = AppState.transactions[index];
+  if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
+    console.error('❌ No transactions array in AppState');
+    return;
+  }
+
+  // Find transaction by ID instead of relying on index
+  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  if (transactionIndex === -1) {
+    console.error(`❌ Transaction with ID ${transactionId} not found`);
+    import('./uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Transaction not found', 'error');
+      }
+    });
+    return;
+  }
+
+  const transaction = AppState.transactions[transactionIndex];
 
   // Check if we have original data to revert to
   const hasOriginalData = transaction.originalData && Object.keys(transaction.originalData).length > 0;
   const hasEditedFields = transaction.editedFields && Object.keys(transaction.editedFields).length > 0;
 
+  console.log(`🔍 REVERT CHECK: Original data exists = ${hasOriginalData}, Edited fields exist = ${hasEditedFields}`);
+
+  if (hasOriginalData) {
+    console.log(`📋 ORIGINAL DATA:`, transaction.originalData);
+  }
+
+  if (hasEditedFields) {
+    console.log(`📝 EDITED FIELDS:`, transaction.editedFields);
+  }
+
   if (!hasOriginalData && !hasEditedFields) {
+    console.log('ℹ️ No original data or edited fields found');
     import('./uiManager.js').then(module => {
       if (module.showToast) {
         module.showToast('No changes to revert', 'info');
@@ -1089,6 +1386,7 @@ function revertAllChangesToOriginal(transactionId, index) {
   // Revert to original data if available
   if (hasOriginalData) {
     const original = transaction.originalData;
+    console.log(`🔄 REVERTING TO ORIGINAL:`, original);
     transaction.date = original.date;
     transaction.description = original.description;
     transaction.income = original.income;
@@ -1100,9 +1398,12 @@ function revertAllChangesToOriginal(transactionId, index) {
   delete transaction.editedFields;
   delete transaction.edited;
 
+  console.log(`✅ REVERT COMPLETE: Transaction ${transactionId} reverted to original state`);
+
   // Save to localStorage
   try {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    console.log(`💾 REVERT SAVED: Transaction ${transactionId} saved to localStorage`);
 
     // Update UI immediately
     const filteredTransactions = applyFilters(AppState.transactions);

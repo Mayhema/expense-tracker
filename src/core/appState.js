@@ -376,7 +376,19 @@ export async function loadAppState() {
     const savedTransactions = localStorage.getItem('transactions');
     if (savedTransactions) {
       AppState.transactions = JSON.parse(savedTransactions);
-      console.log(`Loaded ${AppState.transactions.length} transactions from localStorage`);
+      console.log(`✅ LOADED: ${AppState.transactions.length} transactions from localStorage`);
+
+      // Count edited transactions
+      const editedCount = AppState.transactions.filter(tx => tx.edited).length;
+      console.log(`📝 EDITED TRANSACTIONS: Found ${editedCount} edited transactions after load`);
+
+      if (editedCount > 0) {
+        console.log(`🔍 EDITED TX DETAILS:`, AppState.transactions.filter(tx => tx.edited).map(tx => ({
+          id: tx.id,
+          description: tx.description?.substring(0, 30),
+          edited: tx.edited
+        })));
+      }
     }
 
     // Load merged files
