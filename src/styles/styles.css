@@ -422,6 +422,55 @@ input:checked+.slider:before {
   background: #e9ecef;
 }
 
+/* Disabled button styles */
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* CRITICAL FIX: Force enable buttons that should be clickable */
+.button:not(:disabled) {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+.primary-btn:disabled {
+  background: #cccccc;
+  color: #666666;
+}
+
+/* CRITICAL FIX: Ensure enabled primary buttons are properly styled */
+.primary-btn:not(:disabled) {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+  color: white !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}
+
+/* ULTRA AGGRESSIVE FIX: Force the Save & Merge File button to be always clickable */
+#saveHeadersBtn {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+  color: white !important;
+}
+
+#saveHeadersBtn:hover {
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.secondary-btn:disabled {
+  background: #f8f9fa;
+  color: #999999;
+  border-color: #cccccc;
+}
+
 /* Transaction Table */
 .transaction-table-container {
   background: white;

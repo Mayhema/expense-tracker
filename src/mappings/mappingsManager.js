@@ -285,8 +285,8 @@ export function findMappingBySignature(signature) {
       return found;
     }
 
-    // CRITICAL FIX: If no exact match, try structure-based matching
-    console.log('CRITICAL: No exact match found, attempting structure-based matching...');
+    // CRITICAL FIX: If no exact match, don't automatically apply similar mappings from different files
+    console.log('CRITICAL: No exact match found, checking for similar structures...');
 
     // Find mappings with similar structure patterns
     const candidateMappings = mappings.filter(mapping => {
@@ -294,28 +294,21 @@ export function findMappingBySignature(signature) {
       const currentSigParts = signature.split('_');
       const mappingSigParts = mapping.signature.split('_');
 
-      // Both should be structure-based signatures or convert old ones
-      if (currentSigParts[0] === 'struct' || mappingSigParts[0] === 'struct') {
+      // Both should be structure-based signatures
+      if (currentSigParts[0] === 'struct' && mappingSigParts[0] === 'struct') {
         console.log(`CRITICAL: Comparing structure signatures: current=${signature}, stored=${mapping.signature}`);
-        return true; // Include for detailed comparison
+        // CRITICAL FIX: Only consider truly similar structures, not just any struct-based ones
+        return areStructuresSimilar(signature, mapping.signature);
       }
 
       return false;
     });
 
     if (candidateMappings.length > 0) {
-      console.log(`CRITICAL: Found ${candidateMappings.length} candidate mappings for structure comparison`);
-
-      // For now, we'll show the first candidate but later we can implement
-      // a confirmation dialog asking the user if they want to use this mapping
-      const candidate = candidateMappings[0];
-      console.log('CRITICAL: Using candidate mapping from file:', candidate.fileName);
-
-      // Update last used timestamp
-      candidate.lastUsed = new Date().toISOString();
-      localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
-
-      return candidate;
+      console.log(`CRITICAL: Found ${candidateMappings.length} candidate mappings but will NOT auto-apply from different files`);
+      console.log('CRITICAL: User should manually map this file or confirm to use existing mapping');
+      // CRITICAL FIX: Don't automatically apply mappings from different files without user confirmation
+      return null;
     }
 
     console.log('CRITICAL: No mapping found for signature:', signature);
@@ -328,25 +321,35 @@ export function findMappingBySignature(signature) {
 }
 
 /**
- * FIXED: Check if two signatures represent similar file structures
+ * FIXED: Check if two signatures represent truly similar file structures
  * @param {string} sig1 - First signature
  * @param {string} sig2 - Second signature
- * @returns {boolean} True if structures are similar
+ * @returns {boolean} True if structures are truly similar enough to share mappings
  */
 function areStructuresSimilar(sig1, sig2) {
   try {
-    // Extract structure info from signatures
-    // This is a simplified comparison - could be enhanced
-
+    // Exact match
     if (sig1 === sig2) return true;
 
-    // If both are structure-based signatures, they might be similar
+    // Both must be structure-based signatures
     const sig1Parts = sig1.split('_');
     const sig2Parts = sig2.split('_');
 
-    // For now, consider all structure-based signatures as potentially similar
-    // Later we can decode the structure data and compare column counts, patterns, etc.
-    return sig1Parts[0] === 'struct' && sig2Parts[0] === 'struct';
+    if (sig1Parts[0] !== 'struct' || sig2Parts[0] !== 'struct') {
+      return false;
+    }
+
+    // CRITICAL FIX: For now, don't consider ANY structure signatures as similar
+    // unless they are exactly the same. This prevents auto-applying mappings
+    // from completely different file types (Excel vs XML, etc.)
+
+    // In the future, this could be enhanced to decode the structure hash
+    // and compare actual column counts, data patterns, etc., but for now
+    // we prioritize user control over automatic convenience
+
+    console.log(`CRITICAL: Structure comparison - signatures are different: ${sig1} != ${sig2}`);
+    return false;
+
   } catch (error) {
     console.error('Error comparing structures:', error);
     return false;

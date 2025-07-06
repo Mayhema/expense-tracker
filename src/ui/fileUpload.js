@@ -267,33 +267,36 @@ function handleExcelFile(file) {
 /**
  * Handle XML file upload
  */
-function handleXMLFile(file) {
+async function handleXMLFile(file) {
+  console.log(`CRITICAL: Processing XML file: ${file.name}`);
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const xmlText = e.target.result;
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      console.log(`CRITICAL: XML file read successfully, length: ${xmlText.length}`);
 
-      // Convert XML to array format for processing
-      const transactions = xmlDoc.querySelectorAll('transaction, Transaction');
-      const data = [];
+      // Use the comprehensive XML parser instead of basic DOM parsing
+      const { parseXML } = await import('../parser/xmlParser.js');
+      const data = parseXML(xmlText);
 
-      // Add header row
-      if (transactions.length > 0) {
-        const firstTransaction = transactions[0];
-        const headers = Array.from(firstTransaction.children).map(child => child.tagName);
-        data.push(headers);
+      console.log(`CRITICAL: XML parsed into ${data.length} rows using comprehensive parser`);
 
-        // Add data rows
-        transactions.forEach(transaction => {
-          const row = Array.from(transaction.children).map(child => child.textContent);
-          data.push(row);
-        });
+      // Only proceed if we have valid data
+      if (!data || data.length === 0) {
+        console.error("CRITICAL ERROR: XML parser returned no data");
+        handleFileUploadError(new Error("No valid transaction data found in XML file"));
+        return;
+      }
+
+      if (data.length === 1) {
+        console.error("CRITICAL ERROR: XML parser found only headers, no transaction rows");
+        handleFileUploadError(new Error("XML file contains headers but no transaction data"));
+        return;
       }
 
       processUploadedData(file, data);
     } catch (error) {
+      console.error("CRITICAL ERROR: XML processing failed:", error);
       handleFileUploadError(error);
     }
   };
@@ -309,6 +312,21 @@ async function processUploadedData(file, data) {
   if (!data || data.length === 0) {
     console.error("CRITICAL ERROR: No data found in file");
     handleFileUploadError(new Error("No data found in file"));
+    return;
+  }
+
+  // CRITICAL FIX: Enhanced validation for file data quality
+  if (data.length === 1) {
+    console.error("CRITICAL ERROR: File contains only header row, no transaction data");
+    handleFileUploadError(new Error(`File "${file.name}" contains only headers but no transaction data. Please ensure your file contains actual transaction records.`));
+    return;
+  }
+
+  // Check if we have enough columns for meaningful data
+  const headerRow = data[0];
+  if (!headerRow || headerRow.length < 2) {
+    console.error("CRITICAL ERROR: File does not contain enough columns for transaction data");
+    handleFileUploadError(new Error(`File "${file.name}" does not contain enough columns. Need at least 2 columns (date and amount).`));
     return;
   }
 
@@ -355,9 +373,16 @@ async function processUploadedData(file, data) {
 
         console.log('CRITICAL: Auto-detected mapping:', autoMapping);
 
-        // Check if auto-detection found reasonable mappings
+        // CRITICAL FIX: Enhanced validation for auto-detection
         const validMappings = autoMapping.filter(m => m && m !== '–').length;
-        if (validMappings >= 2) { // Need at least date and amount fields
+        const hasDate = autoMapping.includes('Date');
+        const hasAmount = autoMapping.includes('Income') || autoMapping.includes('Expenses');
+
+        // Check data quality: ensure we have actual transaction data
+        const sampleDataRow = data[1]; // Second row should contain sample data
+        const hasNonEmptyData = sampleDataRow && sampleDataRow.some(cell => cell && cell.toString().trim() !== '');
+
+        if (validMappings >= 2 && hasDate && hasAmount && hasNonEmptyData) {
           console.log('CRITICAL: Auto-detection successful, processing file automatically');
 
           // Store data and process with auto-detected mapping
@@ -367,7 +392,8 @@ async function processUploadedData(file, data) {
           await autoApplyDetectedMapping(file, data, autoMapping);
           return;
         } else {
-          console.log('CRITICAL: Auto-detection insufficient, showing manual mapping modal');
+          console.log('CRITICAL: Auto-detection insufficient or poor data quality, showing manual mapping modal');
+          console.log('CRITICAL: Validation results - validMappings:', validMappings, 'hasDate:', hasDate, 'hasAmount:', hasAmount, 'hasNonEmptyData:', hasNonEmptyData);
         }
       } catch (autoError) {
         console.log('CRITICAL: Auto-detection failed, showing manual mapping modal:', autoError);
@@ -459,6 +485,20 @@ async function autoApplyMapping(file, data, mapping) {
         transactions.push(transaction);
       }
     }
+
+    // CRITICAL FIX: Validate that we have actual valid transactions before proceeding
+    if (transactions.length === 0) {
+      console.error('CRITICAL ERROR: Existing mapping produced no valid transactions');
+      showToast(`No valid transactions found in ${file.name} using existing mapping. Please check the file format and try manual mapping.`, "error");
+
+      // Fall back to manual mapping modal
+      const { showFileUploadModal } = await import('./fileUploadModal.js');
+      showFileUploadModal(data, file.name);
+      fileInputInProgress = false;
+      return;
+    }
+
+    console.log(`CRITICAL: Existing mapping produced ${transactions.length} valid transactions`);
 
     // Add to merged files
     const mergedFile = {
@@ -789,6 +829,17 @@ function showFilePreviewModal(data) {
       return;
     }
 
+    // CRITICAL FIX: Preserve current user selections before regenerating HTML
+    const currentSelections = {};
+    const existingSelects = document.querySelectorAll('.header-select');
+    existingSelects.forEach(select => {
+      const index = parseInt(select.getAttribute('data-index'));
+      if (!isNaN(index)) {
+        currentSelections[index] = select.value;
+        console.log(`CRITICAL: Preserving user selection for column ${index}: "${select.value}"`);
+      }
+    });
+
     // CRITICAL FIX: Only create mapping dropdowns for actual columns that exist
     const actualColumnCount = headers.length;
     console.log('CRITICAL: Creating mapping for', actualColumnCount, 'actual columns');
@@ -801,15 +852,21 @@ function showFilePreviewModal(data) {
             <tr class="mapping-row">
               ${headers
         .map((header, index) => {
-          const suggested = autoDetectFieldType(header) || '–';
-          // FIXED: Only show essential mapping fields
-          const validSuggestion = MAPPING_FIELDS.includes(suggested) ? suggested : '–';
+          // CRITICAL FIX: Use preserved user selection if available, otherwise auto-detect
+          let selectedValue = currentSelections[index];
+          if (!selectedValue) {
+            const suggested = autoDetectFieldType(header) || '–';
+            selectedValue = MAPPING_FIELDS.includes(suggested) ? suggested : '–';
+          }
+
+          console.log(`CRITICAL: Column ${index} ("${header}") - using selection: "${selectedValue}"`);
+
           return `
                   <th class="mapping-cell">
                     <select class="header-select" data-index="${index}">
-                      <option value="–" ${validSuggestion === '–' ? 'selected' : ''}>-ignore-</option>
+                      <option value="–" ${selectedValue === '–' ? 'selected' : ''}>-ignore-</option>
                       ${MAPPING_FIELDS.map(
-            (field) => `<option value="${field}" ${validSuggestion === field ? 'selected' : ''}>${field}</option>`
+            (field) => `<option value="${field}" ${selectedValue === field ? 'selected' : ''}>${field}</option>`
           ).join('')}
                     </select>
                   </th>
@@ -893,8 +950,16 @@ function showFilePreviewModal(data) {
       const hasDate = mappings.includes('Date');
       const hasAmount = mappings.includes('Income') || mappings.includes('Expenses');
 
-      saveBtn.disabled = !(hasDate && hasAmount);
-      saveBtn.title = hasDate && hasAmount ? 'Ready to import' : 'Need at least Date and Income/Expenses columns';
+      // CRITICAL FIX: Always enable the button to allow user interaction
+      saveBtn.disabled = false;
+      saveBtn.removeAttribute('disabled');
+      saveBtn.style.pointerEvents = 'auto';
+      saveBtn.style.cursor = 'pointer';
+      saveBtn.style.opacity = '1';
+
+      saveBtn.title = hasDate && hasAmount ? 'Ready to import' : 'Click to configure mapping (Date and Income/Expenses needed)';
+
+      console.log('CRITICAL: fileUpload.js - Save button FORCE ENABLED');
     }
   }
 }
@@ -1233,17 +1298,54 @@ export async function onSaveHeaders(modal) {
  */
 function getCurrentMapping() {
   const selects = document.querySelectorAll('.header-select, .column-mapping');
-  const mapping = [];
 
-  // CRITICAL FIX: Only get mappings for actual select elements that exist
+  // CRITICAL FIX: If no DOM selects found, fall back to AppState mapping
+  if (selects.length === 0) {
+    console.log('CRITICAL: No header select elements found, falling back to AppState.currentSuggestedMapping');
+    return AppState.currentSuggestedMapping || [];
+  }
+
+  // CRITICAL FIX: First, determine the actual number of columns needed
+  let maxIndex = -1;
   selects.forEach((select) => {
     const dataIndex = parseInt(select.getAttribute('data-index'));
     if (!isNaN(dataIndex)) {
-      mapping[dataIndex] = select.value || '–';
+      maxIndex = Math.max(maxIndex, dataIndex);
+    }
+  });
+
+  // CRITICAL FIX: Create properly sized array and fill with defaults
+  const mapping = new Array(maxIndex + 1).fill('–');
+
+  // CRITICAL FIX: Only update mappings for actual select elements that exist
+  selects.forEach((select) => {
+    const dataIndex = parseInt(select.getAttribute('data-index'));
+    if (!isNaN(dataIndex) && dataIndex >= 0 && dataIndex < mapping.length) {
+      const value = select.value || '–';
+      mapping[dataIndex] = value;
+      console.log(`CRITICAL: Setting mapping[${dataIndex}] = "${value}" from select element`);
     }
   });
 
   console.log('CRITICAL: Generated mapping array:', mapping, 'length:', mapping.length);
+
+  // CRITICAL FIX: Validate that we haven't lost any user selections
+  selects.forEach((select) => {
+    const dataIndex = parseInt(select.getAttribute('data-index'));
+    const selectValue = select.value;
+    if (!isNaN(dataIndex) && selectValue && selectValue !== '–' && mapping[dataIndex] !== selectValue) {
+      console.error(`CRITICAL ERROR: Lost mapping for index ${dataIndex}: expected "${selectValue}", got "${mapping[dataIndex]}"`);
+      mapping[dataIndex] = selectValue; // Force correct value
+    }
+  });
+
+  // CRITICAL FIX: As additional fallback, if all mapping values are "–", use AppState
+  const hasAnyMappings = mapping.some(val => val !== '–');
+  if (!hasAnyMappings && AppState.currentSuggestedMapping) {
+    console.log('CRITICAL: No valid mappings found in DOM, using AppState.currentSuggestedMapping as fallback');
+    return AppState.currentSuggestedMapping;
+  }
+
   return mapping;
 }
 
@@ -1389,6 +1491,20 @@ async function autoApplyDetectedMapping(file, data, autoMapping) {
 
       transactions.push(transaction);
     }
+
+    // CRITICAL FIX: Validate that we have actual valid transactions before proceeding
+    if (transactions.length === 0) {
+      console.error('CRITICAL ERROR: Auto-detected mapping produced no valid transactions');
+      showToast(`No valid transactions found in ${file.name}. Please check the file format and try manual mapping.`, "error");
+
+      // Store file data and show manual mapping modal instead
+      storeFileDataInState(file, data);
+      showFilePreviewModal(data);
+      fileInputInProgress = false;
+      return;
+    }
+
+    console.log(`CRITICAL: Auto-detected mapping produced ${transactions.length} valid transactions`);
 
     // Update AppState
     AppState.mergedFiles.push({

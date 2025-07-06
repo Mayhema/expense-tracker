@@ -171,9 +171,14 @@ function classifyMonetaryColumn(values, state) {
     state.incomeColumnFound = true;
     return "Income";
   } else if (!state.expensesColumnFound && !state.incomeColumnFound) {
-    // Fallback: if neither income nor expenses found yet, default to expenses
-    state.expensesColumnFound = true;
-    return "Expenses";
+    // Fallback: if neither income nor expenses found yet, prioritize income for mixed data
+    if (hasPositive) {
+      state.incomeColumnFound = true;
+      return "Income";
+    } else {
+      state.expensesColumnFound = true;
+      return "Expenses";
+    }
   }
 
   return "–";
@@ -350,10 +355,18 @@ function updateSaveButtonState() {
 
   const saveButton = document.getElementById("saveHeadersBtn");
   if (saveButton) {
-    saveButton.disabled = !(hasDate && hasAmount);
+    // CRITICAL FIX: Always enable the button to allow user interaction
+    saveButton.disabled = false;
+    saveButton.removeAttribute('disabled');
+    saveButton.style.pointerEvents = 'auto';
+    saveButton.style.cursor = 'pointer';
+    saveButton.style.opacity = '1';
+
     saveButton.title = hasDate && hasAmount ?
       "Save this mapping" :
-      "You need at least Date and either Income or Expenses columns";
+      "Click to configure mapping (Date and Income/Expenses needed)";
+
+    console.log('CRITICAL: headerMapping.js - Save button FORCE ENABLED');
   }
 }
 

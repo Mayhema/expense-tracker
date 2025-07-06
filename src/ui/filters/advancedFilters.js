@@ -388,7 +388,14 @@ function handleDescriptionSearch(searchText) {
  * Handle currency filter
  */
 function handleCurrencyFilter(currency) {
+  console.log(`CRITICAL: handleCurrencyFilter called with currency: "${currency}"`);
+  console.log(`CRITICAL: Previous currency filter was: "${currentFilters.currency}"`);
+
   currentFilters.currency = currency;
+
+  console.log(`CRITICAL: Updated currency filter to: "${currentFilters.currency}"`);
+  console.log('CRITICAL: Calling applyCurrentFilters...');
+
   applyCurrentFilters();
 }
 
@@ -515,11 +522,18 @@ export function applyCurrentFilters() {
   const transactions = AppState.transactions || [];
   const filteredTransactions = filterTransactions(transactions, currentFilters);
 
+  console.log(`CRITICAL: applyCurrentFilters - filtering ${transactions.length} transactions to ${filteredTransactions.length} with currency: ${currentFilters.currency}`);
+
   // Update the transaction display
   import('../transactionManager.js').then(module => {
     if (module.updateTransactionDisplay) {
+      console.log('CRITICAL: Calling updateTransactionDisplay with filtered transactions');
       module.updateTransactionDisplay(filteredTransactions);
+    } else {
+      console.error('CRITICAL ERROR: updateTransactionDisplay function not found in transaction manager');
     }
+  }).catch(error => {
+    console.error('CRITICAL ERROR: Failed to import transaction manager:', error);
   });
 
   // FIXED: Update charts with filtered data properly
@@ -527,8 +541,11 @@ export function applyCurrentFilters() {
     try {
       const chartsModule = await import('../charts.js');
       if (chartsModule && chartsModule.updateChartsWithFilteredData) {
+        console.log('CRITICAL: Calling updateChartsWithFilteredData with filtered transactions');
         chartsModule.updateChartsWithFilteredData(filteredTransactions);
         console.log("Charts updated with filtered data");
+      } else {
+        console.error('CRITICAL ERROR: updateChartsWithFilteredData function not found in charts module');
       }
     } catch (error) {
       console.log('Charts not available for filter update:', error.message);
@@ -698,6 +715,60 @@ function loadFilterPreferences() {
  */
 function saveFilterPreferences() {
   localStorage.setItem('currentFilters', JSON.stringify(currentFilters));
+}
+
+/**
+ * Update currency filter dropdowns to include all currencies present in transactions
+ */
+export function updateCurrencyFilterOptions() {
+  console.log('Updating currency filter dropdown options...');
+
+  // Get all unique currencies from current transactions
+  const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort();
+  console.log('Available currencies:', currencies);
+
+  // Update the advanced filter currency dropdown
+  const currencyFilter = document.getElementById('currencyFilter');
+  if (currencyFilter) {
+    const currentValue = currencyFilter.value;
+
+    // Rebuild options
+    currencyFilter.innerHTML = `
+      <option value="all">All Currencies</option>
+      ${currencies.map(currency => {
+      const currencyData = CURRENCIES[currency] || {};
+      const symbol = currencyData.symbol || '💱';
+      const name = currencyData.name || currency;
+      return `<option value="${currency}">${symbol} ${currency} - ${name}</option>`;
+    }).join('')}
+    `;
+
+    // Restore previous selection if still valid
+    if (currentValue && (currentValue === 'all' || currencies.includes(currentValue))) {
+      currencyFilter.value = currentValue;
+    }
+
+    console.log('Updated advanced currency filter with', currencies.length, 'currencies');
+  }
+
+  // Update the basic filter currency dropdown if it exists
+  const basicCurrencyFilter = document.getElementById('filterCurrency');
+  if (basicCurrencyFilter) {
+    const currentBasicValue = basicCurrencyFilter.value;
+
+    // Rebuild basic filter options
+    basicCurrencyFilter.innerHTML = `
+      <option value="">All Currencies</option>
+      ${currencies.map(currency => `<option value="${currency}">${currency}</option>`).join('')}
+    `;
+
+    // Restore previous selection if still valid
+    if (currentBasicValue && (currentBasicValue === '' || currencies.includes(currentBasicValue))) {
+      basicCurrencyFilter.value = currentBasicValue;
+    }
+
+    console.log('Updated basic currency filter with', currencies.length, 'currencies');
+  }
 }
 
 // Export current filters for external access

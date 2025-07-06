@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactions>
+  <transaction>
+    <date>2024-01-15</date>
+    <description>Grocery Shopping</description>
+    <amount>-120.50</amount>
+    <category>Food</category>
+  </transaction>
+  <transaction>
+    <date>2024-01-16</date>
+    <description>Salary Payment</description>
+    <amount>3000.00</amount>
+    <category>Income</category>
+  </transaction>
+  <transaction>
+    <date>2024-01-17</date>
+    <description>Gas Station</description>
+    <amount>-45.20</amount>
+    <category>Transportation</category>
+  </transaction>
+</transactions>

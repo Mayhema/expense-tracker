@@ -1,7 +1,7 @@
 import { AppState } from "../core/appState.js";
 import { showModal } from "./modalManager.js";
 import { suggestMapping } from "./headerMapping.js";
-import { addMergedFile } from "../main.js";
+import { addMergedFile } from "../core/fileManager.js";
 import { generateFileSignature } from "../parsers/fileHandler.js";
 import { saveHeadersAndFormat } from "../mappings/mappingsManager.js";
 import { showToast } from "./uiManager.js";
@@ -63,8 +63,8 @@ export function showFileUploadModal(data, fileName) {
   const footer = document.createElement('div');
   footer.className = 'modal-footer';
   footer.innerHTML = `
-    <button id="cancelMappingBtn" class="button secondary">Cancel</button>
-    <button id="saveHeadersBtn" class="button primary">Save & Merge File</button>
+    <button id="cancelMappingBtn" class="button secondary-btn">Cancel</button>
+    <button id="saveHeadersBtn" class="button primary-btn">Save & Merge File</button>
   `;
 
   modalContent.appendChild(footer);
@@ -78,13 +78,89 @@ export function showFileUploadModal(data, fileName) {
   });
 
   // Add event listeners
-  document.getElementById('saveHeadersBtn').addEventListener('click', () => {
-    saveHeadersAndMergeFile(modal);
-  });
+  setTimeout(() => {
+    const saveBtn = document.getElementById('saveHeadersBtn');
+    const cancelBtn = document.getElementById('cancelMappingBtn');
 
-  document.getElementById('cancelMappingBtn').addEventListener('click', () => {
-    modal.close();
-  });
+    if (saveBtn) {
+      console.log('CRITICAL: Save button found, forcing enable state');
+
+      // ULTRA AGGRESSIVE FIX: Force enable the button immediately with complete override
+      saveBtn.disabled = false;
+      saveBtn.removeAttribute('disabled');
+      saveBtn.style.pointerEvents = 'auto';
+      saveBtn.style.cursor = 'pointer';
+      saveBtn.style.opacity = '1';
+      saveBtn.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+      saveBtn.style.color = 'white';
+      saveBtn.classList.remove('disabled');
+      saveBtn.classList.add('primary-btn');
+
+      // Force override any potential conflicting styles with !important
+      saveBtn.style.setProperty('pointer-events', 'auto', 'important');
+      saveBtn.style.setProperty('cursor', 'pointer', 'important');
+      saveBtn.style.setProperty('opacity', '1', 'important');
+
+      console.log('CRITICAL: Save button initial state - disabled:', saveBtn.disabled);
+      console.log('CRITICAL: Save button computed styles:', window.getComputedStyle(saveBtn));
+
+      saveBtn.addEventListener('click', (event) => {
+        console.log('CRITICAL: Save button clicked - event:', event);
+        console.log('CRITICAL: Save button disabled state:', saveBtn.disabled);
+        console.log('CRITICAL: Save button pointer events:', saveBtn.style.pointerEvents);
+
+        // Prevent any potential event blocking
+        event.stopPropagation();
+        event.preventDefault();
+
+        // Always proceed since we keep the button enabled
+        console.log('CRITICAL: Button is enabled, proceeding with save');
+        try {
+          saveHeadersAndMergeFile(modal);
+        } catch (error) {
+          console.error('CRITICAL ERROR in saveHeadersAndMergeFile:', error);
+          showToast("Error processing file: " + error.message, "error");
+        }
+      });
+      console.log('CRITICAL: Save button event listener attached successfully');
+
+      // Also add a fallback click handler with addEventListener options
+      saveBtn.addEventListener('click', (event) => {
+        console.log('CRITICAL: Fallback click handler triggered');
+      }, { capture: true });
+
+    } else {
+      console.error('CRITICAL ERROR: saveHeadersBtn not found in DOM');
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        modal.close();
+      });
+      console.log('CRITICAL: Cancel button event listener attached successfully');
+    } else {
+      console.error('CRITICAL ERROR: cancelMappingBtn not found in DOM');
+    }
+
+    // CRITICAL FIX: Update button state after event listeners are attached
+    updateSaveButtonState();
+
+    // ADDITIONAL FIX: Re-apply button styling every 100ms for the first second
+    let attempts = 0;
+    const ensureButtonEnabled = () => {
+      const btn = document.getElementById('saveHeadersBtn');
+      if (btn && attempts < 10) {
+        btn.disabled = false;
+        btn.style.setProperty('pointer-events', 'auto', 'important');
+        btn.style.setProperty('cursor', 'pointer', 'important');
+        btn.style.setProperty('opacity', '1', 'important');
+        attempts++;
+        setTimeout(ensureButtonEnabled, 100);
+      }
+    };
+    ensureButtonEnabled();
+
+  }, 100);
 
   // Add event listeners for mapping dropdowns
   setTimeout(() => {
@@ -148,9 +224,13 @@ function updateTablePreview() {
 function updateHeaderMapping(select, index) {
   const newValue = select.value;
 
+  console.log(`CRITICAL: updateHeaderMapping called - index: ${index}, newValue: "${newValue}"`);
+  console.log(`CRITICAL: Current mapping before update:`, AppState.currentSuggestedMapping);
+
   // Skip further processing if setting to placeholder
   if (newValue === "–") {
     AppState.currentSuggestedMapping[index] = newValue;
+    console.log(`CRITICAL: Set mapping[${index}] to "–"`);
     // Update preview to remove date conversion
     updateTablePreviewAfterMapping();
     return;
@@ -164,6 +244,7 @@ function updateHeaderMapping(select, index) {
 
     // If this header type already exists elsewhere, reset the other one
     if (existingIndex !== -1) {
+      console.log(`CRITICAL: Found duplicate mapping "${newValue}" at index ${existingIndex}, resetting it`);
       const existingDropdown = document.querySelector(`.header-map[data-index="${existingIndex}"]`);
       if (existingDropdown) {
         existingDropdown.value = "–";
@@ -176,6 +257,8 @@ function updateHeaderMapping(select, index) {
 
   // Update the current mapping
   AppState.currentSuggestedMapping[index] = newValue;
+  console.log(`CRITICAL: Set mapping[${index}] to "${newValue}"`);
+  console.log(`CRITICAL: Updated mapping:`, AppState.currentSuggestedMapping);
 
   // FIXED: Update preview to show/hide date conversion
   updateTablePreviewAfterMapping();
@@ -280,31 +363,71 @@ function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1)
  */
 function updateSaveButtonState() {
   const saveBtn = document.getElementById('saveHeadersBtn');
-  if (!saveBtn) return;
+  if (!saveBtn) {
+    console.error('CRITICAL ERROR: Save button not found when trying to update state');
+    return;
+  }
 
   const mapping = AppState.currentSuggestedMapping || [];
   const hasDate = mapping.includes('Date');
   const hasAmount = mapping.includes('Income') || mapping.includes('Expenses');
 
-  saveBtn.disabled = !(hasDate && hasAmount);
+  console.log('CRITICAL: Updating save button state - mapping:', mapping, 'hasDate:', hasDate, 'hasAmount:', hasAmount);
+
+  // ULTRA AGGRESSIVE FIX: Always enable the button with complete override
+  saveBtn.disabled = false;
+  saveBtn.removeAttribute('disabled');
+  saveBtn.style.pointerEvents = 'auto';
+  saveBtn.style.cursor = 'pointer';
+  saveBtn.style.opacity = '1';
+  saveBtn.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+  saveBtn.style.color = 'white';
+  saveBtn.classList.remove('disabled');
+  saveBtn.classList.add('primary-btn');
+
+  // Force override any potential conflicting styles
+  saveBtn.style.setProperty('pointer-events', 'auto', 'important');
+  saveBtn.style.setProperty('cursor', 'pointer', 'important');
+  saveBtn.style.setProperty('opacity', '1', 'important');
+
   saveBtn.title = hasDate && hasAmount ?
     'Ready to import' :
-    'Need at least Date and Income/Expenses columns';
+    'Click to configure mapping (Date and Income/Expenses needed)';
+
+  console.log('CRITICAL: Save button ULTRA FORCE ENABLED with complete styling override');
+  console.log('CRITICAL: Button properties after update:', {
+    disabled: saveBtn.disabled,
+    pointerEvents: saveBtn.style.pointerEvents,
+    cursor: saveBtn.style.cursor,
+    opacity: saveBtn.style.opacity,
+    className: saveBtn.className
+  });
 }
 
 /**
  * Saves headers and merges the file
  */
 function saveHeadersAndMergeFile(modal) {
+  console.log('CRITICAL: saveHeadersAndMergeFile function called');
+
   try {
     // Get the mappings
     const mapping = AppState.currentSuggestedMapping;
+    console.log('CRITICAL: Current mapping:', mapping);
+
+    if (!mapping || !Array.isArray(mapping)) {
+      console.error('CRITICAL ERROR: Invalid mapping state');
+      showToast("Error: Invalid mapping state", "error");
+      return;
+    }
 
     // Validate required fields
     const hasDate = mapping.includes("Date");
     const hasAmount = mapping.includes("Income") || mapping.includes("Expenses");
+    console.log('CRITICAL: Mapping validation - hasDate:', hasDate, 'hasAmount:', hasAmount);
 
     if (!hasDate || !hasAmount) {
+      console.log('CRITICAL: Mapping validation failed');
       showToast("You must map at least Date and either Income or Expenses fields", "error");
       return;
     }
@@ -312,6 +435,7 @@ function saveHeadersAndMergeFile(modal) {
     // FIXED: Validate only one Date column is mapped
     const dateColumns = mapping.filter(field => field === "Date");
     if (dateColumns.length > 1) {
+      console.log('CRITICAL: Multiple Date columns mapped');
       showToast("Only one column can be mapped as Date", "error");
       return;
     }
@@ -322,6 +446,7 @@ function saveHeadersAndMergeFile(modal) {
     const currencySelect = document.getElementById("fileCurrency");
 
     if (!headerRowInput || !dataRowInput) {
+      console.error('CRITICAL ERROR: Row input fields not found');
       showToast("Could not find row input fields", "error");
       return;
     }
@@ -330,12 +455,16 @@ function saveHeadersAndMergeFile(modal) {
     const dataRowIndex = parseInt(dataRowInput.value, 10) - 1;
     const currency = currencySelect ? currencySelect.value : "USD";
 
+    console.log('CRITICAL: Processing with headerRowIndex:', headerRowIndex, 'dataRowIndex:', dataRowIndex, 'currency:', currency);
+
     // CRITICAL FIX: Generate signature and save mapping
     const finalSignature = generateFileSignature(
       AppState.currentFileName,
       AppState.currentFileData,
       mapping
     );
+
+    console.log('CRITICAL: Generated signature:', finalSignature);
 
     // CRITICAL FIX: Save mapping with correct structure expected by findMappingBySignature
     saveHeadersAndFormat(
@@ -350,6 +479,7 @@ function saveHeadersAndMergeFile(modal) {
     console.log('CRITICAL: Saved mapping with signature:', finalSignature, 'mapping:', mapping);
 
     // Add merged file
+    console.log('CRITICAL: Calling addMergedFile...');
     addMergedFile(
       AppState.currentFileData,
       mapping,
@@ -360,9 +490,12 @@ function saveHeadersAndMergeFile(modal) {
       currency
     );
 
+    console.log('CRITICAL: Successfully added merged file');
+
     // Close modal and show success message
     modal.close();
     showToast("File merged successfully and mapping saved!", "success");
+
   } catch (error) {
     console.error("CRITICAL ERROR: Error saving headers:", error);
     showToast("Error saving mappings: " + error.message, "error");

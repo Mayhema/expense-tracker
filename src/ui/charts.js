@@ -480,6 +480,8 @@ function hideChartLoadingIndicators() {
  * FIXED: Update charts with filtered data - for filtering only
  */
 export function updateChartsWithFilteredData(filteredTransactions) {
+  console.log(`CRITICAL: updateChartsWithFilteredData called with ${filteredTransactions.length} filtered transactions`);
+
   // Only allow this if charts already have initial data
   if (!chartInitializationState.hasData) {
     console.log("Charts don't have initial data yet, using regular update");
@@ -499,9 +501,18 @@ export function updateChartsWithFilteredData(filteredTransactions) {
     return;
   }
 
+  // Check if there are multiple currencies in the filtered transactions
+  const currencies = [...new Set(filteredTransactions.map(tx => tx.currency).filter(Boolean))];
+  console.log(`CRITICAL: Filtered transactions contain currencies: ${currencies.join(', ')}`);
+
   // Update all charts with filtered data (no loading indicators for filters)
+  console.log('CRITICAL: Updating category chart...');
   updateCategoryChart(filteredTransactions);
+
+  console.log('CRITICAL: Updating monthly chart...');
   updateMonthlyChart(filteredTransactions);
+
+  console.log('CRITICAL: Updating trend chart...');
   updateTrendChart(filteredTransactions);
 
   // Ensure all chart wrappers are visible when we have data

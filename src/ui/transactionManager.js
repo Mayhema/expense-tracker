@@ -1,5 +1,5 @@
 import { AppState } from '../core/appState.js';
-import { formatDateToDDMMYYYY, convertDDMMYYYYToISO, parseDDMMYYYY } from '../utils/dateUtils.js';
+import { formatDateToDDMMYYYY, convertDDMMYYYYToISO, } from '../utils/dateUtils.js';
 import { CURRENCIES } from '../constants/currencies.js';
 import { createAdvancedFilterSection, initializeAdvancedFilters } from './filters/advancedFilters.js';
 
@@ -366,19 +366,40 @@ function saveFieldChangeById(transactionId, fieldName, newValue) {
       }
     }
 
-    // Update charts when data changes
-    if (isDataField || fieldName === 'category') {
+    // CRITICAL FIX: Update charts and UI when currency, data, or category changes
+    if (isDataField || fieldName === 'category' || fieldName === 'currency') {
       setTimeout(async () => {
         try {
           const chartsModule = await import('./charts.js');
           if (chartsModule && chartsModule.updateCharts) {
             chartsModule.updateCharts();
-            console.log("Charts updated after data change");
+            console.log("Charts updated after data/category/currency change");
           }
         } catch (error) {
           console.log('Charts not available for update:', error.message);
         }
       }, 100);
+    }
+
+    // CRITICAL FIX: Handle currency field changes specifically
+    if (fieldName === 'currency') {
+      console.log(`💱 Currency changed for transaction ${transactionId} to ${newValue}`);
+
+      // Update transaction summary to reflect new currency distribution
+      const filteredTransactions = applyFilters(AppState.transactions);
+      updateTransactionSummary(filteredTransactions);
+      console.log("🔄 Transaction summary updated after currency change");
+
+      // Update currency filter dropdown options to include new currency
+      setTimeout(async () => {
+        try {
+          const { updateCurrencyFilterOptions } = await import('./filters/advancedFilters.js');
+          updateCurrencyFilterOptions();
+          console.log("💱 Currency filter options updated after currency change");
+        } catch (error) {
+          console.log('Error updating currency filter options:', error.message);
+        }
+      }, 150);
     }
 
   } catch (error) {
@@ -1438,6 +1459,29 @@ function revertAllChangesToOriginal(transactionId, index) {
       console.log('Charts not available for update:', error.message);
     }
   }, 100);
+}
+
+/**
+ * Update transaction display with filtered transactions
+ * This function is called by the filter system when filters change
+ */
+export function updateTransactionDisplay(filteredTransactions) {
+  console.log(`CRITICAL: updateTransactionDisplay called with ${filteredTransactions.length} filtered transactions`);
+
+  try {
+    // Update the transaction summary with the filtered transactions
+    updateTransactionSummary(filteredTransactions);
+
+    // Update the transaction table to show only filtered transactions
+    const tableWrapper = document.getElementById('transactionTableWrapper');
+    if (tableWrapper) {
+      renderTransactionTable(document.querySelector('.transactions-section'), filteredTransactions);
+    }
+
+    console.log(`CRITICAL: Transaction display updated successfully for ${filteredTransactions.length} transactions`);
+  } catch (error) {
+    console.error('CRITICAL ERROR: Failed to update transaction display:', error);
+  }
 }
 
 /**
