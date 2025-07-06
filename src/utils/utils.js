@@ -75,11 +75,12 @@ export function isExcelDateColumn(columnValues) {
 }
 
 /**
- * Enhanced date detection that includes Excel dates
+ * Enhanced date detection that includes Excel dates (legacy function)
  * @param {Array} columnValues - Array of values from a column
  * @returns {boolean} True if column contains date-like values
+ * @deprecated Use isDateColumn from dateUtils.js instead
  */
-export function isDateColumn(columnValues) {
+function isDateColumnLegacy(columnValues) {
   if (!columnValues || columnValues.length === 0) return false;
 
   // First check for Excel dates
@@ -117,11 +118,12 @@ export function isDateColumn(columnValues) {
 }
 
 /**
- * Safely attempts to parse any value into a valid date string
+ * Safely attempts to parse any value into a valid date string (legacy function)
  * @param {any} value - Value to convert to a date
  * @return {string|null} Date string or null if invalid
+ * @deprecated Use parseToISODate from dateUtils.js instead
  */
-export function parseToDateString(value) {
+function parseToDateStringLegacy(value) {
   if (value === null || value === undefined || value === '') return null;
   if (isExcelDate(value)) return excelDateToString(parseFloat(value));
   if (typeof value === 'string') {
@@ -248,11 +250,12 @@ export function formatCurrency(value) {
 }
 
 /**
- * Format dates consistently
+ * Format dates consistently (legacy function - use formatDateForDisplay from dateUtils instead)
  * @param {string|Date} dateStr - Date to format
  * @returns {string} Formatted date string
+ * @deprecated Use formatDateForDisplay from dateUtils.js instead
  */
-export function formatDate(dateStr) {
+function formatDateLegacy(dateStr) {
   try {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
