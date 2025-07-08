@@ -59,14 +59,13 @@ global.localStorage = {
 // Mock console methods for cleaner output
 const originalLog = console.log;
 const originalError = console.error;
-let testOutput = [];
 
 console.log = (...args) => {
-  testOutput.push(args.join(' '));
+  // Suppress output during testing
 };
 
 console.error = (...args) => {
-  testOutput.push('ERROR: ' + args.join(' '));
+  // Suppress errors during testing
 };
 
 // Set up AppState for testing

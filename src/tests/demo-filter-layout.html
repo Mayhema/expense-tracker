@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filter Layout Demo</title>
+  <link rel="stylesheet" href="src/styles/filters.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+
+    .demo-info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="demo-info">
+    <h2>🎯 Filter Layout Demo</h2>
+    <p><strong>Improvements Made:</strong></p>
+    <ul>
+      <li>✅ <strong>Grid Layout:</strong> Filters now arrange in responsive rows/columns instead of single column</li>
+      <li>✅ <strong>Better Status:</strong> Shows meaningful transaction count instead of "Ready to filter"</li>
+      <li>✅ <strong>Responsive Design:</strong> Works on mobile (1 column), tablet (2 columns), desktop (3+ columns)
+      </li>
+    </ul>
+    <p><strong>Resize your browser</strong> to see the responsive grid in action!</p>
+  </div>
+
+  <div class="advanced-filters">
+    <div class="filter-section">
+      <div class="filter-header">
+        <h4>🔍 Advanced Filters</h4>
+        <div class="filter-preset-section">
+          <select class="preset-selector">
+            <option>Choose Saved Preset</option>
+            <option>📋 Monthly Expenses</option>
+            <option>📋 High Value</option>
+          </select>
+          <button class="btn preset-btn">💾 Save Preset</button>
+          <button class="btn preset-btn">⚙️ Manage</button>
+        </div>
+      </div>
+
+      <div class="filter-grid">
+        <!-- Date Range Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">📅</span>
+            <label for="demo-date-range">Date Range</label>
+          </div>
+          <div class="filter-card-content">
+            <select id="demo-date-range" class="modern-select">
+              <option>All Time</option>
+              <option>Today</option>
+              <option>Last 7 Days</option>
+              <option>Last 30 Days</option>
+              <option>This Month</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Amount Range Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">💰</span>
+            <label for="demo-amount-min">Amount Range</label>
+          </div>
+          <div class="filter-card-content">
+            <div class="amount-inputs">
+              <div class="amount-input-group">
+                <label for="demo-amount-min">Min</label>
+                <input id="demo-amount-min" type="number" class="modern-input" placeholder="0.00">
+              </div>
+              <div class="amount-input-group">
+                <label for="demo-amount-max">Max</label>
+                <input id="demo-amount-max" type="number" class="modern-input" placeholder="1000.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Currency Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">💱</span>
+            <label for="demo-currency">Currency</label>
+          </div>
+          <div class="filter-card-content">
+            <select id="demo-currency" class="modern-select">
+              <option>All Currencies</option>
+              <option>💲 USD - US Dollar</option>
+              <option>€ EUR - Euro</option>
+              <option>£ GBP - British Pound</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">🔍</span>
+            <label for="demo-search">Search</label>
+          </div>
+          <div class="filter-card-content">
+            <div class="search-input-wrapper">
+              <input id="demo-search" type="text" class="search-input modern-input"
+                placeholder="Search descriptions...">
+              <button class="search-clear-btn">×</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">🏷️</span>
+            <label for="demo-categories">Categories</label>
+          </div>
+          <div class="filter-card-content">
+            <button id="demo-categories" class="category-select-btn modern-btn">
+              <span>All Categories</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn primary-btn action-btn">✨ Apply Filters</button>
+        <button class="btn secondary-btn action-btn">🧹 Clear All</button>
+        <div class="filter-status filter-active">
+          <span class="status-text">Showing 12 of 45 transactions (3 filters)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-info">
+    <h3>📱 Responsive Breakpoints:</h3>
+    <ul>
+      <li><strong>Mobile (≤768px):</strong> 1 column stack</li>
+      <li><strong>Tablet (481-767px):</strong> 2 columns</li>
+      <li><strong>Desktop (≥768px):</strong> Auto-fit grid (2-4 columns based on screen size)</li>
+    </ul>
+    <p><strong>Status Messages:</strong></p>
+    <ul>
+      <li>✅ "Showing all X transactions" (no filters)</li>
+      <li>✅ "Showing X of Y transactions (N filters)" (with active filters)</li>
+      <li>❌ ~~"Ready to filter"~~ (removed static text)</li>
+    </ul>
+  </div>
+</body>
+
+</html>

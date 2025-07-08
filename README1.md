@@ -9,11 +9,6 @@ Income vs expense forecasting
 Monthly/yearly comparisons
 6. Data Validation Improvements
 8. Data Backup & Sync
-9. Mobile Optimization
-Touch-friendly interfaces
-Swipe gestures for transaction actions
-Progressive Web App (PWA) features
-10. Security Enhancements
 
 Customizable Dashboard:
 Allow users to choose which charts or summaries they want to see on their main dashboard.

@@ -75,7 +75,7 @@ export function inspectTransactionData() {
       <div class="debug-section">
         <h3>Data Quality Issues</h3>
         <ul>
-          ${analysis.issues.map(issue => `<li style="color: #dc3545;">${issue}</li>`).join('')}
+          ${analysis.issues.map(issue => '<li style="color: #dc3545;">' + issue + '</li>').join('')}
           ${analysis.issues.length === 0 ? '<li style="color: #28a745;">No data quality issues found</li>' : ''}
         </ul>
       </div>

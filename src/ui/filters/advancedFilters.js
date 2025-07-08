@@ -1,6 +1,7 @@
 import { AppState } from '../../core/appState.js';
 import { parseToISODate, parseDDMMYYYY, formatDateToDDMMYYYY } from '../../utils/dateUtils.js';
 import { CURRENCIES } from '../../constants/currencies.js';
+import { showModal } from '../modalManager.js';
 
 // Current filter state
 const currentFilters = {
@@ -14,6 +15,9 @@ const currentFilters = {
   currency: 'all'
 };
 
+// Track if event listeners have been set up to prevent duplication
+let eventListenersInitialized = false;
+
 /**
  * Initialize advanced filters
  */
@@ -23,8 +27,15 @@ export function initializeAdvancedFilters() {
   // Load saved filter preferences
   loadFilterPreferences();
 
-  // Set up event listeners
-  setupFilterEventListeners();
+  // Set up event listeners only once
+  if (!eventListenersInitialized) {
+    setupFilterEventListeners();
+    eventListenersInitialized = true;
+  }
+
+  // Initialize filter status with current transaction count
+  const transactions = AppState.transactions || [];
+  updateFilterStatus(transactions.length, transactions.length);
 }
 
 /**
@@ -33,118 +44,171 @@ export function initializeAdvancedFilters() {
 export function createAdvancedFilterSection() {
   const categories = Object.keys(AppState.categories || {}).sort();
   const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort();
+  const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
+  const presetNames = Object.keys(savedPresets);
 
   return `
     <div class="advanced-filters">
       <div class="filter-section">
-        <h4>🔍 Advanced Filters</h4>
-
-        <div class="filter-row">
-          <!-- Date Range Presets -->
-          <div class="filter-group">
-            <label for="dateRangePreset">Date Range</label>
-            <select id="dateRangePreset" class="filter-select">
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last7days">Last 7 Days</option>
-              <option value="last30days">Last 30 Days</option>
-              <option value="thisWeek">This Week</option>
-              <option value="lastWeek">Last Week</option>
-              <option value="thisMonth">This Month</option>
-              <option value="lastMonth">Last Month</option>
-              <option value="thisQuarter">This Quarter</option>
-              <option value="thisYear">This Year</option>
-              <option value="custom">Custom Range</option>
+        <div class="filter-header">
+          <h4>🔍 Advanced Filters</h4>
+          <div class="filter-preset-section">
+            <select id="presetSelector" class="preset-selector">
+              <option value="">Choose Saved Preset</option>
+              ${presetNames.map(name => `<option value="${name}">📋 ${name}</option>`).join('')}
             </select>
-          </div>
-
-          <!-- Custom Date Range - FIXED: Use text inputs with dd/mm/yyyy format -->
-          <div class="filter-group custom-date-range" style="display: none;">
-            <label for="customStartDate">From Date</label>
-            <input type="text" id="customStartDate" class="filter-input date-field" placeholder="dd/mm/yyyy">
-          </div>
-
-          <div class="filter-group custom-date-range" style="display: none;">
-            <label for="customEndDate">To Date</label>
-            <input type="text" id="customEndDate" class="filter-input date-field" placeholder="dd/mm/yyyy">
-          </div>
-
-          <!-- Amount Range -->
-          <div class="filter-group">
-            <label for="minAmount">Min Amount</label>
-            <input type="number" id="minAmount" class="filter-input" placeholder="0.00" step="0.01" min="0">
-          </div>
-
-          <div class="filter-group">
-            <label for="maxAmount">Max Amount</label>
-            <input type="number" id="maxAmount" class="filter-input" placeholder="0.00" step="0.01" min="0">
-          </div>
-
-          <!-- FIXED: Currency Filter with symbols like transaction table -->
-          <div class="filter-group">
-            <label for="currencyFilter">Currency</label>
-            <select id="currencyFilter" class="filter-select">
-              <option value="all">All Currencies</option>
-              ${currencies.map(currency => {
-    const currencyData = CURRENCIES[currency] || {};
-    const symbol = currencyData.symbol || '💱';
-    const name = currencyData.name || currency;
-    return `<option value="${currency}">${symbol} ${currency} - ${name}</option>`;
-  }).join('')}
-            </select>
+            <button type="button" id="saveFilterPresetBtn" class="btn preset-btn" title="Save current filters as preset">
+              💾 Save Preset
+            </button>
+            ${presetNames.length > 0 ? `
+              <button type="button" id="managePresetsBtn" class="btn preset-btn" title="Manage saved presets">
+                ⚙️ Manage
+              </button>
+            ` : ''}
           </div>
         </div>
 
-        <div class="filter-row">
-          <!-- Description Search -->
-          <div class="filter-group search-group">
-            <label for="descriptionSearch">Search Description</label>
-            <div class="search-input-wrapper">
-              <input type="text" id="descriptionSearch" class="filter-input search-input"
-                     placeholder="Search transactions..." autocomplete="off">
-              <button type="button" class="search-clear-btn" title="Clear search">×</button>
+        <div class="filter-grid">
+          <!-- Date Range Section -->
+          <div class="filter-card">
+            <div class="filter-card-header">
+              <span class="filter-icon">📅</span>
+              <label>Date Range</label>
             </div>
-          </div>
+            <div class="filter-card-content">
+              <select id="dateRangePreset" class="filter-select modern-select">
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last7days">Last 7 Days</option>
+                <option value="last30days">Last 30 Days</option>
+                <option value="thisWeek">This Week</option>
+                <option value="lastWeek">Last Week</option>
+                <option value="thisMonth">This Month</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="thisQuarter">This Quarter</option>
+                <option value="thisYear">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
 
-          <!-- FIXED: Category Selection with checkboxes and colors like transaction table -->
-          <div class="filter-group category-group">
-            <label>Categories</label>
-            <div class="category-filter-container">
-              <button type="button" class="category-select-btn" id="categorySelectBtn">
-                <span class="selected-count">All Categories</span>
-                <span class="dropdown-arrow">▼</span>
-              </button>
-              <div class="category-dropdown" id="categoryDropdown">
-                <div class="category-search">
-                  <input type="text" placeholder="Search categories..." class="category-search-input">
+              <div class="custom-date-inputs" style="display: none;">
+                <div class="date-input-group">
+                  <label>From</label>
+                  <input type="text" id="customStartDate" class="filter-input date-field" placeholder="dd/mm/yyyy">
                 </div>
-                <div class="category-options">
-                  <label class="category-option">
-                    <input type="checkbox" value="all" class="category-checkbox" checked>
-                    <span class="category-label">All Categories</span>
-                  </label>
-                  ${categories.map(category => {
-    const categoryData = AppState.categories[category];
-    const color = typeof categoryData === 'string' ? categoryData : categoryData?.color || '#cccccc';
-    return `
-                      <label class="category-option">
-                        <input type="checkbox" value="${category}" class="category-checkbox">
-                        <span class="category-color" style="background-color: ${color}"></span>
-                        <span class="category-label">● ${category}</span>
-                      </label>
-                    `;
-  }).join('')}
+                <div class="date-input-group">
+                  <label>To</label>
+                  <input type="text" id="customEndDate" class="filter-input date-field" placeholder="dd/mm/yyyy">
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Filter Actions -->
-          <div class="filter-group filter-actions">
-            <button type="button" id="applyFiltersBtn" class="btn primary-btn">Apply Filters</button>
-            <button type="button" id="clearAllFiltersBtn" class="btn secondary-btn">Clear All</button>
-            <button type="button" id="saveFilterPresetBtn" class="btn secondary-btn">Save Preset</button>
+          <!-- Amount Range Section -->
+          <div class="filter-card">
+            <div class="filter-card-header">
+              <span class="filter-icon">💰</span>
+              <label>Amount Range</label>
+            </div>
+            <div class="filter-card-content">
+              <div class="amount-inputs">
+                <div class="amount-input-group">
+                  <label>Min</label>
+                  <input type="number" id="minAmount" class="filter-input modern-input" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="amount-input-group">
+                  <label>Max</label>
+                  <input type="number" id="maxAmount" class="filter-input modern-input" placeholder="0.00" step="0.01" min="0">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Currency Section -->
+          <div class="filter-card">
+            <div class="filter-card-header">
+              <span class="filter-icon">💱</span>
+              <label>Currency</label>
+            </div>
+            <div class="filter-card-content">
+              <select id="currencyFilter" class="filter-select modern-select">
+                <option value="all">All Currencies</option>
+                ${currencies.map(currency => {
+    const currencyData = CURRENCIES[currency] || {};
+    const symbol = currencyData.symbol || '💱';
+    const name = currencyData.name || currency;
+    return `<option value="${currency}">${symbol} ${currency} - ${name}</option>`;
+  }).join('')}
+              </select>
+            </div>
+          </div>
+
+          <!-- Search Section -->
+          <div class="filter-card">
+            <div class="filter-card-header">
+              <span class="filter-icon">🔍</span>
+              <label>Search</label>
+            </div>
+            <div class="filter-card-content">
+              <div class="search-input-wrapper">
+                <input type="text" id="descriptionSearch" class="filter-input search-input modern-input"
+                       placeholder="Search descriptions..." autocomplete="off">
+                <button type="button" class="search-clear-btn" title="Clear search">×</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Categories Section -->
+          <div class="filter-card category-card">
+            <div class="filter-card-header">
+              <span class="filter-icon">🏷️</span>
+              <label>Categories</label>
+            </div>
+            <div class="filter-card-content">
+              <div class="category-filter-container">
+                <button type="button" class="category-select-btn modern-btn" id="categorySelectBtn">
+                  <span class="selected-count">All Categories</span>
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="category-dropdown" id="categoryDropdown">
+                  <div class="category-search">
+                    <input type="text" placeholder="Search categories..." class="category-search-input modern-input">
+                  </div>
+                  <div class="category-options">
+                    <label class="category-option">
+                      <input type="checkbox" value="all" class="category-checkbox" checked>
+                      <span class="category-checkmark"></span>
+                      <span class="category-label">All Categories</span>
+                    </label>
+                    ${categories.map(category => {
+    const categoryData = AppState.categories[category];
+    const color = typeof categoryData === 'string' ? categoryData : categoryData?.color || '#cccccc';
+    return `
+                        <label class="category-option">
+                          <input type="checkbox" value="${category}" class="category-checkbox">
+                          <span class="category-checkmark"></span>
+                          <span class="category-color" style="background-color: ${color}"></span>
+                          <span class="category-label">${category}</span>
+                        </label>
+                      `;
+  }).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="filter-actions">
+          <button type="button" id="applyFiltersBtn" class="btn primary-btn action-btn">
+            ✨ Apply Filters
+          </button>
+          <button type="button" id="clearAllFiltersBtn" class="btn secondary-btn action-btn">
+            🧹 Clear All
+          </button>
+          <div class="filter-status" id="filterStatus">
+            <span class="status-text">Loading filters...</span>
           </div>
         </div>
       </div>
@@ -227,7 +291,18 @@ function setupFilterEventListeners() {
     } else if (e.target.id === 'clearAllFiltersBtn') {
       clearAllFilters();
     } else if (e.target.id === 'saveFilterPresetBtn') {
-      saveFilterPreset();
+      showSavePresetModal();
+    } else if (e.target.id === 'managePresetsBtn') {
+      showManagePresetsModal();
+    }
+  });
+
+  // Preset selector change
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'presetSelector') {
+      if (e.target.value) {
+        loadFilterPreset(e.target.value);
+      }
     }
   });
 
@@ -524,6 +599,9 @@ export function applyCurrentFilters() {
 
   console.log(`CRITICAL: applyCurrentFilters - filtering ${transactions.length} transactions to ${filteredTransactions.length} with currency: ${currentFilters.currency}`);
 
+  // Update filter status
+  updateFilterStatus(transactions.length, filteredTransactions.length);
+
   // Update the transaction display
   import('../transactionManager.js').then(module => {
     if (module.updateTransactionDisplay) {
@@ -553,6 +631,65 @@ export function applyCurrentFilters() {
   }, 100);
 
   console.log(`Applied filters: ${filteredTransactions.length} of ${transactions.length} transactions shown`);
+}
+
+/**
+ * Update the filter status display
+ */
+function updateFilterStatus(totalCount, filteredCount) {
+  const statusElement = document.getElementById('filterStatus');
+  if (!statusElement) return;
+
+  const statusText = statusElement.querySelector('.status-text');
+  if (!statusText) return;
+
+  // Count active filters
+  const activeFilters = getActiveFilterCount();
+
+  if (activeFilters === 0) {
+    statusText.textContent = `Showing all ${totalCount} transactions`;
+    statusElement.className = 'filter-status';
+  } else if (filteredCount === totalCount) {
+    statusText.textContent = `${activeFilters} filter${activeFilters > 1 ? 's' : ''} active, no results filtered`;
+    statusElement.className = 'filter-status filter-active';
+  } else {
+    statusText.textContent = `Showing ${filteredCount} of ${totalCount} transactions (${activeFilters} filter${activeFilters > 1 ? 's' : ''})`;
+    statusElement.className = 'filter-status filter-active';
+  }
+}
+
+/**
+ * Count the number of active filters
+ */
+function getActiveFilterCount() {
+  let count = 0;
+
+  // Date range filter
+  if (currentFilters.dateRange && currentFilters.dateRange !== 'all') {
+    count++;
+  }
+
+  // Categories filter
+  if (currentFilters.categories && currentFilters.categories.length > 0) {
+    count++;
+  }
+
+  // Amount range filter
+  if (currentFilters.minAmount !== null || currentFilters.maxAmount !== null) {
+    count++;
+  }
+
+  // Search filter
+  if (currentFilters.searchText && currentFilters.searchText.trim() !== '') {
+    count++;
+  }
+
+  // Currency filter
+  if (currentFilters.currency && currentFilters.currency !== 'all') {
+    count++;
+  }
+
+  return count;
 }
 
 /**
@@ -675,25 +812,345 @@ function clearAllFilters() {
 
   updateCategoryButtonText();
   applyCurrentFilters();
+
+  // Update status to show all transactions
+  const totalTransactions = (AppState.transactions || []).length;
+  updateFilterStatus(totalTransactions, totalTransactions);
 }
 
 /**
- * Save filter preset
+ * Show modal to save filter preset
  */
-function saveFilterPreset() {
-  const presetName = prompt('Enter a name for this filter preset:');
-  if (!presetName) return;
+function showSavePresetModal() {
+  const modal = showModal({
+    title: '💾 Save Filter Preset',
+    content: `
+      <div class="preset-save-modal">
+        <div class="form-group">
+          <label for="presetName">Preset Name:</label>
+          <input type="text" id="presetName" class="preset-input" placeholder="Enter preset name...">
+        </div>
+        <div class="form-group">
+          <label>Current Filters:</label>
+          <div class="current-filters-preview">
+            ${getFiltersPreview()}
+          </div>
+        </div>
+      </div>
+    `,
+    size: 'medium',
+    showCloseButton: true,
+    closeOnClickOutside: true
+  });
 
+  if (modal) {
+    // Add save button
+    const saveButton = document.createElement('button');
+    saveButton.textContent = '💾 Save Preset';
+    saveButton.className = 'btn primary-btn';
+    saveButton.onclick = () => {
+      const nameInput = document.getElementById('presetName');
+      const presetName = nameInput?.value?.trim();
+
+      if (!presetName) {
+        nameInput?.focus();
+        return;
+      }
+
+      // Save the preset
+      const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
+      savedPresets[presetName] = { ...currentFilters };
+      localStorage.setItem('filterPresets', JSON.stringify(savedPresets));
+
+      // Update UI
+      updatePresetSelector();
+
+      // Show success message
+      import('../uiManager.js').then(module => {
+        if (module.showToast) {
+          module.showToast(`Filter preset "${presetName}" saved`, 'success');
+        }
+      });
+
+      modal.close();
+    };
+
+    // Add cancel button
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.className = 'btn secondary-btn';
+    cancelButton.onclick = () => modal.close();
+
+    // Add buttons to modal
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'modal-buttons';
+    buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;';
+    buttonContainer.appendChild(saveButton);
+    buttonContainer.appendChild(cancelButton);
+    modal.content.appendChild(buttonContainer);
+
+    // Focus on input
+    setTimeout(() => {
+      const nameInput = document.getElementById('presetName');
+      nameInput?.focus();
+    }, 100);
+  }
+}
+
+/**
+ * Show modal to manage existing presets
+ */
+function showManagePresetsModal() {
   const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
-  savedPresets[presetName] = { ...currentFilters };
+  const presetNames = Object.keys(savedPresets);
 
-  localStorage.setItem('filterPresets', JSON.stringify(savedPresets));
+  if (presetNames.length === 0) {
+    import('../uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('No saved presets found', 'info');
+      }
+    });
+    return;
+  }
+
+  const modal = showModal({
+    title: '⚙️ Manage Filter Presets',
+    content: `
+      <div class="preset-manage-modal">
+        <div class="preset-list">
+          ${presetNames.map(name => `
+            <div class="preset-item" data-preset="${name}">
+              <div class="preset-info">
+                <h4>📋 ${name}</h4>
+                <p class="preset-description">${getPresetDescription(savedPresets[name])}</p>
+              </div>
+              <div class="preset-actions">
+                <button class="btn small-btn primary-btn load-preset" data-preset="${name}">
+                  📥 Load
+                </button>
+                <button class="btn small-btn danger-btn delete-preset" data-preset="${name}">
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `,
+    size: 'large',
+    showCloseButton: true,
+    closeOnClickOutside: true
+  });
+
+  if (modal) {
+    // Handle preset actions
+    modal.content.addEventListener('click', (e) => {
+      const presetName = e.target.dataset.preset;
+
+      if (e.target.classList.contains('load-preset')) {
+        loadFilterPreset(presetName);
+        modal.close();
+      } else if (e.target.classList.contains('delete-preset')) {
+        deleteFilterPreset(presetName);
+        // Refresh the modal content
+        modal.close();
+        setTimeout(() => showManagePresetsModal(), 100);
+      }
+    });
+
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Close';
+    closeButton.className = 'btn secondary-btn';
+    closeButton.onclick = () => modal.close();
+
+    // Append button directly to modal content since addButton method doesn't exist
+    const modalBody = modalOverlay.querySelector('.modal-body');
+    if (modalBody) {
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = 'modal-button-container';
+      buttonContainer.style.cssText = 'margin-top: 20px; text-align: right; padding-top: 15px; border-top: 1px solid #eee;';
+      buttonContainer.appendChild(closeButton);
+      modalBody.appendChild(buttonContainer);
+    }
+  }
+}
+
+/**
+ * Load a filter preset
+ */
+function loadFilterPreset(presetName) {
+  const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
+  const preset = savedPresets[presetName];
+
+  if (!preset) {
+    import('../uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast(`Preset "${presetName}" not found`, 'error');
+      }
+    });
+    return;
+  }
+
+  // Load the preset into current filters
+  Object.assign(currentFilters, preset);
+
+  // Update UI to reflect loaded filters
+  updateUIFromCurrentFilters();
+
+  // Apply the filters
+  applyCurrentFilters();
 
   import('../uiManager.js').then(module => {
     if (module.showToast) {
-      module.showToast(`Filter preset "${presetName}" saved`, 'success');
+      module.showToast(`Preset "${presetName}" loaded`, 'success');
     }
   });
+}
+
+/**
+ * Delete a filter preset
+ */
+function deleteFilterPreset(presetName) {
+  const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
+  delete savedPresets[presetName];
+  localStorage.setItem('filterPresets', JSON.stringify(savedPresets));
+
+  // Update the preset selector
+  updatePresetSelector();
+
+  import('../uiManager.js').then(module => {
+    if (module.showToast) {
+      module.showToast(`Preset "${presetName}" deleted`, 'success');
+    }
+  });
+}
+
+/**
+ * Update the preset selector dropdown
+ */
+function updatePresetSelector() {
+  const selector = document.getElementById('presetSelector');
+  if (!selector) return;
+
+  const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
+  const presetNames = Object.keys(savedPresets);
+
+  selector.innerHTML = `
+    <option value="">Choose Saved Preset</option>
+    ${presetNames.map(name => `<option value="${name}">📋 ${name}</option>`).join('')}
+  `;
+}
+
+/**
+ * Update UI elements to reflect current filters
+ */
+function updateUIFromCurrentFilters() {
+  // Date range
+  const dateRangeSelect = document.getElementById('dateRangePreset');
+  if (dateRangeSelect) {
+    dateRangeSelect.value = currentFilters.dateRange || 'all';
+  }
+
+  // Custom dates
+  if (currentFilters.dateRange === 'custom') {
+    const startInput = document.getElementById('customStartDate');
+    const endInput = document.getElementById('customEndDate');
+    if (startInput && currentFilters.customStartDate) {
+      startInput.value = formatDateToDDMMYYYY(currentFilters.customStartDate);
+    }
+    if (endInput && currentFilters.customEndDate) {
+      endInput.value = formatDateToDDMMYYYY(currentFilters.customEndDate);
+    }
+  }
+
+  // Amount range
+  const minAmount = document.getElementById('minAmount');
+  const maxAmount = document.getElementById('maxAmount');
+  if (minAmount) minAmount.value = currentFilters.minAmount || '';
+  if (maxAmount) maxAmount.value = currentFilters.maxAmount || '';
+
+  // Search text
+  const searchInput = document.getElementById('descriptionSearch');
+  if (searchInput) searchInput.value = currentFilters.searchText || '';
+
+  // Currency
+  const currencySelect = document.getElementById('currencyFilter');
+  if (currencySelect) currencySelect.value = currentFilters.currency || 'all';
+
+  // Categories - this would need more complex handling
+  // For now, just trigger the category update
+  updateCategoryButtonText();
+}
+
+/**
+ * Get a preview of current filters for display
+ */
+function getFiltersPreview() {
+  const previews = [];
+
+  if (currentFilters.dateRange !== 'all') {
+    previews.push(`📅 Date: ${currentFilters.dateRange}`);
+  }
+
+  if (currentFilters.categories && currentFilters.categories.length > 0) {
+    previews.push(`🏷️ Categories: ${currentFilters.categories.length} selected`);
+  }
+
+  if (currentFilters.minAmount || currentFilters.maxAmount) {
+    const min = currentFilters.minAmount || '0';
+    const max = currentFilters.maxAmount || '∞';
+    previews.push(`💰 Amount: ${min} - ${max}`);
+  }
+
+  if (currentFilters.currency !== 'all') {
+    previews.push(`💱 Currency: ${currentFilters.currency}`);
+  }
+
+  if (currentFilters.searchText) {
+    previews.push(`🔍 Search: "${currentFilters.searchText}"`);
+  }
+
+  return previews.length > 0
+    ? `<ul>${previews.map(p => '<li>' + p + '</li>').join('')}</ul>`
+    : '<p>No active filters</p>';
+}
+
+/**
+ * Get a description of a preset for the manage modal
+ */
+function getPresetDescription(preset) {
+  const descriptions = [];
+
+  if (preset.dateRange !== 'all') {
+    descriptions.push(`Date: ${preset.dateRange}`);
+  }
+
+  if (preset.categories && preset.categories.length > 0) {
+    descriptions.push(`${preset.categories.length} categories`);
+  }
+
+  if (preset.minAmount || preset.maxAmount) {
+    descriptions.push('Amount range');
+  }
+
+  if (preset.currency !== 'all') {
+    descriptions.push(`Currency: ${preset.currency}`);
+  }
+
+  if (preset.searchText) {
+    descriptions.push('Search term');
+  }
+
+  return descriptions.length > 0 ? descriptions.join(', ') : 'No filters';
+}
+
+/**
+ * Save filter preset (legacy function - now shows deprecation warning)
+ */
+function saveFilterPreset() {
+  console.warn('DEPRECATED: saveFilterPreset() - Use showSavePresetModal() instead');
+  showSavePresetModal();
 }
 
 /**

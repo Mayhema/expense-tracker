@@ -7,6 +7,9 @@
   "scripts": {
     "start": "serve src",
     "test": "jest",
+    "test:all": "node src/tests/unified-test-runner.js",
+    "test:auto": "node src/tests/automated-test-runner.js",
+    "test:category": "node src/tests/categoryManager.test.js",
     "lint": "eslint src/**/*.js",
     "format": "prettier --write src/**/*.{js,html,css}"
   },
