@@ -19,7 +19,8 @@ function assert(condition, message) {
 
 // Simple tests
 console.log('\n📋 Basic functionality tests:');
-assert(true === true, 'Boolean equality works');
+const testValue = true;
+assert(testValue === true, 'Boolean equality works');
 assert(1 + 1 === 2, 'Math works correctly');
 assert('hello'.length === 5, 'String length is correct');
 

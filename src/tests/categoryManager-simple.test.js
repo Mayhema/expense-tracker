@@ -1,8 +1,6 @@
 /**
  * 🧪 SIMPLIFIED CATEGORY MANAGER FUNCTIONALITY TEST
- * Tests basic category manager functionality w// Test 3: Check if modern UI elements are present in CSS
-test('Modern UI elements are present in CSS', () => {
-  const cssCode = fs.readFileSync('src/styles/category-manager.css', 'utf8');out Jest
+ * Tests basic category manager functionality without Jest
  */
 
 import fs from 'fs';
@@ -69,6 +67,9 @@ global.AppState = {
 // Run tests
 console.log('🧪 SIMPLIFIED CATEGORY MANAGER FUNCTIONALITY TEST');
 console.log('=================================================');
+
+// Change to project root directory
+process.chdir(path.resolve(__dirname, '..', '..'));
 
 // Test 1: Check if category manager file exists and has required functions
 test('Category manager file exists and has required functions', () => {

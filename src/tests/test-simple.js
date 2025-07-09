@@ -20,7 +20,7 @@ function assert(condition, message) {
 // Simple tests
 console.log('\n📋 Basic functionality tests:');
 const testValue = true;
-assert(typeof testValue === 'boolean', 'Boolean type check works');
+assert(testValue === true, 'Boolean equality works');
 assert(1 + 1 === 2, 'Math works correctly');
 assert('hello'.length === 5, 'String length is correct');
 

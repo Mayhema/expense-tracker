@@ -84,7 +84,7 @@ async function runTestFile(testFilePath) {
   const relativePath = path.relative(projectRoot, testFilePath);
 
   try {
-    console.log(colors.blue + '📋 Running ' + relativePath + '...' + colors.reset);
+    console.log(`${colors.blue}📋 Running ${relativePath}...${colors.reset}`);
     console.log('-'.repeat(50));
 
     // Change to the test file's directory for proper module resolution
@@ -114,7 +114,7 @@ async function runTestFile(testFilePath) {
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    console.log(colors.green + '✅ ' + relativePath + ' completed in ' + duration + 'ms' + colors.reset);
+    console.log(`${colors.green}✅ ${relativePath} completed in ${duration}ms${colors.reset}`);
 
     return {
       success: true,
@@ -127,7 +127,7 @@ async function runTestFile(testFilePath) {
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    console.error(colors.red + '❌ ' + relativePath + ' failed' + colors.reset);
+    console.error(`${colors.red}❌ ${relativePath} failed${colors.reset}`);
     console.error(`   ${colors.red}Exit code: ${error.code || 'Unknown'}${colors.reset}`);
 
     // Log more details about the error if available
@@ -148,7 +148,7 @@ async function runTestFile(testFilePath) {
  * Main test runner function
  */
 async function main() {
-  console.log(colors.bright + colors.cyan + '🧪 COMPREHENSIVE EXPENSE TRACKER TEST RUNNER' + colors.reset);
+  console.log(`${colors.bright}${colors.cyan}🧪 COMPREHENSIVE EXPENSE TRACKER TEST RUNNER${colors.reset}`);
   console.log('='.repeat(50));
 
   console.log('🔍 Debug: Entering main function...');
@@ -180,7 +180,7 @@ async function main() {
   allTestFiles = [...new Set(allTestFiles)].sort();
 
   if (allTestFiles.length === 0) {
-    console.log(colors.yellow + '⚠️  No test files found in the project' + colors.reset);
+    console.log(`${colors.yellow}⚠️  No test files found in the project${colors.reset}`);
     console.log('Test discovery checked:');
     testDirs.forEach(dir => console.log(`  - ${path.relative(projectRoot, dir)}/`));
     console.log(`  - ${path.relative(projectRoot, projectRoot)}/ (root)`);
@@ -192,13 +192,13 @@ async function main() {
     return;
   }
 
-  console.log(colors.cyan + 'Found ' + allTestFiles.length + ' test files:' + colors.reset);
+  console.log(`${colors.cyan}Found ${allTestFiles.length} test files:${colors.reset}`);
   allTestFiles.forEach((file, index) => {
     const relativePath = path.relative(projectRoot, file);
     console.log(`  ${index + 1}. ${relativePath}`);
   });
 
-  console.log(colors.bright + colors.green + '🚀 STARTING TEST EXECUTION' + colors.reset);
+  console.log(`${colors.bright}${colors.green}🚀 STARTING TEST EXECUTION${colors.reset}`);
   console.log('='.repeat(30));
 
   // Run all tests
@@ -214,14 +214,14 @@ async function main() {
   // Generate comprehensive report
   console.log('');
   console.log('='.repeat(60));
-  console.log(colors.bright + colors.blue + '📊 COMPREHENSIVE TEST REPORT' + colors.reset);
+  console.log(`${colors.bright}${colors.blue}📊 COMPREHENSIVE TEST REPORT${colors.reset}`);
   console.log('='.repeat(60));
 
   const passed = results.filter(r => r.success);
   const failed = results.filter(r => !r.success);
   const successRate = Math.round((passed.length / results.length) * 100);
 
-  console.log(colors.bright + '📈 SUMMARY:' + colors.reset);
+  console.log(`${colors.bright}📈 SUMMARY:${colors.reset}`);
   console.log(`   Total Tests:     ${results.length}`);
   console.log(`   Passed:          ${passed.length} ${colors.green}✅${colors.reset}`);
   console.log(`   Failed:          ${failed.length} ${failed.length > 0 ? colors.red + '❌' : colors.green + '✅'}${colors.reset}`);
@@ -229,7 +229,7 @@ async function main() {
   console.log(`   Total Duration:  ${totalDuration}ms`);
 
   console.log('');
-  console.log(colors.bright + '🧪 TEST COVERAGE AREAS:' + colors.reset);
+  console.log(`${colors.bright}🧪 TEST COVERAGE AREAS:${colors.reset}`);
 
   // Categorize tests by functionality
   const testCategories = {
@@ -263,7 +263,7 @@ async function main() {
 
   if (failed.length > 0) {
     console.log('');
-    console.log(colors.bright + colors.red + '⚠️  FAILED TESTS' + colors.reset);
+    console.log(`${colors.bright}${colors.red}⚠️  FAILED TESTS${colors.reset}`);
     failed.forEach(result => {
       console.log(`   ${colors.red}❌ ${result.file}${colors.reset}`);
       if (result.error) {

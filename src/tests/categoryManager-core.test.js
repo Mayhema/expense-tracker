@@ -37,20 +37,6 @@ globalThis.window = {
 // Mock showToast function
 globalThis.showToast = () => { };
 
-// Mock localStorage
-const mockLocalStorage = (() => {
-  let store = {};
-  return {
-    getItem: (key) => store[key] || null,
-    setItem: (key, value) => { store[key] = value; },
-    removeItem: (key) => { delete store[key]; },
-    clear: () => { store = {}; }
-  };
-})();
-
-// Mock showToast function
-const mockShowToast = () => { };
-
 // Simple test framework
 let testsPassed = 0;
 let testsFailed = 0;
@@ -97,12 +83,11 @@ function setupTest() {
   AppState.categories = {};
   AppState.transactions = [];
 
-  // Mock localStorage
-  global.localStorage = mockLocalStorage;
-  global.showToast = mockShowToast;
+  // Mock localStorage is already set up globally
+  globalThis.localStorage = globalThis.window.localStorage;
 
   // Clear localStorage
-  mockLocalStorage.clear();
+  globalThis.window.localStorage.clear();
 }
 
 console.log('🧪 CATEGORY MANAGER CORE FUNCTIONS TEST');

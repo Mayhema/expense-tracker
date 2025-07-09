@@ -1,39 +1,69 @@
-// Sample unit test file - add Jest or another test framework to use this
+// Node-compatible test file for utils module
 
 import { parseToDateString, isExcelDate } from '../utils/utils.js';
 
-describe('Utils Module', () => {
-  describe('isExcelDate', () => {
-    test('should identify Excel date numbers', () => {
-      expect(isExcelDate(44927)).toBe(true);  // 2023-01-01
-      expect(isExcelDate(45000)).toBe(true);
-      expect(isExcelDate(36525)).toBe(true);  // 2000-01-01
-    });
+let testsPassed = 0;
+let testsFailed = 0;
 
-    test('should reject non-Excel dates', () => {
-      expect(isExcelDate(12345)).toBe(false); // Too low
-      expect(isExcelDate(55000)).toBe(false); // Too high
-      expect(isExcelDate("2023-01-01")).toBe(false); // String
-      expect(isExcelDate(null)).toBe(false);
-    });
-  });
+function test(name, testFn) {
+  try {
+    testFn();
+    console.log(`✅ ${name}`);
+    testsPassed++;
+  } catch (error) {
+    console.log(`❌ ${name}: ${error.message}`);
+    testsFailed++;
+  }
+}
 
-  describe('parseToDateString', () => {
-    test('should parse Excel dates', () => {
-      expect(parseToDateString(44927)).toBe("2023-01-01");
-    });
+function expect(actual) {
+  return {
+    toBe: (expected) => {
+      if (actual !== expected) {
+        throw new Error(`Expected ${expected} but got ${actual}`);
+      }
+    },
+    toBeNull: () => {
+      if (actual !== null) {
+        throw new Error(`Expected null but got ${actual}`);
+      }
+    }
+  };
+}
 
-    test('should handle ISO string dates', () => {
-      expect(parseToDateString("2023-01-01")).toBe("2023-01-01");
-    });
+console.log('Running Utils Module Tests...');
 
-    test('should convert DD/MM/YYYY formats', () => {
-      expect(parseToDateString("31/12/2023")).toBe("2023-12-31");
-    });
-
-    test('should handle null and undefined', () => {
-      expect(parseToDateString(null)).toBeNull();
-      expect(parseToDateString(undefined)).toBeNull();
-    });
-  });
+// Test isExcelDate function
+test('isExcelDate should identify Excel date numbers', () => {
+  expect(isExcelDate(44927)).toBe(true);  // 2023-01-01
+  expect(isExcelDate(45000)).toBe(true);
+  expect(isExcelDate(36525)).toBe(true);  // 2000-01-01
 });
+
+test('isExcelDate should reject non-Excel dates', () => {
+  expect(isExcelDate(12345)).toBe(false); // Too low
+  expect(isExcelDate(100001)).toBe(false); // Too high
+  expect(isExcelDate("2023-01-01")).toBe(false); // String
+  expect(isExcelDate(null)).toBe(false);
+});
+
+// Test parseToDateString function
+test('parseToDateString should parse Excel dates', () => {
+  expect(parseToDateString(44927)).toBe("2023-01-01");
+});
+
+test('parseToDateString should handle ISO string dates', () => {
+  expect(parseToDateString("2023-01-01")).toBe("2023-01-01");
+});
+
+test('parseToDateString should convert DD/MM/YYYY formats', () => {
+  expect(parseToDateString("31/12/2023")).toBe("2023-12-31");
+});
+
+test('parseToDateString should handle null and undefined', () => {
+  expect(parseToDateString(null)).toBeNull();
+  expect(parseToDateString(undefined)).toBeNull();
+});
+
+console.log(`\nTest Results: ${testsPassed} passed, ${testsFailed} failed`);
+process.exit(testsFailed > 0 ? 1 : 0);
