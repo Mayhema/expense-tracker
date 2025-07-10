@@ -83,7 +83,17 @@ export function updateTransactionDisplay(filteredTransactions) {
 /**
  * Initialize transaction manager and load existing data
  */
+
+// FIXED: Add initialization guard to prevent multiple initializations
+let transactionManagerInitialized = false;
+
 export function initializeTransactionManager() {
+  if (transactionManagerInitialized) {
+    console.log("CRITICAL: Transaction manager already initialized, skipping...");
+    return;
+  }
+
+  transactionManagerInitialized = true;
   console.log("CRITICAL: Initializing transaction manager...");
 
   // Render immediately without setTimeout to prevent blinking
@@ -137,7 +147,7 @@ export function updateTransactionsFromUpload() {
 /**
  * Apply filters to transactions
  */
-function applyFilters(transactions = AppState.transactions || []) {
+export function applyFilters(transactions = AppState.transactions || []) {
   console.log(`🔍 APPLYING FILTERS to ${transactions.length} transactions`);
 
   if (!transactions || transactions.length === 0) {
@@ -191,7 +201,7 @@ function applyDateFilter(transactions) {
 function applyCategoryFilter(transactions) {
   const categoryFilter = document.getElementById('categoryFilter');
 
-  if (!categoryFilter?.value || categoryFilter.value === '') {
+  if (!categoryFilter?.value || categoryFilter.value === '' || categoryFilter.value === 'all') {
     return transactions;
   }
 
@@ -206,7 +216,7 @@ function applyCategoryFilter(transactions) {
 function applyCurrencyFilter(transactions) {
   const currencyFilter = document.getElementById('currencyFilter');
 
-  if (!currencyFilter?.value || currencyFilter.value === '') {
+  if (!currencyFilter?.value || currencyFilter.value === '' || currencyFilter.value === 'all') {
     return transactions;
   }
 

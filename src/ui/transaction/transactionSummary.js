@@ -11,11 +11,95 @@ import { CURRENCIES } from '../../constants/currencies.js';
  * Update transaction summary with multi-currency support
  */
 export function updateTransactionSummary(transactions) {
-  const summaryContainer = document.getElementById('transactionSummary');
-  if (!summaryContainer) return;
+  console.log('🔍 DEBUG: updateTransactionSummary called with', transactions?.length, 'transactions');
+
+  // First, let's check if the transaction section exists at all
+  const transactionSection = document.getElementById('transactionsSection');
+  console.log('🔍 DEBUG: transactionsSection exists:', !!transactionSection);
+
+  if (transactionSection) {
+    const sectionHeader = transactionSection.querySelector('.section-header');
+    console.log('🔍 DEBUG: section-header exists:', !!sectionHeader);
+
+    if (sectionHeader) {
+      console.log('🔍 DEBUG: section-header innerHTML length:', sectionHeader.innerHTML.length);
+      console.log('🔍 DEBUG: section-header contains transactionSummary:', sectionHeader.innerHTML.includes('transactionSummary'));
+    }
+  }
+
+  // Try to find the element with retries for timing issues
+  let summaryContainer = document.getElementById('transactionSummary');
+
+  if (summaryContainer) {
+    console.log('🔍 DEBUG: Summary element found immediately, proceeding with update');
+    updateSummaryContent(summaryContainer, transactions);
+    return;
+  }
+
+  // If not found, try with retries
+  let retryCount = 0;
+  const maxRetries = 5;
+
+  const findElementWithRetry = () => {
+    retryCount++;
+    summaryContainer = document.getElementById('transactionSummary');
+    console.log(`🔍 DEBUG: Attempt ${retryCount}: summaryContainer found:`, !!summaryContainer);
+
+    // Also check if the parent structure exists
+    const transactionSection = document.getElementById('transactionsSection');
+    const sectionHeader = transactionSection?.querySelector('.section-header');
+    console.log(`🔍 DEBUG: Attempt ${retryCount}: transactionsSection exists:`, !!transactionSection);
+    console.log(`🔍 DEBUG: Attempt ${retryCount}: section-header exists:`, !!sectionHeader);
+
+    if (summaryContainer) {
+      console.log(`🔍 DEBUG: Summary element found on attempt ${retryCount}, proceeding with update`);
+      updateSummaryContent(summaryContainer, transactions);
+      return;
+    }
+
+    if (retryCount < maxRetries) {
+      setTimeout(findElementWithRetry, 100);
+      return;
+    }
+
+    console.error('❌ ERROR: transactionSummary element not found in DOM after retries');
+
+    // Try to recreate the element if the transaction section exists
+    if (transactionSection) {
+      console.log('🔧 RECOVERY: Attempting to recreate summary element...');
+      const sectionHeader = transactionSection.querySelector('.section-header');
+      if (sectionHeader) {
+        // Check if summary element already exists but wasn't found
+        let existingSummary = sectionHeader.querySelector('#transactionSummary');
+        if (!existingSummary) {
+          // Create the summary element
+          existingSummary = document.createElement('div');
+          existingSummary.className = 'transaction-summary';
+          existingSummary.id = 'transactionSummary';
+          sectionHeader.appendChild(existingSummary);
+          console.log('🔧 RECOVERY: Created new summary element');
+        }
+
+        updateSummaryContent(existingSummary, transactions);
+      }
+    } else {
+      console.error('❌ ERROR: transactionsSection not found, cannot recreate summary');
+    }
+  };
+
+  findElementWithRetry();
+}
+
+function updateSummaryContent(summaryContainer, transactions) {
 
   // Handle null or undefined transactions
   if (!transactions || !Array.isArray(transactions)) {
+    summaryContainer.innerHTML = '<p>No transaction data available</p>';
+    return;
+  }
+
+  // Handle empty transactions array
+  if (transactions.length === 0) {
     summaryContainer.innerHTML = '<p>No transaction data available</p>';
     return;
   }

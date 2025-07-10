@@ -11,18 +11,58 @@ import { createAdvancedFilterSection, initializeAdvancedFilters } from '../filte
  * Ensure transaction container exists with proper structure and remove duplicates
  */
 export function ensureTransactionContainer() {
-  // Remove ALL existing transaction sections first
-  const existingSections = document.querySelectorAll('.transactions-section, #transactionsSection, [id*="transaction"]');
-  existingSections.forEach(section => {
-    console.log('CRITICAL: Removing duplicate transaction section:', section.className, section.id);
-    section.remove();
-  });
+  console.log('🔍 DEBUG: ensureTransactionContainer called');
+
+  // FIXED: Check if container already exists before removing anything
+  let existingContainer = document.getElementById('transactionsSection');
+  if (existingContainer) {
+    console.log('CRITICAL: Transaction container already exists, verifying structure...');
+
+    // Check if the summary element exists in the existing container
+    const summaryElement = existingContainer.querySelector('#transactionSummary');
+    console.log('🔍 DEBUG: Existing container has summary element:', !!summaryElement);
+
+    if (summaryElement) {
+      console.log('CRITICAL: Container and summary element both exist, reusing...');
+      return existingContainer;
+    } else {
+      console.log('🔧 RECOVERY: Summary element missing, attempting to recreate within existing container...');
+
+      // Try to add the summary element to the existing container
+      const sectionHeader = existingContainer.querySelector('.section-header');
+      if (sectionHeader) {
+        const newSummary = document.createElement('div');
+        newSummary.className = 'transaction-summary';
+        newSummary.id = 'transactionSummary';
+        newSummary.innerHTML = '<!-- Summary will be updated dynamically -->';
+        sectionHeader.appendChild(newSummary);
+        console.log('🔧 RECOVERY: Added summary element to existing container');
+        return existingContainer;
+      } else {
+        console.error('❌ ERROR: Existing container missing section-header! Recreating...');
+        existingContainer.remove();
+        existingContainer = null;
+      }
+    }
+  }
+
+  // Only remove duplicates if we need to create a new container
+  const existingSections = document.querySelectorAll('.transactions-section, [id*="transaction"]:not(#transactionsSection)');
+  if (existingSections.length > 0) {
+    console.log('🔍 DEBUG: Found', existingSections.length, 'existing sections to remove');
+    existingSections.forEach(section => {
+      console.log('CRITICAL: Removing duplicate transaction section:', section.className, section.id);
+      section.remove();
+    });
+  }
 
   const mainContent = document.querySelector('.main-content');
   if (!mainContent) {
     console.error('CRITICAL: Main content not found');
     return null;
   }
+
+  console.log('🔍 DEBUG: Creating new transaction section...');
 
   // Create ONE clean transaction section
   const section = document.createElement('div');
@@ -45,6 +85,10 @@ export function ensureTransactionContainer() {
 
   mainContent.appendChild(section);
   console.log('CRITICAL: Created single clean transaction section');
+
+  // Verify the summary element was created
+  const summaryElement = section.querySelector('#transactionSummary');
+  console.log('🔍 DEBUG: Summary element created successfully:', !!summaryElement);
 
   return section;
 }

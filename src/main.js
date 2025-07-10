@@ -13,10 +13,23 @@ let chartInitializationState = {
   hasData: false
 };
 
+// FIXED: App initialization guard to prevent duplicate initialization
+let appInitializationState = {
+  initialized: false,
+  initializing: false
+};
+
 /**
  * Initialize the entire application
  */
 async function initializeMainApp() {
+  // FIXED: Guard against multiple initializations
+  if (appInitializationState.initialized || appInitializationState.initializing) {
+    console.log("App already initialized or initializing, skipping...");
+    return;
+  }
+
+  appInitializationState.initializing = true;
   console.log("Starting application initialization...");
 
   try {
@@ -51,10 +64,15 @@ async function initializeMainApp() {
     // FIXED: Initialize charts LAST and update them ONCE if we have data
     await initializeChartsOnce();
 
+    appInitializationState.initialized = true;
+    // FIXED: Mark AppState as initialized for debugging
+    AppState.initialized = true;
     console.log("CRITICAL: App initialization complete");
   } catch (error) {
     console.error("CRITICAL ERROR: App initialization failed:", error);
     // Don't throw the error, just log it to prevent unhandled promise rejection
+  } finally {
+    appInitializationState.initializing = false;
   }
 }
 
@@ -244,7 +262,7 @@ window.addEventListener('error', (event) => {
 
 // FIXED: Add a safety timeout to ensure initialization doesn't hang
 setTimeout(() => {
-  if (!window.AppState || !window.AppState.initialized) {
+  if (!appInitializationState.initialized && !appInitializationState.initializing) {
     console.warn('Application may not have initialized properly');
 
     // Try to initialize again as a fallback

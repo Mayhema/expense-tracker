@@ -407,8 +407,16 @@ div#transactionFilters div.filter-group {
 }
 
 /* Transaction summary styling - FIXED: Handle long currency numbers */
-.transaction-summary {
-  margin: 1rem 0;
+.transactions-section .transaction-summary {
+  margin: 1rem 0 !important;
+  padding: 1rem !important;
+  background: #f8f9fa !important;
+  border-radius: 8px !important;
+  border: 1px solid #e9ecef !important;
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  width: 100% !important;
 }
 
 .summary-cards-row {

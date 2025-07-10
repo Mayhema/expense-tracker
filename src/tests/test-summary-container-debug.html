@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Transaction Summary Debug Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ccc;
+    }
+
+    .debug-info {
+      background: #f0f0f0;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Transaction Summary Debug Test</h1>
+
+  <div class="test-section">
+    <h2>Test Results</h2>
+    <div id="testResults"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>DOM Structure</h2>
+    <div id="domStructure"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Console Output</h2>
+    <div id="consoleOutput"></div>
+  </div>
+
+  <script type="module">
+    const testResults = document.getElementById('testResults');
+    const domStructure = document.getElementById('domStructure');
+    const consoleOutput = document.getElementById('consoleOutput');
+
+    // Mock the main-content structure
+    const mainContent = document.createElement('div');
+    mainContent.className = 'main-content';
+    mainContent.id = 'mainContent';
+    document.body.appendChild(mainContent);
+
+    // Mock AppState
+    window.AppState = {
+      transactions: []
+    };
+
+    // Generate 127 test transactions
+    for (let i = 0; i < 127; i++) {
+      window.AppState.transactions.push({
+        id: `tx-${i}`,
+        date: '2024-01-01',
+        description: `Transaction ${i}`,
+        amount: 100,
+        currency: 'USD',
+        category: 'Food',
+        income: i % 2 === 0 ? 100 : 0,
+        expenses: i % 2 === 1 ? 100 : 0
+      });
+    }
+
+    // Override console.log to capture output
+    const originalLog = console.log;
+    const originalError = console.error;
+    const logs = [];
+
+    console.log = function (...args) {
+      logs.push('LOG: ' + args.join(' '));
+      originalLog.apply(console, args);
+    };
+
+    console.error = function (...args) {
+      logs.push('ERROR: ' + args.join(' '));
+      originalError.apply(console, args);
+    };
+
+    async function runTest() {
+      try {
+        testResults.innerHTML = '<div class="success">✅ Starting test...</div>';
+
+        // Step 1: Check initial state
+        const initialSummary = document.getElementById('transactionSummary');
+        testResults.innerHTML += `<div>Step 1: Initial summary element exists: ${!!initialSummary}</div>`;
+
+        // Step 2: Import and call ensureTransactionContainer
+        const { ensureTransactionContainer } = await import('../ui/transaction/transactionRenderer.js');
+
+        const container = ensureTransactionContainer();
+        testResults.innerHTML += `<div>Step 2: Container created: ${!!container}</div>`;
+
+        // Step 3: Check if summary element exists immediately
+        const summaryAfterCreation = document.getElementById('transactionSummary');
+        testResults.innerHTML += `<div>Step 3: Summary after creation: ${!!summaryAfterCreation}</div>`;
+
+        if (summaryAfterCreation) {
+          testResults.innerHTML += `<div class="success">✅ Summary element found with ID: ${summaryAfterCreation.id}</div>`;
+          testResults.innerHTML += `<div class="success">✅ Summary parent: ${summaryAfterCreation.parentElement?.className}</div>`;
+        } else {
+          testResults.innerHTML += `<div class="error">❌ Summary element not found after creation</div>`;
+
+          // Debug the container structure
+          if (container) {
+            testResults.innerHTML += `<div class="error">❌ Container HTML: ${container.innerHTML.substring(0, 200)}...</div>`;
+          }
+        }
+
+        // Step 4: Try to call updateTransactionSummary
+        const { updateTransactionSummary } = await import('../ui/transaction/transactionSummary.js');
+
+        testResults.innerHTML += `<div>Step 4: Calling updateTransactionSummary with ${window.AppState.transactions.length} transactions...</div>`;
+
+        updateTransactionSummary(window.AppState.transactions);
+
+        // Step 5: Wait for retries
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const finalSummary = document.getElementById('transactionSummary');
+        testResults.innerHTML += `<div>Step 5: Final summary found: ${!!finalSummary}</div>`;
+
+        if (finalSummary) {
+          testResults.innerHTML += `<div class="success">✅ Final summary content length: ${finalSummary.innerHTML.length}</div>`;
+          testResults.innerHTML += `<div class="success">✅ Final summary preview: ${finalSummary.innerHTML.substring(0, 100)}...</div>`;
+        }
+
+        // Show DOM structure
+        const transactionSection = document.getElementById('transactionsSection');
+        if (transactionSection) {
+          domStructure.innerHTML = `<pre>${transactionSection.innerHTML}</pre>`;
+        } else {
+          domStructure.innerHTML = '<div class="error">❌ transactionsSection not found</div>';
+        }
+
+        // Show console output
+        consoleOutput.innerHTML = logs.map(log => `<div>${log}</div>`).join('');
+
+        testResults.innerHTML += `<div class="success">✅ Test completed</div>`;
+
+      } catch (error) {
+        testResults.innerHTML += `<div class="error">❌ Test failed: ${error.message}</div>`;
+        console.error('Test error:', error);
+      }
+    }
+
+    runTest();
+  </script>
+</body>
+
+</html>

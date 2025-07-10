@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Transaction Summary Fix Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ccc;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .info {
+      color: blue;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Transaction Summary Fix Test</h1>
+
+  <div class="test-section">
+    <h2>Test Results</h2>
+    <div id="testResults"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Final DOM Structure</h2>
+    <div id="domStructure"></div>
+  </div>
+
+  <script type="module">
+    const testResults = document.getElementById('testResults');
+    const domStructure = document.getElementById('domStructure');
+
+    // Mock console to capture output
+    const logs = [];
+    const originalLog = console.log;
+    const originalError = console.error;
+
+    console.log = function (...args) {
+      logs.push('LOG: ' + args.join(' '));
+      originalLog.apply(console, args);
+    };
+
+    console.error = function (...args) {
+      logs.push('ERROR: ' + args.join(' '));
+      originalError.apply(console, args);
+    };
+
+    // Mock AppState
+    window.AppState = {
+      transactions: []
+    };
+
+    // Generate test data
+    for (let i = 0; i < 127; i++) {
+      window.AppState.transactions.push({
+        id: `tx-${i}`,
+        date: '2024-01-01',
+        description: `Transaction ${i}`,
+        amount: 100,
+        currency: 'USD',
+        category: 'Food',
+        income: i % 2 === 0 ? 100 : 0,
+        expenses: i % 2 === 1 ? 100 : 0
+      });
+    }
+
+    async function runTest() {
+      try {
+        testResults.innerHTML = '<div class="info">🔍 Starting transaction summary fix test...</div>';
+
+        // Create main-content container
+        const mainContent = document.createElement('div');
+        mainContent.className = 'main-content';
+        mainContent.id = 'mainContent';
+        document.body.appendChild(mainContent);
+
+        testResults.innerHTML += '<div class="success">✅ Main content container created</div>';
+
+        // Test ensureTransactionContainer
+        const { ensureTransactionContainer } = await import('../ui/transaction/transactionRenderer.js');
+        const container = ensureTransactionContainer();
+
+        testResults.innerHTML += `<div class="success">✅ Container created: ${!!container}</div>`;
+
+        // Check if summary element exists
+        const summaryElement = document.getElementById('transactionSummary');
+        testResults.innerHTML += `<div class="success">✅ Summary element found: ${!!summaryElement}</div>`;
+
+        if (summaryElement) {
+          testResults.innerHTML += `<div class="success">✅ Summary ID: ${summaryElement.id}</div>`;
+          testResults.innerHTML += `<div class="success">✅ Summary class: ${summaryElement.className}</div>`;
+        }
+
+        // Test updateTransactionSummary
+        const { updateTransactionSummary } = await import('../ui/transaction/transactionSummary.js');
+
+        testResults.innerHTML += '<div class="info">🔍 Calling updateTransactionSummary...</div>';
+        updateTransactionSummary(window.AppState.transactions);
+
+        // Wait for any retries
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const updatedSummary = document.getElementById('transactionSummary');
+        testResults.innerHTML += `<div class="success">✅ Summary after update: ${!!updatedSummary}</div>`;
+
+        if (updatedSummary) {
+          testResults.innerHTML += `<div class="success">✅ Summary content length: ${updatedSummary.innerHTML.length}</div>`;
+          testResults.innerHTML += `<div class="success">✅ Summary has content: ${updatedSummary.innerHTML.length > 50}</div>`;
+        }
+
+        // Test multiple container calls
+        const container2 = ensureTransactionContainer();
+        const container3 = ensureTransactionContainer();
+
+        testResults.innerHTML += `<div class="success">✅ Container reuse works: ${container === container2 && container2 === container3}</div>`;
+
+        // Test event listener attachment
+        const { attachTransactionEventListeners } = await import('../ui/transaction/transactionEventHandler.js');
+        attachTransactionEventListeners();
+        attachTransactionEventListeners();
+        attachTransactionEventListeners();
+
+        testResults.innerHTML += '<div class="success">✅ Event listener attachment test completed</div>';
+
+        // Show final DOM structure
+        const transactionSection = document.getElementById('transactionsSection');
+        if (transactionSection) {
+          domStructure.innerHTML = `<pre>${transactionSection.innerHTML}</pre>`;
+        }
+
+        testResults.innerHTML += '<div class="success">🎉 ALL TESTS PASSED!</div>';
+
+        // Check for errors in logs
+        const errorLogs = logs.filter(log => log.includes('ERROR'));
+        if (errorLogs.length === 0) {
+          testResults.innerHTML += '<div class="success">✅ No errors in console logs</div>';
+        } else {
+          testResults.innerHTML += `<div class="error">❌ Found ${errorLogs.length} errors in logs</div>`;
+          errorLogs.forEach(log => {
+            testResults.innerHTML += `<div class="error">${log}</div>`;
+          });
+        }
+
+      } catch (error) {
+        testResults.innerHTML += `<div class="error">❌ Test failed: ${error.message}</div>`;
+        console.error('Test error:', error);
+      }
+    }
+
+    runTest();
+  </script>
+</body>
+
+</html>

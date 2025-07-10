@@ -1,5 +1,6 @@
 import { AppState } from '../core/appState.js';
 import { CURRENCIES } from '../constants/currencies.js';
+import { getCategoryColors } from '../charts/chartCore.js';
 
 let chartInstances = {
   category: null,
@@ -568,9 +569,19 @@ function updateCategoryChart(transactions) {
     return;
   }
 
+  // FIXED: Extract base category names for color mapping
+  const baseCategories = labels.map(label => {
+    // Remove currency suffix if present: "Food (EUR)" -> "Food"
+    const match = label.match(/^(.+)\s\([A-Z]{3}\)$/);
+    return match ? match[1] : label;
+  });
+
+  // Get category colors from AppState.categories, falling back to generated colors
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  const categoryColors = getCategoryColors(baseCategories, AppState.categories, isDarkMode);
+
   // Create chart with dark mode support
   const ctx = canvas.getContext('2d');
-  const isDarkMode = document.body.classList.contains('dark-mode');
 
   chartInstances.category = new Chart(ctx, {
     type: 'doughnut',
@@ -578,7 +589,7 @@ function updateCategoryChart(transactions) {
       labels: labels,
       datasets: [{
         data: data,
-        backgroundColor: generateColors(labels.length)
+        backgroundColor: categoryColors
       }]
     },
     options: {

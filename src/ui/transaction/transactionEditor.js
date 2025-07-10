@@ -253,6 +253,22 @@ function handleSpecialFieldUpdates(transactionId, fieldName, newValue) {
   if (fieldName === 'currency') {
     handleCurrencyUpdate(transactionId, newValue);
   }
+
+  // Update charts for any data field changes
+  const isDataField = ['date', 'description', 'income', 'expenses', 'category', 'currency'].includes(fieldName);
+  if (isDataField) {
+    setTimeout(async () => {
+      try {
+        const chartsModule = await import('../charts.js');
+        if (chartsModule && chartsModule.updateCharts) {
+          chartsModule.updateCharts();
+          console.log("📊 Charts updated after field change");
+        }
+      } catch (error) {
+        console.log('Charts not available for update:', error.message);
+      }
+    }, 200);
+  }
 }
 
 /**
@@ -501,6 +517,32 @@ function saveBatchChanges(transactionId, transaction, row, dateChanged) {
 
     // Update UI
     updateUIAfterBatchSave(row);
+
+    // Update transaction summary with current filtered data
+    setTimeout(async () => {
+      try {
+        const { updateTransactionSummary } = await import('./transactionSummary.js');
+        const { applyFilters } = await import('../transactionManager.js');
+        const filteredTransactions = applyFilters(AppState.transactions);
+        updateTransactionSummary(filteredTransactions);
+        console.log("🔄 Transaction summary updated after batch save");
+      } catch (error) {
+        console.log('Error updating transaction summary:', error.message);
+      }
+    }, 100);
+
+    // Update charts after batch save
+    setTimeout(async () => {
+      try {
+        const chartsModule = await import('../charts.js');
+        if (chartsModule && chartsModule.updateCharts) {
+          chartsModule.updateCharts();
+          console.log("📊 Charts updated after batch save");
+        }
+      } catch (error) {
+        console.log('Charts not available for update:', error.message);
+      }
+    }, 200);
 
     // Show success feedback
     import('../uiManager.js').then(module => {

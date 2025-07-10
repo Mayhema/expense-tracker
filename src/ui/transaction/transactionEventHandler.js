@@ -15,11 +15,20 @@ import {
 } from './transactionEditor.js';
 import { AppState } from '../../core/appState.js';
 
+// Guard to prevent multiple event listener attachments
+let eventListenersAttached = false;
+
 /**
  * Attach event listeners to transaction table fields
  */
 export function attachTransactionEventListeners() {
+  if (eventListenersAttached) {
+    console.log('🔧 Transaction event listeners already attached, skipping...');
+    return;
+  }
+
   console.log('🔧 Attaching transaction event listeners');
+  eventListenersAttached = true;
 
   // Bulk edit toggle
   const bulkEditToggle = document.getElementById('bulkEditToggle');

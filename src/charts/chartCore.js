@@ -500,7 +500,13 @@ export function getCategoryColors(categories, categoryColors = {}, isDarkMode = 
   return categories.map((category, index) => {
     // Use category-specific color if available
     if (categoryColors[category]) {
-      return categoryColors[category];
+      const categoryData = categoryColors[category];
+      // Handle both string and object category values
+      if (typeof categoryData === 'string') {
+        return categoryData;
+      } else if (typeof categoryData === 'object' && categoryData.color) {
+        return categoryData.color;
+      }
     }
     // Fall back to default chart colors
     return getChartColor(index, isDarkMode);
