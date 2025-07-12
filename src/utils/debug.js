@@ -451,9 +451,25 @@ export async function resetApplication() {
       // Clear sessionStorage
       sessionStorage.clear();
 
-      // CRITICAL FIX: Initialize default categories immediately like the reset button does
+      // CRITICAL FIX: Reset AppState data immediately
+      const appStateModule = await import('../core/appState.js');
+      
+      // Reset all app state data
+      appStateModule.AppState.transactions = [];
+      appStateModule.AppState.files = [];
+      appStateModule.AppState.fileData = {};
+      appStateModule.AppState.mappings = {};
+      appStateModule.AppState.currentData = null;
+      appStateModule.AppState.lastFileId = 0;
+
+      // Initialize default categories
       const categoriesModule = await import('../constants/categories.js');
       await setupAppStateWithDefaults(categoriesModule);
+
+      // Force refresh UI after reset
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
 
     } catch (error) {
       console.error('Error during reset:', error);

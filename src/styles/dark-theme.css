@@ -552,3 +552,84 @@ body.dark-mode .visually-hidden {
     animation: none !important;
   }
 }
+
+/* ===========================================
+   MISSING ELEMENTS - DARK MODE FIXES
+   =========================================== */
+
+/* Modal content backgrounds */
+body.dark-mode .modal-content,
+body.dark-mode .mappings-modal-content,
+body.dark-mode .modal-body {
+  background-color: #2d2d2d !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+/* Modal headers and text */
+body.dark-mode .modal-header,
+body.dark-mode .modal-title {
+  background-color: #333 !important;
+  color: #e0e0e0 !important;
+  border-bottom-color: #444 !important;
+}
+
+/* Empty state messages */
+body.dark-mode .empty-state,
+body.dark-mode .empty-state p {
+  color: #aaa !important;
+  background: transparent !important;
+}
+
+/* File signature displays */
+body.dark-mode .signature-display,
+body.dark-mode .current-signature-section {
+  background: #333 !important;
+  color: #e0e0e0 !important;
+  border-color: #555 !important;
+}
+
+/* File list items */
+body.dark-mode .file-item,
+body.dark-mode .merged-file-item {
+  background: #333 !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+/* Form elements */
+body.dark-mode input[type="text"],
+body.dark-mode input[type="number"],
+body.dark-mode select,
+body.dark-mode textarea {
+  background: #333 !important;
+  color: #e0e0e0 !important;
+  border-color: #555 !important;
+}
+
+/* Table elements */
+body.dark-mode table,
+body.dark-mode th,
+body.dark-mode td {
+  background: #2d2d2d !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #333 !important;
+}
+
+/* Loading states */
+body.dark-mode .loading-overlay {
+  background: rgba(18, 18, 18, 0.8) !important;
+}
+
+/* Info boxes and cards */
+body.dark-mode .info-text,
+body.dark-mode .card,
+body.dark-mode .card-body {
+  background: #333 !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}

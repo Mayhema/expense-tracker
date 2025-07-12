@@ -79,16 +79,14 @@ function generateCategoryDropdown(selectedCategory, selectedSubcategory, transac
 /**
  * Generate proper transaction table HTML with edit mode and counter
  */
-export function generateTransactionTableHTML(transactions) {
-  console.log(`🔧 Generating table HTML for ${transactions.length} transactions`);
-
-  // Ensure all transactions have IDs before rendering
-  ensureTransactionIds(transactions);
-
-  let html = `
+/**
+ * Generates the table header HTML
+ */
+function generateTableHeader(transactionCount) {
+  return `
     <div class="transaction-table-header">
       <div class="table-header-left">
-        <h4>📋 Transaction Data (${transactions.length} transactions)</h4>
+        <h4>📋 Transaction Data (${transactionCount} transactions)</h4>
         <div class="table-info">
           <span>Use the Edit button to modify transactions • Changes are saved automatically</span>
         </div>
@@ -97,7 +95,14 @@ export function generateTransactionTableHTML(transactions) {
         <button id="bulkEditToggle" class="btn secondary-btn">📝 Bulk Edit</button>
       </div>
     </div>
+  `;
+}
 
+/**
+ * Generates the bulk actions section HTML
+ */
+function generateBulkActionsHTML() {
+  return `
     <div id="bulkActions" class="bulk-actions" style="display: none;">
       <div class="bulk-selection">
         <input type="checkbox" id="selectAllCheckbox" class="bulk-checkbox" style="display: none;">
@@ -122,7 +127,14 @@ export function generateTransactionTableHTML(transactions) {
   }).join('')}
       </div>
     </div>
+  `;
+}
 
+/**
+ * Generates the table structure start HTML
+ */
+function generateTableStart() {
+  return `
     <div class="table-container">
       <table class="transaction-table">
         <thead>
@@ -142,127 +154,142 @@ export function generateTransactionTableHTML(transactions) {
         </thead>
         <tbody>
   `;
+}
+
+/**
+ * Processes transaction data for display
+ */
+function processTransactionForDisplay(tx, index) {
+  // Ensure each transaction has a unique ID
+  if (!tx.id) {
+    tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+    console.log(`🆔 GENERATED ID: ${tx.id} for transaction at index ${index}`);
+  }
+
+  console.log(`🔧 Rendering transaction ID ${tx.id} at index ${index}, category: "${tx.category}", description: "${tx.description?.substring(0, 50)}..."`);
+
+  return {
+    id: tx.id,
+    date: tx.date ? formatDateToDDMMYYYY(tx.date) : '',
+    description: (tx.description || '').toString().replace(/\s*data-field=.*$/i, '').trim(),
+    isRTL: /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F]/.test(tx.description || ''),
+    category: tx.category || '',
+    subcategory: tx.subcategory || '',
+    income: parseFloat(tx.income) || 0,
+    expenses: parseFloat(tx.expenses) || 0,
+    currency: tx.currency || 'USD',
+    isEdited: tx.edited || false,
+    editedFields: tx.editedFields || {},
+    hasDataEdits: tx.originalData && Object.keys(tx.originalData).length > 0
+  };
+}
+
+export function generateTransactionTableHTML(transactions) {
+  console.log(`🔧 Generating table HTML for ${transactions.length} transactions`);
+
+  // Ensure all transactions have IDs before rendering
+  ensureTransactionIds(transactions);
+
+  let html = generateTableHeader(transactions.length);
+  html += generateBulkActionsHTML();
+  html += generateTableStart();
 
   transactions.forEach((tx, index) => {
-    // Ensure each transaction has a unique ID
-    if (!tx.id) {
-      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
-      console.log(`🆔 GENERATED ID: ${tx.id} for transaction at index ${index}`);
-    }
-
-    // Log transaction details for debugging
-    console.log(`🔧 Rendering transaction ID ${tx.id} at index ${index}, category: "${tx.category}", description: "${tx.description?.substring(0, 50)}..."`);
-
-    // Format date to dd/mm/yyyy for display - ensure proper format
-    const date = tx.date ? formatDateToDDMMYYYY(tx.date) : '';
-    // Ensure description is clean and handle null/undefined with RTL detection
-    const description = (tx.description || '').toString().replace(/\s*data-field=.*$/i, '').trim();
-    const isRTL = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F]/.test(description);
-    const category = tx.category || '';
-    const subcategory = tx.subcategory || '';
-    const income = parseFloat(tx.income) || 0;
-    const expenses = parseFloat(tx.expenses) || 0;
-    const currency = tx.currency || 'USD';
-    const isEdited = tx.edited || false;
-
+    const processedTx = processTransactionForDisplay(tx, index);
+    
     // Get category color for cell background - preserve category styling
-    const categoryColor = getCategoryColor(category);
-    const categoryStyle = category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
+    const categoryColor = getCategoryColor(processedTx.category);
+    const categoryStyle = processedTx.category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
 
     // Generate currency dropdown with proper symbols
     const currencyOptions = Object.entries(CURRENCIES).sort(([a], [b]) => a.localeCompare(b)).map(([currencyCode, currencyData]) => {
-      const isSelected = currency === currencyCode ? 'selected' : '';
+      const isSelected = processedTx.currency === currencyCode ? 'selected' : '';
       const symbol = currencyData.symbol || currencyCode;
       return `<option value="${currencyCode}" ${isSelected}>${symbol} ${currencyCode}</option>`;
     }).join('');
 
     // Check which fields have been edited for styling - preserve edited state
-    const editedFields = tx.editedFields || {};
-    const dateEditedClass = editedFields.date ? 'edited-cell' : '';
-    const descEditedClass = editedFields.description ? 'edited-cell' : '';
-    const categoryEditedClass = editedFields.category ? 'edited-cell' : '';
-    const incomeEditedClass = editedFields.income ? 'edited-cell' : '';
-    const expensesEditedClass = editedFields.expenses ? 'edited-cell' : '';
-
-    // Check if transaction has data field edits to show revert button - only for data fields
-    const hasDataEdits = tx.originalData && Object.keys(tx.originalData).length > 0;
+    const dateEditedClass = processedTx.editedFields.date ? 'edited-cell' : '';
+    const descEditedClass = processedTx.editedFields.description ? 'edited-cell' : '';
+    const categoryEditedClass = processedTx.editedFields.category ? 'edited-cell' : '';
+    const incomeEditedClass = processedTx.editedFields.income ? 'edited-cell' : '';
+    const expensesEditedClass = processedTx.editedFields.expenses ? 'edited-cell' : '';
 
     html += `
-      <tr data-transaction-id="${tx.id}" data-transaction-index="${index}" class="transaction-row ${isEdited ? 'edited-row' : ''}" data-edit-mode="false">
+      <tr data-transaction-id="${processedTx.id}" data-transaction-index="${index}" class="transaction-row ${processedTx.isEdited ? 'edited-row' : ''}" data-edit-mode="false">
         <td class="counter-cell">
-          <input type="checkbox" class="transaction-checkbox" data-transaction-id="${tx.id}" style="display: none;">
+          <input type="checkbox" class="transaction-checkbox" data-transaction-id="${processedTx.id}" style="display: none;">
           ${index + 1}
         </td>
         <td class="date-cell ${dateEditedClass}">
-          <span class="display-value">${date}</span>
+          <span class="display-value">${processedTx.date}</span>
           <input type="text"
                  class="edit-field date-field"
-                 value="${date}"
+                 value="${processedTx.date}"
+                 data-transaction-id="${processedTx.id}"
                  data-field="date"
-                 data-transaction-id="${tx.id}"
                  data-index="${index}"
-                 data-original="${date}"
-                 placeholder="dd/mm/yyyy"
-                 style="display: none;">
+                 style="display: none;"
+                 placeholder="dd/mm/yyyy">
         </td>
-        <td class="description-cell ${descEditedClass}" ${isRTL ? 'dir="rtl"' : ''}>
-          <span class="display-value" ${isRTL ? 'style="direction: rtl; text-align: right;"' : ''}>${description}</span>
+        <td class="description-cell ${descEditedClass}" ${processedTx.isRTL ? 'dir="rtl"' : ''}>
+          <span class="display-value" title="${processedTx.description}">${processedTx.description}</span>
           <input type="text"
                  class="edit-field description-field"
-                 value="${description.replace(/"/g, '&quot;')}"
+                 value="${processedTx.description.replace(/"/g, '&quot;')}"
+                 data-transaction-id="${processedTx.id}"
                  data-field="description"
-                 data-transaction-id="${tx.id}"
                  data-index="${index}"
-                 data-original="${description.replace(/"/g, '&quot;')}"
-                 placeholder="Enter description"
-                 ${isRTL ? 'dir="rtl"' : ''}
-                 style="display: none; ${isRTL ? 'direction: rtl; text-align: right;' : ''}">
+                 style="display: none;"
+                 ${processedTx.isRTL ? 'dir="rtl"' : ''}
+                 placeholder="Transaction description">
         </td>
         <td class="category-cell ${categoryEditedClass}" style="${categoryStyle}">
-          ${generateCategoryDropdown(category, subcategory, tx.id)}
+          <span class="display-value">${processedTx.category}</span>
+          ${generateCategoryDropdown(processedTx.category, processedTx.subcategory, processedTx.id)}
         </td>
-        <td class="amount-cell ${incomeEditedClass}">
-          <span class="display-value">${income > 0 ? income.toFixed(2) : ''}</span>
+        <td class="income-cell ${incomeEditedClass}">
+          <span class="display-value">${processedTx.income > 0 ? processedTx.income.toFixed(2) : ''}</span>
           <input type="number"
-                 class="edit-field amount-field income-field"
-                 value="${income > 0 ? income.toFixed(2) : ''}"
+                 class="edit-field income-field"
+                 value="${processedTx.income || ''}"
+                 data-transaction-id="${processedTx.id}"
                  data-field="income"
-                 data-transaction-id="${tx.id}"
                  data-index="${index}"
-                 data-original="${income > 0 ? income.toFixed(2) : ''}"
-                 placeholder="0.00"
+                 style="display: none;"
                  step="0.01"
                  min="0"
-                 style="display: none;">
+                 placeholder="0.00">
         </td>
-        <td class="amount-cell ${expensesEditedClass}">
-          <span class="display-value">${expenses > 0 ? expenses.toFixed(2) : ''}</span>
+        <td class="expenses-cell ${expensesEditedClass}">
+          <span class="display-value">${processedTx.expenses > 0 ? processedTx.expenses.toFixed(2) : ''}</span>
           <input type="number"
-                 class="edit-field amount-field expense-field"
-                 value="${expenses > 0 ? expenses.toFixed(2) : ''}"
+                 class="edit-field expenses-field"
+                 value="${processedTx.expenses || ''}"
+                 data-transaction-id="${processedTx.id}"
                  data-field="expenses"
-                 data-transaction-id="${tx.id}"
                  data-index="${index}"
-                 data-original="${expenses > 0 ? expenses.toFixed(2) : ''}"
-                 placeholder="0.00"
+                 style="display: none;"
                  step="0.01"
                  min="0"
-                 style="display: none;">
+                 placeholder="0.00">
         </td>
         <td class="currency-cell">
+          <span class="display-value">${processedTx.currency}</span>
           <select class="edit-field currency-field"
+                  data-transaction-id="${processedTx.id}"
                   data-field="currency"
-                  data-transaction-id="${tx.id}"
                   data-index="${index}"
-                  data-original="${currency}">
+                  style="display: none;">
             ${currencyOptions}
           </select>
         </td>
-        <td class="action-cell">
-          <button class="btn-edit action-btn" data-transaction-id="${tx.id}" data-index="${index}" title="Edit transaction">✏️</button>
-          <button class="btn-save action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Save changes">💾</button>
-          <button class="btn-revert action-btn" data-transaction-id="${tx.id}" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
-          <button class="btn-revert-all action-btn" data-transaction-id="${tx.id}" data-index="${index}" ${hasDataEdits ? '' : 'style="display: none;"'} title="Revert all changes to original">🔄</button>
+        <td class="actions-cell">
+          <button class="btn-edit action-btn" data-transaction-id="${processedTx.id}" data-index="${index}" title="Edit transaction">✏️</button>
+          <button class="btn-delete action-btn" data-transaction-id="${processedTx.id}" data-index="${index}" title="Delete transaction">🗑️</button>
+          <button class="btn-save action-btn" data-transaction-id="${processedTx.id}" data-index="${index}" style="display: none;" title="Save changes">💾</button>
+          <button class="btn-revert action-btn" data-transaction-id="${processedTx.id}" data-index="${index}" style="display: none;" title="Cancel changes">↶</button>
+          <button class="btn-revert-all action-btn" data-transaction-id="${processedTx.id}" data-index="${index}" ${processedTx.hasDataEdits ? '' : 'style="display: none;"'} title="Revert all changes to original">🔄</button>
         </td>
       </tr>
     `;

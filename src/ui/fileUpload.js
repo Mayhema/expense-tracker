@@ -217,16 +217,34 @@ function handleCSVFile(file) {
     try {
       const csvText = e.target.result;
       console.log(`CRITICAL: CSV file read successfully, length: ${csvText.length}`);
-      const lines = csvText.split('\n').filter(line => line.trim());
-      const data = lines.map(line => {
-        // Simple CSV parsing - could be enhanced
-        return line.split(',').map(field => field.replace(/^"(.*)"$/, '$1').trim());
-      });
-
-      console.log(`CRITICAL: CSV parsed into ${data.length} rows`);
-      processUploadedData(file, data);
+      processCsvFileContent(file, csvText);
     } catch (error) {
       console.error("CRITICAL ERROR: CSV processing failed:", error);
+      handleFileUploadError(error);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Helper function to process CSV line
+function processCsvLine(line) {
+  return line.split(',').map(field => field.replace(/^"(.*)"$/, '$1').trim());
+}
+
+// Helper function to process CSV file content
+function processCsvFileContent(file, text) {
+  const lines = text.split('\n').filter(line => line.trim());
+  const data = lines.map(processCsvLine);
+  processUploadedData(file, data);
+}
+
+// Helper function to read file content
+function readFileContent(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      processCsvFileContent(file, e.target.result);
+    } catch (error) {
       handleFileUploadError(error);
     }
   };
@@ -690,20 +708,7 @@ function handleDuplicateFile(file) {
 
     // Re-trigger file processing
     setTimeout(() => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const text = e.target.result;
-          const lines = text.split('\n').filter(line => line.trim());
-          const data = lines.map(line => {
-            return line.split(',').map(field => field.replace(/^"(.*)"$/, '$1').trim());
-          });
-          processUploadedData(file, data);
-        } catch (error) {
-          handleFileUploadError(error);
-        }
-      };
-      reader.readAsText(file);
+      readFileContent(file);
     }, 100);
 
   } else {
@@ -924,15 +929,7 @@ function showFilePreviewModal(data) {
         // FIXED: Prevent multiple Date mappings
         if (newValue === 'Date') {
           const currentMappings = getCurrentMapping();
-          const existingDateIndex = currentMappings.findIndex((field, i) => field === 'Date' && i !== index);
-
-          if (existingDateIndex !== -1) {
-            // Reset the existing Date mapping
-            const existingSelect = document.querySelector(`.header-select[data-index="${existingDateIndex}"]`);
-            if (existingSelect) {
-              existingSelect.value = '–';
-            }
-          }
+          handleDateMappingConflict(currentMappings, index);
         }
 
         updateSaveButtonState();
@@ -1050,6 +1047,42 @@ export function cleanupFileUpload() {
 }
 
 /**
+ * Validates file data and mapping before saving
+ */
+function validateFileDataAndMapping(data, mapping, headerRowIndex, dataRowIndex) {
+  if (!data || data.length === 0) {
+    return { valid: false, error: "No file data to validate" };
+  }
+
+  // Check required mappings
+  const hasDate = mapping.includes('Date');
+  const hasAmount = mapping.includes('Income') || mapping.includes('Expenses');
+
+  if (!hasDate || !hasAmount) {
+    return { valid: false, error: "Please map at least Date and one amount field (Income or Expenses)" };
+  }
+
+  // Validate column counts
+  const actualColumnCount = data[headerRowIndex]?.length || data[0]?.length || 0;
+  const mappedColumnCount = mapping.length;
+
+  if (mappedColumnCount > actualColumnCount) {
+    return { valid: false, error: `Error: File has ${actualColumnCount} columns but mapping has ${mappedColumnCount} columns` };
+  }
+
+  // Find the highest mapped column index that's not '–'
+  const maxMappedColumnIndex = mapping.reduce((maxIndex, field, index) => {
+    return field !== '–' ? Math.max(maxIndex, index) : maxIndex;
+  }, -1);
+
+  if (maxMappedColumnIndex >= actualColumnCount) {
+    return { valid: false, error: `Error: Mapping uses column ${maxMappedColumnIndex + 1} but file only has ${actualColumnCount} columns` };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Handles saving headers and merging the file
  */
 export async function onSaveHeaders(modal) {
@@ -1077,55 +1110,18 @@ export async function onSaveHeaders(modal) {
     });
 
     // Validate mapping before proceeding
-    const hasDate = mapping.includes('Date');
-    const hasAmount = mapping.includes('Income') || mapping.includes('Expenses');
-
-    if (!hasDate || !hasAmount) {
-      showToast("Please map at least Date and one amount field (Income or Expenses)", "error");
+    const validation = validateFileDataAndMapping(data, mapping, headerRowIndex, dataRowIndex);
+    if (!validation.valid) {
+      showToast(validation.error, "error");
       return;
     }
 
-    // CRITICAL FIX: Validate that we have enough columns in the data
-    const actualColumnCount = data[headerRowIndex]?.length || data[0]?.length || 0;
-    const mappedColumnCount = mapping.length;
-
-    console.log('CRITICAL: Column validation:', {
-      actualColumnCount,
-      mappedColumnCount,
-      headerRow: data[headerRowIndex],
-      dataRow: data[dataRowIndex]
-    });
-
-    if (mappedColumnCount > actualColumnCount) {
-      showToast(`Error: File has ${actualColumnCount} columns but mapping has ${mappedColumnCount} columns`, "error");
-      return;
-    }
-
-    // CRITICAL FIX: Find the highest mapped column index that's not '–'
-    const maxMappedColumnIndex = mapping.reduce((maxIndex, field, index) => {
-      return field !== '–' ? Math.max(maxIndex, index) : maxIndex;
-    }, -1);
-
-    if (maxMappedColumnIndex >= actualColumnCount) {
-      showToast(`Error: Mapping uses column ${maxMappedColumnIndex + 1} but file only has ${actualColumnCount} columns`, "error");
-      return;
-    }
+    // FIXED: Import date conversion function with error handling
+    const convertExcelDate = await setupDateConversion();
 
     // CRITICAL FIX: Generate signature consistently - without mapping parameter
     const { generateFileSignature } = await import('../parsers/fileHandler.js');
     const { saveHeadersAndFormat } = await import('../mappings/mappingsManager.js');
-
-    // FIXED: Import date conversion function with error handling
-    let convertExcelDate;
-    try {
-      const excelParserModule = await import('../parser/excelParser.js');
-      const excelParser = excelParserModule.excelParser || new excelParserModule.default();
-      convertExcelDate = (value) => excelParser.convertExcelDate(value);
-    } catch (error) {
-      console.error('CRITICAL: Failed to import convertExcelDate:', error);
-      // Fallback function if import fails
-      convertExcelDate = (value) => String(value);
-    }
 
     // FIXED: Generate signature without mapping to ensure consistency
     const signature = generateFileSignature(fileName, data);
@@ -1143,77 +1139,109 @@ export async function onSaveHeaders(modal) {
     console.log('CRITICAL: Saved mapping with signature:', signature, 'mapping:', mapping);
 
     // CRITICAL FIX: Process transactions with proper field mapping and validation
-    const transactions = [];
-    for (let i = dataRowIndex; i < data.length; i++) {
-      const row = data[i];
-      if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
+    const transactions = processAllTransactions(data, mapping, fileName, dataRowIndex, convertExcelDate);
 
-      const transaction = {
-        fileName,
-        currency: 'USD',
-        date: '',
-        description: '',
-        category: '',
-        income: 0,
-        expenses: 0
-      };
+/**
+ * Processes a single transaction row
+ */
+function processTransactionRow(row, mapping, fileName, convertExcelDate) {
+  const transaction = {
+    fileName,
+    currency: 'USD',
+    date: '',
+    description: '',
+    category: '',
+    income: 0,
+    expenses: 0
+  };
 
-      // CRITICAL FIX: Only process columns that exist in the actual data AND are mapped
-      mapping.forEach((field, colIndex) => {
-        // Skip if field is not mapped, column doesn't exist, or cell is empty
-        if (field === '–' || colIndex >= row.length || !row[colIndex]) {
-          return;
-        }
-
-        let value = row[colIndex];
-
-        // Skip empty values
-        if (value === null || value === undefined || value === '') {
-          return;
-        }
-
-        console.log(`CRITICAL: Processing column ${colIndex}, field ${field}, value:`, value);
-
-        // FIXED: Apply Excel date conversion ONLY for Date field
-        if (field === 'Date') {
-          if (isExcelDate(value)) {
-            value = convertExcelDate(value);
-          }
-          transaction[field.toLowerCase()] = String(value).trim();
-        } else if (field === 'Income' || field === 'Expenses') {
-          // Convert to number for amount fields
-          const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
-          if (numValue > 0) { // Only set if positive value
-            transaction[field.toLowerCase()] = numValue;
-          }
-        } else {
-          // FIXED: Keep original format for non-Date fields (no conversion)
-          const cleanValue = String(value).trim();
-          transaction[field.toLowerCase()] = cleanValue;
-        }
-      });
-
-      // CRITICAL FIX: Validate transaction has meaningful data and correct data types
-      const hasValidDate = transaction.date && transaction.date !== '' && typeof transaction.date === 'string';
-      const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
-      const hasValidDescription = transaction.description && transaction.description.trim() !== '';
-
-      // Additional validation: ensure date is not a number (which indicates wrong mapping)
-      if (transaction.date && typeof transaction.date === 'number') {
-        console.warn('CRITICAL: Invalid date format detected, skipping transaction:', transaction);
-        continue;
-      }
-
-      // Additional validation: ensure description is not a number (which indicates wrong mapping)
-      if (transaction.description && !isNaN(parseFloat(transaction.description)) && isFinite(transaction.description)) {
-        console.warn('CRITICAL: Description appears to be a number, possible wrong mapping:', transaction);
-      }
-
-      // Only add if has essential data
-      if (hasValidDate || hasValidAmount || hasValidDescription) {
-        transactions.push(transaction);
-      }
+  // Process each mapped column
+  mapping.forEach((field, colIndex) => {
+    if (field === '–' || colIndex >= row.length || !row[colIndex]) {
+      return;
     }
+
+    let value = row[colIndex];
+    if (value === null || value === undefined || value === '') {
+      return;
+    }
+
+    console.log(`CRITICAL: Processing column ${colIndex}, field ${field}, value:`, value);
+
+    if (field === 'Date') {
+      if (isExcelDate(value)) {
+        value = convertExcelDate(value);
+      }
+      transaction[field.toLowerCase()] = String(value).trim();
+    } else if (field === 'Income' || field === 'Expenses') {
+      const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
+      if (numValue > 0) {
+        transaction[field.toLowerCase()] = numValue;
+      }
+    } else {
+      const cleanValue = String(value).trim();
+      transaction[field.toLowerCase()] = cleanValue;
+    }
+  });
+
+  return transaction;
+}
+
+/**
+ * Validates a processed transaction
+ */
+function validateTransaction(transaction) {
+  const hasValidDate = transaction.date && transaction.date !== '' && typeof transaction.date === 'string';
+  const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
+  const hasValidDescription = transaction.description && transaction.description.trim() !== '';
+
+  // Check for invalid date format
+  if (transaction.date && typeof transaction.date === 'number') {
+    console.warn('CRITICAL: Invalid date format detected, skipping transaction:', transaction);
+    return false;
+  }
+
+  // Check for numeric description (possible wrong mapping)
+  if (transaction.description && !isNaN(parseFloat(transaction.description)) && isFinite(transaction.description)) {
+    console.warn('CRITICAL: Description appears to be a number, possible wrong mapping:', transaction);
+  }
+
+  return hasValidDate || hasValidAmount || hasValidDescription;
+}
+
+/**
+ * Processes all transactions from data
+ */
+function processAllTransactions(data, mapping, fileName, dataRowIndex, convertExcelDate) {
+  const transactions = [];
+  
+  for (let i = dataRowIndex; i < data.length; i++) {
+    const row = data[i];
+    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
+
+    const transaction = processTransactionRow(row, mapping, fileName, convertExcelDate);
+    
+    if (validateTransaction(transaction)) {
+      transactions.push(transaction);
+    }
+  }
+
+  return transactions;
+}
+
+/**
+ * Sets up date conversion function
+ */
+async function setupDateConversion() {
+  try {
+    const excelParserModule = await import('../parser/excelParser.js');
+    const excelParser = excelParserModule.excelParser || new excelParserModule.default();
+    return (value) => excelParser.convertExcelDate(value);
+  } catch (error) {
+    console.error('CRITICAL: Failed to import convertExcelDate:', error);
+    return (value) => String(value);
+  }
+}
 
     console.log(`CRITICAL: Processed ${transactions.length} transactions from file:`, transactions.slice(0, 3));
 
@@ -1541,5 +1569,23 @@ async function autoApplyDetectedMapping(file, data, autoMapping) {
     // Fall back to manual mapping
     showFilePreviewModal(data);
     fileInputInProgress = false;
+  }
+}
+
+// Helper function to find existing date mapping index
+function findExistingDateMapping(currentMappings, excludeIndex) {
+  return currentMappings.findIndex((field, i) => field === 'Date' && i !== excludeIndex);
+}
+
+// Helper function to handle date mapping conflict
+function handleDateMappingConflict(currentMappings, index) {
+  const existingDateIndex = findExistingDateMapping(currentMappings, index);
+  
+  if (existingDateIndex !== -1) {
+    // Reset the existing Date mapping
+    const existingSelect = document.querySelector(`.header-select[data-index="${existingDateIndex}"]`);
+    if (existingSelect) {
+      existingSelect.value = '–';
+    }
   }
 }
