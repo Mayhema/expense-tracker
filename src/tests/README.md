@@ -1,12 +1,15 @@
 # Category Manager Test Setup
 
 ## Overview
+
 This directory contains comprehensive unit tests for the Category Manager functionality of the expense tracker application.
 
 ## Test Files
 
 ### `categoryManager.test.js`
+
 Tests the core Category Manager functionality including:
+
 - Adding, updating, and deleting categories
 - Managing subcategories
 - Real-time UI updates
@@ -18,6 +21,7 @@ Tests the core Category Manager functionality including:
 The tests cover the following scenarios:
 
 ### Category Management
+
 - ✅ Adding new categories with validation
 - ✅ Updating category names and colors
 - ✅ Deleting categories and cleaning up related data
@@ -25,18 +29,21 @@ The tests cover the following scenarios:
 - ✅ Order management for categories
 
 ### Subcategory Management
+
 - ✅ Adding subcategories to existing categories
 - ✅ Deleting subcategories
 - ✅ Converting string categories to object format
 - ✅ Validation and duplicate prevention
 
 ### UI Integration
+
 - ✅ Modal creation and singleton behavior
 - ✅ Real-time dropdown updates
 - ✅ Preserving selected values during updates
 - ✅ Transaction area integration
 
 ### Data Persistence
+
 - ✅ localStorage synchronization
 - ✅ Transaction updates when categories change
 - ✅ State management consistency
@@ -69,6 +76,7 @@ npm test
 ## Test Results Expected
 
 All tests should pass, validating that:
+
 1. The Category Manager modal works correctly
 2. All CRUD operations function properly
 3. Real-time UI updates work as expected
@@ -78,6 +86,7 @@ All tests should pass, validating that:
 ## Manual Testing Checklist
 
 After running automated tests, also verify manually:
+
 - [ ] Modal opens without duplicate headlines
 - [ ] Adding categories updates dropdowns immediately
 - [ ] Edit, delete, and subcategory buttons all work

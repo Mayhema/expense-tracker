@@ -1,7 +1,7 @@
 # Suggested Improvements 🚀
 
 1. Enhanced Data Management
-2. Budget Tracking System  
+2. Budget Tracking System
 3. Recurring Transaction Detection
 4. Enhanced Analytics
    - Spending trends over time

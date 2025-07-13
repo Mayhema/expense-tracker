@@ -44,8 +44,107 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.dark-mode .modal-header {
-  background: linear-gradient(135deg, #343a40 0%, #2a2a2a 100%);
+/* Enhanced Dark Mode Modal Support with Ultra High Specificity */
+body.dark-mode .modal-header,
+body.dark-mode .modal-header[style] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.3) !important;
+  color: #e0e8ff !important;
+  padding: 20px 24px 0px !important;
+  position: relative !important;
+}
+
+body.dark-mode .modal-header h2,
+body.dark-mode .modal-header h3,
+body.dark-mode .modal-header .modal-title {
+  color: #e0e8ff !important;
+  text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3) !important;
+  margin: 0 0 16px 0 !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+}
+
+body.dark-mode .modal-content,
+body.dark-mode .modal-content[style] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border: 2px solid rgba(102, 126, 234, 0.3) !important;
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.8),
+    0 10px 40px rgba(102, 126, 234, 0.2),
+    0 0 40px rgba(118, 75, 162, 0.1) !important;
+  color: #e0e8ff !important;
+}
+
+body.dark-mode .modal-body,
+body.dark-mode .modal-body[style] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  color: #e0e8ff !important;
+  padding: 24px !important;
+}
+
+body.dark-mode .modal-close-btn,
+body.dark-mode .modal-close-btn[style] {
+  background: linear-gradient(135deg, #2a2a3e 0%, #1e1e32 100%) !important;
+  border: 1px solid rgba(102, 126, 234, 0.4) !important;
+  color: #e0e8ff !important;
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+}
+
+body.dark-mode .modal-close-btn:hover,
+body.dark-mode .modal-close-btn[style]:hover {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  color: white !important;
+  border-color: #dc3545 !important;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4) !important;
+}
+
+/* Dark mode table styles within modals */
+body.dark-mode .modal-body table,
+body.dark-mode .modal-body .merged-files-table {
+  background: transparent !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+body.dark-mode .modal-body table th,
+body.dark-mode .modal-body .merged-files-table th {
+  background: rgba(102, 126, 234, 0.2) !important;
+  color: #e0e8ff !important;
+  padding: 10px !important;
+  text-align: left !important;
+  border: 1px solid rgba(102, 126, 234, 0.3) !important;
+}
+
+body.dark-mode .modal-body table td,
+body.dark-mode .modal-body .merged-files-table td {
+  background: rgba(26, 26, 46, 0.6) !important;
+  color: #e0e8ff !important;
+  padding: 8px !important;
+  border: 1px solid rgba(102, 126, 234, 0.2) !important;
+}
+
+body.dark-mode .modal-body table tr:hover,
+body.dark-mode .modal-body .merged-files-table tr:hover {
+  background: rgba(102, 126, 234, 0.1) !important;
+}
+
+body.dark-mode .modal-body .edit-file-btn,
+body.dark-mode .modal-body .remove-file-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  margin-right: 5px !important;
+}
+
+body.dark-mode .modal-body .remove-file-btn {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
 }
 
 .modal-header h2 {
@@ -125,7 +224,7 @@
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.dark-mode .modal-footer {
+body.dark-mode .modal-footer {
   background: linear-gradient(135deg, #343a40 0%, #2a2a2a 100%);
 }
 

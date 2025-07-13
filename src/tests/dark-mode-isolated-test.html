@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Dark Mode Advanced Filters Test</title>
+    <link rel="stylesheet" href="src/styles/filters.css">
+    <link rel="stylesheet" href="src/styles/modals.css">
+    <link rel="stylesheet" href="src/styles/transactions.css">
+    <link rel="stylesheet" href="src/styles/charts.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            transition: all 0.3s ease;
+            background: #f5f5f5;
+        }
+        
+        body.dark-mode {
+            background: #1a1a2e !important;
+            color: #e0e0e0 !important;
+        }
+        
+        .test-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+        
+        .test-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        .test-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 10000;
+        }
+        
+        .status-light {
+            background: #f0f8ff;
+            color: #333;
+            border: 2px solid #667eea;
+        }
+        
+        .status-dark {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border: 2px solid #667eea;
+        }
+        
+        .test-section {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        body.dark-mode .test-section {
+            border-color: #444;
+            background: rgba(26, 26, 46, 0.5);
+        }
+
+        /* Test Summary Cards */
+        .summary-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        /* Test Modal */
+        .test-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            z-index: 9999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-controls">
+        <button class="test-btn" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+        <button class="test-btn" onclick="showModal()">📝 Test Modal</button>
+    </div>
+
+    <div class="status-indicator" id="statusIndicator">
+        🌞 Light Mode Active
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Advanced Filters Test</h2>
+        <p>This should show the exact same styling as the main app. If it looks white in dark mode, there's a CSS issue.</p>
+        
+        <div class="advanced-filters">
+            <div class="filter-section">
+                <div class="filter-header">
+                    <h4>🔍 Advanced Filters</h4>
+                    <div class="filter-preset-section">
+                        <select class="preset-selector">
+                            <option>Choose Saved Preset</option>
+                            <option>📋 Monthly Expenses</option>
+                        </select>
+                        <button class="btn preset-btn">💾 Save</button>
+                        <button class="btn preset-btn">⚙️ Manage</button>
+                    </div>
+                </div>
+
+                <div class="filter-grid">
+                    <div class="filter-card">
+                        <div class="filter-card-header">
+                            <span class="filter-icon">📅</span>
+                            <label for="test-date">Date Range</label>
+                        </div>
+                        <div class="filter-card-content">
+                            <select id="test-date" class="modern-select">
+                                <option>All Time</option>
+                                <option selected>Last 30 Days</option>
+                                <option>This Month</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="filter-card">
+                        <div class="filter-card-header">
+                            <span class="filter-icon">💰</span>
+                            <label for="test-amount">Amount Range</label>
+                        </div>
+                        <div class="filter-card-content">
+                            <div class="amount-inputs">
+                                <div class="amount-input-group">
+                                    <label for="test-min">Min</label>
+                                    <input id="test-min" type="number" class="modern-input" placeholder="0.00">
+                                </div>
+                                <div class="amount-input-group">
+                                    <label for="test-max">Max</label>
+                                    <input id="test-max" type="number" class="modern-input" placeholder="1000.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-card">
+                        <div class="filter-card-header">
+                            <span class="filter-icon">🔍</span>
+                            <label for="test-search">Search</label>
+                        </div>
+                        <div class="filter-card-content">
+                            <div class="search-input-wrapper">
+                                <input id="test-search" type="text" class="search-input modern-input" placeholder="Search...">
+                                <button class="search-clear-btn">×</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button class="btn primary-btn action-btn">✨ Apply Filters</button>
+                    <button class="btn secondary-btn action-btn">🧹 Clear All</button>
+                    <div class="filter-status">
+                        <span class="status-text">✓ Testing filters visibility</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Transaction Summaries Test</h2>
+        <p>These summary cards should NOT be white blocks in dark mode:</p>
+        
+        <div class="summary-cards-row">
+            <div class="summary-card income">
+                <div class="summary-icon">💰</div>
+                <div class="summary-content">
+                    <div class="summary-label">Total Income</div>
+                    <div class="summary-value">$2,450.00</div>
+                </div>
+            </div>
+            
+            <div class="summary-card expenses">
+                <div class="summary-icon">💸</div>
+                <div class="summary-content">
+                    <div class="summary-label">Total Expenses</div>
+                    <div class="summary-value">$1,890.50</div>
+                </div>
+            </div>
+            
+            <div class="summary-card net positive">
+                <div class="summary-icon">📈</div>
+                <div class="summary-content">
+                    <div class="summary-label">Net Total</div>
+                    <div class="summary-value">$559.50</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Chart Text Test</h2>
+        <p>Chart text should be readable in dark mode:</p>
+        <div class="chart-container">
+            <canvas id="testChart" width="400" height="200" style="background: #f0f0f0;"></canvas>
+            <div style="padding: 10px; background: var(--chart-bg, #fff); color: var(--chart-text, #333);">
+                Sample chart text - should be visible in dark mode
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Modal -->
+    <div class="test-modal modal-content" id="testModal">
+        <div class="modal-header">
+            <h3>Test Modal</h3>
+            <button onclick="hideModal()" style="border: none; background: none; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <p>This modal should NOT look terrible in dark mode.</p>
+            <p>The background should be dark and text should be readable.</p>
+        </div>
+        <div class="modal-footer" style="padding: 15px; border-top: 1px solid #ddd;">
+            <button onclick="hideModal()" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let isDarkMode = false;
+        
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode');
+            
+            const indicator = document.getElementById('statusIndicator');
+            if (isDarkMode) {
+                indicator.textContent = '🌙 Dark Mode Active';
+                indicator.className = 'status-indicator status-dark';
+            } else {
+                indicator.textContent = '🌞 Light Mode Active';
+                indicator.className = 'status-indicator status-light';
+            }
+        }
+        
+        function showModal() {
+            document.getElementById('testModal').style.display = 'block';
+        }
+        
+        function hideModal() {
+            document.getElementById('testModal').style.display = 'none';
+        }
+        
+        // Auto-test: Toggle dark mode after 2 seconds to demo
+        setTimeout(() => {
+            console.log('🧪 Auto-testing dark mode toggle...');
+            toggleDarkMode();
+        }, 2000);
+    </script>
+</body>
+</html>

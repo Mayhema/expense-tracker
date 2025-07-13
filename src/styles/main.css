@@ -595,7 +595,7 @@ table tbody tr:hover {
 }
 
 /* ===== DARK MODE ===== */
-.dark-mode {
+body.dark-mode {
   --bg-primary: #1a1a1a;
   --bg-secondary: #2a2a2a;
   --text-primary: #e0e0e0;
@@ -604,58 +604,224 @@ table tbody tr:hover {
   --border-color: #555;
 }
 
-.dark-mode body {
+body.dark-mode body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
 
-.dark-mode .section {
+body.dark-mode .section {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
 }
 
-.dark-mode .section-header {
+body.dark-mode .section-header {
   background: var(--bg-secondary);
   border-bottom-color: var(--border-color);
 }
 
-.dark-mode .sidebar {
+body.dark-mode .sidebar {
   background: var(--bg-primary);
   border-right: 1px solid var(--border-color);
 }
 
-.dark-mode .modal-container {
+body.dark-mode .modal-container {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
 }
 
-.dark-mode .modal-header {
-  background: var(--bg-secondary);
-  border-bottom-color: var(--border-color);
-}
-
-.dark-mode .form-control,
-.dark-mode input,
-.dark-mode select,
-.dark-mode textarea {
+body.dark-mode .form-control,
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
   background: var(--bg-secondary);
   border-color: var(--border-color);
   color: var(--text-primary);
 }
 
-.dark-mode .transaction-filters {
+body.dark-mode .transaction-filters {
   background: var(--bg-secondary);
 }
 
-.dark-mode .category-btn {
+body.dark-mode .category-btn {
   background: var(--bg-secondary);
   border-color: var(--border-color);
   color: var(--text-primary);
 }
 
-.dark-mode .toast {
+body.dark-mode .toast {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+/* ===== COMPREHENSIVE DARK MODE OVERRIDES ===== */
+/* These styles override any conflicting imports to ensure dark mode works */
+
+/* Advanced Filters Dark Mode - Multi-column Layout with Futuristic Design */
+body.dark-mode .transaction-filters,
+body.dark-mode .advanced-filters {
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 25%, #16213e 75%, #0f0f23 100%) !important;
+  border: 2px solid transparent !important;
+  border-image: linear-gradient(45deg, #667eea, #764ba2, #f093fb) 1 !important;
+  color: #e0e8ff !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 40px rgba(102, 126, 234, 0.1) !important;
+  position: relative !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Multi-column filter grid layout */
+body.dark-mode .filter-row,
+body.dark-mode .filters-row {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 20px !important;
+  margin-bottom: 24px !important;
+}
+
+@media (max-width: 1200px) {
+  body.dark-mode .filter-row,
+  body.dark-mode .filters-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body.dark-mode .filter-row,
+  body.dark-mode .filters-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Filter form elements styling */
+body.dark-mode .transaction-filters input,
+body.dark-mode .transaction-filters select,
+body.dark-mode .advanced-filters input,
+body.dark-mode .advanced-filters select {
+  background: rgba(26, 26, 46, 0.8) !important;
+  border: 1px solid rgba(102, 126, 234, 0.3) !important;
+  color: #e0e8ff !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+body.dark-mode .transaction-filters input:focus,
+body.dark-mode .transaction-filters select:focus,
+body.dark-mode .advanced-filters input:focus,
+body.dark-mode .advanced-filters select:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+  outline: none !important;
+}
+
+/* Filter buttons */
+body.dark-mode .transaction-filters button,
+body.dark-mode .advanced-filters button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+body.dark-mode .transaction-filters button:hover,
+body.dark-mode .advanced-filters button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+}
+
+/* Futuristic glow effect */
+body.dark-mode .transaction-filters::before,
+body.dark-mode .advanced-filters::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+  border-radius: 18px;
+  z-index: -1;
+  animation: pulse-border 3s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-border {
+  0% { opacity: 0.5; }
+  100% { opacity: 0.8; }
+}
+
+/* Modal Dark Mode Overrides */
+body.dark-mode .modal,
+body.dark-mode .modal-content {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Override white backgrounds specifically in modal contexts */
+body.dark-mode .modal [style*="background: white"],
+body.dark-mode .modal [style*="background: #ffffff"],
+body.dark-mode .modal [style*="background:#ffffff"],
+body.dark-mode .modal [style*="background-color: white"],
+body.dark-mode .modal [style*="background-color: #ffffff"],
+body.dark-mode .modal [style*="background-color:#ffffff"] {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-mode .modal-header {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Transaction Summary Dark Mode */
+body.dark-mode .transaction-summary,
+body.dark-mode .summary-card,
+body.dark-mode .summary-item {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+/* Labels and text in filters */
+body.dark-mode .transaction-filters label,
+body.dark-mode .advanced-filters label {
+  color: #b8c5ff !important;
+  font-weight: 500 !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+}
+
+/* Filter group styling */
+body.dark-mode .filter-group {
+  background: rgba(26, 26, 46, 0.4) !important;
+  border: 1px solid rgba(102, 126, 234, 0.2) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  position: relative !important;
+}
+
+body.dark-mode .filter-group::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), transparent);
 }
 
 /* ===== RESPONSIVE ===== */

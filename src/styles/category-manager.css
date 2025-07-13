@@ -18,7 +18,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.dark-mode .category-manager-content {
+body.dark-mode .category-manager-content {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: #e2e8f0;
   border-color: rgba(148, 163, 184, 0.1);
@@ -173,7 +173,7 @@
   margin-top: 0.5rem;
 }
 
-.dark-mode .category-manager-header {
+body.dark-mode .category-manager-header {
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #3730a3 50%, #1e40af 75%, #1d4ed8 100%);
 }
 
@@ -185,7 +185,7 @@
   position: relative;
 }
 
-.dark-mode .add-category-section {
+body.dark-mode .add-category-section {
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   border-color: rgba(71, 85, 105, 0.3);
 }
@@ -207,7 +207,7 @@
   letter-spacing: -0.01em;
 }
 
-.dark-mode .add-section-header h4 {
+body.dark-mode .add-section-header h4 {
   color: #f1f5f9;
 }
 
@@ -241,7 +241,7 @@
   line-height: 1.6;
 }
 
-.dark-mode .section-description {
+body.dark-mode .section-description {
   color: #cbd5e1;
 }
 
@@ -274,7 +274,7 @@
   left: 100%;
 }
 
-.dark-mode .add-category-card {
+body.dark-mode .add-category-card {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(148, 163, 184, 0.1);
 }
@@ -310,7 +310,7 @@
   letter-spacing: 0.5px;
 }
 
-.dark-mode .input-label {
+body.dark-mode .input-label {
   color: #e2e8f0;
 }
 
@@ -336,13 +336,13 @@
   transform: translateY(-2px);
 }
 
-.dark-mode .form-input {
+body.dark-mode .form-input {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(71, 85, 105, 0.3);
   color: #e2e8f0;
 }
 
-.dark-mode .form-input:focus {
+body.dark-mode .form-input:focus {
   background: rgba(30, 41, 59, 1);
   border-color: #8b5cf6;
 }
@@ -387,11 +387,11 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.dark-mode .color-picker {
+body.dark-mode .color-picker {
   border-color: rgba(71, 85, 105, 0.3);
 }
 
-.dark-mode .color-preview {
+body.dark-mode .color-preview {
   border-color: rgba(71, 85, 105, 0.3);
 }
 
@@ -434,22 +434,22 @@
   pointer-events: none;
 }
 
-.dark-mode .search-input {
+body.dark-mode .search-input {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(71, 85, 105, 0.3);
   color: #e2e8f0;
 }
 
-.dark-mode .search-input:focus {
+body.dark-mode .search-input:focus {
   background: rgba(30, 41, 59, 1);
   border-color: #8b5cf6;
 }
 
-.dark-mode .search-input::placeholder {
+body.dark-mode .search-input::placeholder {
   color: #64748b;
 }
 
-.dark-mode .search-icon {
+body.dark-mode .search-icon {
   color: #64748b;
 }
 
@@ -485,7 +485,7 @@
   gap: 0.5rem;
 }
 
-.dark-mode .header-left h4 {
+body.dark-mode .header-left h4 {
   color: #f1f5f9;
 }
 
@@ -516,7 +516,7 @@
   backdrop-filter: blur(10px);
 }
 
-.dark-mode .categories-section {
+body.dark-mode .categories-section {
   background: rgba(30, 41, 59, 0.5);
 }
 
@@ -544,7 +544,7 @@
   border-color: rgba(99, 102, 241, 0.3);
 }
 
-.dark-mode .category-card {
+body.dark-mode .category-card {
   background: rgba(30, 41, 59, 0.9);
   border-color: rgba(71, 85, 105, 0.3);
 }
@@ -583,7 +583,7 @@
   color: #374151;
 }
 
-.dark-mode .category-name-display {
+body.dark-mode .category-name-display {
   color: #f1f5f9;
 }
 
@@ -596,7 +596,7 @@
   font-weight: 500;
 }
 
-.dark-mode .category-order {
+body.dark-mode .category-order {
   color: #9ca3af;
   background: rgba(139, 92, 246, 0.2);
 }
@@ -611,7 +611,7 @@
   padding-top: 1.5rem;
 }
 
-.dark-mode .category-card-body {
+body.dark-mode .category-card-body {
   border-color: rgba(71, 85, 105, 0.3);
 }
 
@@ -646,15 +646,15 @@
   margin-top: 0.2rem;
 }
 
-.dark-mode .category-stat-item {
+body.dark-mode .category-stat-item {
   background: rgba(139, 92, 246, 0.1);
 }
 
-.dark-mode .category-stat-value {
+body.dark-mode .category-stat-value {
   color: #a855f7;
 }
 
-.dark-mode .category-stat-label {
+body.dark-mode .category-stat-label {
   color: #9ca3af;
 }
 
@@ -667,7 +667,7 @@
   backdrop-filter: blur(10px);
 }
 
-.dark-mode .modal-footer {
+body.dark-mode .modal-footer {
   background: rgba(15, 23, 42, 0.8);
   border-color: rgba(71, 85, 105, 0.3);
 }
@@ -690,7 +690,7 @@
   font-weight: 500;
 }
 
-.dark-mode .info-text {
+body.dark-mode .info-text {
   color: #9ca3af;
 }
 

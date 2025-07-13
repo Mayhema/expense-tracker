@@ -19,15 +19,15 @@ async function setupTestEnvironment() {
     </body>
     </html>
   `);
-  
+
   global.document = dom.window.document;
   global.window = dom.window;
-  
+
   // Mock localStorage
   global.localStorage = {
     getItem: () => '[]',
-    setItem: () => {},
-    removeItem: () => {}
+    setItem: () => { },
+    removeItem: () => { }
   };
 }
 
@@ -37,7 +37,7 @@ async function testUIVisibility() {
   // Test sidebar buttons
   const buttons = [
     'showMappingsBtn',
-    'showMergedFilesBtn', 
+    'showMergedFilesBtn',
     'editCategoriesSidebarBtn'
   ];
 

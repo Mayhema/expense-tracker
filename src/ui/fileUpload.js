@@ -321,112 +321,212 @@ async function handleXMLFile(file) {
   reader.readAsText(file);
 }
 
+// Helper function to validate basic file data
+function validateFileData(file, data) {
+  if (!data || data.length === 0) {
+    console.error("CRITICAL ERROR: No data found in file");
+    handleFileUploadError(new Error("No data found in file"));
+    return false;
+  }
+
+  if (data.length === 1) {
+    console.error("CRITICAL ERROR: File contains only header row, no transaction data");
+    handleFileUploadError(new Error(`File "${file.name}" contains only headers but no transaction data. Please ensure your file contains actual transaction records.`));
+    return false;
+  }
+
+  return true;
+}
+
+// Helper function to attempt CSV single-cell splitting
+function attemptCsvSplit(data) {
+  const headerRow = data[0];
+  if (headerRow && headerRow.length === 1 && typeof headerRow[0] === 'string' && headerRow[0].includes(',')) {
+    console.log("DEBUG: Detected CSV data in single cell, attempting to split");
+    const splitData = data.map(row => {
+      if (row && row[0] && typeof row[0] === 'string') {
+        return row[0].split(',').map(cell => cell.trim());
+      }
+      return row;
+    });
+
+    if (splitData[0] && splitData[0].length >= 2) {
+      console.log("DEBUG: Successfully split CSV data, proceeding with split data");
+      return { success: true, data: splitData };
+    }
+  }
+  return { success: false, data };
+}
+
+// Helper function to filter empty Excel columns
+function filterEmptyColumns(data) {
+  console.log("DEBUG: Attempting to filter empty columns from Excel data");
+  const filteredData = data.map(row => {
+    if (Array.isArray(row)) {
+      return row.filter(cell => cell !== undefined && cell !== null && cell !== '');
+    }
+    return row;
+  });
+
+  if (filteredData[0] && filteredData[0].length >= 2) {
+    console.log("DEBUG: Successfully filtered empty columns, proceeding with filtered data");
+    return { success: true, data: filteredData };
+  }
+  return { success: false, data };
+}
+
+// Helper function to check for sparse Excel data
+function checkSparseExcelData(data) {
+  console.log("DEBUG: Checking for sparse Excel data with varying column counts");
+  let maxColumns = 0;
+  data.forEach(row => {
+    if (Array.isArray(row)) {
+      const nonEmptyColumns = row.filter(cell => cell !== undefined && cell !== null && cell !== '').length;
+      maxColumns = Math.max(maxColumns, nonEmptyColumns);
+    }
+  });
+
+  if (maxColumns >= 2) {
+    console.log(`DEBUG: Found rows with ${maxColumns} columns, proceeding with existing data`);
+    return { success: true, data };
+  }
+  return { success: false, data };
+}
+
+// Helper function to fix data format issues
+function fixDataFormatIssues(file, data) {
+  const headerRow = data[0];
+  console.log("DEBUG: First row data:", headerRow);
+  console.log("DEBUG: Data structure:", data.slice(0, 3));
+  console.log("DEBUG: File type:", file.name.split('.').pop());
+
+  if (!headerRow || headerRow.length < 2) {
+    // Try different strategies to fix the data
+    let result = attemptCsvSplit(data);
+    if (result.success) return result;
+
+    result = filterEmptyColumns(data);
+    if (result.success) return result;
+
+    result = checkSparseExcelData(data);
+    if (result.success) return result;
+
+    // If nothing worked, return failure
+    console.error("CRITICAL ERROR: File does not contain enough columns for transaction data");
+    handleFileUploadError(new Error(`File "${file.name}" does not contain enough columns. Need at least 2 columns (date and amount).`));
+    return { success: false, data };
+  }
+
+  return { success: true, data };
+}
+
+// Helper function to process existing mapping
+async function processExistingMapping(file, data, signature) {
+  const { findMappingBySignature } = await import('../mappings/mappingsManager.js');
+  const existingMapping = findMappingBySignature(signature);
+
+  if (existingMapping) {
+    console.log('CRITICAL: Found existing mapping, auto-applying:', existingMapping);
+    showToast(`🎯 Using saved mapping from "${existingMapping.fileName}"`, "info");
+    await autoApplyMapping(file, data, existingMapping);
+    return true;
+  }
+  return false;
+}
+
+// Helper function to handle auto-detection
+async function handleAutoDetection(file, data) {
+  console.log('CRITICAL: No existing mapping found, using auto-detection');
+
+  try {
+    const { autoDetectFieldType } = await import('../constants/fieldMappings.js');
+    const headers = data[0] || [];
+    const autoMapping = headers.map(header => autoDetectFieldType(header));
+
+    console.log('CRITICAL: Auto-detected mapping:', autoMapping);
+
+    // Enhanced validation for auto-detection
+    const validMappings = autoMapping.filter(m => m && m !== '–').length;
+    const hasDate = autoMapping.includes('Date');
+    const hasAmount = autoMapping.includes('Income') || autoMapping.includes('Expenses');
+
+    // Check data quality: ensure we have actual transaction data
+    const sampleDataRow = data[1]; // Second row should contain sample data
+    const hasNonEmptyData = sampleDataRow && sampleDataRow.some(cell => cell && cell.toString().trim() !== '');
+
+    if (validMappings >= 2 && hasDate && hasAmount && hasNonEmptyData) {
+      console.log('CRITICAL: Auto-detection successful, processing file automatically');
+
+      // Store data and process with auto-detected mapping
+      storeFileDataInState(file, data);
+
+      // Apply the auto-detected mapping
+      await autoApplyDetectedMapping(file, data, autoMapping);
+      return;
+    } else {
+      console.log('CRITICAL: Auto-detection insufficient or poor data quality, showing manual mapping modal');
+      console.log('CRITICAL: Validation results - validMappings:', validMappings, 'hasDate:', hasDate, 'hasAmount:', hasAmount, 'hasNonEmptyData:', hasNonEmptyData);
+    }
+  } catch (autoError) {
+    console.log('CRITICAL: Auto-detection failed, showing manual mapping modal:', autoError);
+  }
+
+  // If auto-detection failed, store data and show preview modal
+  console.log('CRITICAL: Storing file data and showing preview modal');
+  storeFileDataInState(file, data);
+  showFilePreviewModal(data);
+  showToast(`File loaded: ${data.length} rows found`, "success");
+}
+
 /**
  * Process uploaded data
  */
 async function processUploadedData(file, data) {
   console.log(`CRITICAL: processUploadedData called with file: ${file.name}, data rows: ${data?.length}`);
 
-  if (!data || data.length === 0) {
-    console.error("CRITICAL ERROR: No data found in file");
-    handleFileUploadError(new Error("No data found in file"));
-    return;
-  }
-
-  // CRITICAL FIX: Enhanced validation for file data quality
-  if (data.length === 1) {
-    console.error("CRITICAL ERROR: File contains only header row, no transaction data");
-    handleFileUploadError(new Error(`File "${file.name}" contains only headers but no transaction data. Please ensure your file contains actual transaction records.`));
-    return;
-  }
-
-  // Check if we have enough columns for meaningful data
-  const headerRow = data[0];
-  if (!headerRow || headerRow.length < 2) {
-    console.error("CRITICAL ERROR: File does not contain enough columns for transaction data");
-    handleFileUploadError(new Error(`File "${file.name}" does not contain enough columns. Need at least 2 columns (date and amount).`));
-    return;
-  }
-
-  // CRITICAL FIX: Check for duplicate file first
-  const isDuplicate = checkForDuplicateFile(file);
-  if (isDuplicate) {
-    console.log(`CRITICAL: Duplicate file detected: ${file.name}`);
-    handleDuplicateFile(file);
-    return;
-  }
-
   try {
-    // CRITICAL FIX: Generate signature and set as current
+    // Step 1: Validate basic file data
+    if (!validateFileData(file, data)) {
+      return;
+    }
+
+    // Step 2: Fix data format issues
+    const fixResult = fixDataFormatIssues(file, data);
+    if (!fixResult.success) {
+      return;
+    }
+    data = fixResult.data;
+
+    // Step 3: Check for duplicate file
+    const isDuplicate = checkForDuplicateFile(file);
+    if (isDuplicate) {
+      console.log(`CRITICAL: Duplicate file detected: ${file.name}`);
+      handleDuplicateFile(file);
+      return;
+    }
+
+    // Step 4: Generate signature and set as current
     const { generateFileSignature } = await import('../parsers/fileHandler.js');
-    const { findMappingBySignature } = await import('../mappings/mappingsManager.js');
     const { setCurrentFileSignature } = await import('../core/appState.js');
 
     const signature = generateFileSignature(file.name, data);
-
-    // FIXED: Set current file signature for display
     setCurrentFileSignature(signature);
-
     console.log('CRITICAL: Generated signature for file:', file.name, 'signature:', signature);
 
-    const existingMapping = findMappingBySignature(signature);
-
-    if (existingMapping) {
-      console.log('CRITICAL: Found existing mapping, auto-applying:', existingMapping);
-
-      // FIXED: Just show a toast notification and auto-apply
-      showToast(`🎯 Using saved mapping from "${existingMapping.fileName}"`, "info");
-
-      // Auto-apply the mapping
-      await autoApplyMapping(file, data, existingMapping);
+    // Step 5: Try to use existing mapping
+    const mappingFound = await processExistingMapping(file, data, signature);
+    if (mappingFound) {
       return;
-    } else {
-      console.log('CRITICAL: No existing mapping found for signature:', signature, 'using auto-detection');
-
-      // FIXED: Instead of showing modal, try auto-detection first
-      try {
-        const { autoDetectFieldType } = await import('../constants/fieldMappings.js');
-        const headers = data[0] || [];
-        const autoMapping = headers.map(header => autoDetectFieldType(header));
-
-        console.log('CRITICAL: Auto-detected mapping:', autoMapping);
-
-        // CRITICAL FIX: Enhanced validation for auto-detection
-        const validMappings = autoMapping.filter(m => m && m !== '–').length;
-        const hasDate = autoMapping.includes('Date');
-        const hasAmount = autoMapping.includes('Income') || autoMapping.includes('Expenses');
-
-        // Check data quality: ensure we have actual transaction data
-        const sampleDataRow = data[1]; // Second row should contain sample data
-        const hasNonEmptyData = sampleDataRow && sampleDataRow.some(cell => cell && cell.toString().trim() !== '');
-
-        if (validMappings >= 2 && hasDate && hasAmount && hasNonEmptyData) {
-          console.log('CRITICAL: Auto-detection successful, processing file automatically');
-
-          // Store data and process with auto-detected mapping
-          storeFileDataInState(file, data);
-
-          // Apply the auto-detected mapping
-          await autoApplyDetectedMapping(file, data, autoMapping);
-          return;
-        } else {
-          console.log('CRITICAL: Auto-detection insufficient or poor data quality, showing manual mapping modal');
-          console.log('CRITICAL: Validation results - validMappings:', validMappings, 'hasDate:', hasDate, 'hasAmount:', hasAmount, 'hasNonEmptyData:', hasNonEmptyData);
-        }
-      } catch (autoError) {
-        console.log('CRITICAL: Auto-detection failed, showing manual mapping modal:', autoError);
-      }
     }
 
-    // Store data and show preview only if auto-detection failed
-    console.log('CRITICAL: Storing file data and showing preview modal');
-    storeFileDataInState(file, data);
-    showFilePreviewModal(data);
-    showToast(`File loaded: ${data.length} rows found`, "success");
-    fileInputInProgress = false;
+    // Step 6: Handle auto-detection
+    await handleAutoDetection(file, data);
+
   } catch (error) {
     console.error('CRITICAL ERROR: Error in processUploadedData:', error);
     handleFileUploadError(error);
+  } finally {
+    fileInputInProgress = false;
   }
 }
 
@@ -1141,107 +1241,107 @@ export async function onSaveHeaders(modal) {
     // CRITICAL FIX: Process transactions with proper field mapping and validation
     const transactions = processAllTransactions(data, mapping, fileName, dataRowIndex, convertExcelDate);
 
-/**
- * Processes a single transaction row
- */
-function processTransactionRow(row, mapping, fileName, convertExcelDate) {
-  const transaction = {
-    fileName,
-    currency: 'USD',
-    date: '',
-    description: '',
-    category: '',
-    income: 0,
-    expenses: 0
-  };
+    /**
+     * Processes a single transaction row
+     */
+    function processTransactionRow(row, mapping, fileName, convertExcelDate) {
+      const transaction = {
+        fileName,
+        currency: 'USD',
+        date: '',
+        description: '',
+        category: '',
+        income: 0,
+        expenses: 0
+      };
 
-  // Process each mapped column
-  mapping.forEach((field, colIndex) => {
-    if (field === '–' || colIndex >= row.length || !row[colIndex]) {
-      return;
+      // Process each mapped column
+      mapping.forEach((field, colIndex) => {
+        if (field === '–' || colIndex >= row.length || !row[colIndex]) {
+          return;
+        }
+
+        let value = row[colIndex];
+        if (value === null || value === undefined || value === '') {
+          return;
+        }
+
+        console.log(`CRITICAL: Processing column ${colIndex}, field ${field}, value:`, value);
+
+        if (field === 'Date') {
+          if (isExcelDate(value)) {
+            value = convertExcelDate(value);
+          }
+          transaction[field.toLowerCase()] = String(value).trim();
+        } else if (field === 'Income' || field === 'Expenses') {
+          const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
+          if (numValue > 0) {
+            transaction[field.toLowerCase()] = numValue;
+          }
+        } else {
+          const cleanValue = String(value).trim();
+          transaction[field.toLowerCase()] = cleanValue;
+        }
+      });
+
+      return transaction;
     }
 
-    let value = row[colIndex];
-    if (value === null || value === undefined || value === '') {
-      return;
-    }
+    /**
+     * Validates a processed transaction
+     */
+    function validateTransaction(transaction) {
+      const hasValidDate = transaction.date && transaction.date !== '' && typeof transaction.date === 'string';
+      const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
+      const hasValidDescription = transaction.description && transaction.description.trim() !== '';
 
-    console.log(`CRITICAL: Processing column ${colIndex}, field ${field}, value:`, value);
-
-    if (field === 'Date') {
-      if (isExcelDate(value)) {
-        value = convertExcelDate(value);
+      // Check for invalid date format
+      if (transaction.date && typeof transaction.date === 'number') {
+        console.warn('CRITICAL: Invalid date format detected, skipping transaction:', transaction);
+        return false;
       }
-      transaction[field.toLowerCase()] = String(value).trim();
-    } else if (field === 'Income' || field === 'Expenses') {
-      const numValue = parseFloat(String(value).replace(/[^\d.-]/g, '')) || 0;
-      if (numValue > 0) {
-        transaction[field.toLowerCase()] = numValue;
+
+      // Check for numeric description (possible wrong mapping)
+      if (transaction.description && !isNaN(parseFloat(transaction.description)) && isFinite(transaction.description)) {
+        console.warn('CRITICAL: Description appears to be a number, possible wrong mapping:', transaction);
       }
-    } else {
-      const cleanValue = String(value).trim();
-      transaction[field.toLowerCase()] = cleanValue;
+
+      return hasValidDate || hasValidAmount || hasValidDescription;
     }
-  });
 
-  return transaction;
-}
+    /**
+     * Processes all transactions from data
+     */
+    function processAllTransactions(data, mapping, fileName, dataRowIndex, convertExcelDate) {
+      const transactions = [];
 
-/**
- * Validates a processed transaction
- */
-function validateTransaction(transaction) {
-  const hasValidDate = transaction.date && transaction.date !== '' && typeof transaction.date === 'string';
-  const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
-  const hasValidDescription = transaction.description && transaction.description.trim() !== '';
+      for (let i = dataRowIndex; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
 
-  // Check for invalid date format
-  if (transaction.date && typeof transaction.date === 'number') {
-    console.warn('CRITICAL: Invalid date format detected, skipping transaction:', transaction);
-    return false;
-  }
+        const transaction = processTransactionRow(row, mapping, fileName, convertExcelDate);
 
-  // Check for numeric description (possible wrong mapping)
-  if (transaction.description && !isNaN(parseFloat(transaction.description)) && isFinite(transaction.description)) {
-    console.warn('CRITICAL: Description appears to be a number, possible wrong mapping:', transaction);
-  }
+        if (validateTransaction(transaction)) {
+          transactions.push(transaction);
+        }
+      }
 
-  return hasValidDate || hasValidAmount || hasValidDescription;
-}
-
-/**
- * Processes all transactions from data
- */
-function processAllTransactions(data, mapping, fileName, dataRowIndex, convertExcelDate) {
-  const transactions = [];
-  
-  for (let i = dataRowIndex; i < data.length; i++) {
-    const row = data[i];
-    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) continue;
-
-    const transaction = processTransactionRow(row, mapping, fileName, convertExcelDate);
-    
-    if (validateTransaction(transaction)) {
-      transactions.push(transaction);
+      return transactions;
     }
-  }
 
-  return transactions;
-}
-
-/**
- * Sets up date conversion function
- */
-async function setupDateConversion() {
-  try {
-    const excelParserModule = await import('../parser/excelParser.js');
-    const excelParser = excelParserModule.excelParser || new excelParserModule.default();
-    return (value) => excelParser.convertExcelDate(value);
-  } catch (error) {
-    console.error('CRITICAL: Failed to import convertExcelDate:', error);
-    return (value) => String(value);
-  }
-}
+    /**
+     * Sets up date conversion function
+     */
+    async function setupDateConversion() {
+      try {
+        const excelParserModule = await import('../parser/excelParser.js');
+        const excelParser = excelParserModule.excelParser || new excelParserModule.default();
+        return (value) => excelParser.convertExcelDate(value);
+      } catch (error) {
+        console.error('CRITICAL: Failed to import convertExcelDate:', error);
+        return (value) => String(value);
+      }
+    }
 
     console.log(`CRITICAL: Processed ${transactions.length} transactions from file:`, transactions.slice(0, 3));
 
@@ -1580,7 +1680,7 @@ function findExistingDateMapping(currentMappings, excludeIndex) {
 // Helper function to handle date mapping conflict
 function handleDateMappingConflict(currentMappings, index) {
   const existingDateIndex = findExistingDateMapping(currentMappings, index);
-  
+
   if (existingDateIndex !== -1) {
     // Reset the existing Date mapping
     const existingSelect = document.querySelector(`.header-select[data-index="${existingDateIndex}"]`);

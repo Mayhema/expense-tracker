@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Mode Test - Advanced Filters</title>
+  <link rel="stylesheet" href="src/styles/filters.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+      transition: all 0.3s ease;
+    }
+
+    body.dark-mode {
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+
+    .test-controls {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+
+    body.dark-mode .test-controls {
+      background: #2a2a2a;
+      color: #e0e0e0;
+    }
+
+    .toggle-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .toggle-btn:hover {
+      background: #0056b3;
+    }
+
+    .info-box {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    body.dark-mode .info-box {
+      background: #2a2a2a;
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="test-controls">
+    <button class="toggle-btn" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    <div style="margin-top: 10px; font-size: 12px;">
+      Current mode: <span id="modeIndicator">Light</span>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <h2>🌙 Dark Mode Test for Advanced Filters</h2>
+    <p><strong>Instructions:</strong></p>
+    <ol>
+      <li>Click "Toggle Dark Mode" button above</li>
+      <li>Observe the Advanced Filters section below</li>
+      <li>In dark mode, it should have a futuristic gradient background with neon effects</li>
+      <li>In light mode, it should have a clean white background</li>
+    </ol>
+    <p><strong>Expected behavior:</strong> The filters should change appearance completely when toggling dark mode.</p>
+  </div>
+
+  <!-- Advanced Filters Section (Same structure as main app) -->
+  <div class="advanced-filters">
+    <div class="filter-section">
+      <div class="filter-header">
+        <h4>🔍 Advanced Filters</h4>
+        <div class="filter-preset-section">
+          <select class="preset-selector">
+            <option>Choose Saved Preset</option>
+            <option>📋 Monthly Expenses</option>
+            <option>📋 High Value</option>
+          </select>
+          <button class="btn preset-btn">💾 Save Preset</button>
+          <button class="btn preset-btn">⚙️ Manage</button>
+        </div>
+      </div>
+
+      <div class="filter-grid">
+        <!-- Date Range Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">📅</span>
+            <label for="demo-date-range">Date Range</label>
+          </div>
+          <div class="filter-card-content">
+            <select id="demo-date-range" class="modern-select">
+              <option>All Time</option>
+              <option>Today</option>
+              <option>Last 7 Days</option>
+              <option>Last 30 Days</option>
+              <option>This Month</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Amount Range Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">💰</span>
+            <label for="demo-amount-min">Amount Range</label>
+          </div>
+          <div class="filter-card-content">
+            <div class="amount-inputs">
+              <div class="amount-input-group">
+                <label for="demo-amount-min">Min</label>
+                <input id="demo-amount-min" type="number" class="modern-input" placeholder="0.00">
+              </div>
+              <div class="amount-input-group">
+                <label for="demo-amount-max">Max</label>
+                <input id="demo-amount-max" type="number" class="modern-input" placeholder="1000.00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Currency Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">💱</span>
+            <label for="demo-currency">Currency</label>
+          </div>
+          <div class="filter-card-content">
+            <select id="demo-currency" class="modern-select">
+              <option>All Currencies</option>
+              <option>💲 USD - US Dollar</option>
+              <option>€ EUR - Euro</option>
+              <option>£ GBP - British Pound</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">🔍</span>
+            <label for="demo-search">Search</label>
+          </div>
+          <div class="filter-card-content">
+            <div class="search-input-wrapper">
+              <input id="demo-search" type="text" class="search-input modern-input"
+                placeholder="Search descriptions...">
+              <button class="search-clear-btn">×</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories Filter -->
+        <div class="filter-card">
+          <div class="filter-card-header">
+            <span class="filter-icon">🏷️</span>
+            <label for="demo-categories">Categories</label>
+          </div>
+          <div class="filter-card-content">
+            <button id="demo-categories" class="category-select-btn modern-btn">
+              <span>All Categories</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn primary-btn action-btn">✨ Apply Filters</button>
+        <button class="btn secondary-btn action-btn">🧹 Clear All</button>
+        <div class="filter-status filter-active">
+          <span class="status-text">Showing 12 of 45 transactions (3 filters)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <h3>🔍 What You Should See:</h3>
+    <ul>
+      <li><strong>Light Mode:</strong> Clean white background with subtle shadows</li>
+      <li><strong>Dark Mode:</strong> Futuristic gradient background (dark blue/purple) with neon glow effects</li>
+      <li><strong>Multi-column Layout:</strong> Filters arranged in responsive rows (3-4 columns on desktop)</li>
+      <li><strong>Smooth Transitions:</strong> Animated changes between light and dark modes</li>
+    </ul>
+
+    <h3>🐛 Troubleshooting:</h3>
+    <ul>
+      <li>If filters remain white in dark mode, there might be a CSS specificity issue</li>
+      <li>Try hard refresh (Ctrl+F5) to clear browser cache</li>
+      <li>Check browser developer tools for any CSS errors</li>
+      <li>Ensure the body element has the "dark-mode" class when in dark mode</li>
+    </ul>
+  </div>
+
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      document.getElementById('modeIndicator').textContent = isDarkMode ? 'Dark' : 'Light';
+
+      // Log for debugging
+      console.log('Dark mode toggled:', isDarkMode);
+      console.log('Body classes:', document.body.className);
+    }
+
+    // Initialize
+    document.getElementById('modeIndicator').textContent =
+      document.body.classList.contains('dark-mode') ? 'Dark' : 'Light';
+  </script>
+</body>
+
+</html>

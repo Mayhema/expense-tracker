@@ -112,7 +112,7 @@ async function runTestFile(testFilePath) {
       // For Node.js test files, run them directly
       const child = spawn('node', [testFilePath], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: path.dirname(testFilePath)
+        cwd: path.resolve(__dirname, '../..')  // Set to project root
       });
 
       let stdout = '';

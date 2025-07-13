@@ -453,7 +453,7 @@ export async function resetApplication() {
 
       // CRITICAL FIX: Reset AppState data immediately
       const appStateModule = await import('../core/appState.js');
-      
+
       // Reset all app state data
       appStateModule.AppState.transactions = [];
       appStateModule.AppState.files = [];

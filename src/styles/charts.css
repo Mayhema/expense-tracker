@@ -52,32 +52,61 @@
   box-sizing: border-box !important;
 }
 
-/* Dark mode styles for charts */
-.dark-mode .chart-container {
-  background: #2a2a2a;
-  border-color: #444;
+/* Dark mode styles for charts with enhanced readability */
+body.dark-mode .chart-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border: 2px solid rgba(102, 126, 234, 0.3) !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(102, 126, 234, 0.2) !important;
 }
 
-.dark-mode .chart-container h3 {
-  color: #e0e0e0;
+body.dark-mode .chart-container h3 {
+  color: #e0e8ff !important;
+  text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+/* Enhanced chart text readability in dark mode */
+body.dark-mode .chart-container * {
+  color: #e0e8ff !important;
+  fill: #e0e8ff !important;
+  font-weight: 500 !important;
+}
+
+body.dark-mode .chart-container canvas {
+  filter: brightness(1.2) contrast(1.3) saturate(1.1) !important;
+  background: rgba(26, 26, 46, 0.3) !important;
+}
+
+/* Chart.js specific text color overrides with higher contrast */
+body.dark-mode .chartjs-render-monitor {
+  color: #e0e8ff !important;
+  background: transparent !important;
+}
+
+body.dark-mode .chart-container .chartjs-tooltip {
+  background: rgba(26, 26, 46, 0.95) !important;
+  color: #e0e8ff !important;
+  border: 1px solid rgba(102, 126, 234, 0.4) !important;
 }
 
 /* FIXED: Dark mode chart wrapper backgrounds */
-.dark-mode .chart-wrapper {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
+body.dark-mode .chart-wrapper {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border: 2px solid rgba(102, 126, 234, 0.3) !important;
 }
 
-.dark-mode .charts-section {
+body.dark-mode .charts-section {
   background: #1f1f1f !important;
 }
 
 /* FIXED: Dark mode section backgrounds for charts */
-.dark-mode .section .charts-section {
+body.dark-mode .section .charts-section {
   background: transparent !important;
 }
 
-.dark-mode .section .charts-grid {
+body.dark-mode .section .charts-grid {
   background: transparent !important;
 }
 

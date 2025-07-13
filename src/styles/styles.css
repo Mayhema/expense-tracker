@@ -1,3 +1,11 @@
+/* Import all required CSS files - MUST BE FIRST */
+@import './dark-theme.css';
+@import './modals.css';
+@import './transactions.css';
+@import './charts.css';
+@import './fileUpload.css';
+@import './filters.css';
+
 /* Main Application Styles */
 * {
   margin: 0;
@@ -998,35 +1006,5 @@ body.dark-mode .action-button:hover {
   border-color: #555 !important;
 }
 
-/* OVERRIDE: Ensure filter layout is not affected by other CSS */
-.transaction-filters {
-  background: var(--bg-color, #ffffff) !important;
-  border: 1px solid var(--border-color, #e0e0e0) !important;
-  border-radius: 6px !important;
-  padding: 15px !important;
-  margin-bottom: 20px !important;
-}
-
-.transaction-filters * {
-  box-sizing: border-box !important;
-}
-
-/* Force filter row to be horizontal regardless of other styles */
-.transaction-filters .filter-row {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: wrap !important;
-  gap: 15px !important;
-  align-items: flex-end !important;
-}
-
-.transaction-filters .filter-group {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 5px !important;
-  min-width: 120px !important;
-  flex: 0 0 auto !important;
-}
-
-@import './fileUpload.css';
-@import './filters.css';
+/* REMOVED: Conflicting filter styles that override dark mode */
+/* These styles are now handled in filters.css with proper dark mode support */

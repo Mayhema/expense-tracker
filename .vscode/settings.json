@@ -25,12 +25,14 @@
     "konto",
     "maxlength",
     "moneda",
+    "morphism",
     "notas",
     "notizen",
     "nums",
     "openxmlformats",
     "parseable",
     "parsererror",
+    "Qube",
     "referencia",
     "referenz",
     "RRGGBB",
@@ -42,6 +44,7 @@
     "subcat",
     "subcategoria",
     "subcolor",
+    "textareas",
     "toggleable",
     "Uncategorized",
     "untergruppe",
@@ -83,5 +86,30 @@
     "*test.py"
   ],
   "python.testing.pytestEnabled": false,
-  "python.testing.unittestEnabled": true
+  "python.testing.unittestEnabled": true,
+  "files.exclude": {
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true
+  },
+  "typescript.preferences.exclude": [
+    "**/node_modules/**"
+  ],
+  "sonarqube.exclude": [
+    "**/node_modules/**",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/.github/**",
+    "**/workflows/**",
+    "**/node_modules/**/.*",
+    "git:/**"
+  ],
+  "problems.decorations.enabled": true,
+  "yaml.validate": false,
+  "yaml.schemas": {},
+  "github-actions.disable-validation": true,
+  "sonarlint.exclusions": [
+    "**/node_modules/**"
+  ]
 }

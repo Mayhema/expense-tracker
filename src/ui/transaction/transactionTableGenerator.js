@@ -196,7 +196,7 @@ export function generateTransactionTableHTML(transactions) {
 
   transactions.forEach((tx, index) => {
     const processedTx = processTransactionForDisplay(tx, index);
-    
+
     // Get category color for cell background - preserve category styling
     const categoryColor = getCategoryColor(processedTx.category);
     const categoryStyle = processedTx.category ? `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};` : '';
