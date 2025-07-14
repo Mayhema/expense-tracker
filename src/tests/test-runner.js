@@ -41,7 +41,7 @@ function findTestFiles() {
     }
   }
 
-  return testFiles.sort((a, b) => a.localeCompare(b));
+  return testFiles.sort();
 }
 
 /**

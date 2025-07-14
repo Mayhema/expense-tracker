@@ -272,7 +272,7 @@ export function applyBulkCategoryChange() {
   const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
   const bulkCategorySelect = document.getElementById('bulkCategorySelect');
 
-  if (!selectedCheckboxes.length || !bulkCategorySelect?.value) {
+  if (!selectedCheckboxes.length || !bulkCategorySelect || !bulkCategorySelect.value) {
     console.warn('⚠️ No transactions selected or no category chosen for bulk update');
     return;
   }
@@ -352,7 +352,7 @@ export function applyQuickCategory(category) {
 function saveTransactionChanges(index) {
   console.warn('⚠️ Using legacy saveTransactionChanges function - should migrate to ID-based saving');
 
-  if (!AppState.transactions?.[index]) {
+  if (!AppState.transactions || !AppState.transactions[index]) {
     console.error('❌ Transaction not found at index:', index);
     return;
   }

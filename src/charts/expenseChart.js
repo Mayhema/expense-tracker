@@ -68,7 +68,7 @@ function createChartConfig(categories, categoryTotals) {
       const [mainCat, subCat] = category.split(':');
       const mainCategory = AppState.categories[mainCat];
       if (mainCategory && typeof mainCategory === 'object' &&
-        mainCategory?.subcategories && mainCategory.subcategories[subCat]) {
+        mainCategory.subcategories && mainCategory.subcategories[subCat]) {
         return mainCategory.subcategories[subCat];
       }
     }
@@ -340,7 +340,7 @@ function generateCategoryColor(categoryName) {
     const catValue = AppState.categories[categoryName];
     if (typeof catValue === 'string') {
       return catValue;
-    } else if (catValue?.color) {
+    } else if (catValue && catValue.color) {
       return catValue.color;
     }
   }

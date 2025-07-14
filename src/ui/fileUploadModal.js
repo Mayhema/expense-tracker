@@ -13,7 +13,7 @@ import { isExcelDate, formatExcelDateForPreview } from "../utils/dateUtils.js";
  * @param {string} fileName - The name of the file
  */
 export function showFileUploadModal(data, fileName) {
-  if (!data?.length) {
+  if (!data || !data.length) {
     showToast("No data to map", "error");
     return;
   }

@@ -307,7 +307,7 @@ function handlePlaceholderSelection(selectElement, selectedValue) {
   if (!AppState.currentSuggestedMapping) {
     AppState.currentSuggestedMapping = new Array(document.querySelectorAll('.header-select').length).fill('–');
   }
-  if (columnIndex >= 0 && columnIndex < AppState.currentSuggestedMapping?.length) {
+  if (columnIndex >= 0 && columnIndex < AppState.currentSuggestedMapping.length) {
     AppState.currentSuggestedMapping[columnIndex] = selectedValue;
   }
 
