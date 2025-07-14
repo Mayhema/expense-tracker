@@ -250,7 +250,7 @@ function applyDescriptionFilter(transactions) {
 
   const searchTerm = descriptionFilter.value.toLowerCase().trim();
   const filtered = transactions.filter(tx => {
-    return tx.description && tx.description.toLowerCase().includes(searchTerm);
+    return tx.description?.toLowerCase().includes(searchTerm);
   });
 
   console.log(`📝 Description filter applied: ${filtered.length} transactions remaining`);

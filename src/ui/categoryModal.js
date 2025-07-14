@@ -585,7 +585,7 @@ function attachEventHandlers(container, modal) {
 
     if (confirm(`Are you sure you want to delete the subcategory "${subcategoryName}"?`)) {
       const parentCategory = AppState.categories[parentName];
-      if (parentCategory && parentCategory.subcategories) {
+      if (parentCategory?.subcategories) {
         delete parentCategory.subcategories[subcategoryName];
         saveCategories();
         renderCategoryList(container);

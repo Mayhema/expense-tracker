@@ -162,11 +162,11 @@ export function showModal(options = {}) {
     content: modalBody,
     close: () => {
       console.log('CRITICAL: Closing modal');
-      if (modalOverlay && modalOverlay.parentNode) {
+      if (modalOverlay?.parentNode) {
         modalOverlay.parentNode.removeChild(modalOverlay);
       }
       // CRITICAL FIX: Hide container if no more modals
-      if (modalContainer && modalContainer.children.length === 0) {
+      if (modalContainer?.children.length === 0) {
         modalContainer.style.display = 'none';
         modalContainer.style.pointerEvents = 'none';
       }

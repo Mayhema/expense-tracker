@@ -162,7 +162,7 @@ function cleanupFileInput(inputId) {
   });
 
   // Remove from DOM
-  if (element && element.parentNode) {
+  if (element?.parentNode) {
     element.parentNode.removeChild(element);
   }
 
@@ -344,7 +344,7 @@ function attemptCsvSplit(data) {
   if (headerRow && headerRow.length === 1 && typeof headerRow[0] === 'string' && headerRow[0].includes(',')) {
     console.log("DEBUG: Detected CSV data in single cell, attempting to split");
     const splitData = data.map(row => {
-      if (row && row[0] && typeof row[0] === 'string') {
+      if (row?.[0] && typeof row[0] === 'string') {
         return row[0].split(',').map(cell => cell.trim());
       }
       return row;
@@ -452,7 +452,7 @@ async function handleAutoDetection(file, data) {
 
     // Check data quality: ensure we have actual transaction data
     const sampleDataRow = data[1]; // Second row should contain sample data
-    const hasNonEmptyData = sampleDataRow && sampleDataRow.some(cell => cell && cell.toString().trim() !== '');
+    const hasNonEmptyData = sampleDataRow?.some(cell => cell?.toString().trim() !== '');
 
     if (validMappings >= 2 && hasDate && hasAmount && hasNonEmptyData) {
       console.log('CRITICAL: Auto-detection successful, processing file automatically');
@@ -595,9 +595,9 @@ async function autoApplyMapping(file, data, mapping) {
       });
 
       // Only add if has essential data
-      const hasValidDate = transaction.date && transaction.date !== '';
+      const hasValidDate = transaction.date?.length > 0;
       const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
-      const hasValidDescription = transaction.description && transaction.description.trim() !== '';
+      const hasValidDescription = transaction.description?.trim().length > 0;
 
       if (hasValidDate || hasValidAmount || hasValidDescription) {
         transactions.push(transaction);
@@ -1291,9 +1291,9 @@ export async function onSaveHeaders(modal) {
      * Validates a processed transaction
      */
     function validateTransaction(transaction) {
-      const hasValidDate = transaction.date && transaction.date !== '' && typeof transaction.date === 'string';
+      const hasValidDate = transaction.date?.length > 0 && typeof transaction.date === 'string';
       const hasValidAmount = (transaction.income > 0 || transaction.expenses > 0);
-      const hasValidDescription = transaction.description && transaction.description.trim() !== '';
+      const hasValidDescription = transaction.description?.trim().length > 0;
 
       // Check for invalid date format
       if (transaction.date && typeof transaction.date === 'number') {
@@ -1469,7 +1469,7 @@ function getCurrentMapping() {
 
   // CRITICAL FIX: As additional fallback, if all mapping values are "–", use AppState
   const hasAnyMappings = mapping.some(val => val !== '–');
-  if (!hasAnyMappings && AppState.currentSuggestedMapping) {
+  if (!hasAnyMappings && AppState.currentSuggestedMapping?.length > 0) {
     console.log('CRITICAL: No valid mappings found in DOM, using AppState.currentSuggestedMapping as fallback');
     return AppState.currentSuggestedMapping;
   }

@@ -1,5 +1,5 @@
 import { AppState } from '../../core/appState.js';
-import { parseToISODate, parseDDMMYYYY, formatDateToDDMMYYYY } from '../../utils/dateUtils.js';
+import { parseToISODate, formatDateToDDMMYYYY } from '../../utils/dateUtils.js';
 import { CURRENCIES } from '../../constants/currencies.js';
 import { showModal } from '../modalManager.js';
 
@@ -42,8 +42,8 @@ export function initializeAdvancedFilters() {
  * Create advanced filter section HTML
  */
 export function createAdvancedFilterSection() {
-  const categories = Object.keys(AppState.categories || {}).sort();
-  const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort();
+  const categories = Object.keys(AppState.categories || {}).sort((a, b) => a.localeCompare(b));
+  const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
   const presetNames = Object.keys(savedPresets);
 
@@ -425,8 +425,8 @@ function handleCustomDateChange() {
 
   if (startDateInput && endDateInput) {
     // Parse dd/mm/yyyy format
-    currentFilters.customStartDate = startDateInput.value ? parseDDMMYYYY(startDateInput.value) : null;
-    currentFilters.customEndDate = endDateInput.value ? parseDDMMYYYY(endDateInput.value) : null;
+    currentFilters.customStartDate = startDateInput.value ? parseToISODate(startDateInput.value) : null;
+    currentFilters.customEndDate = endDateInput.value ? parseToISODate(endDateInput.value) : null;
     applyCurrentFilters();
   }
 }
@@ -618,7 +618,7 @@ export function applyCurrentFilters() {
   setTimeout(async () => {
     try {
       const chartsModule = await import('../charts.js');
-      if (chartsModule && chartsModule.updateChartsWithFilteredData) {
+      if (chartsModule?.updateChartsWithFilteredData) {
         console.log('CRITICAL: Calling updateChartsWithFilteredData with filtered transactions');
         chartsModule.updateChartsWithFilteredData(filteredTransactions);
         console.log("Charts updated with filtered data");
@@ -1056,10 +1056,10 @@ function updateUIFromCurrentFilters() {
   if (currentFilters.dateRange === 'custom') {
     const startInput = document.getElementById('customStartDate');
     const endInput = document.getElementById('customEndDate');
-    if (startInput && currentFilters.customStartDate) {
+    if (startInput?.value !== undefined && currentFilters.customStartDate) {
       startInput.value = formatDateToDDMMYYYY(currentFilters.customStartDate);
     }
-    if (endInput && currentFilters.customEndDate) {
+    if (endInput?.value !== undefined && currentFilters.customEndDate) {
       endInput.value = formatDateToDDMMYYYY(currentFilters.customEndDate);
     }
   }
@@ -1093,7 +1093,7 @@ function getFiltersPreview() {
     previews.push(`📅 Date: ${currentFilters.dateRange}`);
   }
 
-  if (currentFilters.categories && currentFilters.categories.length > 0) {
+  if (currentFilters.categories?.length > 0) {
     previews.push(`🏷️ Categories: ${currentFilters.categories.length} selected`);
   }
 
@@ -1126,7 +1126,7 @@ function getPresetDescription(preset) {
     descriptions.push(`Date: ${preset.dateRange}`);
   }
 
-  if (preset.categories && preset.categories.length > 0) {
+  if (preset.categories?.length > 0) {
     descriptions.push(`${preset.categories.length} categories`);
   }
 
@@ -1181,7 +1181,7 @@ export function updateCurrencyFilterOptions() {
   console.log('Updating currency filter dropdown options...');
 
   // Get all unique currencies from current transactions
-  const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort();
+  const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   console.log('Available currencies:', currencies);
 
   // Update the advanced filter currency dropdown

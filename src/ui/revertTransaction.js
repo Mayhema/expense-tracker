@@ -66,7 +66,7 @@ export function revertTransactionById(transactionId) {
   setTimeout(async () => {
     try {
       const chartsModule = await import('./charts.js');
-      if (chartsModule && chartsModule.updateCharts) {
+      if (chartsModule?.updateCharts) {
         chartsModule.updateCharts();
         console.log("Charts updated after revert");
       }
@@ -134,7 +134,7 @@ export function revertTransaction(index) {
   setTimeout(async () => {
     try {
       const chartsModule = await import('./charts.js');
-      if (chartsModule && chartsModule.updateCharts) {
+      if (chartsModule?.updateCharts) {
         chartsModule.updateCharts();
         console.log("Charts updated after revert");
       }

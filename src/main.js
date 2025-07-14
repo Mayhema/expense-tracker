@@ -76,7 +76,7 @@ async function initializeChartsOnce() {
       new Promise((_, reject) => setTimeout(() => reject(new Error('Charts import timeout')), 2000))
     ]);
 
-    if (chartsModule && chartsModule.initializeCharts) {
+    if (chartsModule?.initializeCharts) {
       console.log("Initializing charts...");
       await chartsModule.initializeCharts();
       chartInitializationState.initialized = true;
@@ -244,7 +244,7 @@ window.addEventListener('error', (event) => {
 
 // FIXED: Add a safety timeout to ensure initialization doesn't hang
 setTimeout(() => {
-  if (!window.AppState || !window.AppState.initialized) {
+  if (!window.AppState?.initialized) {
     console.warn('Application may not have initialized properly');
 
     // Try to initialize again as a fallback

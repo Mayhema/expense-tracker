@@ -433,7 +433,7 @@ function processTransactions(transactions) {
 
     // Ensure transaction has unique ID
     if (!processed.id) {
-      processed.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      processed.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
     }
 
     // Handle income and expenses
@@ -527,5 +527,5 @@ export function debounce(func, wait = 300) {
  * @returns {string} Unique ID
  */
 export function generateUniqueId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
 }

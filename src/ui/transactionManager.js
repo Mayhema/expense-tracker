@@ -65,7 +65,7 @@ export function saveFieldChange(index, fieldName, newValue) {
   
   // For backward compatibility, try to find transaction by index and use ID-based saving
   import('../core/appState.js').then(({ AppState }) => {
-    if (AppState.transactions && AppState.transactions[index]) {
+    if (AppState.transactions?.[index]) {
       const transaction = AppState.transactions[index];
       if (transaction.id) {
         import('./transaction/transactionEditor.js').then(({ saveFieldChangeById }) => {

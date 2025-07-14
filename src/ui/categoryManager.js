@@ -901,7 +901,7 @@ export function resetToDefaultCategories() {
     setTimeout(async () => {
       try {
         const chartsModule = await import('./charts.js');
-        if (chartsModule && chartsModule.updateCharts) {
+        if (chartsModule?.updateCharts) {
           chartsModule.updateCharts();
           console.log("Charts updated after category reset");
         }
@@ -1107,7 +1107,7 @@ function refreshCategoryDropdowns() {
         setTimeout(async () => {
           try {
             const chartsModule = await import('./charts.js');
-            if (chartsModule && chartsModule.updateCharts) {
+            if (chartsModule?.updateCharts) {
               chartsModule.updateCharts();
               console.log("Charts updated after category selection change");
             }
@@ -1126,7 +1126,7 @@ function refreshCategoryDropdowns() {
     const categories = AppState.categories || {};
 
     let options = '<option value="">Choose Category</option>';
-    Object.keys(categories).sort().forEach(categoryName => {
+    Object.keys(categories).sort((a, b) => a.localeCompare(b)).forEach(categoryName => {
       const selected = categoryName === currentValue ? 'selected' : '';
       options += '<option value="' + categoryName + '" ' + selected + '>' + categoryName + '</option>';
     });
@@ -1158,7 +1158,7 @@ function refreshCategoryDropdowns() {
   setTimeout(async () => {
     try {
       const chartsModule = await import('./charts.js');
-      if (chartsModule && chartsModule.updateCharts) {
+      if (chartsModule?.updateCharts) {
         chartsModule.updateCharts();
         console.log("Charts updated after category changes");
       }
@@ -1172,7 +1172,7 @@ function refreshCategoryDropdowns() {
  * Add a new category
  */
 export function addCategory(name, color) {
-  if (!name || !name.trim()) {
+  if (!name?.trim()) {
     import('./uiManager.js').then(module => {
       module.showToast('Category name cannot be empty', 'error');
     });
@@ -1256,7 +1256,7 @@ export function updateCategory(oldName, newName, newColor) {
     return false;
   }
 
-  if (!newName || !newName.trim()) {
+  if (!newName?.trim()) {
     import('./uiManager.js').then(module => {
       module.showToast('Category name cannot be empty', 'error');
     });
@@ -1309,7 +1309,7 @@ export function updateCategory(oldName, newName, newColor) {
  */
 export function addSubcategory(parentName, subName, subColor) {
   // FIXED: Better error handling and parent category validation
-  if (!parentName || !parentName.trim()) {
+  if (!parentName?.trim()) {
     import('./uiManager.js').then(module => {
       module.showToast('Parent category name is required', 'error');
     });
@@ -1331,7 +1331,7 @@ export function addSubcategory(parentName, subName, subColor) {
     return false;
   }
 
-  if (!subName || !subName.trim()) {
+  if (!subName?.trim()) {
     import('./uiManager.js').then(module => {
       module.showToast('Subcategory name cannot be empty', 'error');
     });
@@ -1375,16 +1375,14 @@ export function addSubcategory(parentName, subName, subColor) {
  * Update a subcategory
  */
 export function updateSubcategory(parentName, oldSubName, newSubName, newSubColor) {
-  if (!parentName || !AppState.categories[parentName] ||
-    !AppState.categories[parentName].subcategories ||
-    !AppState.categories[parentName].subcategories[oldSubName]) {
+  if (!parentName || !AppState.categories[parentName]?.subcategories?.[oldSubName]) {
     import('./uiManager.js').then(module => {
       module.showToast('Subcategory not found', 'error');
     });
     return false;
   }
 
-  if (!newSubName || !newSubName.trim()) {
+  if (!newSubName?.trim()) {
     import('./uiManager.js').then(module => {
       module.showToast('Subcategory name cannot be empty', 'error');
     });
@@ -1430,9 +1428,7 @@ export function updateSubcategory(parentName, oldSubName, newSubName, newSubColo
  * Delete a subcategory
  */
 export function deleteSubcategory(parentName, subName) {
-  if (!parentName || !AppState.categories[parentName] ||
-    !AppState.categories[parentName].subcategories ||
-    !AppState.categories[parentName].subcategories[subName]) {
+  if (!parentName || !AppState.categories[parentName]?.subcategories?.[subName]) {
     import('./uiManager.js').then(module => {
       module.showToast('Subcategory not found', 'error');
     });

@@ -256,7 +256,7 @@ export function updateBulkApplyButton() {
   const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
 
   const hasSelection = selectedCheckboxes.length > 0;
-  const hasCategory = bulkCategorySelect && bulkCategorySelect.value !== '';
+  const hasCategory = bulkCategorySelect?.value !== '';
 
   if (applyBulkCategoryBtn) {
     applyBulkCategoryBtn.disabled = !(hasSelection && hasCategory);

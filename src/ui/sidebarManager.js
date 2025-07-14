@@ -164,7 +164,7 @@ function initializeDebugModeToggle() {
     });
   }
 
-  if (toggleContainer && toggleContainer.classList.contains('toggle-switch')) {
+  if (toggleContainer?.classList.contains('toggle-switch')) {
     toggleContainer.addEventListener('click', (e) => {
       // Prevent double triggering if clicking the checkbox itself
       if (e.target !== newToggle) {
@@ -245,7 +245,7 @@ function initializeDarkModeToggle() {
     });
   }
 
-  if (toggleContainer && toggleContainer.classList.contains('toggle-switch')) {
+  if (toggleContainer?.classList.contains('toggle-switch')) {
     toggleContainer.addEventListener('click', (e) => {
       // Prevent double triggering if clicking the checkbox itself
       if (e.target !== newToggle) {
@@ -598,16 +598,15 @@ function handleCategoryManagerClick(e) {
   e.stopPropagation();
   console.log("Category manager button clicked");
 
-  try {
-    import("../ui/categoryManager.js").then(module => {
-      if (module.showCategoryManagerModal) {
-        module.showCategoryManagerModal();
-      } else {
-        console.error("showCategoryManagerModal function not found");
-      }
-    }).catch(err => {
-      console.error("Error loading category manager module:", err);
-      // Fallback to alternative category modal
+  import("../ui/categoryManager.js").then(module => {
+    if (module.showCategoryManagerModal) {
+      module.showCategoryManagerModal();
+    } else {
+      console.error("showCategoryManagerModal function not found");
+    }
+  }).catch(err => {
+    console.error("Error loading category manager module:", err);
+    // Fallback to alternative category modal
       import("../ui/categoryModal.js").then(fallbackModule => {
         if (fallbackModule.showCategoryManagerModal) {
           fallbackModule.showCategoryManagerModal();
@@ -616,9 +615,6 @@ function handleCategoryManagerClick(e) {
         console.error("Error loading fallback category modal:", fallbackErr);
       });
     });
-  } catch (error) {
-    console.error("Error handling category manager click:", error);
-  }
 }
 
 /**

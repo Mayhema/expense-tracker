@@ -37,7 +37,7 @@ function ensureTransactionIds(transactions) {
 
   transactions.forEach((tx, index) => {
     if (!tx.id) {
-      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
       idsAdded++;
       console.log(`🆔 ASSIGNED ID: ${tx.id} to transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
     } else {
@@ -113,7 +113,7 @@ function generateBulkActionsHTML() {
       <div class="bulk-category-assignment">
         <select id="bulkCategorySelect" class="bulk-action-btn">
           <option value="">Choose Category</option>
-          ${Object.keys(AppState.categories || {}).sort().map(cat =>
+          ${Object.keys(AppState.categories || {}).sort((a, b) => a.localeCompare(b)).map(cat =>
     `<option value="${cat}">${cat}</option>`
   ).join('')}
         </select>
@@ -162,7 +162,7 @@ function generateTableStart() {
 function processTransactionForDisplay(tx, index) {
   // Ensure each transaction has a unique ID
   if (!tx.id) {
-    tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+    tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
     console.log(`🆔 GENERATED ID: ${tx.id} for transaction at index ${index}`);
   }
 

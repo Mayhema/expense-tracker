@@ -13,15 +13,14 @@ export function exportTransactionsAsCSV() {
 
   // FIXED: Use filtered and sorted transactions from transaction manager
   let transactions;
-  try {
-    // Import the transaction manager to get filtered/sorted data
-    import('../ui/transactionManager.js').then(module => {
-      if (module.getFilteredAndSortedTransactions) {
-        transactions = module.getFilteredAndSortedTransactions();
-      } else {
-        // Fallback to AppState if function not available
-        transactions = AppState.transactions || [];
-      }
+  // Import the transaction manager to get filtered/sorted data
+  import('../ui/transactionManager.js').then(module => {
+    if (module.getFilteredAndSortedTransactions) {
+      transactions = module.getFilteredAndSortedTransactions();
+    } else {
+      // Fallback to AppState if function not available
+      transactions = AppState.transactions || [];
+    }
 
       processCSVExport(transactions);
     }).catch(error => {
@@ -29,11 +28,6 @@ export function exportTransactionsAsCSV() {
       transactions = AppState.transactions || [];
       processCSVExport(transactions);
     });
-  } catch (error) {
-    console.error('Error getting transactions for export:', error);
-    transactions = AppState.transactions || [];
-    processCSVExport(transactions);
-  }
 }
 
 /**
@@ -110,27 +104,22 @@ export function exportTransactionsAsJSON() {
 
   // FIXED: Use filtered and sorted transactions from transaction manager
   let transactions;
-  try {
-    // Import the transaction manager to get filtered/sorted data
-    import('../ui/transactionManager.js').then(module => {
-      if (module.getFilteredAndSortedTransactions) {
-        transactions = module.getFilteredAndSortedTransactions();
-      } else {
-        // Fallback to AppState if function not available
-        transactions = AppState.transactions || [];
-      }
-
-      processJSONExport(transactions);
-    }).catch(error => {
-      console.warn('Could not import transaction manager, using AppState directly:', error);
+  
+  // Import the transaction manager to get filtered/sorted data
+  import('../ui/transactionManager.js').then(module => {
+    if (module.getFilteredAndSortedTransactions) {
+      transactions = module.getFilteredAndSortedTransactions();
+    } else {
+      // Fallback to AppState if function not available
       transactions = AppState.transactions || [];
-      processJSONExport(transactions);
-    });
-  } catch (error) {
-    console.error('Error getting transactions for export:', error);
+    }
+
+    processJSONExport(transactions);
+  }).catch(error => {
+    console.warn('Could not import transaction manager, using AppState directly:', error);
     transactions = AppState.transactions || [];
     processJSONExport(transactions);
-  }
+  });
 }
 
 /**
