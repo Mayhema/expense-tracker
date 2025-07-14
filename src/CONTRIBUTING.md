@@ -45,6 +45,7 @@ The category system supports a hierarchical structure:
 ```
 
 Categories can be either:
+
 1. Simple (string color value)
 2. Complex (object with color and subcategories)
 
@@ -74,6 +75,7 @@ The application uses multiple signature types:
 ## Transaction System
 
 Transactions have the following structure:
+
 ```javascript
 {
   "date": "2023-01-15",         // ISO date format
@@ -95,6 +97,7 @@ Transactions have the following structure:
 ## Modal System
 
 The application uses a centralized modal system:
+
 - `showModal()` creates and manages modal dialogs
 - Modals support custom sizing based on content needs
 - The file preview modal adapts to column count
@@ -121,13 +124,17 @@ Chart.defaults.global.elements.line.tension = 0; // Disable bezier curves
 ## Known Challenges
 
 ### XML File Handling
+
 XML files require special treatment:
+
 - Header and data rows often have the same index
 - Complex nested structures require recursive parsing
 - Multiple XML formats must be supported
 
 ### Date Parsing
+
 The application handles multiple date formats:
+
 - Excel numeric dates (e.g., 44927 = 2023-01-01)
 - ISO strings (YYYY-MM-DD)
 - Various localized formats (DD/MM/YYYY, MM/DD/YYYY)
@@ -135,6 +142,7 @@ The application handles multiple date formats:
 ## Testing
 
 ### Manual Testing Checklist
+
 1. Upload XML, XLSX, and CSV files to verify parsing
 2. Test format recognition when uploading similar files
 3. Verify chart rendering with different data sets
@@ -146,6 +154,7 @@ The application handles multiple date formats:
 ## Debugging Tools
 
 The application includes several debugging tools:
+
 - `debugMergedFiles()`: Displays current merged files data
 - `debugSignatures()`: Shows file signatures and format mappings
 - `inspectTransactionData()`: Displays transaction data
@@ -153,17 +162,20 @@ The application includes several debugging tools:
 ## Coding Standards
 
 ### File Organization
+
 - Each file should focus on a single responsibility
 - Keep files under 400 lines
 - Use clear, descriptive file names
 
 ### Function Design
+
 - Functions should do one thing well
 - Use descriptive names (verb + noun)
 - Add JSDoc comments for public functions
 - Keep functions under 50 lines if possible
 
 ### Error Handling
+
 - Use try/catch blocks for critical operations
 - Provide meaningful error messages
 - Log errors with context information

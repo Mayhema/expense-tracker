@@ -5,6 +5,7 @@ A modern, client-side personal finance management application that helps you ana
 ## ✨ Features
 
 ### 📁 File Import & Processing
+
 - **Multi-Format Support**: Import CSV, Excel (.xlsx, .xls), and XML transaction files
 - **Automatic Format Detection**: Smart detection of file structure and data patterns
 - **Drag & Drop Upload**: Modern file upload with drag-and-drop interface
@@ -14,12 +15,14 @@ A modern, client-side personal finance management application that helps you ana
 - **Data Validation**: Comprehensive validation of imported data integrity
 
 ### 💰 Multi-Currency Support
+
 - **Per-File Currency Assignment**: Each imported file can have its own currency
 - **Currency-Specific Summaries**: Financial overviews grouped by currency
 - **Major Currency Support**: USD, EUR, GBP, ILS with proper symbols and formatting
 - **Mixed Currency Transactions**: Handle multiple currencies in one workspace
 
 ### 🏷️ Advanced Categorization System
+
 - **Hierarchical Categories**: Support for categories with subcategories
 - **Visual Category Management**: Color-coded categories with intuitive UI
 - **Auto-Categorization**: Smart categorization based on transaction descriptions
@@ -28,6 +31,7 @@ A modern, client-side personal finance management application that helps you ana
 - **Default Categories**: Pre-configured categories for common expense types
 
 ### 📊 Transaction Management
+
 - **Interactive Transaction Table**: View, sort, and filter all transactions
 - **Inline Editing**: Edit transaction details directly in the table
 - **Edit History Tracking**: Track changes with ability to revert modifications
@@ -36,6 +40,7 @@ A modern, client-side personal finance management application that helps you ana
 - **Transaction Counter**: Sequential numbering for easy reference
 
 ### 📈 Visual Analytics & Reports
+
 - **Expense Breakdown Charts**: Pie charts showing spending by category
 - **Income vs Expenses**: Bar charts comparing income and expenses over time
 - **Timeline Analysis**: Line charts showing spending trends across periods
@@ -44,6 +49,7 @@ A modern, client-side personal finance management application that helps you ana
 - **Export Capabilities**: Save charts and export transaction data
 
 ### 🎨 User Experience
+
 - **Dark/Light Mode**: Full dark mode support with system preference detection
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Debug Mode**: Advanced debugging tools for troubleshooting
@@ -52,6 +58,7 @@ A modern, client-side personal finance management application that helps you ana
 - **Keyboard Shortcuts**: Efficient keyboard navigation support
 
 ### 🔒 Privacy & Security
+
 - **Local Storage Only**: All data processed and stored locally in your browser
 - **No Server Communication**: Complete offline functionality
 - **Data Export**: Export your data anytime in CSV format
@@ -67,7 +74,7 @@ A modern, client-side personal finance management application that helps you ana
 
 ## 📁 Project Structure
 
-```
+```text
 expense-tracker/
 ├── src/
 │   ├── index.html                    # Main HTML file
@@ -126,24 +133,28 @@ expense-tracker/
 ## 🔧 Technical Features
 
 ### File Processing Engine
+
 - **Multi-format Parser**: Unified parsing for CSV, Excel, and XML files
 - **Signature Generation**: Create unique signatures for file format recognition
 - **Header Detection**: Automatically detect header rows and data start positions
 - **Data Validation**: Comprehensive validation of imported data
 
 ### State Management
+
 - **Centralized AppState**: Single source of truth for application data
 - **LocalStorage Integration**: Automatic persistence of all user data
 - **Transaction Uniqueness**: Ensure all transactions have unique identifiers
 - **Category Hierarchy**: Support for complex category relationships
 
 ### Advanced Filtering
+
 - **Date Range Filters**: Preset and custom date range filtering
 - **Multi-field Search**: Search across descriptions, categories, and amounts
 - **Real-time Filtering**: Instant results as you type or select filters
 - **Filter Persistence**: Remember filter settings across sessions
 
 ### Chart System
+
 - **Chart.js Integration**: Professional charts with Chart.js library
 - **Multiple Chart Types**: Pie, bar, and line charts for different insights
 - **Responsive Charts**: Charts adapt to screen size and container
@@ -152,12 +163,14 @@ expense-tracker/
 ## 🌐 Browser Support
 
 ### Fully Supported
+
 - **Chrome** (latest)
 - **Firefox** (latest)
 - **Edge** (latest)
 - **Safari** (latest)
 
 ### Features Used
+
 - ES6 Modules
 - LocalStorage API
 - FileReader API
@@ -167,12 +180,14 @@ expense-tracker/
 ## 💾 Data Management
 
 ### Storage
+
 - **Client-side Only**: No data leaves your browser
 - **LocalStorage**: Persistent storage across browser sessions
 - **JSON Format**: Human-readable data storage format
 - **Backup Friendly**: Easy to backup browser data
 
 ### Export Options
+
 - **CSV Export**: Export transactions in CSV format
 - **Debug Logs**: Export detailed logs for troubleshooting
 - **Full Data Export**: Complete application state export
@@ -180,6 +195,7 @@ expense-tracker/
 ## 🐛 Debug Features
 
 ### Debug Mode
+
 - **Debug Toggle**: Enable/disable debug mode from sidebar
 - **Console Logging**: Detailed logging of all operations
 - **Data Inspection**: View internal data structures
@@ -187,6 +203,7 @@ expense-tracker/
 - **Error Tracking**: Comprehensive error logging and reporting
 
 ### Debug Tools
+
 - **File Debugging**: Inspect merged files and their properties
 - **Signature Analysis**: View file signatures and format mappings
 - **Transaction Inspector**: Detailed transaction data analysis
@@ -196,6 +213,7 @@ expense-tracker/
 ## 🔄 Future Enhancements
 
 ### Planned Features
+
 - **Budget Tracking**: Set and monitor spending budgets by category
 - **Recurring Transaction Detection**: Identify and manage recurring payments
 - **Enhanced Analytics**: More sophisticated financial analysis tools
@@ -204,6 +222,7 @@ expense-tracker/
 - **Bank Integration**: Secure bank connection APIs (when available)
 
 ### Machine Learning Integration
+
 - **Smart Categorization**: Learn from user categorization patterns
 - **Spending Predictions**: Forecast future expenses based on history
 - **Anomaly Detection**: Identify unusual spending patterns
@@ -214,6 +233,7 @@ expense-tracker/
 We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed development guidelines, coding standards, and architecture documentation.
 
 ### Development Setup
+
 1. Clone the repository
 2. Open `index.html` in a browser
 3. Enable debug mode for development tools
@@ -226,6 +246,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🔒 Privacy Statement
 
 Your financial data privacy is our top priority:
+
 - **No data collection**: We don't collect any personal or financial data
 - **Local processing only**: All operations happen in your browser
 - **No analytics**: No tracking or analytics are implemented
