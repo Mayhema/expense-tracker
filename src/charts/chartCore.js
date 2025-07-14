@@ -32,7 +32,7 @@ export const defaultChartConfig = {
 
           // Ensure labels wrap properly
           labels.forEach(label => {
-            if (label.text && label.text.length > 20) {
+            if (label?.text && label.text.length > 20) {
               label.text = label.text.substring(0, 20) + '...';
             }
           });
@@ -136,7 +136,7 @@ export function createChart(canvas, type, data, options = {}) {
       // FIXED: Add resize handling
       onResize: (chart, size) => {
         // Ensure chart doesn't grow beyond container
-        const container = chart.canvas.parentElement;
+        const container = chart?.canvas?.parentElement;
         if (container) {
           const maxWidth = container.offsetWidth;
           const maxHeight = Math.min(container.offsetHeight, window.innerHeight * 0.8);
@@ -170,7 +170,7 @@ export function createChart(canvas, type, data, options = {}) {
 
     // FIXED: Ensure chart resizes properly when container changes
     setTimeout(() => {
-      if (chart && typeof chart.resize === 'function') {
+      if (chart && typeof chart?.resize === 'function') {
         chart.resize();
       }
     }, 100);
@@ -194,7 +194,7 @@ function addZoomMonitoring(canvas, chart) {
       lastDevicePixelRatio = currentDevicePixelRatio;
 
       setTimeout(() => {
-        if (chart && chart.canvas && chart.canvas.isConnected) {
+        if (chart?.canvas?.isConnected) {
           // Reset canvas styling
           canvas.style.width = '100%';
           canvas.style.height = 'auto';
@@ -230,9 +230,9 @@ function setupGlobalResizeHandler() {
       try {
         registeredCharts.forEach((chartInstance, canvasId) => {
           // Check if chart and canvas still exist in DOM
-          if (chartInstance && chartInstance.canvas && chartInstance.canvas.ownerDocument) {
+          if (chartInstance?.canvas?.ownerDocument) {
             const canvas = document.getElementById(canvasId);
-            if (canvas && canvas.isConnected) {
+            if (canvas?.isConnected) {
               chartInstance.resize();
             } else {
               // Chart canvas is no longer in DOM, clean it up
@@ -267,7 +267,7 @@ export function destroyChart(canvasId) {
   if (chartInstance) {
     try {
       // Check if chart is still valid before destroying
-      if (chartInstance.canvas && chartInstance.canvas.ownerDocument) {
+      if (chartInstance.canvas?.ownerDocument) {
         chartInstance.destroy();
       }
       registeredCharts.delete(canvasId);
@@ -341,7 +341,7 @@ function addResizeHandler(canvas, chart) {
             canvas.height = maxHeight;
 
             // Trigger chart resize
-            if (chart && typeof chart.resize === 'function') {
+            if (chart && typeof chart?.resize === 'function') {
               chart.resize(maxWidth, maxHeight);
             }
           }
@@ -400,7 +400,7 @@ export function cleanupAllCharts() {
     try {
       // Cleanup resize observer
       const canvas = document.getElementById(id);
-      if (canvas && canvas._resizeObserver) {
+      if (canvas?._resizeObserver) {
         canvas._resizeObserver.disconnect();
         delete canvas._resizeObserver;
       }
@@ -517,14 +517,14 @@ function handleResize() {
     try {
       registeredCharts.forEach((chart, canvasId) => {
         // Check if chart and its canvas still exist in DOM
-        if (!chart || !chart.canvas || !chart.canvas.ownerDocument) {
+        if (!chart?.canvas?.ownerDocument) {
           console.warn(`Chart ${canvasId} canvas no longer in DOM, removing from tracking`);
           registeredCharts.delete(canvasId);
           return;
         }
 
         // FIXED: Reset canvas dimensions before resize
-        const canvas = chart.canvas;
+        const canvas = chart?.canvas;
         canvas.style.width = '100%';
         canvas.style.height = 'auto';
         canvas.style.maxWidth = '100%';

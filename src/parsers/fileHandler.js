@@ -536,7 +536,7 @@ export function ensureTransactionIds(transactions) {
       // Generate new unique ID
       let newId;
       do {
-        newId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+        newId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
       } while (usedIds.has(newId));
 
       tx.id = newId;

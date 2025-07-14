@@ -33,7 +33,10 @@
     "testMatch": [
       "**/tests/**/*.cjs"
     ],
-    "moduleFileExtensions": ["js", "cjs"],
+    "moduleFileExtensions": [
+      "js",
+      "cjs"
+    ],
     "collectCoverage": false,
     "verbose": true,
     "transform": {

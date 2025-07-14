@@ -131,7 +131,7 @@ function addZoomChangeHandler(canvas, chart) {
 
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
-        if (chart && chart.canvas && chart.canvas.isConnected) {
+        if (chart?.canvas?.isConnected) {
           // Force canvas to recalculate dimensions
           chart.resize();
           console.log(`Chart resized due to zoom change: ${canvas.id}`);
@@ -186,10 +186,10 @@ function setupGlobalZoomHandler() {
 function resizeAllCharts() {
   Object.keys(chartInstances).forEach(key => {
     const chart = chartInstances[key];
-    if (chart && chart.canvas && chart.canvas.isConnected) {
+    if (chart?.canvas?.isConnected) {
       try {
         // Reset canvas style dimensions
-        const canvas = chart.canvas;
+        const canvas = chart?.canvas;
         setupCanvasForResponsiveZoom(canvas);
 
         // Force chart to resize
@@ -353,7 +353,7 @@ function createChartsSection() {
 
   // Insert after the first section (Financial Overview)
   const firstSection = mainContent.querySelector('.section');
-  if (firstSection && firstSection.nextSibling) {
+  if (firstSection?.nextSibling) {
     mainContent.insertBefore(section, firstSection.nextSibling);
   } else {
     mainContent.appendChild(section);
@@ -438,42 +438,38 @@ export function updateCharts() {
  * FIXED: Show chart loading with blink effect
  */
 function showChartLoadingWithBlink() {
-  try {
-    import('./uiManager.js').then(uiModule => {
-      if (uiModule.showChartLoading) {
-        uiModule.showChartLoading('expenseChartWrapper', 'Loading expense chart...');
-        if (document.getElementById('incomeExpenseChartWrapper')) {
-          uiModule.showChartLoading('incomeExpenseChartWrapper', 'Loading income chart...');
-        }
-        if (document.getElementById('timelineChartWrapper')) {
-          uiModule.showChartLoading('timelineChartWrapper', 'Loading timeline chart...');
-        }
+  import('./uiManager.js').then(uiModule => {
+    if (uiModule.showChartLoading) {
+      uiModule.showChartLoading('expenseChartWrapper', 'Loading expense chart...');
+      if (document.getElementById('incomeExpenseChartWrapper')) {
+        uiModule.showChartLoading('incomeExpenseChartWrapper', 'Loading income chart...');
       }
-    });
-  } catch (error) {
+      if (document.getElementById('timelineChartWrapper')) {
+        uiModule.showChartLoading('timelineChartWrapper', 'Loading timeline chart...');
+      }
+    }
+  }).catch(error => {
     console.log('Loading indicators not available:', error.message);
-  }
+  });
 }
 
 /**
  * FIXED: Hide loading indicators
  */
 function hideChartLoadingIndicators() {
-  try {
-    import('./uiManager.js').then(uiModule => {
-      if (uiModule.hideChartLoading) {
-        uiModule.hideChartLoading('expenseChartWrapper');
-        if (document.getElementById('incomeExpenseChartWrapper')) {
-          uiModule.hideChartLoading('incomeExpenseChartWrapper');
-        }
-        if (document.getElementById('timelineChartWrapper')) {
-          uiModule.hideChartLoading('timelineChartWrapper');
-        }
+  import('./uiManager.js').then(uiModule => {
+    if (uiModule.hideChartLoading) {
+      uiModule.hideChartLoading('expenseChartWrapper');
+      if (document.getElementById('incomeExpenseChartWrapper')) {
+        uiModule.hideChartLoading('incomeExpenseChartWrapper');
       }
-    });
-  } catch (error) {
+      if (document.getElementById('timelineChartWrapper')) {
+        uiModule.hideChartLoading('timelineChartWrapper');
+      }
+    }
+  }).catch(error => {
     console.log('Loading indicators not available:', error.message);
-  }
+  });
 }
 
 /**
@@ -604,7 +600,8 @@ function updateCategoryChart(transactions) {
               const value = context.parsed;
               const label = context.label;
               // Extract currency from label if present
-              const currencyMatch = label.match(/\(([A-Z]{3})\)$/);
+              const currencyRegex = /\(([A-Z]{3})\)$/;
+              const currencyMatch = currencyRegex.exec(label);
               const currency = currencyMatch ? currencyMatch[1] : 'USD';
               const symbol = CURRENCIES[currency]?.symbol || '$';
               return `${label}: ${symbol}${value.toFixed(2)}`;
@@ -656,7 +653,7 @@ function updateMonthlyChart(transactions) {
     monthlyData[monthKey][currency].expenses += parseFloat(tx.expenses) || 0;
   });
 
-  const sortedMonths = Object.keys(monthlyData).sort();
+  const sortedMonths = Object.keys(monthlyData).sort((a, b) => a.localeCompare(b));
 
   if (sortedMonths.length === 0) {
     console.log("No date data for monthly chart");
@@ -672,7 +669,7 @@ function updateMonthlyChart(transactions) {
 
   // Create datasets for each currency
   const datasets = [];
-  const currencyArray = Array.from(currencies).sort();
+  const currencyArray = Array.from(currencies).sort((a, b) => a.localeCompare(b));
 
   currencyArray.forEach((currency, index) => {
     const incomeData = sortedMonths.map(month =>
@@ -734,7 +731,8 @@ function updateMonthlyChart(transactions) {
               const value = context.parsed.y;
               const label = context.dataset.label;
               // Extract currency from label
-              const currencyMatch = label.match(/\(([A-Z]{3})\)$/);
+              const currencyRegex = /\(([A-Z]{3})\)$/;
+              const currencyMatch = currencyRegex.exec(label);
               const currency = currencyMatch ? currencyMatch[1] : 'USD';
               const symbol = CURRENCIES[currency]?.symbol || '$';
               return `${label}: ${symbol}${value.toFixed(2)}`;
@@ -811,7 +809,7 @@ function updateTrendChart(transactions) {
     dailyData[dateKey][currency] += parseFloat(tx.expenses) || 0;
   });
 
-  const sortedDates = Object.keys(dailyData).sort();
+  const sortedDates = Object.keys(dailyData).sort((a, b) => a.localeCompare(b));
 
   if (sortedDates.length === 0) {
     console.log("No date data for trend chart");
@@ -820,7 +818,7 @@ function updateTrendChart(transactions) {
 
   // Create datasets for each currency
   const datasets = [];
-  const currencyArray = Array.from(currencies).sort();
+  const currencyArray = Array.from(currencies).sort((a, b) => a.localeCompare(b));
   const colors = ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'];
 
   currencyArray.forEach((currency, index) => {
@@ -869,7 +867,8 @@ function updateTrendChart(transactions) {
               const value = context.parsed.y;
               const label = context.dataset.label;
               // Extract currency from label
-              const currencyMatch = label.match(/\(([A-Z]{3})\)$/);
+              const currencyRegex = /\(([A-Z]{3})\)$/;
+              const currencyMatch = currencyRegex.exec(label);
               const currency = currencyMatch ? currencyMatch[1] : 'USD';
               const symbol = CURRENCIES[currency]?.symbol || '$';
               return `${label}: ${symbol}${value.toFixed(2)}`;

@@ -20,7 +20,7 @@ export function getMonthlyTrends(transactions = []) {
 export function getCategoryAverages(transactions = []) {
   const sum = {}, count = {};
   transactions.forEach(tx => {
-    if (tx.expenses && tx.category) {
+    if (tx?.expenses && tx?.category) {
       sum[tx.category] = (sum[tx.category] || 0) + parseFloat(tx.expenses);
       count[tx.category] = (count[tx.category] || 0) + 1;
     }
@@ -38,7 +38,7 @@ export function getCategoryAverages(transactions = []) {
 export function getOverspendAlerts(transactions = [], budgets = {}) {
   const used = {};
   transactions.forEach(tx => {
-    if (tx.expenses && tx.category) {
+    if (tx?.expenses && tx?.category) {
       used[tx.category] = (used[tx.category] || 0) + parseFloat(tx.expenses);
     }
   });

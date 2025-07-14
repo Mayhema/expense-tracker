@@ -183,7 +183,7 @@ function ensureTransactionIds(transactions) {
 
   transactions.forEach((tx, index) => {
     if (!tx.id) {
-      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
       idsAdded++;
       console.log(`🆔 ASSIGNED ID: ${tx.id} to transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
     } else {
@@ -455,7 +455,7 @@ function saveTransactionChanges(index) {
     if (fieldName === 'date' && newValue) {
       // FIXED: Validate dd/mm/yyyy format before conversion
       const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-      const match = newValue.match(datePattern);
+      const match = datePattern.exec(newValue);
 
       if (match) {
         const day = parseInt(match[1], 10);
@@ -652,7 +652,7 @@ function saveTransactionChangesById(transactionId) {
     // Handle date conversion for storage
     if (fieldName === 'date' && newValue) {
       const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-      const match = newValue.match(datePattern);
+      const match = datePattern.exec(newValue);
 
       if (match) {
         const day = parseInt(match[1], 10);
@@ -897,7 +897,7 @@ function generateTransactionTableHTML(transactions) {
   transactions.forEach((tx, index) => {
     // Ensure each transaction has a unique ID
     if (!tx.id) {
-      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
       console.log(`🆔 GENERATED ID: ${tx.id} for transaction at index ${index}`);
     }
 

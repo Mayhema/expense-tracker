@@ -183,17 +183,13 @@ function initializeCleanupHandlers() {
 
   cleanupModules.forEach(({ module, cleanup }) => {
     registerCleanup(() => {
-      try {
-        import(module).then(moduleInstance => {
-          if (moduleInstance[cleanup]) {
-            moduleInstance[cleanup]();
-          }
-        }).catch(() => {
-          // Module might not exist, ignore error
-        });
-      } catch (error) {
+      import(module).then(moduleInstance => {
+        if (moduleInstance[cleanup]) {
+          moduleInstance[cleanup]();
+        }
+      }).catch((error) => {
         console.warn(`Cleanup failed for ${module}:`, error);
-      }
+      });
     });
   });
 }

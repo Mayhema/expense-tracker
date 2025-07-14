@@ -30,61 +30,61 @@ try {
   const transactionsCSS = fs.readFileSync('./src/styles/transactions.css', 'utf8');
 
   console.log('🔍 ISSUE #1: Dropdown Lists Visibility (BOTH dark and regular modes)');
-  test('1.1 Regular mode dropdown options styling', 
+  test('1.1 Regular mode dropdown options styling',
     mainCSS.includes('body:not(.dark-mode) select option') &&
     mainCSS.includes('background: #ffffff !important')
   );
 
-  test('1.2 Dark mode dropdown options styling', 
+  test('1.2 Dark mode dropdown options styling',
     mainCSS.includes('body.dark-mode select option') &&
     mainCSS.includes('background: #1a1a2e !important')
   );
 
-  test('1.3 Dropdown arrow click fix implemented', 
+  test('1.3 Dropdown arrow click fix implemented',
     filtersCSS.includes('-webkit-appearance: none !important') &&
     filtersCSS.includes('background-image: url("data:image/svg+xml')
   );
 
   console.log('\n🔍 ISSUE #2: Transaction Summary Background Still White in Dark Mode');
-  test('2.1 Main.css has ultra-high specificity dark mode selectors', 
+  test('2.1 Main.css has ultra-high specificity dark mode selectors',
     mainCSS.includes('body.dark-mode div.summary-card') &&
     mainCSS.includes('body.dark-mode div[class*="summary"]')
   );
 
-  test('2.2 Transactions.css has html body.dark-mode selectors', 
+  test('2.2 Transactions.css has html body.dark-mode selectors',
     transactionsCSS.includes('html body.dark-mode .summary-card,') &&
     transactionsCSS.includes('html body.dark-mode [class*="transaction"] .summary-card')
   );
 
-  test('2.3 Inline style override selectors present', 
+  test('2.3 Inline style override selectors present',
     transactionsCSS.includes('html body.dark-mode .summary-card[style]') &&
     transactionsCSS.includes('html body.dark-mode .summary-card[style*="background"]')
   );
 
   console.log('\n🔍 ISSUE #3: Amount Range Max Input Outside Frame');
-  test('3.1 Amount range container flex styling', 
+  test('3.1 Amount range container flex styling',
     filtersCSS.includes('.amount-inputs') &&
     filtersCSS.includes('display: flex !important') &&
     filtersCSS.includes('width: 100% !important')
   );
 
-  test('3.2 Amount input group sizing constraints', 
+  test('3.2 Amount input group sizing constraints',
     filtersCSS.includes('.amount-input-group') &&
     filtersCSS.includes('max-width: calc(50% - 6px) !important')
   );
 
   console.log('\n🔍 ISSUE #4: Chart Text Unreadable When Switching Modes');
-  test('4.1 Chart transition disabled globally', 
+  test('4.1 Chart transition disabled globally',
     chartsCSS.includes('transition: none !important') &&
     chartsCSS.includes('animation: none !important')
   );
 
-  test('4.2 Light mode chart text forced with high specificity', 
+  test('4.2 Light mode chart text forced with high specificity',
     chartsCSS.includes('html body:not(.dark-mode) .chart-container *') &&
     chartsCSS.includes('color: #333333 !important')
   );
 
-  test('4.3 Dark mode chart text forced with high specificity', 
+  test('4.3 Dark mode chart text forced with high specificity',
     chartsCSS.includes('html body.dark-mode .chart-container *') &&
     chartsCSS.includes('color: #e0e8ff !important')
   );
@@ -136,7 +136,7 @@ try {
     console.log('6. Click on dropdown arrows - should open dropdowns');
     console.log('');
     console.log('🚀 PROJECT IS READY FOR FINAL USER ACCEPTANCE!');
-    
+
   } else {
     console.log('\n❌ Some issues require additional attention');
     console.log(`Failed tests: ${totalTests - testsPassed}`);

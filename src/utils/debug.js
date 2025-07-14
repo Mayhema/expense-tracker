@@ -255,7 +255,7 @@ export function debugSignatures() {
 
   // Current file signature section
   let currentFileSection = '<h3>Current File Signature</h3>';
-  if (AppState.currentFileSignature && AppState.currentFileName) {
+  if (AppState.currentFileSignature && AppState?.currentFileName) {
     currentFileSection += `
       <p><strong>File:</strong> ${AppState.currentFileName}</p>
       <p><strong>Signature:</strong> ${AppState.currentFileSignature}</p>
@@ -369,7 +369,7 @@ function attachDebugButtonListeners() {
 
     debugButtons.forEach(({ id, handler }) => {
       const button = document.getElementById(id);
-      if (button && !button.dataset.listenerAttached) {
+      if (button && !button?.dataset?.listenerAttached) {
         button.addEventListener('click', handler);
         button.dataset.listenerAttached = 'true';
         console.log(`Attached listener to ${id}`);

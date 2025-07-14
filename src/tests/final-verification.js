@@ -30,7 +30,7 @@ const transactionsCSS = fs.readFileSync(path.join(__dirname, '../styles/transact
 const chartsCSS = fs.readFileSync(path.join(__dirname, '../styles/charts.css'), 'utf8');
 
 // Test 1: Dropdown options styling (Issue: dropdown lists can't be seen)
-test('1. Dropdown options have dark mode styling', 
+test('1. Dropdown options have dark mode styling',
   mainCSS.includes('body.dark-mode select option') &&
   mainCSS.includes('background: #1a1a2e !important')
 );

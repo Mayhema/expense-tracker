@@ -1,21 +1,21 @@
 /**
  * REFACTORED TRANSACTION MANAGER
- * 
+ *
  * This is the new modular version of the transaction manager.
  * The original 2,000+ line file has been split into focused modules:
- * 
+ *
  * - transactionCoordinator.js - Main orchestration logic
  * - transactionRenderer.js - DOM rendering and container management
  * - transactionSummary.js - Summary calculations and display
  * - transactionTableGenerator.js - HTML table generation
  * - transactionEditor.js - Transaction editing functionality
  * - transactionEventHandler.js - Event listeners and user interactions
- * 
+ *
  * This file now serves as a facade that delegates to the appropriate modules.
  */
 
 // Import the main coordinator which orchestrates all other modules
-import { 
+import {
   renderTransactions as coordinatorRenderTransactions,
   updateTransactionDisplay as coordinatorUpdateTransactionDisplay,
   initializeTransactionManager as coordinatorInitializeTransactionManager,
@@ -62,7 +62,7 @@ export function updateTransactionsFromUpload() {
  */
 export function saveFieldChange(index, fieldName, newValue) {
   console.warn('⚠️ saveFieldChange is deprecated. Use saveFieldChangeById from transactionEditor module instead.');
-  
+
   // For backward compatibility, try to find transaction by index and use ID-based saving
   import('../core/appState.js').then(({ AppState }) => {
     if (AppState.transactions?.[index]) {
@@ -88,18 +88,18 @@ export function applyFilters(transactions) {
 
 /**
  * Documentation: New Modular Architecture
- * 
+ *
  * OLD STRUCTURE (2,000+ lines in one file):
  * ├── transactionManager.js (MONOLITHIC - everything in one file)
  *     ├── Rendering logic
- *     ├── Summary calculations  
+ *     ├── Summary calculations
  *     ├── HTML generation
  *     ├── Event handling
  *     ├── Edit functionality
  *     ├── Filter logic
  *     ├── Bulk operations
  *     └── State management
- * 
+ *
  * NEW STRUCTURE (modular - single responsibility):
  * ├── transactionManager.js (FACADE - delegates to modules)
  * └── transaction/
@@ -109,7 +109,7 @@ export function applyFilters(transactions) {
  *     ├── transactionTableGenerator.js (HTML table generation)
  *     ├── transactionEditor.js (Edit functionality)
  *     └── transactionEventHandler.js (Event listeners)
- * 
+ *
  * BENEFITS:
  * ✅ Single Responsibility Principle - each module has one clear purpose
  * ✅ Easier Testing - smaller, focused functions are easier to unit test
@@ -118,17 +118,17 @@ export function applyFilters(transactions) {
  * ✅ Improved Reusability - modules can be reused in different contexts
  * ✅ Clear Dependencies - imports show exactly what each module needs
  * ✅ Backward Compatibility - existing code continues to work unchanged
- * 
+ *
  * USAGE EXAMPLES:
- * 
+ *
  * // Main rendering (same as before)
  * import { renderTransactions } from './transactionManager.js';
  * renderTransactions(transactions);
- * 
+ *
  * // Direct module usage for advanced scenarios
  * import { updateTransactionSummary } from './transaction/transactionSummary.js';
  * import { saveFieldChangeById } from './transaction/transactionEditor.js';
- * 
+ *
  * // The facade pattern ensures existing code continues to work
  * // while providing access to the new modular structure
  */

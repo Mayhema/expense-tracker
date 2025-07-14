@@ -12,7 +12,8 @@ function rgbToHex(rgb) {
   if (rgb.startsWith('#')) return rgb;
 
   // Parse rgb() or rgba() format
-  const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  const rgbRegex = /rgba?\((\d+),\s*(\d+),\s*(\d+)/;
+  const match = rgbRegex.exec(rgb);
   if (match) {
     const r = parseInt(match[1]);
     const g = parseInt(match[2]);

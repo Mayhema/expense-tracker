@@ -28,40 +28,40 @@ try {
   const transactionsCSS = fs.readFileSync('./src/styles/transactions.css', 'utf8');
 
   console.log('🔍 Testing Transaction Summary Background Fixes');
-  
+
   // Test 1: Check main.css has dark mode summary card styling
-  test('1.1 Main.css has dark mode summary card selectors', 
+  test('1.1 Main.css has dark mode summary card selectors',
     mainCSS.includes('body.dark-mode .summary-card') &&
     mainCSS.includes('body.dark-mode div.summary-card')
   );
 
-  test('1.2 Main.css has dark gradient backgrounds for summary cards', 
+  test('1.2 Main.css has dark gradient backgrounds for summary cards',
     mainCSS.includes('linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)')
   );
 
-  test('1.3 Main.css has ultra-high specificity selectors', 
+  test('1.3 Main.css has ultra-high specificity selectors',
     mainCSS.includes('body.dark-mode div[class*="summary"]') &&
     mainCSS.includes('body.dark-mode #transactionSummary div')
   );
 
   // Test 2: Check transactions.css has enhanced dark mode support
-  test('2.1 Transactions.css has html body.dark-mode selectors', 
+  test('2.1 Transactions.css has html body.dark-mode selectors',
     transactionsCSS.includes('html body.dark-mode .summary-card,') &&
     transactionsCSS.includes('html body.dark-mode #transactionSummary .summary-card,')
   );
 
-  test('2.2 Transactions.css has inline style override selectors', 
+  test('2.2 Transactions.css has inline style override selectors',
     transactionsCSS.includes('html body.dark-mode .summary-card[style]') &&
     transactionsCSS.includes('html body.dark-mode .summary-card[style*="background"]')
   );
 
-  test('2.3 Transactions.css has comprehensive element coverage', 
+  test('2.3 Transactions.css has comprehensive element coverage',
     transactionsCSS.includes('html body.dark-mode .transaction-summary .summary-card,') &&
     transactionsCSS.includes('html body.dark-mode .main-content .summary-card,') &&
     transactionsCSS.includes('html body.dark-mode [class*="transaction"] .summary-card')
   );
 
-  test('2.4 Transactions.css has proper dark gradient styling', 
+  test('2.4 Transactions.css has proper dark gradient styling',
     transactionsCSS.includes('background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important') &&
     transactionsCSS.includes('border: 2px solid rgba(102, 126, 234, 0.3) !important')
   );
@@ -74,7 +74,7 @@ try {
   test('3.2 Transactions.css has sufficient !important declarations', transactionsImportantCount > 30);
 
   // Test 4: Check for comprehensive selector coverage
-  test('4.1 Both files combined cover all possible summary selectors', 
+  test('4.1 Both files combined cover all possible summary selectors',
     (mainCSS.includes('.summary-card') && transactionsCSS.includes('.summary-card')) &&
     (mainCSS.includes('[class*="summary"]') && transactionsCSS.includes('[class*="summary"]'))
   );
@@ -87,13 +87,13 @@ try {
     console.log('✅ Ultra-high specificity selectors ensure no white backgrounds');
     console.log('✅ Inline style overrides prevent any external styling conflicts');
     console.log('✅ Futuristic gradient backgrounds applied with maximum CSS power');
-    
+
     console.log('\n🔧 CSS STRATEGY EMPLOYED:');
     console.log('• Ultra-high specificity: html body.dark-mode selectors');
     console.log('• Inline style overrides: [style] attribute selectors');
     console.log('• Comprehensive element coverage: multiple selector patterns');
     console.log('• Maximum !important usage for override power');
-    
+
     console.log('\n🌐 Test in browser: http://localhost:3000');
     console.log('   → Toggle dark mode');
     console.log('   → Check transaction summary cards are NOT white');

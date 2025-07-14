@@ -461,11 +461,11 @@ function destroyChartInstance(chart) {
   } else {
     // Fallback for invalid instance - try to access the chart's internal canvas
     try {
-      const chartCanvas = chart.canvas || chart.ctx?.canvas;
-      if (chartCanvas && chartCanvas.id) {
+      const chartCanvas = chart?.canvas || chart?.ctx?.canvas;
+      if (chartCanvas?.id) {
         // Try to find and destroy any Chart.js instance on this canvas
         const existingChart = Chart.getChart(chartCanvas);
-        if (existingChart && typeof existingChart.destroy === 'function') {
+        if (existingChart && typeof existingChart?.destroy === 'function') {
           existingChart.destroy();
         }
       }
@@ -790,11 +790,11 @@ function prepareTimelineDataWithPeriod(transactions, periodOption = 'month') {
       }
 
       // Add income and expenses
-      if (tx.income && !isNaN(parseFloat(tx.income))) {
+      if (tx?.income && !isNaN(parseFloat(tx.income))) {
         periodData[periodKey].income += parseFloat(tx.income);
       }
 
-      if (tx.expenses && !isNaN(parseFloat(tx.expenses))) {
+      if (tx?.expenses && !isNaN(parseFloat(tx.expenses))) {
         periodData[periodKey].expenses += parseFloat(tx.expenses);
       }
     });
@@ -972,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (periodSelect) {
     periodSelect.addEventListener('change', function () {
       // Only update if we have transactions
-      if (AppState.transactions && AppState.transactions.length > 0) {
+      if (AppState.transactions?.length > 0) {
         refreshTimelineChart(this.value);
       }
     });

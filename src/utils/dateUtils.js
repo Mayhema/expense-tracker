@@ -144,7 +144,8 @@ function parseCustomDateFormats(dateStr) {
  * Try to parse US format: MM/DD/YYYY
  */
 function parseUSFormat(dateStr) {
-  const match = dateStr.match(DATE_FORMATS.US);
+  const dateRegex = DATE_FORMATS.US;
+  const match = dateRegex.exec(dateStr);
   if (match) {
     const [, month, day, year] = match;
     if (isValidDateComponents(year, month, day)) {
@@ -158,7 +159,8 @@ function parseUSFormat(dateStr) {
  * Try to parse EU format: DD/MM/YYYY (assume if day > 12)
  */
 function parseEUFormat(dateStr) {
-  const match = dateStr.match(DATE_FORMATS.EU);
+  const dateRegex = DATE_FORMATS.EU;
+  const match = dateRegex.exec(dateStr);
   if (match) {
     const [, part1, part2, year] = match;
     if (parseInt(part1) > 12 && isValidDateComponents(year, part2, part1)) {
@@ -172,7 +174,8 @@ function parseEUFormat(dateStr) {
  * Try to parse dot format: DD.MM.YYYY
  */
 function parseDotFormat(dateStr) {
-  const match = dateStr.match(DATE_FORMATS.DOT);
+  const dateRegex = DATE_FORMATS.DOT;
+  const match = dateRegex.exec(dateStr);
   if (match) {
     const [, day, month, year] = match;
     if (isValidDateComponents(year, month, day)) {
@@ -186,7 +189,8 @@ function parseDotFormat(dateStr) {
  * Try to parse dash format: DD-MM-YYYY
  */
 function parseDashFormat(dateStr) {
-  const match = dateStr.match(DATE_FORMATS.DASH);
+  const dateRegex = DATE_FORMATS.DASH;
+  const match = dateRegex.exec(dateStr);
   if (match) {
     const [, day, month, year] = match;
     if (isValidDateComponents(year, month, day)) {
@@ -200,7 +204,8 @@ function parseDashFormat(dateStr) {
  * Try to parse reverse format: YYYY/MM/DD
  */
 function parseReverseFormat(dateStr) {
-  const match = dateStr.match(DATE_FORMATS.REVERSE);
+  const dateRegex = DATE_FORMATS.REVERSE;
+  const match = dateRegex.exec(dateStr);
   if (match) {
     const [, year, month, day] = match;
     if (isValidDateComponents(year, month, day)) {
@@ -372,7 +377,7 @@ export function convertDDMMYYYYToISO(ddmmyyyy) {
 
   // FIXED: Strict dd/mm/yyyy pattern matching
   const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-  const match = ddmmyyyy.trim().match(datePattern);
+  const match = datePattern.exec(ddmmyyyy.trim());
 
   if (!match) {
     console.warn('Date format does not match dd/mm/yyyy:', ddmmyyyy);

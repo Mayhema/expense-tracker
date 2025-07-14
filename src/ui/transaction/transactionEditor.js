@@ -416,7 +416,7 @@ function processFieldChanges(fields, transaction) {
  */
 function processDateField(field, newValue) {
   const datePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-  const match = newValue.match(datePattern);
+  const match = datePattern.exec(newValue);
 
   if (match) {
     const day = parseInt(match[1], 10);

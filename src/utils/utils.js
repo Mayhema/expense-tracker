@@ -125,7 +125,7 @@ function isDateColumnLegacy(columnValues) {
  */
 function parseToDateStringLegacy(value) {
   if (value === null || value === undefined || value === '') return null;
-  if (isExcelDate(value)) return excelDateToString(parseFloat(value));
+  if (isExcelDate(value)) return excelDateToISOString(parseFloat(value));
   if (typeof value === 'string') {
     const stringDateResult = parseStringToDateFormat(value);
     if (stringDateResult) return stringDateResult;
@@ -143,7 +143,8 @@ function parseToDateStringLegacy(value) {
  * @return {string|null} Formatted date or null
  */
 function parseStringToDateFormat(value) {
-  const dateMatch = value.match(/(\d{1,4})[/\-.](\d{1,2})[/\-.](\d{1,4})/);
+  const dateRegex = /(\d{1,4})[/\-.](\d{1,2})[/\-.](\d{1,4})/;
+  const dateMatch = dateRegex.exec(value);
   if (!dateMatch) return null;
 
   const [part1, part2, part3] = dateMatch.slice(1);
@@ -297,22 +298,34 @@ export function parseJSON(jsonString, defaultValue = null) {
 }
 
 /**
- * Apply formatting based on conditions
- * @param {boolean} condition1 - First condition
- * @param {boolean} condition2 - Second condition
- * @param {any} value1 - Value if first condition is true
- * @param {any} value2 - Value if second condition is true
- * @param {any} value3 - Value if both conditions are false
+ * Gets value for primary condition
+ * @param {boolean} condition - Condition to check
+ * @param {any} value - Value if condition is true
+ * @param {any} defaultValue - Default value if condition is false
  * @returns {any} Formatted value
  */
-export function getConditionalValue(condition1, condition2, value1, value2, value3) {
-  if (condition1) {
-    return value1;
-  } else if (condition2) {
-    return value2;
-  } else {
-    return value3;
-  }
+export function getPrimaryValue(condition, value, defaultValue) {
+  return condition ? value : defaultValue;
+}
+
+/**
+ * Gets value for secondary condition
+ * @param {boolean} condition - Condition to check
+ * @param {any} value - Value if condition is true
+ * @param {any} defaultValue - Default value if condition is false
+ * @returns {any} Formatted value
+ */
+export function getSecondaryValue(condition, value, defaultValue) {
+  return condition ? value : defaultValue;
+}
+
+/**
+ * Gets fallback value
+ * @param {any} value - Fallback value
+ * @returns {any} Formatted value
+ */
+export function getFallbackValue(value) {
+  return value;
 }
 
 /**

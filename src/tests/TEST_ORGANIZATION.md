@@ -86,7 +86,7 @@ async function setupDOMEnvironment() {
     </body>
     </html>
   `);
-  
+
   global.document = dom.window.document;
   global.window = dom.window;
 }
@@ -97,11 +97,11 @@ async function setupDOMEnvironment() {
 ```javascript
 async function testCSPPolicy() {
   console.log('✅ Test 1: CSP Policy Validation');
-  
+
   // Check if external scripts are allowed
   const cspContent = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net";
   const isValidCSP = cspContent.includes('https://cdn.jsdelivr.net');
-  
+
   console.log(isValidCSP ? '✅ CSP allows external scripts' : '❌ CSP blocks external scripts');
   return isValidCSP;
 }

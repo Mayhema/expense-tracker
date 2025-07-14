@@ -607,14 +607,14 @@ function handleCategoryManagerClick(e) {
   }).catch(err => {
     console.error("Error loading category manager module:", err);
     // Fallback to alternative category modal
-      import("../ui/categoryModal.js").then(fallbackModule => {
-        if (fallbackModule.showCategoryManagerModal) {
-          fallbackModule.showCategoryManagerModal();
-        }
-      }).catch(fallbackErr => {
-        console.error("Error loading fallback category modal:", fallbackErr);
-      });
+    import("../ui/categoryModal.js").then(fallbackModule => {
+      if (fallbackModule.showCategoryManagerModal) {
+        fallbackModule.showCategoryManagerModal();
+      }
+    }).catch(fallbackErr => {
+      console.error("Error loading fallback category modal:", fallbackErr);
     });
+  });
 }
 
 /**

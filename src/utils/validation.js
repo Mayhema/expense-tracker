@@ -155,11 +155,11 @@ function validateTransactionAmounts(transaction) {
     errors.push("Transaction cannot have both income and expenses");
   }
 
-  if (transaction.income && (isNaN(parseFloat(transaction.income)) || parseFloat(transaction.income) < 0)) {
+  if (transaction?.income && (isNaN(parseFloat(transaction.income)) || parseFloat(transaction.income) < 0)) {
     errors.push("Income must be a valid positive number");
   }
 
-  if (transaction.expenses && (isNaN(parseFloat(transaction.expenses)) || parseFloat(transaction.expenses) < 0)) {
+  if (transaction?.expenses && (isNaN(parseFloat(transaction.expenses)) || parseFloat(transaction.expenses) < 0)) {
     errors.push("Expenses must be a valid positive number");
   }
 
@@ -194,7 +194,7 @@ export function validateTransaction(transaction) {
  * @returns {string} Unique transaction ID
  */
 export function generateTransactionId(index = 0) {
-  return `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+  return `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
 }
 
 /**

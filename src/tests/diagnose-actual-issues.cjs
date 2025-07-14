@@ -21,8 +21,8 @@ try {
 
   // Issue 1: Transaction Summary Background Still White in Dark Mode
   console.log('1️⃣ Transaction Summary Background (White in Dark Mode)');
-  const hasTransactionFix = transactionsCSS.includes('html body.dark-mode .summary-card') && 
-                           transactionsCSS.includes('linear-gradient(135deg, #1a1a2e');
+  const hasTransactionFix = transactionsCSS.includes('html body.dark-mode .summary-card') &&
+    transactionsCSS.includes('linear-gradient(135deg, #1a1a2e');
   console.log(`   CSS Fix Present: ${hasTransactionFix ? '✅ YES' : '❌ NO'}`);
   if (!hasTransactionFix) {
     issues.push('Transaction summary dark mode styling missing');
@@ -31,8 +31,8 @@ try {
   // Issue 2: Dropdown Arrow Click Problems
   console.log('');
   console.log('2️⃣ Dropdown Arrow Click Area Problems');
-  const hasDropdownFix = filtersCSS.includes('-webkit-appearance: none') && 
-                        filtersCSS.includes('background-image: url("data:image/svg+xml');
+  const hasDropdownFix = filtersCSS.includes('-webkit-appearance: none') &&
+    filtersCSS.includes('background-image: url("data:image/svg+xml');
   console.log(`   CSS Fix Present: ${hasDropdownFix ? '✅ YES' : '❌ NO'}`);
   if (!hasDropdownFix) {
     issues.push('Dropdown arrow click area fix missing');
@@ -41,8 +41,8 @@ try {
   // Issue 3: Amount Range Max Input Outside Frame
   console.log('');
   console.log('3️⃣ Amount Range Max Input Overflow');
-  const hasAmountFix = filtersCSS.includes('.amount-input-group') && 
-                      filtersCSS.includes('max-width: calc(50% - 6px)');
+  const hasAmountFix = filtersCSS.includes('.amount-input-group') &&
+    filtersCSS.includes('max-width: calc(50% - 6px)');
   console.log(`   CSS Fix Present: ${hasAmountFix ? '✅ YES' : '❌ NO'}`);
   if (!hasAmountFix) {
     issues.push('Amount range input overflow fix missing');
@@ -51,8 +51,8 @@ try {
   // Issue 4: Chart Text Unreadable When Switching Modes
   console.log('');
   console.log('4️⃣ Chart Text Readability When Switching Modes');
-  const hasChartFix = chartsCSS.includes('transition: none !important') && 
-                     chartsCSS.includes('html body.dark-mode .chart-container');
+  const hasChartFix = chartsCSS.includes('transition: none !important') &&
+    chartsCSS.includes('html body.dark-mode .chart-container');
   console.log(`   CSS Fix Present: ${hasChartFix ? '✅ YES' : '❌ NO'}`);
   if (!hasChartFix) {
     issues.push('Chart text readability fix missing');

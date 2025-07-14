@@ -267,7 +267,7 @@ function ensureTransactionIds(transactions) {
 
   transactions.forEach((tx, index) => {
     if (!tx.id) {
-      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${index}`;
+      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
       idsAdded++;
       console.log(`🆔 ASSIGNED ID: ${tx.id} to transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
     } else {

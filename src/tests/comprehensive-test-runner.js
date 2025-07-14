@@ -62,9 +62,12 @@ function findTestFiles(dir, testFiles = []) {
         }
       } else if (stat.isFile()) {
         // Match various test file patterns
-        if (item.match(/^test-.*\.js$/) ||
-          item.match(/.*\.test\.js$/) ||
-          item.match(/.*-test\.js$/)) {
+        const testFileRegex1 = /^test-.*\.js$/;
+        const testFileRegex2 = /.*\.test\.js$/;
+        const testFileRegex3 = /.*-test\.js$/;
+        if (testFileRegex1.exec(item) ||
+          testFileRegex2.exec(item) ||
+          testFileRegex3.exec(item)) {
           testFiles.push(fullPath);
         }
       }
@@ -177,7 +180,7 @@ async function main() {
   allTestFiles = allTestFiles.concat(rootTestFiles);
 
   // Remove duplicates and sort
-  allTestFiles = [...new Set(allTestFiles)].sort();
+  allTestFiles = [...new Set(allTestFiles)].sort((a, b) => a.localeCompare(b));
 
   if (allTestFiles.length === 0) {
     console.log(`${colors.yellow}⚠️  No test files found in the project${colors.reset}`);

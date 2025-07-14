@@ -50,7 +50,7 @@ export function getSubcategories(categoryName) {
   }
 
   const category = AppState.categories[categoryName];
-  if (typeof category === 'object' && category.subcategories) {
+  if (typeof category === 'object' && category?.subcategories) {
     return category.subcategories;
   }
 
@@ -86,7 +86,7 @@ export function getAllCategoriesFlat() {
     });
 
     // Add subcategories if they exist
-    if (typeof categoryData === 'object' && categoryData.subcategories) {
+    if (typeof categoryData === 'object' && categoryData?.subcategories) {
       Object.entries(categoryData.subcategories).forEach(([subName, subColor]) => {
         flatList.push({
           id: `${categoryName}:${subName}`,
