@@ -525,105 +525,92 @@ body.dark-mode .no-transactions {
   color: #007bff !important;
 }
 
-/* Enhanced dark mode support with futuristic styling - Ultra High Specificity */
-body.dark-mode .summary-card,
-body.dark-mode .summary-cards-row .summary-card,
-body.dark-mode #transactionSummary .summary-card,
-body.dark-mode [id*="summary"] .summary-card {
+
+
+/* FIXED: ULTIMATE TRANSACTION SUMMARY WHITE BACKGROUND FIX - MAXIMUM SPECIFICITY */
+/* These selectors have the highest possible CSS specificity to override ANY white backgrounds */
+
+/* Level 1: Basic ultra-high specificity */
+html body.dark-mode .summary-card,
+html body.dark-mode .summary-cards-row .summary-card,
+html body.dark-mode #transactionSummary .summary-card,
+html body.dark-mode [id*="summary"] .summary-card,
+html body.dark-mode div.summary-card,
+html body.dark-mode div[class*="summary"] .summary-card,
+html body.dark-mode .transaction-summary .summary-card,
+html body.dark-mode .main-content .summary-card,
+html body.dark-mode section .summary-card,
+html body.dark-mode .section .summary-card,
+html body.dark-mode [class*="transaction"] .summary-card {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
   border: 2px solid rgba(102, 126, 234, 0.3) !important;
   color: #e0e8ff !important;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
     0 2px 8px rgba(102, 126, 234, 0.2),
     inset 0 1px 0 rgba(102, 126, 234, 0.1) !important;
   backdrop-filter: blur(10px) !important;
 }
 
-body.dark-mode .summary-card:hover,
-body.dark-mode .summary-cards-row .summary-card:hover,
-body.dark-mode #transactionSummary .summary-card:hover,
-body.dark-mode [id*="summary"] .summary-card:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 
-    0 12px 48px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(102, 126, 234, 0.3),
-    inset 0 1px 0 rgba(102, 126, 234, 0.2) !important;
-}
-
-body.dark-mode .summary-label,
-body.dark-mode .summary-card .summary-label {
-  color: #c9d1d9 !important;
-  text-shadow: 0 1px 2px rgba(102, 126, 234, 0.2) !important;
-}
-
-body.dark-mode .summary-value,
-body.dark-mode .summary-card .summary-value {
+/* Level 2: Inline style override selectors - CRITICAL FOR OVERRIDING WHITE BACKGROUNDS */
+html body.dark-mode .summary-card[style],
+html body.dark-mode .summary-card[style*="background"],
+html body.dark-mode .summary-card[style*="background-color"],
+html body.dark-mode .summary-card[style*="bg"],
+html body.dark-mode div[class*="summary"][style],
+html body.dark-mode div[class*="summary"][style*="background"],
+html body.dark-mode [id*="summary"] .summary-card[style],
+html body.dark-mode [id*="summary"] .summary-card[style*="background"],
+html body.dark-mode .main-content .summary-card[style],
+html body.dark-mode .main-content .summary-card[style*="background"],
+html body.dark-mode section .summary-card[style],
+html body.dark-mode section .summary-card[style*="background"] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  background-color: #1a1a2e !important;
   color: #e0e8ff !important;
-  text-shadow: 0 2px 4px rgba(102, 126, 234, 0.3) !important;
-  font-weight: 600 !important;
 }
 
-body.dark-mode .summary-card.income .summary-value {
-  color: #4ade80 !important;
-  text-shadow: 0 2px 8px rgba(74, 222, 128, 0.3) !important;
+/* Level 3: Class combination specificity */
+html body.dark-mode .summary-card.income,
+html body.dark-mode .summary-card.expenses,
+html body.dark-mode .summary-card.net,
+html body.dark-mode .summary-card.count,
+html body.dark-mode .summary-card.positive,
+html body.dark-mode .summary-card.negative {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  background-color: #1a1a2e !important;
+  color: #e0e8ff !important;
 }
 
-body.dark-mode .summary-card.expenses .summary-value {
-  color: #f87171 !important;
-  text-shadow: 0 2px 8px rgba(248, 113, 113, 0.3) !important;
+/* Level 4: Descendant and attribute selectors for maximum coverage */
+html body.dark-mode [class*="summary"] [class*="card"],
+html body.dark-mode [id*="summary"] [class*="card"],
+html body.dark-mode [data-summary] .summary-card,
+html body.dark-mode [role*="summary"] .summary-card {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  background-color: #1a1a2e !important;
+  color: #e0e8ff !important;
 }
 
-body.dark-mode .summary-card.net.positive .summary-value {
-  color: #4caf50 !important;
+/* Level 5: Universal descendant selectors for complete coverage */
+html body.dark-mode * .summary-card,
+html body.dark-mode * .summary-cards-row .summary-card,
+html body.dark-mode * [class*="summary"] .summary-card {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  background-color: #1a1a2e !important;
+  color: #e0e8ff !important;
 }
 
-body.dark-mode .summary-card.net.negative .summary-value {
-  color: #f44336 !important;
-}
-
-body.dark-mode .summary-card.count .summary-value {
-  color: #42a5f5 !important;
-}
-
-/* FIXED: Dark mode summary icons */
-body.dark-mode .summary-card .summary-icon {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #e0e0e0 !important;
-}
-
-body.dark-mode .summary-card.income .summary-icon {
-  background: rgba(76, 175, 80, 0.2) !important;
-  color: #4caf50 !important;
-}
-
-body.dark-mode .summary-card.expenses .summary-icon {
-  background: rgba(244, 67, 54, 0.2) !important;
-  color: #f44336 !important;
-}
-
-body.dark-mode .summary-card.net.positive .summary-icon {
-  background: rgba(76, 175, 80, 0.2) !important;
-  color: #4caf50 !important;
-}
-
-body.dark-mode .summary-card.net.negative .summary-icon {
-  background: rgba(244, 67, 54, 0.2) !important;
-  color: #f44336 !important;
-}
-
-body.dark-mode .summary-card.count .summary-icon {
-  background: rgba(66, 165, 245, 0.2) !important;
-  color: #42a5f5 !important;
-}
-
-/* FIXED: Additional dark mode transaction summary overrides */
-body.dark-mode .transaction-summary {
-  background: transparent !important;
-}
-
-body.dark-mode .summary-cards-row {
-  background: transparent !important;
+/* Level 6: Multiple class and ID combination selectors */
+html body.dark-mode div.summary-card.income[style],
+html body.dark-mode div.summary-card.expenses[style],
+html body.dark-mode div.summary-card.net[style],
+html body.dark-mode div.summary-card.count[style],
+html body.dark-mode #transactionSummary div.summary-card[style],
+html body.dark-mode .main-content div.summary-card[style] {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  background-color: #1a1a2e !important;
+  color: #e0e8ff !important;
 }
 
 /* Mobile responsiveness - FIXED: Force row layout even on mobile */

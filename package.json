@@ -29,12 +29,17 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [],
     "testMatch": [
-      "**/tests/dark-mode-integration.test.js",
-      "**/tests/categoryManager.test.js",
-      "**/tests/button-functionality.test.js",
-      "**/tests/css-button-integration.test.js"
-    ]
+      "**/tests/**/*.cjs"
+    ],
+    "moduleFileExtensions": ["js", "cjs"],
+    "collectCoverage": false,
+    "verbose": true,
+    "transform": {
+      "^.+\\.cjs$": "babel-jest"
+    },
+    "testTimeout": 10000
   },
   "author": "",
   "license": "ISC",

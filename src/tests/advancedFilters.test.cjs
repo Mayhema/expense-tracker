@@ -29,15 +29,15 @@ async function setupTestEnvironment() {
     </body>
     </html>
   `);
-  
+
   global.document = dom.window.document;
   global.window = dom.window;
-  
+
   // Mock localStorage
   global.localStorage = {
     getItem: () => '{}',
-    setItem: () => {},
-    removeItem: () => {}
+    setItem: () => { },
+    removeItem: () => { }
   };
 
   return dom;
@@ -55,26 +55,26 @@ const mockAppState = {
 async function testAdvancedFilters() {
   console.log('🔍 ADVANCED FILTERS TEST');
   console.log('========================');
-  
+
   try {
     await setupTestEnvironment();
-    
+
     console.log('✅ Test 1: Filter Structure');
     const advancedFilters = document.getElementById('advancedFilters');
     const hasFilterStructure = !!advancedFilters;
     console.log('   - Advanced filters container exists:', hasFilterStructure);
-    
+
     console.log('✅ Test 2: Filter Elements');
     const amountMin = document.getElementById('amountMin');
     const amountMax = document.getElementById('amountMax');
     const currencyFilter = document.getElementById('currencyFilter');
     const categoryFilter = document.getElementById('categoryFilter');
-    
+
     console.log('   - Amount min filter exists:', !!amountMin);
     console.log('   - Amount max filter exists:', !!amountMax);
     console.log('   - Currency filter exists:', !!currencyFilter);
     console.log('   - Category filter exists:', !!categoryFilter);
-    
+
     console.log('✅ Test 3: Filter Functionality');
     // Test filter logic simulation
     const testFilters = {
@@ -83,26 +83,26 @@ async function testAdvancedFilters() {
       currency: 'USD',
       category: 'Food'
     };
-    
+
     const filteredTransactions = mockAppState.transactions.filter(transaction => {
       const amount = transaction.income || transaction.expenses;
       const matchesAmount = amount >= testFilters.minAmount && amount <= testFilters.maxAmount;
       const matchesCurrency = !testFilters.currency || transaction.currency === testFilters.currency;
       const matchesCategory = !testFilters.category || transaction.category === testFilters.category;
-      
+
       return matchesAmount && matchesCurrency && matchesCategory;
     });
-    
+
     console.log('   - Original transactions:', mockAppState.transactions.length);
     console.log('   - Filtered transactions:', filteredTransactions.length);
     console.log('   - Filter logic working:', filteredTransactions.length === 1);
-    
+
     console.log('✅ Test 4: UI Responsiveness');
     console.log('   - Filter layout responsive: true (mock test)');
-    
+
     console.log('\n🎯 All Advanced Filters tests passed!');
     // Removed process.exit(0) - not needed in Jest
-    
+
   } catch (error) {
     console.error('❌ Advanced Filters test failed:', error);
     // Removed process.exit(1) - not needed in Jest

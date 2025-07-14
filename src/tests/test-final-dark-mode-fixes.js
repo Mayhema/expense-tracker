@@ -107,7 +107,7 @@ test('All important declarations present for CSS override power', () => {
   const filtersImportant = (filtersCSS.match(/!important/g) || []).length;
   const modalsImportant = (modalsCSS.match(/!important/g) || []).length;
   const transactionsImportant = (transactionsCSS.match(/!important/g) || []).length;
-  
+
   return filtersImportant > 50 && modalsImportant > 20 && transactionsImportant > 30;
 });
 

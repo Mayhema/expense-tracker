@@ -663,7 +663,7 @@ body.dark-mode .advanced-filters {
   border: 2px solid transparent !important;
   border-image: linear-gradient(45deg, #667eea, #764ba2, #f093fb) 1 !important;
   color: #e0e8ff !important;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -684,6 +684,7 @@ body.dark-mode .filters-row {
 }
 
 @media (max-width: 1200px) {
+
   body.dark-mode .filter-row,
   body.dark-mode .filters-row {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -691,6 +692,7 @@ body.dark-mode .filters-row {
 }
 
 @media (max-width: 768px) {
+
   body.dark-mode .filter-row,
   body.dark-mode .filters-row {
     grid-template-columns: 1fr !important;
@@ -721,44 +723,68 @@ body.dark-mode .advanced-filters select:focus {
   outline: none !important;
 }
 
-/* Filter buttons */
-body.dark-mode .transaction-filters button,
-body.dark-mode .advanced-filters button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+/* Dropdown options styling for ALL MODES */
+select option {
+  padding: 8px 12px !important;
   border: none !important;
-  color: white !important;
-  padding: 12px 24px !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  transition: all 0.3s ease !important;
-  position: relative !important;
-  overflow: hidden !important;
 }
 
-body.dark-mode .transaction-filters button:hover,
-body.dark-mode .advanced-filters button:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+/* Regular mode dropdown options styling */
+body:not(.dark-mode) select option {
+  background: #ffffff !important;
+  color: #333333 !important;
 }
 
-/* Futuristic glow effect */
-body.dark-mode .transaction-filters::before,
-body.dark-mode .advanced-filters::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
-  border-radius: 18px;
-  z-index: -1;
-  animation: pulse-border 3s ease-in-out infinite alternate;
+body:not(.dark-mode) select option:hover,
+body:not(.dark-mode) select option:focus,
+body:not(.dark-mode) select option:checked {
+  background: #f0f8ff !important;
+  color: #1a1a1a !important;
 }
 
-@keyframes pulse-border {
-  0% { opacity: 0.5; }
-  100% { opacity: 0.8; }
+/* Dropdown options styling for dark mode */
+body.dark-mode select option {
+  background: #1a1a2e !important;
+  color: #e0e8ff !important;
+  padding: 8px 12px !important;
+  border: none !important;
+}
+
+body.dark-mode select option:hover,
+body.dark-mode select option:focus,
+body.dark-mode select option:checked {
+  background: #667eea !important;
+  color: #ffffff !important;
+}
+
+/* Fix dropdown height constraint that cuts off category options - FOR ALL MODES */
+select,
+#categoryDropdown,
+.category-dropdown {
+  min-height: 40px !important;
+  max-height: none !important;
+  overflow: visible !important;
+  height: auto !important;
+  z-index: 1000 !important;
+}
+
+/* Ensure parent containers allow dropdowns to extend */
+.advanced-filters,
+.filter-card,
+.filter-card-content {
+  overflow: visible !important;
+  z-index: auto !important;
+}
+
+/* Fix dropdown height constraint that cuts off category options - DARK MODE */
+body.dark-mode select,
+body.dark-mode #categoryDropdown,
+body.dark-mode .category-dropdown {
+  min-height: 40px !important;
+  max-height: none !important;
+  overflow: visible !important;
+  height: auto !important;
+  z-index: 1000 !important;
 }
 
 /* Modal Dark Mode Overrides */
@@ -794,6 +820,35 @@ body.dark-mode .summary-item {
   background: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
   border: 1px solid var(--border-color) !important;
+}
+
+/* Additional transaction summary selectors to override any white backgrounds */
+body.dark-mode .transaction-summary *,
+body.dark-mode .summary-card *,
+body.dark-mode .summary-item *,
+body.dark-mode [class*="summary"],
+body.dark-mode [class*="Summary"],
+body.dark-mode .income,
+body.dark-mode .expenses,
+body.dark-mode .net {
+  background: inherit !important;
+  color: inherit !important;
+}
+
+body.dark-mode .transaction-summary .summary-value,
+body.dark-mode .summary-card .summary-value {
+  color: #e0e8ff !important;
+  font-weight: 600 !important;
+}
+
+/* Ultra-high specificity for transaction summaries to prevent white backgrounds */
+body.dark-mode div.summary-card,
+body.dark-mode div[class*="summary"],
+body.dark-mode .transaction-summary div,
+body.dark-mode #transactionSummary div {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+  border: 2px solid rgba(102, 126, 234, 0.3) !important;
+  color: #e0e8ff !important;
 }
 
 /* Labels and text in filters */

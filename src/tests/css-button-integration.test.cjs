@@ -32,11 +32,11 @@ describe('CSS Button Integration', () => {
   test('action-button should be clickable', () => {
     const button = document.getElementById('uploadBtn');
     let clicked = false;
-    
+
     button.addEventListener('click', () => {
       clicked = true;
     });
-    
+
     button.click();
     expect(clicked).toBe(true);
   });
@@ -44,11 +44,11 @@ describe('CSS Button Integration', () => {
   test('hamburger-menu should be clickable', () => {
     const button = document.getElementById('hamburgerBtn');
     let clicked = false;
-    
+
     button.addEventListener('click', () => {
       clicked = true;
     });
-    
+
     button.click();
     expect(clicked).toBe(true);
   });
@@ -56,25 +56,25 @@ describe('CSS Button Integration', () => {
   test('nav-button should be clickable', () => {
     const button = document.getElementById('darkModeBtn');
     let clicked = false;
-    
+
     button.addEventListener('click', () => {
       clicked = true;
     });
-    
+
     button.click();
     expect(clicked).toBe(true);
   });
 
   test('dark mode should not affect button functionality', () => {
     document.body.classList.add('dark-mode');
-    
+
     const button = document.getElementById('uploadBtn');
     let clicked = false;
-    
+
     button.addEventListener('click', () => {
       clicked = true;
     });
-    
+
     button.click();
     expect(clicked).toBe(true);
   });
@@ -82,7 +82,7 @@ describe('CSS Button Integration', () => {
   test('buttons should have proper structure', () => {
     const actionButton = document.getElementById('uploadBtn');
     const navButton = document.getElementById('darkModeBtn');
-    
+
     expect(actionButton.classList.contains('action-button')).toBe(true);
     expect(navButton.classList.contains('nav-button')).toBe(true);
   });

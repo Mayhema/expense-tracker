@@ -400,15 +400,23 @@
 }
 
 .amount-inputs {
-  display: flex;
-  gap: 12px;
+  display: flex !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
 }
 
 .amount-input-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  max-width: calc(50% - 6px) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .amount-input-group label {
@@ -417,6 +425,28 @@
   color: #667eea;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.amount-input-group input {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 80px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.9rem !important;
+  padding: 8px 12px !important;
+}
+
+/* Ensure filter card containers don't overflow */
+.filter-card .amount-inputs {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.filter-card .amount-input-group {
+  max-width: calc(50% - 6px) !important;
+  overflow: hidden !important;
 }
 
 /* Enhanced Search Input Styling */
@@ -900,60 +930,36 @@
   transform: translateY(-1px);
 }
 
-/* Enhanced Animation for dropdown */
-@keyframes dropdownSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-12px) scale(0.95);
-  }
+/* FIX DROPDOWN ARROW CLICK ISSUES - MAKE FULL AREA CLICKABLE */
 
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* Remove browser default styling to make entire dropdown clickable */
+.modern-select,
+.preset-selector,
+.filter-select,
+select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L6 6L11 1" stroke="%23667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 12px 8px !important;
+  padding-right: 40px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: all !important;
 }
 
-.category-dropdown[style*="block"] {
-  animation: dropdownSlideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Dark mode dropdown arrows */
+body.dark-mode .modern-select,
+body.dark-mode .preset-selector,
+body.dark-mode .filter-select,
+body.dark-mode select {
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L6 6L11 1" stroke="%23e0e8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') !important;
 }
 
-/* Enhanced hover effects */
-.filter-group:hover .filter-select,
-.filter-group:hover .filter-input {
-  border-color: #a0aec0;
-}
-
-.filter-group:hover label {
-  color: #667eea;
-}
-
-/* Loading state for filters */
-.advanced-filters.loading {
-  pointer-events: none;
-  opacity: 0.7;
-}
-
-.advanced-filters.loading::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 24px;
-  height: 24px;
-  margin: -12px 0 0 -12px;
-  border: 2px solid #667eea;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Enhanced Dark Mode Support - Ultra High Specificity for Transaction Filters */
+/* Dark mode specific overrides for dropdown containers */
 body.dark-mode #transactionFilters,
 body.dark-mode #transactionFilters .transaction-filters,
 body.dark-mode .transaction-filters .advanced-filters,
@@ -1057,6 +1063,7 @@ body.dark-mode .filter-grid {
 }
 
 @media (min-width: 768px) {
+
   body.dark-mode #transactionFilters .filter-grid,
   body.dark-mode .transaction-filters .filter-grid,
   body.dark-mode .advanced-filters .filter-grid,
@@ -1067,6 +1074,7 @@ body.dark-mode .filter-grid {
 }
 
 @media (min-width: 1024px) {
+
   body.dark-mode #transactionFilters .filter-grid,
   body.dark-mode .transaction-filters .filter-grid,
   body.dark-mode .advanced-filters .filter-grid,
@@ -1077,6 +1085,7 @@ body.dark-mode .filter-grid {
 }
 
 @media (min-width: 1400px) {
+
   body.dark-mode #transactionFilters .filter-grid,
   body.dark-mode .transaction-filters .filter-grid,
   body.dark-mode .advanced-filters .filter-grid,
@@ -1087,6 +1096,7 @@ body.dark-mode .filter-grid {
 }
 
 @media (min-width: 1600px) {
+
   body.dark-mode #transactionFilters .filter-grid,
   body.dark-mode .transaction-filters .filter-grid,
   body.dark-mode .advanced-filters .filter-grid,
@@ -1524,4 +1534,45 @@ body.dark-mode .filter-status {
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+/* Fix dropdown arrow click area - make entire select element clickable */
+.filter-select,
+.advanced-filters select,
+select.filter-select,
+.modern-select,
+#categoryDropdown,
+#currencyFilter,
+#timeRangeFilter {
+  cursor: pointer !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 16px !important;
+  padding-right: 40px !important;
+}
+
+/* Ensure the entire select area is clickable - remove browser default arrow */
+.filter-select::-ms-expand,
+.advanced-filters select::-ms-expand,
+select.filter-select::-ms-expand,
+.modern-select::-ms-expand,
+#categoryDropdown::-ms-expand,
+#currencyFilter::-ms-expand,
+#timeRangeFilter::-ms-expand {
+  display: none !important;
+}
+
+/* Dark mode dropdown arrows */
+body.dark-mode .filter-select,
+body.dark-mode .advanced-filters select,
+body.dark-mode select.filter-select,
+body.dark-mode .modern-select,
+body.dark-mode #categoryDropdown,
+body.dark-mode #currencyFilter,
+body.dark-mode #timeRangeFilter {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0e8ff' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>") !important;
 }

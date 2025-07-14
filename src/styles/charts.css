@@ -56,7 +56,7 @@
 body.dark-mode .chart-container {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
   border: 2px solid rgba(102, 126, 234, 0.3) !important;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
     0 2px 8px rgba(102, 126, 234, 0.2) !important;
 }
@@ -83,6 +83,82 @@ body.dark-mode .chart-container canvas {
 body.dark-mode .chartjs-render-monitor {
   color: #e0e8ff !important;
   background: transparent !important;
+}
+
+/* Fix for chart text becoming unreadable when switching modes */
+body.dark-mode .chart-container .chartjs-render-monitor,
+body.dark-mode .chart-container canvas,
+body.dark-mode canvas {
+  transition: none !important;
+  color: #e0e8ff !important;
+  fill: #e0e8ff !important;
+}
+
+/* ULTIMATE FIX: Chart text persistence during mode switching */
+.chart-container *,
+.chart-container text,
+.chart-container tspan,
+canvas *,
+canvas text,
+.chart-wrapper *,
+#incomeExpenseChartWrapper * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Force light mode chart text colors */
+html body:not(.dark-mode) .chart-container *,
+html body:not(.dark-mode) .chart-wrapper *,
+html body:not(.dark-mode) canvas *,
+html body:not(.dark-mode) canvas text,
+html body:not(.dark-mode) .chartjs-render-monitor *,
+html body:not(.dark-mode) #incomeExpenseChartWrapper * {
+  color: #333333 !important;
+  fill: #333333 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Force dark mode chart text colors */
+html body.dark-mode .chart-container *,
+html body.dark-mode .chart-wrapper *,
+html body.dark-mode canvas *,
+html body.dark-mode canvas text,
+html body.dark-mode .chartjs-render-monitor *,
+html body.dark-mode #incomeExpenseChartWrapper * {
+  color: #e0e8ff !important;
+  fill: #e0e8ff !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Additional chart text persistence for all scenarios */
+html body.dark-mode .chart-container text,
+html body.dark-mode .chart-container tspan,
+html body.dark-mode canvas text,
+html body.dark-mode canvas tspan {
+  fill: #e0e8ff !important;
+  color: #e0e8ff !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Light mode chart text to ensure proper visibility */
+body:not(.dark-mode) .chart-container *,
+body:not(.dark-mode) .chart-wrapper *,
+body:not(.dark-mode) #incomeExpenseChartWrapper * {
+  color: #333 !important;
+  fill: #333 !important;
+  transition: none !important;
+}
+
+body:not(.dark-mode) .chart-container text,
+body:not(.dark-mode) .chart-container tspan,
+body:not(.dark-mode) canvas text {
+  fill: #333 !important;
+  color: #333 !important;
+  font-weight: 500 !important;
+  transition: none !important;
 }
 
 body.dark-mode .chart-container .chartjs-tooltip {

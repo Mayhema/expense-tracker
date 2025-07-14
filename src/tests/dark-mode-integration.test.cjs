@@ -58,8 +58,8 @@ describe('Dark Mode CSS Integration', () => {
   describe('Futuristic Styling (Issue #3)', () => {
     test('has cyberpunk visual effects', () => {
       expect(mainCssContent).toContain('backdrop-filter: blur(10px)');
-      expect(mainCssContent).toContain('pulse-border');
-      expect(mainCssContent).toContain('linear-gradient(45deg, #667eea');
+      expect(mainCssContent).toContain('linear-gradient(135deg, #0a0a0f');
+      expect(mainCssContent).toContain('border-image: linear-gradient(45deg, #667eea');
     });
 
     test('has advanced shadow and glow effects', () => {
@@ -105,7 +105,7 @@ describe('Dark Mode CSS Integration', () => {
         'grid-template-columns: repeat(3, 1fr)',
         'backdrop-filter: blur(10px)'
       ];
-      
+
       criticalStyles.forEach(style => {
         expect(mainCssContent).toContain(style);
       });

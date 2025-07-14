@@ -8,8 +8,22 @@
   width: 100% !important;
   height: 100% !important;
   z-index: 10000 !important;
+  pointer-events: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s ease, visibility 0.3s ease !important;
+}
+
+/* When modal is actually open */
+.modal-container.active,
+.modal-container.open,
+.modal-container[style*="display: block"],
+.modal-container[style*="display:block"] {
   pointer-events: auto !important;
   display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .modal-overlay {

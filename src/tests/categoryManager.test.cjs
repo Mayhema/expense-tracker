@@ -67,7 +67,7 @@ describe('Category Manager', () => {
       const modal = document.getElementById('categoryManagerModal');
       const categoryList = document.getElementById('categoryList');
       const addBtn = document.getElementById('addCategoryBtn');
-      
+
       expect(modal).toBeTruthy();
       expect(categoryList).toBeTruthy();
       expect(addBtn).toBeTruthy();
@@ -77,11 +77,11 @@ describe('Category Manager', () => {
   describe('Category Operations', () => {
     test('should simulate adding category', () => {
       const newCategoryName = 'Entertainment';
-      mockAppState.categories[newCategoryName] = { 
-        name: newCategoryName, 
-        subcategories: [] 
+      mockAppState.categories[newCategoryName] = {
+        name: newCategoryName,
+        subcategories: []
       };
-      
+
       expect(mockAppState.categories[newCategoryName]).toBeDefined();
       expect(mockAppState.categories[newCategoryName].name).toBe(newCategoryName);
     });
@@ -89,7 +89,7 @@ describe('Category Manager', () => {
     test('should simulate deleting category', () => {
       const categoryToDelete = 'Transport';
       delete mockAppState.categories[categoryToDelete];
-      
+
       expect(mockAppState.categories[categoryToDelete]).toBeUndefined();
       expect(Object.keys(mockAppState.categories)).toHaveLength(1);
     });
@@ -97,11 +97,11 @@ describe('Category Manager', () => {
     test('should simulate editing category', () => {
       const oldName = 'Food';
       const newName = 'Food & Dining';
-      
+
       mockAppState.categories[newName] = mockAppState.categories[oldName];
       mockAppState.categories[newName].name = newName;
       delete mockAppState.categories[oldName];
-      
+
       expect(mockAppState.categories[oldName]).toBeUndefined();
       expect(mockAppState.categories[newName]).toBeDefined();
       expect(mockAppState.categories[newName].name).toBe(newName);
