@@ -307,7 +307,7 @@ function handlePlaceholderSelection(selectElement, selectedValue) {
   if (!AppState.currentSuggestedMapping) {
     AppState.currentSuggestedMapping = new Array(document.querySelectorAll('.header-select').length).fill('–');
   }
-  if (columnIndex >= 0 && columnIndex < AppState.currentSuggestedMapping.length) {
+  if (columnIndex >= 0 && columnIndex < AppState.currentSuggestedMapping?.length) {
     AppState.currentSuggestedMapping[columnIndex] = selectedValue;
   }
 
@@ -427,7 +427,7 @@ export function renderHeaderPreview(data, containerId, headerInputId, dataInputI
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Map To</td>
           ${headerRow.map((_, i) => {
-    const selected = suggestedMapping && suggestedMapping[i] ? suggestedMapping[i] : "–";
+    const selected = suggestedMapping?.[i] ?? "–";
     return `
               <td style="padding: 8px; border: 1px solid #ddd;">
                 <select class="header-map" data-column-index="${i}" style="width: 100%;">

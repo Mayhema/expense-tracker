@@ -455,7 +455,7 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error(colors.red + '💥 Unhandled Rejection: ' + reason + colors.reset);
+  console.error(colors.red + '💥 Unhandled Rejection: ' + String(reason) + colors.reset);
   process.exit(2);
 });
 

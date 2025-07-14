@@ -323,7 +323,8 @@ function testCurrencyDropdownGeneration(selectedCurrency) {
 
 const dropdownHTML = testCurrencyDropdownGeneration('EUR');
 assert(dropdownHTML.includes('EUR') && dropdownHTML.includes('selected'), 'EUR should be selected');
-assert(dropdownHTML.includes('USD') && !dropdownHTML.match(/USD.*selected/), 'USD should not be selected');
+const usdRegex = /USD.*selected/;
+assert(dropdownHTML.includes('USD') && !usdRegex.exec(dropdownHTML), 'USD should not be selected');
 assert(dropdownHTML.includes('€ EUR'), 'Should include Euro symbol');
 
 console.log('\n7️⃣ TESTING FUNCTION SIGNATURES');

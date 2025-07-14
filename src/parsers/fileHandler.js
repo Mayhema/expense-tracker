@@ -252,7 +252,7 @@ function parseXMLToRows(xmlDoc) {
  * @returns {string} File signature
  */
 export function generateFileSignature(fileName, data, mapping = null, currency = null) {
-  if (!data || !data[0]) {
+  if (!data?.[0]) {
     return 'empty-file';
   }
 

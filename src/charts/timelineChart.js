@@ -103,7 +103,7 @@ function prepareTimelineData(transactions) {
   });
 
   // Sort months chronologically
-  const sortedMonths = Object.keys(monthlyData).sort();
+  const sortedMonths = Object.keys(monthlyData).sort((a, b) => a.localeCompare(b));
 
   if (sortedMonths.length === 0) {
     return { labels: [], datasets: [] };
@@ -696,7 +696,7 @@ function aggregateByPeriod(transactions, period) {
   });
 
   // Convert to arrays for chart
-  const periods = Object.keys(periodMap).sort();
+  const periods = Object.keys(periodMap).sort((a, b) => a.localeCompare(b));
   const labels = periods.map(p => period === 'month' ? periodMap[p].label : p);
   const incomeData = periods.map(p => periodMap[p].income);
   const expenseData = periods.map(p => periodMap[p].expenses);

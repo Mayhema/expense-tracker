@@ -11,8 +11,14 @@
     "moduleResolution": "node"
   },
   "include": [
+    "*.ts",
     "*.cjs",
-    "*.test.cjs"
+    "*.test.ts",
+    "*.test.cjs",
+    "**/*.ts",
+    "**/*.cjs",
+    "**/*.test.ts",
+    "**/*.test.cjs"
   ],
   "exclude": [
     "node_modules",

@@ -83,7 +83,7 @@ function renderCategoryList(container) {
   if (!categoriesList) return;
 
   const categories = AppState.categories || {};
-  const sortedCategories = Object.keys(categories).sort();
+  const sortedCategories = Object.keys(categories).sort((a, b) => a.localeCompare(b));
 
   if (sortedCategories.length === 0) {
     categoriesList.innerHTML = `
