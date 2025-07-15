@@ -41,7 +41,7 @@ function expect(actual) {
       }
     },
     toContain: (expected) => {
-      if (!actual || !actual.includes(expected)) {
+      if (!actual?.includes(expected)) {
         throw new Error(`Expected "${actual}" to contain "${expected}"`);
       }
     }

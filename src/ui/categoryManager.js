@@ -36,7 +36,7 @@ export function showCategoryManagerModal() {
   // FIXED: Check if modal is actually visible before preventing multiple modals
   if (categoryManagerModalInstance) {
     const modalElement = document.querySelector('.modal-overlay .category-manager-content');
-    if (modalElement && modalElement.closest('.modal-overlay').style.display !== 'none') {
+    if (modalElement?.closest('.modal-overlay')?.style.display !== 'none') {
       console.log('Category manager modal already open and visible');
       return categoryManagerModalInstance;
     } else {
@@ -168,17 +168,17 @@ function buildCategoriesGrid(categories) {
   // Get sorted categories by order
   const sortedCategories = Object.entries(categories)
     .sort(([, a], [, b]) => {
-      const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
-      const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
+      const orderA = (typeof a === 'object' && a?.order !== undefined) ? a.order : 999;
+      const orderB = (typeof b === 'object' && b?.order !== undefined) ? b.order : 999;
       return orderA - orderB;
     });
 
   let html = '<div class="categories-grid" id="categoriesGrid">';
 
   sortedCategories.forEach(([categoryName, categoryData], index) => {
-    const order = (typeof categoryData === 'object' && categoryData.order !== undefined) ? categoryData.order : index;
-    const color = (typeof categoryData === 'string') ? categoryData : (categoryData.color || '#cccccc');
-    const subcategories = (typeof categoryData === 'object' && categoryData.subcategories) ? categoryData.subcategories : {};
+    const order = (typeof categoryData === 'object' && categoryData?.order !== undefined) ? categoryData.order : index;
+    const color = (typeof categoryData === 'string') ? categoryData : (categoryData?.color || '#cccccc');
+    const subcategories = (typeof categoryData === 'object' && categoryData?.subcategories) ? categoryData.subcategories : {};
     const subCount = Object.keys(subcategories).length;
 
     html += '<div class="category-card" data-category="' + categoryName + '" data-order="' + order + '" draggable="true">' +
@@ -472,7 +472,7 @@ function attachCategoryManagerEventListeners(container, modal) {
       const colorInput = categoryCard.querySelector('.edit-color-input');
       const orderInput = categoryCard.querySelector('.edit-order-input');
 
-      if (nameInput && colorInput) {
+      if (nameInput?.value && colorInput?.value) {
         const newName = nameInput.value.trim();
         const newColor = colorInput.value;
         const newOrder = parseInt(orderInput.value) || 0;

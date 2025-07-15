@@ -265,8 +265,9 @@ function handleCurrencyUpdate(transactionId, newValue) {
   setTimeout(async () => {
     try {
       const { updateTransactionSummary } = await import('./transactionSummary.js');
-      const { applyFilters } = await import('../../core/transactionCoordinator.js');
-      const filteredTransactions = applyFilters(AppState.transactions);
+      // Use modern filtering approach instead of deprecated applyFilters
+      const { getFilteredTransactions } = await import('../../ui/filters/advancedFilters.js');
+      const filteredTransactions = getFilteredTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after currency change");
     } catch (error) {

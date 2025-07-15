@@ -1,3 +1,5 @@
+# Dark Mode Issues Resolution
+
 🎉 ALL DARK MODE ISSUES HAVE BEEN RESOLVED!
 
 ## Summary of Issues Fixed

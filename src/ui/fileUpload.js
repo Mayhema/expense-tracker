@@ -341,7 +341,7 @@ function validateFileData(file, data) {
 // Helper function to attempt CSV single-cell splitting
 function attemptCsvSplit(data) {
   const headerRow = data[0];
-  if (headerRow && headerRow.length === 1 && typeof headerRow[0] === 'string' && headerRow[0].includes(',')) {
+  if (headerRow?.length === 1 && typeof headerRow[0] === 'string' && headerRow[0].includes(',')) {
     console.log("DEBUG: Detected CSV data in single cell, attempting to split");
     const splitData = data.map(row => {
       if (row?.[0] && typeof row[0] === 'string') {
@@ -350,7 +350,7 @@ function attemptCsvSplit(data) {
       return row;
     });
 
-    if (splitData[0] && splitData[0].length >= 2) {
+    if (splitData?.[0]?.length >= 2) {
       console.log("DEBUG: Successfully split CSV data, proceeding with split data");
       return { success: true, data: splitData };
     }
@@ -368,7 +368,7 @@ function filterEmptyColumns(data) {
     return row;
   });
 
-  if (filteredData[0] && filteredData[0].length >= 2) {
+  if (filteredData?.[0]?.length >= 2) {
     console.log("DEBUG: Successfully filtered empty columns, proceeding with filtered data");
     return { success: true, data: filteredData };
   }

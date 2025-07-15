@@ -149,7 +149,7 @@ export function showFileUploadModal(data, fileName) {
     let attempts = 0;
     const ensureButtonEnabled = () => {
       const btn = document.getElementById('saveHeadersBtn');
-      if (btn && attempts < 10) {
+      if (btn?.style && attempts < 10) {
         btn.disabled = false;
         btn.style.setProperty('pointer-events', 'auto', 'important');
         btn.style.setProperty('cursor', 'pointer', 'important');
@@ -174,7 +174,7 @@ export function showFileUploadModal(data, fileName) {
     const headerRowInput = document.getElementById('headerRowInput');
     const dataRowInput = document.getElementById('dataRowInput');
 
-    if (headerRowInput && dataRowInput) {
+    if (headerRowInput?.addEventListener && dataRowInput?.addEventListener) {
       headerRowInput.addEventListener('change', updateTablePreview);
       dataRowInput.addEventListener('change', updateTablePreview);
     }
@@ -321,7 +321,7 @@ function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1)
         <tr>
           <td>Map To</td>
           ${headerRow.map((_, i) => {
-    const selected = mapping && mapping[i] ? mapping[i] : "–";
+    const selected = mapping?.[i] ? mapping[i] : "–";
     return `
               <td>
                 <select class="header-map" data-index="${i}">
@@ -339,7 +339,7 @@ function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1)
           <td>Sample</td>
           ${dataRow.map((cell, index) => {
     // FIXED: Show converted date preview only if this column is mapped as Date
-    const isMappedAsDate = mapping && mapping[index] === 'Date';
+    const isMappedAsDate = mapping?.[index] === 'Date';
     let displayValue = cell || "<em>empty</em>";
 
     if (cell && isMappedAsDate && isExcelDate(cell)) {
