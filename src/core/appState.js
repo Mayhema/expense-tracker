@@ -28,7 +28,11 @@ export function initialize() {
     const savedTransactions = localStorage.getItem('transactions');
     if (savedTransactions) {
       AppState.transactions = JSON.parse(savedTransactions);
-      console.log(`Loaded ${AppState.transactions.length} transactions from localStorage`);
+      console.log(`✅ LOADED: ${AppState.transactions.length} transactions from localStorage`);
+
+      // Count how many already have IDs
+      const transactionsWithIds = AppState.transactions.filter(tx => tx.id).length;
+      console.log(`📝 EDITED TRANSACTIONS: Found ${transactionsWithIds} transactions with existing IDs after load`);
     }
 
     // Load merged files from localStorage

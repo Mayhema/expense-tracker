@@ -52,6 +52,13 @@ async function initializeMainApp() {
     await initializeChartsOnce();
 
     console.log("CRITICAL: App initialization complete");
+
+    // Mark initialization as complete
+    if (window.AppState) {
+      window.AppState.initialized = true;
+    }
+
+    console.log("✅ Expense Tracker initialized successfully");
   } catch (error) {
     console.error("CRITICAL ERROR: App initialization failed:", error);
     // Don't throw the error, just log it to prevent unhandled promise rejection
@@ -85,12 +92,10 @@ async function initializeChartsOnce() {
       // FIXED: Only update charts ONCE if we have data - prevent double updates
       if (AppState.transactions && AppState.transactions.length > 0) {
         console.log(`Performing SINGLE chart update with ${AppState.transactions.length} transactions`);
-        // FIXED: Add delay to ensure DOM is ready and prevent double update
-        setTimeout(() => {
-          chartsModule.updateCharts();
-          chartInitializationState.hasData = true;
-          console.log("Charts updated with existing transaction data - SINGLE UPDATE COMPLETE");
-        }, 500);
+        // Update charts immediately without delay - DOM should be ready by this point
+        chartsModule.updateCharts();
+        chartInitializationState.hasData = true;
+        console.log("Charts updated with existing transaction data - SINGLE UPDATE COMPLETE");
       } else {
         console.log("No transaction data available for initial chart update");
       }
@@ -123,7 +128,7 @@ async function safeInitialization() {
     // Then initialize the main application
     await initializeMainApp();
 
-    console.log('✅ Expense Tracker initialized successfully');
+    // Initialization complete message is already logged in initializeMainApp
   } catch (error) {
     console.error('❌ Failed to initialize Expense Tracker:', error);
     // Show user-friendly error message

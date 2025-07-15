@@ -110,7 +110,14 @@ try {
 
 } catch (error) {
   console.error('❌ Test execution failed:', error.message);
-  process.exit(1);
+  throw error;
 }
 
-process.exit(testsPassed === totalTests ? 0 : 1);
+// Don't call process.exit in Jest environment
+// process.exit(testsPassed === totalTests ? 0 : 1);
+
+describe('Transaction Summary Background', () => {
+  test('should verify all transaction summary background fixes', () => {
+    expect(testsPassed).toBe(totalTests);
+  });
+});

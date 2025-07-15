@@ -27,30 +27,8 @@ function getCategoryColor(categoryName) {
   return '#cccccc';
 }
 
-/**
- * Ensure all transactions have unique IDs and log the process
- */
-function ensureTransactionIds(transactions) {
-  console.group('🆔 ENSURING TRANSACTION IDS');
-  let idsAdded = 0;
-  let existingIds = 0;
-
-  transactions.forEach((tx, index) => {
-    if (!tx.id) {
-      tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
-      idsAdded++;
-      console.log(`🆔 ASSIGNED ID: ${tx.id} to transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
-    } else {
-      existingIds++;
-      console.log(`✓ EXISTING ID: ${tx.id} for transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
-    }
-  });
-
-  console.log(`🆔 SUMMARY: ${idsAdded} IDs added, ${existingIds} existing IDs found`);
-  console.groupEnd();
-
-  return transactions;
-}
+// ensureTransactionIds function removed - now handled by transactionCoordinator
+// to avoid duplicate processing and excessive logging
 
 /**
  * Generate category dropdown HTML
@@ -160,11 +138,8 @@ function generateTableStart() {
  * Processes transaction data for display
  */
 function processTransactionForDisplay(tx, index) {
-  // Ensure each transaction has a unique ID
-  if (!tx.id) {
-    tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
-    console.log(`🆔 GENERATED ID: ${tx.id} for transaction at index ${index}`);
-  }
+  // Transaction IDs should already be ensured by transactionCoordinator
+  // No need to generate IDs here
 
   console.log(`🔧 Rendering transaction ID ${tx.id} at index ${index}, category: "${tx.category}", description: "${tx.description?.substring(0, 50)}..."`);
 
@@ -187,8 +162,8 @@ function processTransactionForDisplay(tx, index) {
 export function generateTransactionTableHTML(transactions) {
   console.log(`🔧 Generating table HTML for ${transactions.length} transactions`);
 
-  // Ensure all transactions have IDs before rendering
-  ensureTransactionIds(transactions);
+  // Transaction IDs are ensured by transactionCoordinator before calling this function
+  // No need to duplicate ID assignment here
 
   let html = generateTableHeader(transactions.length);
   html += generateBulkActionsHTML();

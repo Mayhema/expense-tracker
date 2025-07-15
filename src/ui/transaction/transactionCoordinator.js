@@ -269,14 +269,16 @@ function ensureTransactionIds(transactions) {
     if (!tx.id) {
       tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
       idsAdded++;
-      console.log(`🆔 ASSIGNED ID: ${tx.id} to transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
+      // Only log when IDs are actually added, not for every transaction
     } else {
       existingIds++;
-      console.log(`✓ EXISTING ID: ${tx.id} for transaction at index ${index}, description: "${tx.description?.substring(0, 30)}..."`);
     }
   });
 
-  console.log(`🆔 SUMMARY: ${idsAdded} IDs added, ${existingIds} existing IDs found`);
+  // Only log summary if IDs were actually added
+  if (idsAdded > 0) {
+    console.log(`🆔 SUMMARY: ${idsAdded} new IDs added, ${existingIds} existing IDs preserved`);
+  }
   console.groupEnd();
 
   return transactions;
