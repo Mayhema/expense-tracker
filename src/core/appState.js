@@ -30,9 +30,24 @@ export function initialize() {
       AppState.transactions = JSON.parse(savedTransactions);
       console.log(`✅ LOADED: ${AppState.transactions.length} transactions from localStorage`);
 
-      // Count how many already have IDs
-      const transactionsWithIds = AppState.transactions.filter(tx => tx.id).length;
-      console.log(`📝 EDITED TRANSACTIONS: Found ${transactionsWithIds} transactions with existing IDs after load`);
+      // Ensure all transactions have IDs
+      let idsAdded = 0;
+      AppState.transactions.forEach((tx, index) => {
+        if (!tx.id) {
+          tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
+          idsAdded++;
+        }
+      });
+
+      if (idsAdded > 0) {
+        console.log(`📝 EDITED TRANSACTIONS: Added ${idsAdded} missing transaction IDs`);
+        // Save back to localStorage with IDs
+        localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+      }
+
+      // Count edited transactions
+      const editedTransactions = AppState.transactions.filter(tx => tx.edited).length;
+      console.log(`📝 EDITED TRANSACTIONS: Found ${editedTransactions} edited transactions after load`);
     }
 
     // Load merged files from localStorage

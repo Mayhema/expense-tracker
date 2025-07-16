@@ -252,6 +252,8 @@ function showRevertButton(transactionId) {
 function handleSpecialFieldUpdates(transactionId, fieldName, newValue) {
   if (fieldName === 'currency') {
     handleCurrencyUpdate(transactionId, newValue);
+  } else if (fieldName === 'category') {
+    handleCategoryUpdate(transactionId, newValue);
   }
 }
 
@@ -283,6 +285,37 @@ function handleCurrencyUpdate(transactionId, newValue) {
       console.log("💱 Currency filter options updated after currency change");
     } catch (error) {
       console.log('Error updating currency filter options:', error.message);
+    }
+  }, 150);
+}
+
+/**
+ * Helper function to handle category updates
+ */
+function handleCategoryUpdate(transactionId, newValue) {
+  console.log(`🏷️ Category changed for transaction ${transactionId} to ${newValue}`);
+
+  // Update charts to reflect new category distribution
+  setTimeout(async () => {
+    try {
+      const { updateChartsWithCurrentData } = await import('../../charts/chartManager.js');
+      updateChartsWithCurrentData();
+      console.log("📊 Charts updated after category change");
+    } catch (error) {
+      console.log('Error updating charts:', error.message);
+    }
+  }, 100);
+
+  // Update transaction summary to reflect new category distribution
+  setTimeout(async () => {
+    try {
+      const { updateTransactionSummary } = await import('./transactionSummary.js');
+      const { getFilteredTransactions } = await import('../../ui/filters/advancedFilters.js');
+      const filteredTransactions = getFilteredTransactions(AppState.transactions);
+      updateTransactionSummary(filteredTransactions);
+      console.log("🔄 Transaction summary updated after category change");
+    } catch (error) {
+      console.log('Error updating transaction summary:', error.message);
     }
   }, 150);
 }
@@ -643,12 +676,21 @@ export function exitEditModeById(transactionId) {
  */
 export function revertTransactionChanges(index) {
   const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
-  if (!row) return;
+  if (!row) {
+    console.warn(`⚠️ Row not found for index ${index} in revertTransactionChanges`);
+    return;
+  }
 
   const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
 
   fields.forEach(field => {
-    field.value = field.dataset.original;
+    const originalValue = field.dataset.original;
+    if (originalValue !== undefined && originalValue !== null) {
+      field.value = originalValue;
+      console.log(`🔄 Reverted field ${field.dataset.field || 'unknown'} to "${originalValue}"`);
+    } else {
+      console.warn(`⚠️ No original value found for field ${field.dataset.field || 'unknown'}, keeping current value`);
+    }
   });
 
   // Exit edit mode
@@ -741,6 +783,67 @@ export function revertAllChangesToOriginal(transactionId, index) {
     import('../uiManager.js').then(module => {
       if (module.showToast) {
         module.showToast('Error reverting transaction', 'error');
+      }
+    });
+  }
+}
+
+/**
+ * Delete a transaction by ID
+ */
+export function deleteTransactionById(transactionId) {
+  console.log(`🗑️ DELETING TRANSACTION: ${transactionId}`);
+
+  if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
+    console.error('❌ No transactions array in AppState');
+    return;
+  }
+
+  // Find transaction by ID
+  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  if (transactionIndex === -1) {
+    console.error(`❌ Transaction with ID ${transactionId} not found`);
+    import('../uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Transaction not found', 'error');
+      }
+    });
+    return;
+  }
+
+  // Confirm deletion
+  if (!confirm('Are you sure you want to delete this transaction?')) {
+    return;
+  }
+
+  // Remove transaction from array
+  AppState.transactions.splice(transactionIndex, 1);
+
+  console.log(`✅ TRANSACTION DELETED: ${transactionId}, remaining transactions: ${AppState.transactions.length}`);
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    console.log(`💾 DELETE SAVED: Transaction ${transactionId} removed from localStorage`);
+
+    import('../uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Transaction deleted successfully', 'success');
+      }
+    });
+
+    // Trigger refresh of transaction display
+    import('./transactionCoordinator.js').then(module => {
+      if (module.refreshTransactionDisplay) {
+        module.refreshTransactionDisplay();
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    import('../uiManager.js').then(module => {
+      if (module.showToast) {
+        module.showToast('Error deleting transaction', 'error');
       }
     });
   }

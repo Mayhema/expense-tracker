@@ -810,3 +810,161 @@ body.dark-mode .currency-header {
 body.dark-mode .currency-stats .stat-label {
   color: #adb5bd !important;
 }
+
+/* Column width fixes for better layout */
+.transaction-table th:nth-child(1) {
+  /* # column */
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+}
+
+.transaction-table th:nth-child(2) {
+  /* Date column */
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+}
+
+.transaction-table th:nth-child(3) {
+  /* Description column */
+  width: 35%;
+  min-width: 200px;
+}
+
+.transaction-table th:nth-child(4) {
+  /* Category column */
+  width: 15%;
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.transaction-table th:nth-child(5) {
+  /* Income column */
+  width: 10%;
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.transaction-table th:nth-child(6) {
+  /* Expenses column */
+  width: 10%;
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.transaction-table th:nth-child(7) {
+  /* Currency column */
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+}
+
+.transaction-table th:nth-child(8) {
+  /* Actions column */
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  text-align: center;
+}
+
+/* Apply same width constraints to table cells */
+.transaction-table td:nth-child(1) {
+  width: 80px;
+  max-width: 80px;
+}
+
+.transaction-table td:nth-child(2) {
+  width: 120px;
+  max-width: 120px;
+}
+
+.transaction-table td:nth-child(3) {
+  width: 35%;
+  min-width: 200px;
+  max-width: none;
+}
+
+.transaction-table td:nth-child(4) {
+  width: 15%;
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.transaction-table td:nth-child(5) {
+  width: 10%;
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.transaction-table td:nth-child(6) {
+  width: 10%;
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.transaction-table td:nth-child(7) {
+  width: 80px;
+  max-width: 80px;
+}
+
+.transaction-table td:nth-child(8) {
+  width: 180px;
+  max-width: 180px;
+  text-align: center;
+}
+
+.transaction-table .actions-cell {
+  padding: 8px 4px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.transaction-table .actions-cell .action-btn {
+  margin: 0 2px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* Edit mode enhancements to prevent buttons going out of view */
+.transaction-table tr.editing-mode {
+  background-color: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.transaction-table tr.editing-mode .actions-cell {
+  white-space: nowrap;
+  overflow: visible;
+  position: relative;
+  z-index: 10;
+}
+
+.transaction-table tr.editing-mode .actions-cell .action-btn {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 4px 8px;
+  font-size: 11px;
+  min-width: auto;
+  vertical-align: middle;
+}
+
+/* Ensure buttons are properly visible in edit mode */
+.transaction-table .btn-save,
+.transaction-table .btn-revert {
+  display: none;
+}
+
+.transaction-table tr.editing-mode .btn-save,
+.transaction-table tr.editing-mode .btn-revert {
+  display: inline-block !important;
+}
+
+.transaction-table tr.editing-mode .btn-edit {
+  display: none !important;
+}
+
+/* Fix for buttons in dark mode */
+body.dark-mode .transaction-table tr.editing-mode {
+  background-color: rgba(33, 150, 243, 0.15);
+  border: 1px solid rgba(33, 150, 243, 0.4);
+}

@@ -83,4 +83,4 @@ console.log('\n' + '='.repeat(50));
 console.log('🏆 PROJECT COMPLETION: 100% SUCCESS! 🏆');
 console.log('='.repeat(50));
 
-process.exit(0);
+// Removed process.exit(0) - not needed in Jest environment

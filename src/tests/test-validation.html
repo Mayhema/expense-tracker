@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaction Functionality Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .test-result {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Transaction Functionality Validation</h1>
+  <div id="results"></div>
+
+  <script type="module">
+    const results = document.getElementById('results');
+
+    function addResult(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+      div.textContent = message;
+      results.appendChild(div);
+    }
+
+    async function testModuleImports() {
+      try {
+        // Test if transaction modules can be imported
+        const transactionEditor = await import('./src/ui/transaction/transactionEditor.js');
+        addResult('✅ Transaction Editor module loaded successfully', 'success');
+
+        const transactionEventHandler = await import('./src/ui/transaction/transactionEventHandler.js');
+        addResult('✅ Transaction Event Handler module loaded successfully', 'success');
+
+        const transactionTableGenerator = await import('./src/ui/transaction/transactionTableGenerator.js');
+        addResult('✅ Transaction Table Generator module loaded successfully', 'success');
+
+        // Test key functions exist
+        if (typeof transactionEditor.saveFieldChangeById === 'function') {
+          addResult('✅ saveFieldChangeById function exists', 'success');
+        } else {
+          addResult('❌ saveFieldChangeById function missing', 'error');
+        }
+
+        if (typeof transactionEditor.deleteTransactionById === 'function') {
+          addResult('✅ deleteTransactionById function exists', 'success');
+        } else {
+          addResult('❌ deleteTransactionById function missing', 'error');
+        }
+
+        if (typeof transactionEditor.revertTransactionChanges === 'function') {
+          addResult('✅ revertTransactionChanges function exists', 'success');
+        } else {
+          addResult('❌ revertTransactionChanges function missing', 'error');
+        }
+
+        if (typeof transactionEventHandler.attachTransactionEventListeners === 'function') {
+          addResult('✅ attachTransactionEventListeners function exists', 'success');
+        } else {
+          addResult('❌ attachTransactionEventListeners function missing', 'error');
+        }
+
+      } catch (error) {
+        addResult(`❌ Module import error: ${error.message}`, 'error');
+      }
+    }
+
+    async function testAppStateAccess() {
+      try {
+        const appState = await import('./src/core/appState.js');
+        if (appState.AppState) {
+          addResult('✅ AppState module accessible', 'success');
+        } else {
+          addResult('❌ AppState not available', 'error');
+        }
+      } catch (error) {
+        addResult(`❌ AppState access error: ${error.message}`, 'error');
+      }
+    }
+
+    // Run tests
+    addResult('🧪 Starting validation tests...', 'info');
+    await testModuleImports();
+    await testAppStateAccess();
+    addResult('🏁 Validation tests completed', 'info');
+  </script>
+</body>
+
+</html>

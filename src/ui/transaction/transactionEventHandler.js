@@ -11,7 +11,8 @@ import {
   saveTransactionChangesById,
   enterEditMode,
   revertTransactionChanges,
-  revertAllChangesToOriginal
+  revertAllChangesToOriginal,
+  deleteTransactionById
 } from './transactionEditor.js';
 import { AppState } from '../../core/appState.js';
 
@@ -58,90 +59,16 @@ export function attachTransactionEventListeners() {
     });
   });
 
-  // Handle edit buttons
-  document.querySelectorAll('.btn-edit').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const transactionId = e.target.dataset.transactionId;
-      const index = parseInt(e.target.dataset.index);
-      console.log(`✏️ Edit button clicked for transaction ID: ${transactionId}, index: ${index}`);
-      enterEditMode(index);
-    });
-  });
-
-  // Handle field changes (only for currency and category which are always editable)
-  document.querySelectorAll('.edit-field').forEach(field => {
-    if (field.classList.contains('currency-field') || field.classList.contains('category-select')) {
-      field.addEventListener('change', (e) => {
-        const transactionId = e.target.dataset.transactionId;
-        const fieldName = e.target.dataset.field;
-        const newValue = e.target.value;
-
-        console.log(`🔄 Field change detected for transaction ID ${transactionId}, field ${fieldName}, new value: "${newValue}"`);
-
-        // Use transaction ID to find the correct transaction
-        saveFieldChangeById(transactionId, fieldName, newValue);
-      });
-    } else {
-      // For other fields, only listen when in edit mode
-      field.addEventListener('input', (e) => {
-        const row = e.target.closest('tr');
-        if (row.dataset.editMode === 'true') {
-          const saveBtn = row.querySelector('.btn-save');
-          const revertBtn = row.querySelector('.btn-revert');
-
-          const hasChanges = checkRowForChanges(row);
-
-          if (hasChanges) {
-            saveBtn.style.display = 'inline-block';
-            revertBtn.style.display = 'inline-block';
-            row.classList.add('has-changes');
-          } else {
-            saveBtn.style.display = 'none';
-            revertBtn.style.display = 'none';
-            row.classList.remove('has-changes');
-          }
-        }
-      });
-    }
-  });
-
-  // Handle save buttons
-  document.querySelectorAll('.btn-save').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const transactionId = e.target.dataset.transactionId;
-      const index = parseInt(e.target.dataset.index);
-      console.log(`💾 Save button clicked for transaction ID: ${transactionId}, index: ${index}`);
-
-      // Use transaction ID instead of index for safer saving
-      if (transactionId) {
-        saveTransactionChangesById(transactionId);
-      } else {
-        console.warn('⚠️ No transaction ID found, falling back to index-based save');
-        // Fallback to legacy index-based save if needed
-        saveTransactionChanges(index);
-      }
-    });
-  });
-
-  // Handle revert buttons
-  document.querySelectorAll('.btn-revert').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const transactionId = e.target.dataset.transactionId;
-      const index = parseInt(e.target.dataset.index);
-      console.log(`↶ Revert button clicked for transaction ID: ${transactionId}, index: ${index}`);
-      revertTransactionChanges(index);
-    });
-  });
-
-  // Handle revert all buttons
-  document.querySelectorAll('.btn-revert-all').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const transactionId = e.target.dataset.transactionId;
-      const index = parseInt(e.target.dataset.index);
-      console.log(`🔄 Revert all button clicked for transaction ID: ${transactionId}, index: ${index}`);
-      revertAllChangesToOriginal(transactionId, index);
-    });
-  });
+  // Use event delegation for transaction buttons and fields
+  const transactionTableWrapper = document.getElementById('transactionTableWrapper');
+  if (transactionTableWrapper) {
+    transactionTableWrapper.addEventListener('click', handleTransactionTableClick);
+    transactionTableWrapper.addEventListener('change', handleTransactionFieldChange);
+    transactionTableWrapper.addEventListener('input', handleTransactionFieldInput);
+    console.log('✓ Event delegation attached to transaction table wrapper');
+  } else {
+    console.warn('⚠️ Transaction table wrapper not found, events may not work');
+  }
 
   console.log('✓ Transaction event listeners attached successfully');
 }
@@ -365,5 +292,130 @@ function saveTransactionChanges(index) {
     saveTransactionChangesById(transactionId);
   } else {
     console.error('❌ Transaction has no ID, cannot save safely');
+  }
+}
+
+/**
+ * Handle click events on transaction table buttons
+ */
+function handleTransactionTableClick(e) {
+  const target = e.target;
+  const transactionId = target.dataset.transactionId;
+  const index = parseInt(target.dataset.index);
+
+  if (target.classList.contains('btn-edit')) {
+    handleEditButtonClick(transactionId, index);
+  } else if (target.classList.contains('btn-save')) {
+    handleSaveButtonClick(transactionId);
+  } else if (target.classList.contains('btn-revert')) {
+    handleRevertButtonClick(index);
+  } else if (target.classList.contains('btn-revert-all')) {
+    handleRevertAllButtonClick(transactionId, index);
+  } else if (target.classList.contains('btn-delete')) {
+    handleDeleteButtonClick(transactionId);
+  }
+}
+
+/**
+ * Handle edit button click
+ */
+function handleEditButtonClick(transactionId, index) {
+  console.log(`✏️ Edit button clicked for transaction ID: ${transactionId}, index: ${index}`);
+  if (index !== undefined && !isNaN(index)) {
+    enterEditMode(index);
+  }
+}
+
+/**
+ * Handle save button click
+ */
+function handleSaveButtonClick(transactionId) {
+  console.log(`💾 Save button clicked for transaction ID: ${transactionId}`);
+  if (transactionId) {
+    saveTransactionChangesById(transactionId);
+  } else {
+    console.warn('⚠️ No transaction ID found for save button');
+  }
+}
+
+/**
+ * Handle revert button click
+ */
+function handleRevertButtonClick(index) {
+  console.log(`↶ Revert button clicked for index: ${index}`);
+  if (index !== undefined && !isNaN(index)) {
+    revertTransactionChanges(index);
+  }
+}
+
+/**
+ * Handle revert all button click
+ */
+function handleRevertAllButtonClick(transactionId, index) {
+  console.log(`🔄 Revert all button clicked for transaction ID: ${transactionId}, index: ${index}`);
+  if (transactionId) {
+    revertAllChangesToOriginal(transactionId, index);
+  } else {
+    console.warn('⚠️ No transaction ID found for revert all button');
+  }
+}
+
+/**
+ * Handle delete button click
+ */
+function handleDeleteButtonClick(transactionId) {
+  console.log(`🗑️ Delete button clicked for transaction ID: ${transactionId}`);
+  if (transactionId) {
+    deleteTransactionById(transactionId);
+  } else {
+    console.warn('⚠️ No transaction ID found for delete button');
+  }
+}
+
+/**
+ * Handle change events on transaction form fields
+ */
+function handleTransactionFieldChange(e) {
+  const target = e.target;
+  if (target.classList.contains('edit-field')) {
+    const transactionId = target.dataset.transactionId;
+    const fieldName = target.dataset.field;
+    const newValue = target.value;
+
+    if (target.classList.contains('currency-field') || target.classList.contains('category-select')) {
+      console.log(`🔄 Field change detected for transaction ID ${transactionId}, field ${fieldName}, new value: "${newValue}"`);
+      if (transactionId && fieldName) {
+        saveFieldChangeById(transactionId, fieldName, newValue);
+      }
+    }
+  }
+}
+
+/**
+ * Handle input events on transaction text fields
+ */
+function handleTransactionFieldInput(e) {
+  const target = e.target;
+  if (target.classList.contains('edit-field') &&
+    !target.classList.contains('currency-field') &&
+    !target.classList.contains('category-select')) {
+
+    const row = target.closest('tr');
+    if (row && row.dataset.editMode === 'true') {
+      const saveBtn = row.querySelector('.btn-save');
+      const revertBtn = row.querySelector('.btn-revert');
+
+      const hasChanges = checkRowForChanges(row);
+
+      if (hasChanges) {
+        saveBtn.style.display = 'inline-block';
+        revertBtn.style.display = 'inline-block';
+        row.classList.add('has-changes');
+      } else {
+        saveBtn.style.display = 'none';
+        revertBtn.style.display = 'none';
+        row.classList.remove('has-changes');
+      }
+    }
   }
 }

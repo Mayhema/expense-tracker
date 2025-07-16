@@ -250,12 +250,10 @@ export function generateTransactionTableHTML(transactions) {
                  placeholder="0.00">
         </td>
         <td class="currency-cell">
-          <span class="display-value">${processedTx.currency}</span>
           <select class="edit-field currency-field"
                   data-transaction-id="${processedTx.id}"
                   data-field="currency"
-                  data-index="${index}"
-                  style="display: none;">
+                  data-index="${index}">
             ${currencyOptions}
           </select>
         </td>
