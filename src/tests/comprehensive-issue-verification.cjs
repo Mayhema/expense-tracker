@@ -104,7 +104,7 @@ try {
   let jestConfigured = false;
   if (packageJsonExists) {
     const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-    jestConfigured = packageJson.scripts && packageJson.scripts.test;
+    jestConfigured = packageJson.scripts?.test;
   }
   test('5.2 Jest test framework configured', jestConfigured);
 

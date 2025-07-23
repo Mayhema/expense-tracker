@@ -139,7 +139,7 @@ console.log('\n💱 TEST 2: Verify currency filter would update');
 console.log('------------------------------------------------');
 
 // Simulate what updateCurrencyFilterOptions would do
-const allCurrencies = [...new Set(AppState.transactions.map(tx => tx.currency))].sort();
+const allCurrencies = [...new Set(AppState.transactions.map(tx => tx.currency))].sort((a, b) => a.localeCompare(b));
 console.log(`🔍 All currencies in transactions: ${allCurrencies.join(', ')}`);
 console.log('✓ Currency filter dropdown would now include: GBP');
 

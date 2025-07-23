@@ -13,7 +13,7 @@ import { isExcelDate, formatExcelDateForPreview } from "../utils/dateUtils.js";
  * @param {string} fileName - The name of the file
  */
 export function showFileUploadModal(data, fileName) {
-  if (!data || !data.length) {
+  if (!data?.length) {
     showToast("No data to map", "error");
     return;
   }
@@ -299,7 +299,7 @@ function updateTablePreviewAfterMapping() {
  * Creates the table preview HTML with proper date conversion display
  */
 function createTablePreview(data, mapping, headerRowIndex = 0, dataRowIndex = 1) {
-  if (!data || !data.length) return '<p>No data to preview</p>';
+  if (!data?.length) return '<p>No data to preview</p>';
 
   const headerRow = data[headerRowIndex] || [];
   const dataRow = data[dataRowIndex] || [];

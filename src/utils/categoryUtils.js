@@ -22,8 +22,7 @@ export function getCategoryColor(categoryName, subcategoryName = null) {
   // Handle subcategory if provided
   if (subcategoryName &&
     typeof categoryValue === 'object' &&
-    categoryValue.subcategories &&
-    categoryValue.subcategories[subcategoryName]) {
+    categoryValue?.subcategories?.[subcategoryName]) {
     return categoryValue.subcategories[subcategoryName];
   }
 

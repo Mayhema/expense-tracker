@@ -199,6 +199,8 @@ try {
   let warningCalled = false;
   console.warn = () => { warningCalled = true; };
 
+  // Intentionally testing deprecated method to verify warning system
+  // eslint-disable-next-line sonarjs/deprecation
   transactionManager.saveFieldChange(0, 'category', 'Food');
   assert(warningCalled, 'Legacy functions should show deprecation warnings');
 

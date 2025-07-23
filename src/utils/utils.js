@@ -298,25 +298,23 @@ export function parseJSON(jsonString, defaultValue = null) {
 }
 
 /**
- * Gets value for primary condition
- * @param {boolean} condition - Condition to check
+ * Gets primary value when condition is met
  * @param {any} value - Value if condition is true
  * @param {any} defaultValue - Default value if condition is false
  * @returns {any} Formatted value
  */
-export function getPrimaryValue(condition, value, defaultValue) {
-  return condition ? value : defaultValue;
+export function getPrimaryValue(value, defaultValue) {
+  return value !== null && value !== undefined ? value : defaultValue;
 }
 
 /**
- * Gets value for secondary condition
- * @param {boolean} condition - Condition to check
+ * Gets secondary value when condition is met
  * @param {any} value - Value if condition is true
  * @param {any} defaultValue - Default value if condition is false
  * @returns {any} Formatted value
  */
-export function getSecondaryValue(condition, value, defaultValue) {
-  return condition ? value : defaultValue;
+export function getSecondaryValue(value, defaultValue) {
+  return value !== null && value !== undefined ? value : defaultValue;
 }
 
 /**

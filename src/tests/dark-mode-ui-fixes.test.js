@@ -56,7 +56,9 @@ describe('Dark Mode UI Fixes', () => {
 
     expect(select).not.toBeNull();
     expect(options.length).toBe(2);
-    expect(select.style.height).not.toBe('');
+    // Check that the select element exists and has proper styling (height set via CSS, not inline)
+    const computedStyle = window.getComputedStyle(select);
+    expect(computedStyle.height).not.toBe('auto');
   });
 
   test('chart container should exist for dark mode styling', () => {

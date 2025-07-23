@@ -106,7 +106,7 @@ function renderSubcategories(parentName, parentCategory) {
     Object.keys(parentCategory.subcategories).length > 0) {
 
     // Sort subcategories alphabetically
-    const sortedSubcategories = Object.keys(parentCategory.subcategories).sort();
+    const sortedSubcategories = Object.keys(parentCategory.subcategories).sort((a, b) => a.localeCompare(b));
 
     sortedSubcategories.forEach(subName => {
       let subColor = parentCategory.subcategories[subName];
