@@ -100,7 +100,7 @@ export function openRegexRuleEditor() {
         <label for="ruleCategory">Category:</label>
         <select id="ruleCategory" class="category-select">
           <option value="">Select a category</option>
-          ${Object.keys(AppState.categories || {}).sort().map(cat =>
+          ${Object.keys(AppState.categories || {}).sort((a, b) => a.localeCompare(b)).map(cat =>
     `<option value="${cat}">${cat}</option>`
   ).join('')}
         </select>
@@ -214,7 +214,7 @@ export function updateSubcategorySelect() {
     subcategoryContainer.innerHTML = `
       <select id="ruleSub">
         <option value="">No subcategory</option>
-        ${Object.keys(category.subcategories).sort().map(sub =>
+        ${Object.keys(category.subcategories).sort((a, b) => a.localeCompare(b)).map(sub =>
       `<option value="${sub}">${sub}</option>`
     ).join('')}
       </select>

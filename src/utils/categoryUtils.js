@@ -107,7 +107,7 @@ export function getAllCategoriesFlat() {
  */
 export function getCategoryNames() {
   const categories = AppState?.categories || DEFAULT_CATEGORIES;
-  return Object.keys(categories).sort();
+  return Object.keys(categories).sort((a, b) => a.localeCompare(b));
 }
 
 /**

@@ -34,7 +34,7 @@ export function initialize() {
       let idsAdded = 0;
       AppState.transactions.forEach((tx, index) => {
         if (!tx.id) {
-          tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
+          tx.id = `tx_${Date.now()}_${Math.random()}`;
           idsAdded++;
         }
       });

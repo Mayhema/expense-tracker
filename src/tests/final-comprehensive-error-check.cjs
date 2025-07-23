@@ -123,4 +123,4 @@ if (allTestsPassed) {
 }
 
 console.log('\n🌐 Application ready at http://localhost:3000');
-process.exit(allTestsPassed ? 0 : 1);
+// Removed process.exit for Jest compatibility

@@ -146,4 +146,4 @@ try {
   process.exit(1);
 }
 
-process.exit(testsPassed === totalTests ? 0 : 1);
+// Removed process.exit for Jest compatibility

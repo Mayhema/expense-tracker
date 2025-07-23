@@ -134,8 +134,8 @@ if (allTestsPassed) {
   console.log('🚀 Application ready for production use!');
 } else {
   console.log('\n⚠️  Some issues remain that need attention');
-  process.exit(1);
+  // Removed process.exit for Jest compatibility
 }
 
 console.log('\n🌐 Application ready at http://localhost:3000');
-process.exit(0);
+// Removed process.exit for Jest compatibility

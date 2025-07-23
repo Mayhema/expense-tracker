@@ -33,7 +33,7 @@ export function renderCategoryUI(container) {
  */
 export function buildCategoryList() {
   const categories = AppState.categories || {};
-  const sortedCategories = Object.keys(categories).sort();
+  const sortedCategories = Object.keys(categories).sort((a, b) => a.localeCompare(b));
 
   let html = `
     <div class="add-category-form">

@@ -25,7 +25,7 @@ describe('Transaction Issues Fix Verification', () => {
       const appStateCode = fs.readFileSync('src/core/appState.js', 'utf8');
       check('Transaction ID generation fix - AppState ensures IDs on load',
         appStateCode.includes('if (!tx.id) {') &&
-        appStateCode.includes('tx.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;'));
+        appStateCode.includes('tx.id = `tx_${Date.now()}_${Math.random()}`;'));
 
       // Check Fix 2: Event delegation setup
       const eventHandlerCode = fs.readFileSync('src/ui/transaction/transactionEventHandler.js', 'utf8');

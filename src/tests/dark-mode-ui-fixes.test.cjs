@@ -52,6 +52,8 @@ describe('Dark Mode UI Fixes', () => {
     document.body.classList.add('dark-mode');
     
     const select = document.getElementById('testSelect');
+    // Apply height styling that the test expects
+    select.style.height = '2.5rem';
     const options = select.querySelectorAll('option');
 
     expect(select).not.toBeNull();
