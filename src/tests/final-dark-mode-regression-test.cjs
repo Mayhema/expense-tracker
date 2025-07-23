@@ -1,7 +1,7 @@
 /**
  * 🌙 FINAL COMPREHENSIVE DARK MODE TEST
  * Tests all the specific issues mentioned by the user:
- * 1. Advanced Filters dropdown visibility 
+ * 1. Advanced Filters dropdown visibility
  * 2. Category dropdown height constraints
  * 3. Transaction summary white backgrounds
  * 4. Chart text readability when switching modes
@@ -36,89 +36,89 @@ try {
   const chartsCSS = fs.readFileSync(path.join(__dirname, '../styles/charts.css'), 'utf8');
 
   console.log('🔍 Testing Issue #1: Advanced Filters dropdown visibility');
-  test('1.1 Dropdown options have dark mode styling', 
+  test('1.1 Dropdown options have dark mode styling',
     mainCSS.includes('body.dark-mode select option') &&
     mainCSS.includes('background: #1a1a2e !important')
   );
 
-  test('1.2 Dropdown options have proper text color', 
+  test('1.2 Dropdown options have proper text color',
     mainCSS.includes('color: #e0e8ff !important')
   );
 
   console.log('\n🔍 Testing Issue #2: Category dropdown height constraints');
-  test('2.1 Category dropdown height constraints removed', 
+  test('2.1 Category dropdown height constraints removed',
     filtersCSS.includes('max-height: none !important') &&
     filtersCSS.includes('overflow: visible !important')
   );
 
-  test('2.2 Advanced Filters overflow fixed for dropdowns', 
+  test('2.2 Advanced Filters overflow fixed for dropdowns',
     filtersCSS.includes('body.dark-mode .advanced-filters') &&
     filtersCSS.includes('overflow: visible !important')
   );
 
-  test('2.3 Category select button height fixed', 
+  test('2.3 Category select button height fixed',
     filtersCSS.includes('body.dark-mode .category-select-btn') &&
     filtersCSS.includes('max-height: none !important')
   );
 
   console.log('\n🔍 Testing Issue #3: Transaction summary white backgrounds');
-  test('3.1 Transaction summary ultra-high specificity selectors', 
+  test('3.1 Transaction summary ultra-high specificity selectors',
     transactionsCSS.includes('body.dark-mode .summary-card,') &&
     transactionsCSS.includes('body.dark-mode #transactionSummary .summary-card,') &&
     transactionsCSS.includes('body.dark-mode [id*="summary"] .summary-card')
   );
 
-  test('3.2 Additional main-content selector for summaries', 
+  test('3.2 Additional main-content selector for summaries',
     transactionsCSS.includes('body.dark-mode .main-content .summary-card')
   );
 
-  test('3.3 Transaction summary dark gradient backgrounds', 
+  test('3.3 Transaction summary dark gradient backgrounds',
     transactionsCSS.includes('linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)')
   );
 
   console.log('\n🔍 Testing Issue #4: Chart text readability when switching modes');
-  test('4.1 Chart text transition disabled', 
+  test('4.1 Chart text transition disabled',
     chartsCSS.includes('transition: none !important')
   );
 
-  test('4.2 Dark mode chart text color persistence', 
+  test('4.2 Dark mode chart text color persistence',
     chartsCSS.includes('body.dark-mode .chart-wrapper *') &&
     chartsCSS.includes('fill: #e0e8ff !important')
   );
 
-  test('4.3 Light mode chart text color persistence', 
+  test('4.3 Light mode chart text color persistence',
     chartsCSS.includes('body:not(.dark-mode) .chart-container *') &&
     chartsCSS.includes('fill: #333 !important')
   );
 
-  test('4.4 Chart container transition disabled globally', 
+  test('4.4 Chart container transition disabled globally',
     chartsCSS.includes('.chart-container *') &&
     chartsCSS.includes('transition: none !important')
   );
 
   console.log('\n🔍 Testing Issue #5: Modal styling in dark mode');
-  test('5.1 Modal inline style overrides', 
+  test('5.1 Modal inline style overrides',
     modalsCSS.includes('body.dark-mode .modal-header[style]') &&
     modalsCSS.includes('body.dark-mode .modal-content[style]')
   );
 
-  test('5.2 Modal dark gradient backgrounds', 
+  test('5.2 Modal dark gradient backgrounds',
     modalsCSS.includes('linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)')
   );
 
   console.log('\n🔍 Testing Advanced Features:');
-  test('6.1 Advanced Filters futuristic gradients', 
+  test('6.1 Advanced Filters futuristic gradients',
     filtersCSS.includes('linear-gradient(135deg, #0a0a0f') &&
     filtersCSS.includes('backdrop-filter: blur(20px)')
   );
 
-  test('6.2 Multi-column responsive grid', 
+  test('6.2 Multi-column responsive grid',
     filtersCSS.includes('grid-template-columns: repeat(3, 1fr)') &&
     filtersCSS.includes('grid-template-columns: repeat(4, 1fr)') &&
     filtersCSS.includes('grid-template-columns: repeat(5, 1fr)')
   );
 
-  test('6.3 Ultra-high CSS specificity for dark mode', 
+  test('6.3 Ultra-high CSS specificity for dark mode',
     filtersCSS.includes('body.dark-mode #transactionFilters') &&
     modalsCSS.includes('body.dark-mode .modal-header[style]')
   );
@@ -132,7 +132,7 @@ try {
     console.log('✅ Issue #3: Transaction summaries no longer show white backgrounds');
     console.log('✅ Issue #4: Chart text remains readable when switching between modes');
     console.log('✅ Issue #5: Modals have proper dark mode styling');
-    
+
     console.log('\n🚀 READY FOR TESTING!');
     console.log('\n📱 Manual Testing Instructions:');
     console.log('1. Open browser at: http://localhost:3000');

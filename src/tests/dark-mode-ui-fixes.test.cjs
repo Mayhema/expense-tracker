@@ -50,7 +50,7 @@ describe('Dark Mode UI Fixes', () => {
 
   test('advanced filters select should exist and be properly styled', () => {
     document.body.classList.add('dark-mode');
-    
+
     const select = document.getElementById('testSelect');
     // Apply height styling that the test expects
     select.style.height = '2.5rem';
@@ -73,19 +73,19 @@ describe('Dark Mode UI Fixes', () => {
 
   test('chart text should be readable when switching modes', () => {
     const chartContainer = document.querySelector('.chart-container');
-    
+
     // Test light mode
     document.body.classList.remove('dark-mode');
     expect(document.body.classList.contains('dark-mode')).toBe(false);
-    
+
     // Switch to dark mode
     document.body.classList.add('dark-mode');
     expect(document.body.classList.contains('dark-mode')).toBe(true);
-    
+
     // Switch back to light mode
     document.body.classList.remove('dark-mode');
     expect(document.body.classList.contains('dark-mode')).toBe(false);
-    
+
     expect(chartContainer).not.toBeNull();
   });
 
