@@ -558,10 +558,20 @@
   border: 2px solid #667eea;
   border-radius: 12px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 9999 !important;
   display: none;
   max-height: 320px;
-  overflow: hidden;
+  overflow: auto;
+  min-width: 100%;
+  width: 100%;
+}
+
+/* Ensure dropdown is visible when shown */
+.category-dropdown[style*="display: block"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 .category-search {
@@ -1462,6 +1472,7 @@ body.dark-mode .category-dropdown {
   box-shadow:
     0 15px 50px rgba(0, 0, 0, 0.5),
     0 8px 25px rgba(102, 126, 234, 0.3) !important;
+  z-index: 9999 !important;
 }
 
 body.dark-mode .category-option:hover {

@@ -766,13 +766,15 @@ select,
   max-height: none !important;
   overflow: visible !important;
   height: auto !important;
-  z-index: 1000 !important;
+  z-index: 9999 !important;
 }
 
 /* Ensure parent containers allow dropdowns to extend */
 .advanced-filters,
 .filter-card,
-.filter-card-content {
+.filter-card-content,
+.category-filter-container,
+.category-card {
   overflow: visible !important;
   z-index: auto !important;
 }
@@ -785,7 +787,7 @@ body.dark-mode .category-dropdown {
   max-height: none !important;
   overflow: visible !important;
   height: auto !important;
-  z-index: 1000 !important;
+  z-index: 9999 !important;
 }
 
 /* Modal Dark Mode Overrides */
