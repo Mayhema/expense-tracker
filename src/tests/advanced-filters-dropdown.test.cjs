@@ -52,10 +52,10 @@ describe('Advanced Filters Category Dropdown', () => {
             <div class="filter-card">
               <div class="filter-card-content">
                 <div class="category-filter-container">
-                  <button type="button" class="category-select-btn modern-btn" id="categorySelectBtn">
-                    <span class="selected-count">All Categories</span>
-                    <span class="dropdown-arrow">▼</span>
-                  </button>
+                  <select class="category-select-btn modern-select filter-select" id="categorySelectBtn">
+                    <option value="all">All Categories</option>
+                    <option value="selected">Selected Categories</option>
+                  </select>
                   <div class="category-dropdown" id="categoryDropdown">
                     <div class="category-search">
                       <input type="text" placeholder="Search categories..." class="category-search-input modern-input">
@@ -95,13 +95,15 @@ describe('Advanced Filters Category Dropdown', () => {
 
   test('category dropdown should exist with proper structure', () => {
     const dropdown = document.getElementById('categoryDropdown');
-    const button = document.getElementById('categorySelectBtn');
+    const selectElement = document.getElementById('categorySelectBtn');
     const container = document.querySelector('.category-filter-container');
 
     expect(dropdown).not.toBeNull();
-    expect(button).not.toBeNull();
+    expect(selectElement).not.toBeNull();
     expect(container).not.toBeNull();
     expect(dropdown.classList.contains('category-dropdown')).toBe(true);
+    expect(selectElement.tagName.toLowerCase()).toBe('select');
+    expect(selectElement.classList.contains('category-select-btn')).toBe(true);
   });
 
   test('category dropdown should have proper z-index for visibility', () => {
@@ -157,7 +159,7 @@ describe('Advanced Filters Category Dropdown', () => {
     });
   });
 
-  test('category dropdown should have proper positioning relative to button', () => {
+  test('category dropdown should have proper positioning relative to select', () => {
     const dropdown = document.getElementById('categoryDropdown');
     const container = document.querySelector('.category-filter-container');
 

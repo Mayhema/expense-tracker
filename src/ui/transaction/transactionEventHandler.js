@@ -299,9 +299,30 @@ function saveTransactionChanges(index) {
  * Handle click events on transaction table buttons
  */
 function handleTransactionTableClick(e) {
-  const target = e.target;
+  let target = e.target;
+
+  // If the clicked element is not a button, find the closest button
+  if (!target.classList.contains('action-btn')) {
+    target = target.closest('.action-btn');
+  }
+
+  // If still no button found, exit
+  if (!target) {
+    console.log('🔍 No action button found for click');
+    return;
+  }
+
   const transactionId = target.dataset.transactionId;
   const index = parseInt(target.dataset.index);
+
+  console.log('🔍 Transaction button clicked:', {
+    tagName: target.tagName,
+    classList: Array.from(target.classList),
+    transactionId,
+    index,
+    hasDataset: !!target.dataset,
+    allDataAttributes: Object.keys(target.dataset)
+  });
 
   if (target.classList.contains('btn-edit')) {
     handleEditButtonClick(transactionId, index);
@@ -331,6 +352,13 @@ function handleEditButtonClick(transactionId, index) {
  */
 function handleSaveButtonClick(transactionId) {
   console.log(`💾 Save button clicked for transaction ID: ${transactionId}`);
+
+  if (!transactionId) {
+    console.error('❌ No transaction ID provided to save button handler');
+    console.error('❌ This means the data-transaction-id attribute is missing from the button');
+    return;
+  }
+
   if (transactionId) {
     saveTransactionChangesById(transactionId);
   } else {

@@ -511,9 +511,35 @@
 /* Enhanced Category Filter Styling */
 .category-filter-container {
   position: relative;
+  width: 100%;
 }
 
-.category-select-btn,
+.category-select-btn {
+  /* Apply the same styling as other modern selects - consistent with Currency and Date Range */
+  width: 100% !important;
+  padding: 14px 18px;
+  border: 2px solid #e1e8ed;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fffe 100%);
+  color: #2c3e50;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  cursor: pointer !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 16px !important;
+  padding-right: 40px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: all !important;
+}
+
 .modern-btn {
   width: 100%;
   padding: 12px 16px;
@@ -538,6 +564,14 @@
   transform: translateY(-1px);
 }
 
+.category-select-btn.active,
+.modern-btn.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e6efff 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+}
+
 .dropdown-arrow {
   transition: transform 0.3s ease;
   font-size: 12px;
@@ -545,10 +579,15 @@
   font-weight: bold;
 }
 
-.category-select-btn:hover .dropdown-arrow {
-  transform: rotate(180deg);
+.category-select-btn:focus,
+.category-select-btn:active,
+.category-select-btn.active {
+  outline: none;
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
 }
 
+/* Category filter container - ensure proper styling for select element */
 .category-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -557,13 +596,17 @@
   background: var(--bg-color, #ffffff);
   border: 2px solid #667eea;
   border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-  z-index: 9999 !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(102, 126, 234, 0.2);
+  z-index: 10000 !important;
   display: none;
   max-height: 320px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-width: 100%;
   width: 100%;
+  /* Ensure proper stacking and visibility */
+  pointer-events: auto;
+  isolation: isolate;
 }
 
 /* Ensure dropdown is visible when shown */
@@ -572,6 +615,10 @@
   visibility: visible !important;
   opacity: 1 !important;
   transform: translateY(0) !important;
+  /* Additional visibility enforcement */
+  position: absolute !important;
+  z-index: 10000 !important;
+  pointer-events: auto !important;
 }
 
 .category-search {

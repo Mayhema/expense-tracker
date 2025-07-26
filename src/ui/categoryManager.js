@@ -1144,6 +1144,19 @@ function refreshCategoryDropdowns() {
     }
   });
 
+  // Update advanced filters category dropdown specifically
+  setTimeout(async () => {
+    try {
+      const advancedFiltersModule = await import('./filters/advancedFilters.js');
+      if (advancedFiltersModule.updateCategoryFilterOptions) {
+        advancedFiltersModule.updateCategoryFilterOptions();
+        console.log('✅ Advanced filters category dropdown updated');
+      }
+    } catch (error) {
+      console.log('Advanced filters module not available:', error.message);
+    }
+  }, 50);
+
   // Update transaction manager to render fresh dropdowns
   setTimeout(() => {
     import('./transactionManager.js').then(module => {

@@ -30,10 +30,10 @@ describe('Category Dropdown Visibility Fix', () => {
           </div>
           <div class="filter-card-content">
             <div class="category-filter-container">
-              <button type="button" class="category-select-btn modern-btn" id="categorySelectBtn">
-                <span class="selected-count">All Categories</span>
-                <span class="dropdown-arrow">▼</span>
-              </button>
+              <select class="category-select-btn modern-select filter-select" id="categorySelectBtn">
+                <option value="all">All Categories</option>
+                <option value="selected">Selected Categories</option>
+              </select>
               <div class="category-dropdown" id="categoryDropdown">
                 <div class="category-search">
                   <input type="text" placeholder="Search categories..." class="category-search-input modern-input">
@@ -71,7 +71,6 @@ describe('Category Dropdown Visibility Fix', () => {
     expect(dropdown).toBeTruthy();
 
     // Should be hidden by default (CSS display: none)
-    const computedStyle = dom.window.getComputedStyle(dropdown);
     expect(dropdown.style.display).toBe('');
   });
 
@@ -105,11 +104,13 @@ describe('Category Dropdown Visibility Fix', () => {
     expect(filtersCSS).toMatch(/\.category-dropdown[^{]*{[^}]*position:\s*absolute/);
   });
 
-  test('category select button should exist and be clickable', () => {
-    const button = document.getElementById('categorySelectBtn');
-    expect(button).toBeTruthy();
-    expect(button.tagName.toLowerCase()).toBe('button');
-    expect(button.type).toBe('button');
+  test('category select element should exist and be functional', () => {
+    const selectElement = document.getElementById('categorySelectBtn');
+    expect(selectElement).toBeTruthy();
+    expect(selectElement.tagName.toLowerCase()).toBe('select');
+    expect(selectElement.classList.contains('category-select-btn')).toBe(true);
+    expect(selectElement.classList.contains('modern-select')).toBe(true);
+    expect(selectElement.classList.contains('filter-select')).toBe(true);
   });
 
   test('dropdown should contain search input and category options', () => {

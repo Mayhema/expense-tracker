@@ -21,6 +21,9 @@ export function renderTransactions(transactions = [], updateCharts = false) {
   const actualTransactions = transactions.length > 0 ? transactions : (AppState.transactions || []);
   console.log(`CRITICAL: Using ${actualTransactions.length} transactions for rendering`);
 
+  // Ensure all transactions have IDs before rendering
+  ensureTransactionIds(actualTransactions);
+
   // Ensure main container exists first AND remove any duplicates
   let container = ensureTransactionContainer();
   if (!container) {
@@ -40,6 +43,17 @@ export function renderTransactions(transactions = [], updateCharts = false) {
 
   // Render transaction table with proper structure
   renderTransactionTable(container, filteredTransactions);
+
+  // Update category dropdown options from transaction data
+  setTimeout(async () => {
+    try {
+      const { updateCategoryFilterOptions } = await import('../filters/advancedFilters.js');
+      updateCategoryFilterOptions();
+      console.log('CRITICAL: Category filter options updated from transaction data');
+    } catch (error) {
+      console.log('Info: Could not update category filter options:', error.message);
+    }
+  }, 25);
 
   // Attach event listeners after DOM update
   setTimeout(() => {
@@ -123,6 +137,17 @@ export function updateTransactionsFromUpload() {
 
   // Re-render with the new transactions
   renderTransactions(AppState.transactions, false);
+
+  // Update category dropdown options after upload to include categories from new transactions
+  setTimeout(async () => {
+    try {
+      const { updateCategoryFilterOptions } = await import('../filters/advancedFilters.js');
+      updateCategoryFilterOptions();
+      console.log('CRITICAL: Category filter options updated after file upload');
+    } catch (error) {
+      console.log('Info: Could not update category filter options after upload:', error.message);
+    }
+  }, 100);
 
   // Show success message
   import('./uiManager.js').then(module => {

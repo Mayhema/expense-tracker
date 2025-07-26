@@ -1,7 +1,34 @@
 import { AppState } from '../../core/appState.js';
 import { parseToISODate, formatDateToDDMMYYYY } from '../../utils/dateUtils.js';
 import { CURRENCIES } from '../../constants/currencies.js';
+import { DEFAULT_CATEGORIES } from '../../constants/categories.js';
 import { showModal } from '../modalManager.js';
+
+/**
+ * Get categories for dropdown from current state or fallback to defaults
+ */
+function getCategoriesForDropdown() {
+  // If we have categories in AppState, use them (from Category Manager or transactions)
+  if (AppState.categories && Object.keys(AppState.categories).length > 0) {
+    return Object.keys(AppState.categories);
+  }
+
+  // If we have transactions, extract unique categories from them
+  if (AppState.transactions && AppState.transactions.length > 0) {
+    const categoriesFromTransactions = [...new Set(
+      AppState.transactions
+        .map(tx => tx.category)
+        .filter(category => category && category.trim() !== '')
+    )].sort((a, b) => a.localeCompare(b));
+
+    if (categoriesFromTransactions.length > 0) {
+      return categoriesFromTransactions;
+    }
+  }
+
+  // Fallback to default categories
+  return Object.keys(DEFAULT_CATEGORIES);
+}
 
 // Current filter state
 const currentFilters = {
@@ -36,13 +63,17 @@ export function initializeAdvancedFilters() {
   // Initialize filter status with current transaction count
   const transactions = AppState.transactions || [];
   updateFilterStatus(transactions.length, transactions.length);
+
+  // Update category dropdown with current categories
+  setTimeout(() => {
+    updateCategoryFilterOptions();
+  }, 100);
 }
 
 /**
  * Create advanced filter section HTML
  */
 export function createAdvancedFilterSection() {
-  const categories = Object.keys(AppState.categories || {}).sort((a, b) => a.localeCompare(b));
   const currencies = [...new Set((AppState.transactions || []).map(tx => tx.currency).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const savedPresets = JSON.parse(localStorage.getItem('filterPresets') || '{}');
   const presetNames = Object.keys(savedPresets);
@@ -166,34 +197,12 @@ export function createAdvancedFilterSection() {
             </div>
             <div class="filter-card-content">
               <div class="category-filter-container">
-                <button type="button" class="category-select-btn modern-btn" id="categorySelectBtn">
-                  <span class="selected-count">All Categories</span>
-                  <span class="dropdown-arrow">▼</span>
-                </button>
-                <div class="category-dropdown" id="categoryDropdown">
-                  <div class="category-search">
-                    <input type="text" placeholder="Search categories..." class="category-search-input modern-input">
-                  </div>
-                  <div class="category-options">
-                    <label class="category-option">
-                      <input type="checkbox" value="all" class="category-checkbox" checked>
-                      <span class="category-checkmark"></span>
-                      <span class="category-label">All Categories</span>
-                    </label>
-                    ${categories.map(category => {
-    const categoryData = AppState.categories[category];
-    const color = typeof categoryData === 'string' ? categoryData : categoryData?.color || '#cccccc';
-    return `
-                        <label class="category-option">
-                          <input type="checkbox" value="${category}" class="category-checkbox">
-                          <span class="category-checkmark"></span>
-                          <span class="category-color" style="background-color: ${color}"></span>
-                          <span class="category-label">${category}</span>
-                        </label>
-                      `;
-  }).join('')}
-                  </div>
-                </div>
+                <select class="category-select-btn modern-select filter-select" id="categorySelectBtn">
+                  <option value="all">All Categories</option>
+                  ${getCategoriesForDropdown().map(category => `
+                  <option value="${category}">${category}</option>
+                  `).join('')}
+                </select>
               </div>
             </div>
           </div>
@@ -263,17 +272,10 @@ function setupFilterEventListeners() {
     }
   });
 
-  // Category dropdown toggle
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('#categorySelectBtn')) {
-      toggleCategoryDropdown();
-    }
-  });
-
-  // Category checkbox changes
+  // Category selection change
   document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('category-checkbox')) {
-      handleCategorySelection(e.target);
+    if (e.target.id === 'categorySelectBtn') {
+      handleCategorySelection(e.target.value);
     }
   });
 
@@ -306,12 +308,6 @@ function setupFilterEventListeners() {
     }
   });
 
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.category-filter-container')) {
-      closeCategoryDropdown();
-    }
-  });
 }
 
 /**
@@ -475,119 +471,16 @@ function handleCurrencyFilter(currency) {
 }
 
 /**
- * Toggle category dropdown
+ * Handle category selection from select dropdown
  */
-function toggleCategoryDropdown() {
-  const dropdown = document.getElementById('categoryDropdown');
-  if (dropdown) {
-    const isVisible = dropdown.style.display === 'block';
-    dropdown.style.display = isVisible ? 'none' : 'block';
-  }
-}
-
-/**
- * Close category dropdown
- */
-function closeCategoryDropdown() {
-  const dropdown = document.getElementById('categoryDropdown');
-  if (dropdown) {
-    dropdown.style.display = 'none';
-  }
-}
-
-/**
- * Handle category selection
- */
-function handleCategorySelection(checkbox) {
-  const value = checkbox.value;
-
-  if (value === 'all') {
-    handleAllCategoriesSelection(checkbox);
-  } else {
-    handleIndividualCategorySelection(checkbox, value);
-  }
-
-  updateCategoryButtonText();
-  applyCurrentFilters();
-}
-
-/**
- * Handle "All Categories" checkbox selection
- */
-function handleAllCategoriesSelection(checkbox) {
-  const allCheckboxes = document.querySelectorAll('.category-checkbox');
-  const isChecked = checkbox.checked;
-
-  allCheckboxes.forEach(cb => {
-    cb.checked = isChecked;
-  });
-
-  currentFilters.categories = isChecked ? [] : Object.keys(AppState.categories || {});
-}
-
-/**
- * Handle individual category checkbox selection
- */
-function handleIndividualCategorySelection(checkbox, value) {
-  const allCheckbox = document.querySelector('.category-checkbox[value="all"]');
-
-  if (checkbox.checked) {
-    addCategoryToFilter(value);
-  } else {
-    removeCategoryFromFilter(value, allCheckbox);
-  }
-
-  checkAllCategoriesIfNeeded(allCheckbox);
-}
-
-/**
- * Add category to filter if not already included
- */
-function addCategoryToFilter(value) {
-  if (!currentFilters.categories.includes(value)) {
-    currentFilters.categories.push(value);
-  }
-}
-
-/**
- * Remove category from filter and uncheck "All Categories"
- */
-function removeCategoryFromFilter(value, allCheckbox) {
-  currentFilters.categories = currentFilters.categories.filter(cat => cat !== value);
-
-  if (allCheckbox) {
-    allCheckbox.checked = false;
-  }
-}
-
-/**
- * Check "All Categories" if all individual categories are selected
- */
-function checkAllCategoriesIfNeeded(allCheckbox) {
-  const totalCategories = Object.keys(AppState.categories || {}).length;
-  if (currentFilters.categories.length === totalCategories && allCheckbox) {
-    allCheckbox.checked = true;
+function handleCategorySelection(selectedValue) {
+  if (selectedValue === 'all') {
     currentFilters.categories = [];
-  }
-}
-
-/**
- * Update category button text based on selection
- */
-function updateCategoryButtonText() {
-  const button = document.querySelector('#categorySelectBtn .selected-count');
-  if (!button) return;
-
-  const totalCategories = Object.keys(AppState.categories || {}).length;
-  const selectedCount = currentFilters.categories.length;
-
-  if (selectedCount === 0 || selectedCount === totalCategories) {
-    button.textContent = 'All Categories';
-  } else if (selectedCount === 1) {
-    button.textContent = currentFilters.categories[0];
   } else {
-    button.textContent = `${selectedCount} Categories`;
+    currentFilters.categories = [selectedValue];
   }
+
+  applyCurrentFilters();
 }
 
 /**
@@ -804,13 +697,12 @@ function clearAllFilters() {
   const currencySelect = document.getElementById('currencyFilter');
   if (currencySelect) currencySelect.value = 'all';
 
-  // Reset category checkboxes
-  const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
-  categoryCheckboxes.forEach(cb => {
-    cb.checked = cb.value === 'all';
-  });
+  // Reset category select to "All Categories"
+  const categorySelectBtn = document.getElementById('categorySelectBtn');
+  if (categorySelectBtn) {
+    categorySelectBtn.value = 'all';
+  }
 
-  updateCategoryButtonText();
   applyCurrentFilters();
 
   // Update status to show all transactions
@@ -964,8 +856,8 @@ function showManagePresetsModal() {
     closeButton.className = 'btn secondary-btn';
     closeButton.onclick = () => modal.close();
 
-    // Append button directly to modal content since addButton method doesn't exist
-    const modalBody = modalOverlay.querySelector('.modal-body');
+    // Append button directly to modal content
+    const modalBody = modal.content.querySelector('.modal-body') || modal.content;
     if (modalBody) {
       const buttonContainer = document.createElement('div');
       buttonContainer.className = 'modal-button-container';
@@ -1225,6 +1117,38 @@ export function updateCurrencyFilterOptions() {
     }
 
     console.log('Updated basic currency filter with', currencies.length, 'currencies');
+  }
+}
+
+/**
+ * Update category filter dropdown options dynamically
+ */
+export function updateCategoryFilterOptions() {
+  console.log('Updating category filter dropdown options...');
+
+  const categorySelectBtn = document.getElementById('categorySelectBtn');
+  if (categorySelectBtn) {
+    const currentValue = categorySelectBtn.value;
+    const categories = getCategoriesForDropdown();
+
+    console.log('Available categories:', categories);
+
+    // Rebuild options
+    categorySelectBtn.innerHTML = `
+      <option value="all">All Categories</option>
+      ${categories.map(category => `
+        <option value="${category}">${category}</option>
+      `).join('')}
+    `;
+
+    // Restore previous selection if still valid
+    if (currentValue && (currentValue === 'all' || categories.includes(currentValue))) {
+      categorySelectBtn.value = currentValue;
+    }
+
+    console.log('Category filter dropdown updated with', categories.length, 'categories');
+  } else {
+    console.warn('Category filter dropdown not found');
   }
 }
 

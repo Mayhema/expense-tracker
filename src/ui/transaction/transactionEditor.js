@@ -773,6 +773,16 @@ export function revertAllChangesToOriginal(transactionId, index) {
     localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
     console.log(`💾 REVERT SAVED: Transaction ${transactionId} saved to localStorage`);
 
+    // Hide the revert-all button since there's nothing left to revert
+    const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+    if (row) {
+      const revertAllBtn = row.querySelector('.btn-revert-all');
+      if (revertAllBtn) {
+        revertAllBtn.style.display = 'none';
+        console.log(`👁️ BUTTON HIDDEN: Revert-all button hidden for transaction ${transactionId}`);
+      }
+    }
+
     import('../uiManager.js').then(module => {
       if (module.showToast) {
         module.showToast('Transaction reverted successfully', 'success');
