@@ -1,0 +1,17 @@
+{
+  "testEnvironment": "jsdom",
+  "testMatch": [
+    "**/tests/fast-core-functionality.test.cjs",
+    "**/tests/comprehensive-button-test.cjs",
+    "**/tests/consolidated-layout-styling.test.cjs",
+    "**/tests/table-layout-fixes.test.cjs"
+  ],
+  "moduleFileExtensions": ["js", "cjs"],
+  "collectCoverage": false,
+  "verbose": true,
+  "transform": {
+    "^.+\\.cjs$": "babel-jest"
+  },
+  "testTimeout": 15000,
+  "maxWorkers": 1
+}
