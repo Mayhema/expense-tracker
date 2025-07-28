@@ -301,11 +301,12 @@ body.dark-mode .transaction-table th {
   border: 1px solid var(--border-color) !important;
   padding: 6px 10px !important;
   border-radius: 4px !important;
-  font-size: 0.9rem !important;
+  font-size: 0.85rem !important;
   background: var(--bg-color) !important;
   color: var(--text-color) !important;
   width: 100% !important;
-  min-width: 150px !important;
+  min-width: 100px !important;
+  max-width: 115px !important;
 }
 
 .category-select option {

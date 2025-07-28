@@ -68,7 +68,7 @@ function createChartConfig(categories, categoryTotals) {
       const [mainCat, subCat] = category.split(':');
       const mainCategory = AppState.categories[mainCat];
       if (mainCategory && typeof mainCategory === 'object' &&
-        mainCategory.subcategories && mainCategory.subcategories[subCat]) {
+        mainCategory.subcategories?.subcategories?.[subCat]) {
         return mainCategory.subcategories[subCat];
       }
     }
@@ -340,7 +340,7 @@ function generateCategoryColor(categoryName) {
     const catValue = AppState.categories[categoryName];
     if (typeof catValue === 'string') {
       return catValue;
-    } else if (catValue && catValue.color) {
+    } else if (catValue?.color) {
       return catValue.color;
     }
   }
@@ -413,12 +413,9 @@ export async function createExpenseCategoryChart() {
   console.log('Creating expense category chart...');
 
   try {
-    // Dynamic import Chart.js
-    const ChartJS = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js');
-    const Chart = ChartJS.default || ChartJS.Chart;
-
-    if (!Chart) {
-      throw new Error('Chart.js failed to load');
+    // Use global Chart.js (loaded via CDN in HTML)
+    if (typeof Chart === 'undefined') {
+      throw new Error('Chart.js is not loaded');
     }
 
     const canvas = document.getElementById('expenseCategoryChart');

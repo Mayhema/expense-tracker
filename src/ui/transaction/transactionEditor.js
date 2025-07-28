@@ -268,7 +268,7 @@ function handleCurrencyUpdate(transactionId, newValue) {
     try {
       const { updateTransactionSummary } = await import('./transactionSummary.js');
       // Use modern filtering approach instead of deprecated applyFilters
-      const { getFilteredTransactions } = await import('../../ui/filters/advancedFilters.js');
+      const { getFilteredTransactions } = await import('../filters/advancedFilters.js');
       const filteredTransactions = getFilteredTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after currency change");
@@ -287,6 +287,26 @@ function handleCurrencyUpdate(transactionId, newValue) {
       console.log('Error updating currency filter options:', error.message);
     }
   }, 150);
+
+  // Update charts to reflect currency changes in real-time
+  setTimeout(async () => {
+    try {
+      // Only update charts if chart canvases exist (charts section is visible)
+      const incomeChartCanvas = document.getElementById('incomeExpenseChart');
+      const expenseChartCanvas = document.getElementById('expenseChart');
+      const timelineChartCanvas = document.getElementById('timelineChart');
+
+      if (incomeChartCanvas || expenseChartCanvas || timelineChartCanvas) {
+        const { updateChartsWithCurrentData } = await import('../../charts/chartManager.js');
+        updateChartsWithCurrentData();
+        console.log("📊 Charts updated after currency change");
+      } else {
+        console.log("📊 Charts not visible, skipping chart update");
+      }
+    } catch (error) {
+      console.log('Error updating charts after currency change:', error.message);
+    }
+  }, 200);
 }
 
 /**
@@ -310,7 +330,7 @@ function handleCategoryUpdate(transactionId, newValue) {
   setTimeout(async () => {
     try {
       const { updateTransactionSummary } = await import('./transactionSummary.js');
-      const { getFilteredTransactions } = await import('../../ui/filters/advancedFilters.js');
+      const { getFilteredTransactions } = await import('../filters/advancedFilters.js');
       const filteredTransactions = getFilteredTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after category change");
