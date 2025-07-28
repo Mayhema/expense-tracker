@@ -287,7 +287,7 @@ describe('Fast Core Functionality Tests', () => {
     test('should handle null/undefined gracefully', () => {
       const result = mockAppState.transactions?.filter?.(t => t.category === 'Food') || [];
       const isArray = Array.isArray(result);
-      
+
       expect(isArray).toBe(true);
     });
 
@@ -298,7 +298,7 @@ describe('Fast Core Functionality Tests', () => {
         invalidTransaction.description &&
         invalidTransaction.category
       );
-      
+
       expect(hasRequiredFields).toBe(false);
     });
   });

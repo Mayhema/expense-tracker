@@ -8,7 +8,7 @@ console.log('='.repeat(60));
 
 const essentialTests = [
   'fast-core-functionality.test.cjs',
-  'comprehensive-button-test.cjs', 
+  'comprehensive-button-test.cjs',
   'consolidated-layout-styling.test.cjs',
   'table-layout-fixes.test.cjs'
 ];

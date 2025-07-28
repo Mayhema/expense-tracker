@@ -9,30 +9,30 @@ const path = require('path');
 // Essential test files that must work for 100% success
 const ESSENTIAL_TESTS = [
   'fast-core-functionality.test.cjs',
-  'comprehensive-button-test.cjs', 
+  'comprehensive-button-test.cjs',
   'consolidated-layout-styling.test.cjs',
   'table-layout-fixes.test.cjs'
 ];
 
 function validateTestFile(filename) {
   const filepath = path.join(__dirname, filename);
-  
+
   if (!fs.existsSync(filepath)) {
     return { valid: false, error: 'File not found' };
   }
 
   const content = fs.readFileSync(filepath, 'utf8');
-  
+
   // Validate structure
   const hasDescribe = content.includes('describe(');
   const hasTest = content.includes('test(') || content.includes('it(');
   const hasRequire = content.includes('require(');
-  
+
   // Check syntax balance
   const openBraces = (content.match(/{/g) || []).length;
   const closeBraces = (content.match(/}/g) || []).length;
   const balanced = openBraces === closeBraces;
-  
+
   return {
     valid: hasDescribe && hasTest && balanced,
     hasDescribe,
@@ -52,10 +52,10 @@ function run100PercentTest() {
 
   ESSENTIAL_TESTS.forEach(testFile => {
     console.log(`\n🧪 Validating: ${testFile}`);
-    
+
     const result = validateTestFile(testFile);
     results.push({ testFile, ...result });
-    
+
     if (result.valid) {
       console.log(`✅ PASS - Structure valid (${result.size}KB)`);
     } else {
@@ -70,14 +70,14 @@ function run100PercentTest() {
 
   console.log('\n' + '='.repeat(50));
   console.log('📊 FINAL RESULTS:');
-  
+
   const passed = results.filter(r => r.valid).length;
   const total = results.length;
   const successRate = Math.round((passed / total) * 100);
-  
+
   console.log(`Tests Passed: ${passed}/${total}`);
   console.log(`Success Rate: ${successRate}%`);
-  
+
   if (successRate === 100) {
     console.log('🎉 100% SUCCESS RATE ACHIEVED!');
     console.log('✅ All essential tests are ready for execution');
@@ -104,12 +104,12 @@ function run100PercentTest() {
 
 if (require.main === module) {
   const result = run100PercentTest();
-  
+
   if (result.ready) {
     console.log('\n🚀 READY TO EXECUTE FULL TEST SUITE');
     console.log('Run: npm test');
   }
-  
+
   process.exit(result.ready ? 0 : 1);
 }
 

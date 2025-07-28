@@ -14,7 +14,7 @@ async function runActualTest(testFile) {
   return new Promise((resolve) => {
     // Try to run the test file directly with node
     const testPath = path.join(__dirname, testFile);
-    
+
     if (!fs.existsSync(testPath)) {
       console.log(`❌ FILE NOT FOUND: ${testFile}`);
       resolve({ success: false, error: 'File not found' });
@@ -24,11 +24,11 @@ async function runActualTest(testFile) {
     // Read the file to check structure
     const content = fs.readFileSync(testPath, 'utf8');
     console.log(`📄 File size: ${Math.round(content.length / 1024)}KB`);
-    
+
     // Check if it has proper test structure
     const hasDescribe = content.includes('describe(');
     const hasTest = content.includes('test(') || content.includes('it(');
-    
+
     if (!hasDescribe || !hasTest) {
       console.log(`❌ INVALID TEST STRUCTURE`);
       console.log(`   - Has describe(): ${hasDescribe}`);
@@ -39,7 +39,7 @@ async function runActualTest(testFile) {
 
     // Try to execute with jest directly
     console.log('🚀 EXECUTING WITH JEST...');
-    
+
     const child = spawn('npx', ['jest', testPath, '--verbose', '--no-cache'], {
       stdio: ['inherit', 'pipe', 'pipe'],
       cwd: path.dirname(path.dirname(__dirname))
@@ -66,16 +66,18 @@ async function runActualTest(testFile) {
 
     child.on('close', (code) => {
       clearTimeout(timeout);
-      
+
       const success = code === 0;
       console.log(`\n${success ? '✅' : '❌'} TEST COMPLETED - Exit code: ${code}`);
-      
+
       // Analyze output for test results
-      const passMatches = output.match(/(\d+) passing/);
-      const failMatches = output.match(/(\d+) failing/);
+      const passRegex = /(\d+) passing/;
+      const failRegex = /(\d+) failing/;
+      const passMatches = passRegex.exec(output);
+      const failMatches = failRegex.exec(output);
       const passes = passMatches ? parseInt(passMatches[1]) : 0;
       const failures = failMatches ? parseInt(failMatches[1]) : 0;
-      
+
       resolve({
         success,
         passes,
@@ -111,7 +113,7 @@ async function runAllEssentialTests() {
   for (const testFile of essentialTests) {
     const result = await runActualTest(testFile);
     results.push({ testFile, ...result });
-    
+
     totalPasses += result.passes || 0;
     totalFailures += result.failures || 0;
   }
@@ -135,7 +137,8 @@ async function runAllEssentialTests() {
     console.log('❌ NOT 100% - FIXES NEEDED:');
     results.forEach(result => {
       if (!result.success || result.failures > 0) {
-        console.log(`   - ${result.testFile}: ${result.error || `${result.failures} failures`}`);
+        const errorMessage = result.error || (result.failures + ' failures');
+        console.log(`   - ${result.testFile}: ${errorMessage}`);
       }
     });
   }

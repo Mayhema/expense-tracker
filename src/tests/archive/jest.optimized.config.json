@@ -6,7 +6,10 @@
     "**/tests/consolidated-layout-styling.test.cjs",
     "**/tests/table-layout-fixes.test.cjs"
   ],
-  "moduleFileExtensions": ["js", "cjs"],
+  "moduleFileExtensions": [
+    "js",
+    "cjs"
+  ],
   "collectCoverage": false,
   "verbose": true,
   "transform": {
