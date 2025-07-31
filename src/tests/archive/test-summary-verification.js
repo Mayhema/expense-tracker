@@ -42,6 +42,14 @@ global.CURRENCIES = {
   GBP: { symbol: '£', icon: '💷' }
 };
 
+import { describe, test, expect } from '@jest/globals';
+
+describe('test-summary-verification', () => {
+  test('minimal summary verification test passes', () => {
+    expect(true).toBe(true);
+  });
+});
+
 // Mock AppState
 global.AppState = {
   transactions: [

@@ -268,8 +268,8 @@ function handleCurrencyUpdate(transactionId, newValue) {
     try {
       const { updateTransactionSummary } = await import('./transactionSummary.js');
       // Use modern filtering approach instead of deprecated applyFilters
-      const { getFilteredTransactions } = await import('../filters/advancedFilters.js');
-      const filteredTransactions = getFilteredTransactions(AppState.transactions);
+      const { filterTransactions } = await import('../filters/advancedFilters.js');
+      const filteredTransactions = filterTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after currency change");
     } catch (error) {
@@ -330,8 +330,8 @@ function handleCategoryUpdate(transactionId, newValue) {
   setTimeout(async () => {
     try {
       const { updateTransactionSummary } = await import('./transactionSummary.js');
-      const { getFilteredTransactions } = await import('../filters/advancedFilters.js');
-      const filteredTransactions = getFilteredTransactions(AppState.transactions);
+      const { filterTransactions } = await import('../filters/advancedFilters.js');
+      const filteredTransactions = filterTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after category change");
     } catch (error) {

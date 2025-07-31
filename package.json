@@ -4,9 +4,17 @@
   "description": "Tool for tracking and analyzing expenses",
   "main": "src/main.js",
   "type": "module",
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/src/tests/**/*.[jt]s",
+      "**/src/tests/**/*.[cm]js"
+    ],
+    "transform": {}
+  },
   "scripts": {
     "start": "serve src",
-    "test": "jest",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:all": "node src/tests/automated-test-runner.js",
     "test:category": "node src/tests/categoryManager.test.js",
     "lint": "eslint src/**/*.js",
@@ -26,27 +34,6 @@
     "jsdom": "^26.1.0",
     "prettier": "^2.8.7",
     "serve": "^14.2.0"
-  },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": [],
-    "testMatch": [
-      "**/tests/**/*.cjs"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/tests/archive/"
-    ],
-    "moduleFileExtensions": [
-      "js",
-      "cjs"
-    ],
-    "collectCoverage": false,
-    "verbose": true,
-    "transform": {
-      "^.+\\.cjs$": "babel-jest"
-    },
-    "testTimeout": 10000
   },
   "author": "",
   "license": "ISC",

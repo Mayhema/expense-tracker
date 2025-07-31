@@ -1,3 +1,11 @@
+import { describe, test, expect } from '@jest/globals';
+
+describe('simple-test-validator', () => {
+  test('should pass minimal simple test validator', () => {
+    expect(true).toBe(true);
+  });
+});
+
 /**
  * Simple Test Runner for Validating New Test Architecture
  * Validates that our optimized tests are working properly

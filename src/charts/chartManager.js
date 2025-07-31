@@ -37,8 +37,9 @@ function getCleanCanvas(canvasId) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Reset canvas size to force re-initialization
-  const parentWidth = canvas.parentElement?.offsetWidth || 400;
-  const parentHeight = canvas.parentElement?.offsetHeight || 300;
+
+  const parentWidth = canvas.parentElement?.offsetWidth ?? 400;
+  const parentHeight = canvas.parentElement?.offsetHeight ?? 300;
 
   canvas.width = parentWidth;
   canvas.height = parentHeight;
@@ -72,7 +73,8 @@ function destroyFromGlobalRegistry(canvasId) {
  * Destroy chart from Chart.js global registry
  */
 function destroyFromChartJsRegistry(canvas, canvasId) {
-  if (!window.Chart || !window.Chart.getChart) {
+
+  if (!(window.Chart?.getChart)) {
     return;
   }
 
@@ -255,8 +257,29 @@ function createChartWithRegistration(canvasId, config) {
 /**
  * Updates charts with current transaction data
  */
-export async function updateChartsWithCurrentData() {
+
+/**
+ * Updates charts with current transaction data, with retry if canvases are missing
+ * @param {number} retryCount - Internal use only, for retry attempts
+ */
+export async function updateChartsWithCurrentData(retryCount = 0) {
   console.log("Updating charts with current data...");
+
+  // Check if all chart canvases exist
+  const incomeCanvas = document.getElementById('incomeExpenseChart');
+  const expenseCanvas = document.getElementById('expenseChart');
+  const timelineCanvas = document.getElementById('timelineChart');
+
+  if (!incomeCanvas || !expenseCanvas || !timelineCanvas) {
+    if (retryCount < 5) {
+      console.warn(`Chart canvas not found (retry ${retryCount + 1}/5), retrying in 200ms...`);
+      setTimeout(() => updateChartsWithCurrentData(retryCount + 1), 200);
+      return;
+    } else {
+      console.error('Chart canvases still not found after 5 retries. Charts will not update.');
+      return;
+    }
+  }
 
   const transactions = AppState.transactions || [];
   console.log(`Processing ${transactions.length} transactions for charts`);

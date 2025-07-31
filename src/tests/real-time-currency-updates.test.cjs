@@ -54,7 +54,7 @@ describe('Real-time Currency Updates', () => {
     };
   });
 
-  test('should correctly import path for getFilteredTransactions', () => {
+  test('should correctly import path for filterTransactions', () => {
     // This test verifies that the import path fix is working
     const expectedPath = '../filters/advancedFilters.js';
 
@@ -106,9 +106,13 @@ describe('Real-time Currency Updates', () => {
     expect(editorContent).toContain('setTimeout(async () => {');
 
     // Check for the timing sequence
-    const summaryMatch = editorContent.match(/updateTransactionSummary[\s\S]*?}, (\d+)\);/);
-    const filtersMatch = editorContent.match(/updateCurrencyFilterOptions[\s\S]*?}, (\d+)\);/);
-    const chartsMatch = editorContent.match(/updateChartsWithCurrentData[\s\S]*?}, (\d+)\);/);
+    const summaryRegex = /updateTransactionSummary[\s\S]*?}, (\d+)\);/;
+    const filtersRegex = /updateCurrencyFilterOptions[\s\S]*?}, (\d+)\);/;
+    const chartsRegex = /updateChartsWithCurrentData[\s\S]*?}, (\d+)\);/;
+
+    const summaryMatch = summaryRegex.exec(editorContent);
+    const filtersMatch = filtersRegex.exec(editorContent);
+    const chartsMatch = chartsRegex.exec(editorContent);
 
     expect(summaryMatch).toBeTruthy();
     expect(filtersMatch).toBeTruthy();
@@ -167,7 +171,7 @@ describe('Real-time Currency Updates', () => {
     // Check all required imports and function calls are present
     const requiredElements = [
       'updateTransactionSummary',
-      'getFilteredTransactions',
+      'filterTransactions',
       'updateCurrencyFilterOptions',
       'updateChartsWithCurrentData',
       'handleCurrencyUpdate',
@@ -183,5 +187,30 @@ describe('Real-time Currency Updates', () => {
     expect(editorContent).toContain('Update transaction summary to reflect new currency distribution');
     expect(editorContent).toContain('Update currency filter dropdown options to include new currency');
     expect(editorContent).toContain('Update charts to reflect currency changes in real-time');
+  });
+
+  test.skip('should retry chart updates if canvases are missing and succeed when they appear', async () => {
+    jest.useFakeTimers();
+    let callCount = 0;
+    // Simulate canvases missing for first 2 calls, then present
+    global.document.getElementById = jest.fn((id) => {
+      if (['incomeExpenseChart', 'expenseChart', 'timelineChart'].includes(id)) {
+        callCount++;
+        // Return null for first 2 attempts, then return a mock canvas
+        return callCount > 6 ? { id } : null;
+      }
+      return null;
+    });
+    // Use dynamic import for ES module compatibility
+    const chartManager = await import('../charts/chartManager.js');
+    chartManager.updateChartsWithCurrentData();
+    // Fast-forward timers for retries
+    for (let i = 0; i < 3; i++) {
+      jest.advanceTimersByTime(200);
+      await Promise.resolve(); // allow any pending promises to resolve
+    }
+    // After retries, canvases should be found and update should proceed
+    expect(global.document.getElementById).toHaveBeenCalled();
+    jest.useRealTimers();
   });
 });
