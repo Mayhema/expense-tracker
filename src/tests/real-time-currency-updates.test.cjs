@@ -189,7 +189,7 @@ describe('Real-time Currency Updates', () => {
     expect(editorContent).toContain('Update charts to reflect currency changes in real-time');
   });
 
-  test.skip('should retry chart updates if canvases are missing and succeed when they appear', async () => {
+  test('should retry chart updates if canvases are missing and succeed when they appear', async () => {
     jest.useFakeTimers();
     let callCount = 0;
     // Simulate canvases missing for first 2 calls, then present

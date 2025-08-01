@@ -80,7 +80,7 @@ function mockUpdateTransactionSummary(transactions) {
 
 function mockUpdateCurrencyFilterOptions() {
   updateCallLog.push('updateCurrencyFilterOptions called');
-  const currencies = [...new Set(mockAppState.transactions.map(tx => tx.currency).filter(Boolean))].sort();
+  const currencies = [...new Set(mockAppState.transactions.map(tx => tx.currency).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   console.log(`💱 Currency filter options updated with currencies: ${currencies.join(', ')}`);
 }
 
