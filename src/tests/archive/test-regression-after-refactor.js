@@ -10,7 +10,7 @@
 import { describe, test, expect } from '@jest/globals';
 
 describe('test-regression-after-refactor', () => {
-  test('should pass minimal regression test (after refactor)', () => {
+  test('minimal regression after refactor test passes', () => {
     expect(true).toBe(true);
   });
 });

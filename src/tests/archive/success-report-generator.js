@@ -301,7 +301,7 @@ if (require.main === module) {
 module.exports = { generateSuccessReport, generateHTMLReport };
 
 describe('success-report-generator', () => {
-  test('should pass minimal success report generator', () => {
+  test('minimal success report generator test passes', () => {
     expect(true).toBe(true);
   });
 });

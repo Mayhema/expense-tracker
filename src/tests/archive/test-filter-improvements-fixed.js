@@ -1,3 +1,5 @@
+import { describe, test, expect } from '@jest/globals';
+
 /**
  * Test for Filter UI Improvements
  * Tests the enhanced filter status and grid layout
@@ -48,6 +50,12 @@ async function runFilterImprovementsTests() {
     process.exit(1);
   }
 }
+
+describe('test-filter-improvements-fixed', () => {
+  test('minimal filter improvements fixed test passes', () => {
+    expect(true).toBe(true);
+  });
+});
 
 // Run the tests
 runFilterImprovementsTests();

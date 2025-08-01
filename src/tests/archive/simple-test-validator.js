@@ -1,7 +1,7 @@
 import { describe, test, expect } from '@jest/globals';
 
 describe('simple-test-validator', () => {
-  test('should pass minimal simple test validator', () => {
+  test('minimal simple test validator test passes', () => {
     expect(true).toBe(true);
   });
 });

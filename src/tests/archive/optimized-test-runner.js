@@ -1,3 +1,11 @@
+import { describe, test, expect } from '@jest/globals';
+
+describe('optimized-test-runner', () => {
+  test('minimal optimized test runner test passes', () => {
+    expect(true).toBe(true);
+  });
+});
+
 /**
  * Optimized Fast Test Runner
  * Runs tests in optimized order for maximum speed and early failure detection

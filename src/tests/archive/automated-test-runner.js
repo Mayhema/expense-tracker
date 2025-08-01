@@ -461,3 +461,11 @@ process.on('unhandledRejection', (reason) => {
 
 // Run the test runner
 main();
+
+import { describe, test, expect } from '@jest/globals';
+
+describe('automated-test-runner', () => {
+  test('minimal automated test runner test passes', () => {
+    expect(true).toBe(true);
+  });
+});

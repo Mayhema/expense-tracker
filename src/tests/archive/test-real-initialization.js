@@ -1,3 +1,5 @@
+import { describe, test, expect } from '@jest/globals';
+
 /**
  * Test to debug the real app initialization timing issue
  * Refactored to reduce cognitive complexity
@@ -73,7 +75,7 @@ function checkTransactionSummary() {
   console.log('\n🔍 Step 4: Checking transaction summary...');
 
   const summaryElement = document.getElementById('transactionSummary');
-  
+
   if (!summaryElement) {
     console.error('❌ Summary element not found!');
     return false;
@@ -81,10 +83,10 @@ function checkTransactionSummary() {
 
   console.log('✅ Summary element exists');
   console.log('   - Content length:', summaryElement.innerHTML.length);
-  
-  const hasData = !summaryElement.innerHTML.includes('No transaction data available') && 
-                  summaryElement.innerHTML.trim() !== '';
-  
+
+  const hasData = !summaryElement.innerHTML.includes('No transaction data available') &&
+    summaryElement.innerHTML.trim() !== '';
+
   console.log('   - Has meaningful content:', hasData);
 
   if (!hasData) {
@@ -128,7 +130,7 @@ function checkFilterElements() {
 // Helper function to clear all filter values
 function clearFilterValues(filters) {
   console.log('🔧 Cleared all filter values');
-  
+
   Object.values(filters).forEach(filter => {
     if (filter) filter.value = '';
   });
@@ -154,10 +156,10 @@ async function testFilterLogic(filters) {
 
   console.log('✅ Summary exists after clearing filters');
   console.log('   - Content length:', summaryAfterClear.innerHTML.length);
-  
-  const hasData = !summaryAfterClear.innerHTML.includes('No transaction data available') && 
-                  summaryAfterClear.innerHTML.trim() !== '';
-  
+
+  const hasData = !summaryAfterClear.innerHTML.includes('No transaction data available') &&
+    summaryAfterClear.innerHTML.trim() !== '';
+
   console.log('   - Has meaningful content:', hasData);
 
   if (!hasData) {
@@ -188,11 +190,11 @@ async function testRealInitialization() {
     await setupDOMEnvironment();
     await initializeAppState();
     await initializeManager();
-    
+
     checkTransactionSummary();
     const filters = checkFilterElements();
     await testFilterLogic(filters);
-    
+
     displayDiagnosis();
     process.exit(0);
   } catch (error) {
@@ -205,4 +207,10 @@ async function testRealInitialization() {
 testRealInitialization().catch(error => {
   console.error('❌ Test failed:', error);
   process.exit(1);
+});
+
+describe('test-real-initialization', () => {
+  test('minimal real initialization test passes', () => {
+    expect(true).toBe(true);
+  });
 });

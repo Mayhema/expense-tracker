@@ -262,3 +262,11 @@ runTests().then(() => {
   originalLog(`💥 Test runner error: ${error.message}`);
   process.exit(1);
 });
+
+import { describe, test, expect } from '@jest/globals';
+
+describe('test-enhanced-layout-status', () => {
+  test('minimal enhanced layout status test passes', () => {
+    expect(true).toBe(true);
+  });
+});

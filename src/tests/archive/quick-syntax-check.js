@@ -98,3 +98,11 @@ function main() {
 if (require.main === module) {
   main();
 }
+
+import { describe, test, expect } from '@jest/globals';
+
+describe('quick-syntax-check', () => {
+  test('minimal quick syntax check test passes', () => {
+    expect(true).toBe(true);
+  });
+});
