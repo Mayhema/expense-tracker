@@ -1,7 +1,7 @@
-import { describe, test, expect } from '@jest/globals';
+﻿const { describe, test, expect } = require('@jest/globals');
 
-describe('direct-test-runner', () => {
-  test('minimal direct test runner test passes', () => {
+describe('archive\direct-test-runner', () => {
+  test('should pass minimal test', () => {
     expect(true).toBe(true);
   });
 });

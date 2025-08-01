@@ -1,7 +1,7 @@
-import { describe, test, expect } from '@jest/globals';
+﻿const { describe, test, expect } = require('@jest/globals');
 
 describe('quick-test-runner', () => {
-  test('should pass minimal quick test runner', () => {
+  test('should pass minimal test', () => {
     expect(true).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
-import { describe, test, expect } from '@jest/globals';
+﻿const { describe, test, expect } = require('@jest/globals');
 
-describe('final-test-check', () => {
-  test('minimal final test check passes', () => {
+describe('archive\final-test-check', () => {
+  test('should pass minimal test', () => {
     expect(true).toBe(true);
   });
 });

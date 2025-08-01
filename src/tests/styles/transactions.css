@@ -1,0 +1,58 @@
+/* Transactions CSS for Expense Tracker */
+
+.transaction-row {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+.transaction-row:hover {
+  background-color: #f9fafb;
+}
+
+body.dark-mode .transaction-row {
+  border-color: #374151;
+}
+
+body.dark-mode .transaction-row:hover {
+  background-color: #1f2937;
+}
+
+.transaction-summary {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+body.dark-mode .transaction-summary {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.summary-card {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+body.dark-mode .summary-card {
+  background: #374151;
+}
+
+.income {
+  color: #059669;
+}
+
+.expense {
+  color: #dc2626;
+}
+
+body.dark-mode .income {
+  color: #10b981;
+}
+
+body.dark-mode .expense {
+  color: #f87171;
+}

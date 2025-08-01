@@ -1,7 +1,7 @@
-import { describe, test, expect } from '@jest/globals';
+﻿import { describe, test, expect } from '@jest/globals';
 
 describe('test-unified-fixes-fixed', () => {
-  test('minimal unified fixes fixed test passes', () => {
+  test('should pass minimal test', () => {
     expect(true).toBe(true);
   });
 });
