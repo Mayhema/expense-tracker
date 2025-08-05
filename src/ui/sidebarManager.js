@@ -374,6 +374,19 @@ function initializeActionButtons() {
     });
   }
 
+  // Enhanced Category Manager Button
+  const enhancedCategoriesBtn = document.getElementById("enhancedCategoriesBtn");
+  if (enhancedCategoriesBtn) {
+    const newEnhancedCategoriesBtn = enhancedCategoriesBtn.cloneNode(true);
+    enhancedCategoriesBtn.parentNode.replaceChild(newEnhancedCategoriesBtn, enhancedCategoriesBtn);
+
+    newEnhancedCategoriesBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      _handleEnhancedCategories();
+    });
+  }
+
   // Debug buttons
   initializeDebugButtons();
 
@@ -564,6 +577,23 @@ function _handleEditCategories() {
     import('./uiManager.js').then(uiModule => {
       if (uiModule.showToast) {
         uiModule.showToast('Error opening category manager', 'error');
+      }
+    });
+  });
+}
+
+function _handleEnhancedCategories() {
+  import('./enhancedCategoryManager.js').then(async module => {
+    if (module.showEnhancedCategoryManagerModal) {
+      await module.showEnhancedCategoryManagerModal();
+    } else {
+      console.error('showEnhancedCategoryManagerModal function not found');
+    }
+  }).catch(err => {
+    console.error('Error loading enhanced category manager:', err);
+    import('./uiManager.js').then(uiModule => {
+      if (uiModule.showToast) {
+        uiModule.showToast('Error opening enhanced category manager', 'error');
       }
     });
   });

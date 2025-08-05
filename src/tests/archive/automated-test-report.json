@@ -1,17 +1,28 @@
 {
-  "timestamp": "2025-08-01T18:07:13.960Z",
+  "timestamp": "2025-08-05T19:19:37.378Z",
   "summary": {
     "total": 32,
     "passed": 0,
     "failed": 32,
     "successRate": "0.0",
-    "duration": 69954
+    "duration": 1536
   },
   "tests": [
     {
+      "file": "test-advanced-filters-improvements.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-advanced-filters-improvements.js",
+      "duration": 583,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-advanced-filters-improvements.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
       "file": "test-category-manager-improvements.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-category-manager-improvements.js",
-      "duration": 182,
+      "duration": 614,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-category-manager-improvements.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -22,7 +33,7 @@
     {
       "file": "test-category-manager-bug-fixes.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-category-manager-bug-fixes.js",
-      "duration": 391,
+      "duration": 645,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-category-manager-bug-fixes.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -31,20 +42,9 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-advanced-filters-improvements.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-advanced-filters-improvements.js",
-      "duration": 443,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-advanced-filters-improvements.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
       "file": "test-category-manager-manual.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-category-manager-manual.js",
-      "duration": 420,
+      "duration": 807,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-category-manager-manual.js:9\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -55,7 +55,7 @@
     {
       "file": "test-category-manager-comprehensive.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-category-manager-comprehensive.js",
-      "duration": 962,
+      "duration": 838,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-category-manager-comprehensive.js:9\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -64,20 +64,9 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-currency-cell-change.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-currency-cell-change.js",
-      "duration": 140,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-currency-cell-change.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
       "file": "test-complete-flow.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-complete-flow.js",
-      "duration": 166,
+      "duration": 118,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-complete-flow.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -86,12 +75,12 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-currency-integration.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-currency-integration.js",
-      "duration": 131,
+      "file": "test-currency-cell-change.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-currency-cell-change.js",
+      "duration": 102,
       "code": 1,
       "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-currency-integration.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-currency-cell-change.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
       "passed": false,
       "timedOut": false,
       "error": "Exit code: 1"
@@ -99,7 +88,7 @@
     {
       "file": "test-currency-filter-static.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-currency-filter-static.js",
-      "duration": 143,
+      "duration": 104,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-currency-filter-static.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -108,9 +97,20 @@
       "error": "Exit code: 1"
     },
     {
+      "file": "test-currency-integration.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-currency-integration.js",
+      "duration": 98,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-currency-integration.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
       "file": "test-dark-mode-comprehensive-new.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-dark-mode-comprehensive-new.js",
-      "duration": 147,
+      "duration": 96,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-dark-mode-comprehensive-new.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -119,20 +119,9 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-enhanced-filter-ui-fixed.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-enhanced-filter-ui-fixed.js",
-      "duration": 105,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-enhanced-filter-ui-fixed.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
       "file": "test-dark-mode-comprehensive.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-dark-mode-comprehensive.js",
-      "duration": 131,
+      "duration": 73,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-dark-mode-comprehensive.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -143,7 +132,7 @@
     {
       "file": "test-enhanced-filter-ui-fixed-new.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-enhanced-filter-ui-fixed-new.js",
-      "duration": 123,
+      "duration": 72,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-enhanced-filter-ui-fixed-new.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -152,9 +141,20 @@
       "error": "Exit code: 1"
     },
     {
+      "file": "test-enhanced-filter-ui-fixed.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-enhanced-filter-ui-fixed.js",
+      "duration": 77,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-enhanced-filter-ui-fixed.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
       "file": "test-enhanced-layout-status.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-enhanced-layout-status.js",
-      "duration": 111,
+      "duration": 72,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-enhanced-layout-status.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -165,7 +165,7 @@
     {
       "file": "test-filter-improvements-fixed-new.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-filter-improvements-fixed-new.js",
-      "duration": 116,
+      "duration": 69,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-filter-improvements-fixed-new.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -176,7 +176,7 @@
     {
       "file": "test-filter-improvements-fixed.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-filter-improvements-fixed.js",
-      "duration": 113,
+      "duration": 68,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-filter-improvements-fixed.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -185,20 +185,9 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-final-dark-mode-verification.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-final-dark-mode-verification.js",
-      "duration": 113,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-final-dark-mode-verification.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
       "file": "test-final-dark-mode-fixes.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-final-dark-mode-fixes.js",
-      "duration": 131,
+      "duration": 71,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-final-dark-mode-fixes.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -207,12 +196,12 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-integration-refactored.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-integration-refactored.js",
-      "duration": 118,
+      "file": "test-final-dark-mode-verification.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-final-dark-mode-verification.js",
+      "duration": 65,
       "code": 1,
       "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-integration-refactored.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-final-dark-mode-verification.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
       "passed": false,
       "timedOut": false,
       "error": "Exit code: 1"
@@ -220,7 +209,7 @@
     {
       "file": "test-integration-refactored-new.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-integration-refactored-new.js",
-      "duration": 132,
+      "duration": 71,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-integration-refactored-new.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -229,23 +218,12 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-regression-after-refactor.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-regression-after-refactor.js",
-      "duration": 103,
+      "file": "test-integration-refactored.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-integration-refactored.js",
+      "duration": 69,
       "code": 1,
       "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-regression-after-refactor.js:10\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
-      "file": "test-real-initialization.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-real-initialization.js",
-      "duration": 114,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-real-initialization.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-integration-refactored.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
       "passed": false,
       "timedOut": false,
       "error": "Exit code: 1"
@@ -253,7 +231,7 @@
     {
       "file": "test-real-initialization-fixed.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-real-initialization-fixed.js",
-      "duration": 159,
+      "duration": 101,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-real-initialization-fixed.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -262,9 +240,20 @@
       "error": "Exit code: 1"
     },
     {
+      "file": "test-real-initialization.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-real-initialization.js",
+      "duration": 103,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-real-initialization.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
       "file": "test-regression-before-refactor.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-regression-before-refactor.js",
-      "duration": 134,
+      "duration": 81,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-regression-before-refactor.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -273,9 +262,20 @@
       "error": "Exit code: 1"
     },
     {
+      "file": "test-regression-after-refactor.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-regression-after-refactor.js",
+      "duration": 94,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-regression-after-refactor.js:10\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
       "file": "test-runner.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-runner.js",
-      "duration": 147,
+      "duration": 78,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-runner.js:19\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -284,53 +284,9 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-ui-visibility.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-ui-visibility.js",
-      "duration": 67293,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-ui-visibility.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
-      "file": "test-unified-fixes.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-unified-fixes.js",
-      "duration": 67295,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-unified-fixes.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
-      "file": "test-unified-fixes-fixed.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-unified-fixes-fixed.js",
-      "duration": 67322,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-unified-fixes-fixed.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
-      "file": "test-summary-verification.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-summary-verification.js",
-      "duration": 67869,
-      "code": 1,
-      "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-summary-verification.js:45\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
-      "passed": false,
-      "timedOut": false,
-      "error": "Exit code: 1"
-    },
-    {
       "file": "test-simple.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-simple.js",
-      "duration": 67914,
+      "duration": 62,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-simple.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
@@ -339,12 +295,45 @@
       "error": "Exit code: 1"
     },
     {
-      "file": "test-validation.js",
-      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-validation.js",
-      "duration": 206,
+      "file": "test-summary-verification.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-summary-verification.js",
+      "duration": 63,
       "code": 1,
       "stdout": "",
-      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-validation.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-summary-verification.js:45\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
+      "file": "test-ui-visibility.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-ui-visibility.js",
+      "duration": 62,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-ui-visibility.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
+      "file": "test-unified-fixes-fixed.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-unified-fixes-fixed.js",
+      "duration": 64,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-unified-fixes-fixed.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
+      "file": "test-unified-fixes.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-unified-fixes.js",
+      "duration": 64,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-unified-fixes.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
       "passed": false,
       "timedOut": false,
       "error": "Exit code: 1"
@@ -352,10 +341,21 @@
     {
       "file": "test-validation-new.js",
       "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-validation-new.js",
-      "duration": 247,
+      "duration": 57,
       "code": 1,
       "stdout": "",
       "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-validation-new.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
+      "passed": false,
+      "timedOut": false,
+      "error": "Exit code: 1"
+    },
+    {
+      "file": "test-validation.js",
+      "path": "D:\\project1\\expense-tracker\\src\\tests\\archive\\test-validation.js",
+      "duration": 56,
+      "code": 1,
+      "stdout": "",
+      "stderr": "file:///D:/project1/expense-tracker/src/tests/archive/test-validation.js:1\r\nimport { describe, test, expect } from '@jest/globals';\r\n         ^^^^^^^^\r\nSyntaxError: Named export 'describe' not found. The requested module '@jest/globals' is a CommonJS module, which may not support all module.exports as named exports.\r\nCommonJS modules can always be imported via the default export, for example using:\r\n\r\nimport pkg from '@jest/globals';\r\nconst { describe, test, expect } = pkg;\r\n\r\n\u001b[90m    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)\u001b[39m\r\n\u001b[90m    at async ModuleJob.run (node:internal/modules/esm/module_job:263:5)\u001b[39m\r\n\u001b[90m    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\u001b[39m\r\n\u001b[90m    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\u001b[39m\r\n\r\nNode.js v22.14.0\r\n",
       "passed": false,
       "timedOut": false,
       "error": "Exit code: 1"

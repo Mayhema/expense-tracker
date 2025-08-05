@@ -39,7 +39,9 @@
   z-index: 10001 !important;
 }
 
-.modal-dialog {
+/* Specific to file upload modals only */
+.file-upload-modal .modal-dialog,
+.file-preview-modal .modal-dialog {
   background-color: white !important;
   border-radius: 8px !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
@@ -222,8 +224,9 @@
   }
 }
 
-/* Dark mode */
-.dark-mode .modal-dialog {
+/* Dark mode - specific to file upload modals only */
+.dark-mode .file-upload-modal .modal-dialog,
+.dark-mode .file-preview-modal .modal-dialog {
   background-color: #2a2a2a !important;
 }
 
