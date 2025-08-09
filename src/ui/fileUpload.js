@@ -294,7 +294,7 @@ async function handleXMLFile(file) {
       console.log(`CRITICAL: XML file read successfully, length: ${xmlText.length}`);
 
       // Use the comprehensive XML parser instead of basic DOM parsing
-      const { parseXML } = await import('../parser/xmlParser.js');
+      const { parseXML } = await import('../parsers/xmlParser.js');
       const data = parseXML(xmlText);
 
       console.log(`CRITICAL: XML parsed into ${data.length} rows using comprehensive parser`);
@@ -548,7 +548,7 @@ async function autoApplyMapping(file, data, mapping) {
     // FIXED: Import date conversion function with error handling
     let convertExcelDate;
     try {
-      const excelParserModule = await import('../parser/excelParser.js');
+      const excelParserModule = await import('../parsers/excelParser.js');
       const excelParser = excelParserModule.excelParser || new excelParserModule.default();
       convertExcelDate = (value) => excelParser.convertExcelDate(value);
     } catch (error) {
@@ -1334,7 +1334,7 @@ export async function onSaveHeaders(modal) {
      */
     async function setupDateConversion() {
       try {
-        const excelParserModule = await import('../parser/excelParser.js');
+        const excelParserModule = await import('../parsers/excelParser.js');
         const excelParser = excelParserModule.excelParser || new excelParserModule.default();
         return (value) => excelParser.convertExcelDate(value);
       } catch (error) {

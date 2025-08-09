@@ -68,7 +68,9 @@ body.dark-mode .enhanced-category-manager {
 
 .modal-body:has(.enhanced-category-manager) {
   padding: 0;
-  overflow: hidden;
+  /* allow vertical scrolling inside the modal body */
+  overflow-x: hidden;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -167,6 +169,8 @@ body.dark-mode .enhanced-category-manager {
   flex-shrink: 0;
   max-width: 100%;
   overflow: visible;
+  flex-wrap: wrap;
+  /* wrap instead of overflowing */
 }
 
 .toolbar-left {
@@ -839,9 +843,11 @@ body.dark-mode .subcategory-more {
 }
 
 @media (max-width: 768px) {
+
+  /* Do not force full viewport height; let modal body scroll */
   .enhanced-category-manager {
-    height: 100vh !important;
-    max-height: 100vh !important;
+    height: auto !important;
+    max-height: none !important;
     border-radius: 0;
   }
 

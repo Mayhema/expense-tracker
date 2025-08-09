@@ -108,13 +108,15 @@
 .mobile-optimized {
   border-radius: 0;
   width: 100vw !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
+  /* Avoid forcing full viewport height; let modal body own scroll */
+  height: auto !important;
+  max-height: none !important;
 }
 
 .mobile-optimized .modal-body {
   padding: 16px;
   -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
 }
 
 /* Loading states */
