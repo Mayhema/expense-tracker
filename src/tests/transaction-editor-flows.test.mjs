@@ -47,7 +47,7 @@ describe('Transaction Editor Flows (API-level)', () => {
       };
     })();
 
-  Object.defineProperty(window, 'localStorage', {
+    Object.defineProperty(window, 'localStorage', {
       value: storage,
       configurable: true,
     });
@@ -60,11 +60,11 @@ describe('Transaction Editor Flows (API-level)', () => {
     saveFieldChangeById('tx_1', 'category', 'Food:Groceries');
 
     // Assert state
-  const tx = CoreAppState.transactions[0];
+    const tx = CoreAppState.transactions[0];
     expect(tx.category).toBe('Food');
     expect(tx.subcategory).toBe('Groceries');
     expect(tx.editedFields?.category).toBe(true);
-  expect(window.localStorage.setItem).toHaveBeenCalledWith(
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
       'transactions',
       expect.any(String)
     );
@@ -83,7 +83,7 @@ describe('Transaction Editor Flows (API-level)', () => {
 
     saveFieldChangeById('tx_1', 'currency', 'EUR');
 
-  const tx = CoreAppState.transactions[0];
+    const tx = CoreAppState.transactions[0];
     expect(tx.currency).toBe('EUR');
     expect(tx.editedFields?.currency).toBe(true);
 

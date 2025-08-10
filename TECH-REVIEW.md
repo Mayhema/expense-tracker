@@ -2,6 +2,13 @@
 
 This document tracks technical decisions, fixes, and test coverage across P1 and P2.
 
+## Executive summary (merged)
+
+- Strong modular design (core/ui/charts/utils), good CSS separation, dark-mode support, and a healthy test culture.
+- Immediate issues we tackled: modal height/scrolling and toolbar overflow; duplicate/competing CSS; noisy jsdom canvas errors; fragmented docs.
+- Short-term focus: consolidate styles and docs, stabilize unattended tests, and remove minor deprecations/warnings.
+- Mid-term goals (P2+): performance (worker-based parsing, table virtualization), testing/CI tightening, and UX polish.
+
 ## P1: UI polish, CSS consolidation, and stable unattended tests
 
 - Modal and layout
@@ -32,6 +39,19 @@ This document tracks technical decisions, fixes, and test coverage across P1 and
 - Docs
   - Consolidated this TECH-REVIEW.md as the canonical log, replacing earlier ad-hoc notes.
 
+### Actionable fixes merged from earlier review
+
+- Modal and toolbar
+  - Modal max-width capped at 700px; body owns vertical scroll; header/toolbar remain visible; toolbar wraps on narrow widths.
+  - Removed height:100vh on inner content; added flex min-height:0 to enable proper scrolling.
+- CSS normalization
+  - Centralized enhanced modal and manager styles; reduced specificity conflicts; kept dark-mode tokens.
+- Directory consistency
+  - Prefer `src/parsers/` (removed legacy `parser/` usage); ensured chart orchestration in `src/charts/` with UI-level helpers reusing them.
+- Testing stability
+  - Headless Jest with jsdom; shims for TextEncoder/TextDecoder/RAF/canvas; Chart stub to avoid runtime errors in tests.
+  - Legacy CJS tests re-enabled with resilient assertions.
+
 ## Outstanding items and next steps
 
 - Lint warnings: repository contains extensive debug logging (console.*) used for development visibility. We keep warnings for now to preserve diagnostics, and can gate them behind a debug flag or eslint rule overrides later.
@@ -40,6 +60,10 @@ This document tracks technical decisions, fixes, and test coverage across P1 and
   - Lazy-init charts when canvases become visible.
   - Move parsers to a Web Worker for smoother UI.
 - CI integration (optional next): wire a basic pipeline that runs `npm run ci` on PRs.
+
+P2 updates (current)
+- Docs: Consolidated to a single canonical TECH-REVIEW.md at repo root; deprecated duplicate in `docs/` now points here.
+- CI: Added GitHub Actions workflow `.github/workflows/ci.yml` to run unattended lint and tests on push/PR using `npm run ci`.
 
 ## How to run
 

@@ -8,7 +8,20 @@ describe('charts no-data behavior', () => {
     document.body.innerHTML = '<canvas id="incomeExpenseChart" width="300" height="150"></canvas><canvas id="expenseCategoryChart" width="300" height="150"></canvas>';
     // Ensure Chart stub exists (setupTests also provides one)
     if (typeof global.Chart === 'undefined') {
-      global.Chart = class { constructor() { } destroy() { } update() { } };
+      // Minimal Chart stub with non-empty methods to satisfy linters
+      global.Chart = class {
+        constructor() {
+          this._isStub = true;
+        }
+        destroy() {
+          // no-op stub
+          return true;
+        }
+        update() {
+          // no-op stub
+          return true;
+        }
+      };
     }
   });
 

@@ -21,6 +21,7 @@ module.exports = {
     'node_modules/',
     'src/tests/archive/**',
     'dist/',
+  'node_modules/**',
   ],
   rules: {
     // Prevent duplicate exports
@@ -31,4 +32,12 @@ module.exports = {
     'no-undef': 'error',
     'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
   },
+  overrides: [
+    {
+      files: ['src/utils/**', 'src/workers/**', 'src/ui/**/debug*.js', 'src/utils/console-logger.js'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+  ],
 };

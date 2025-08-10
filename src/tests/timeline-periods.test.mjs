@@ -1,5 +1,3 @@
-import { jest } from '@jest/globals';
-
 // These imports use the ES module exports under src/charts
 import { groupTransactionsByPeriod } from '../charts/timelineChart.js';
 

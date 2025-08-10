@@ -13,7 +13,7 @@ describe('modal overlay reuse', () => {
     first.close();
     expect(isModalOpen()).toBe(false);
 
-    const second = showModal({ title: 'Two', content: '<p>2</p>', showCloseButton: false });
+  showModal({ title: 'Two', content: '<p>2</p>', showCloseButton: false });
     const overlay2 = document.querySelector('#modalOverlay') || document.querySelector('.modal-overlay');
     expect(overlay2).toBeTruthy();
 
