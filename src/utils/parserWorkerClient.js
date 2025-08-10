@@ -13,7 +13,7 @@ export function createParserClient() {
         const rows = text.split(/\r?\n/).map((r) => r.split(','));
         return Promise.resolve(rows);
       },
-      terminate() {},
+      terminate() { },
       isWorker: false,
     };
   }

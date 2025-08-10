@@ -21,7 +21,7 @@ module.exports = {
     'node_modules/',
     'src/tests/archive/**',
     'dist/',
-  'node_modules/**',
+    'node_modules/**',
   ],
   rules: {
     // Prevent duplicate exports
