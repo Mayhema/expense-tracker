@@ -370,7 +370,8 @@ function handleDuplicateMapping(newValue, index) {
     }
 
     showToast(
-      `Moved ${newValue} mapping from column ${existingIndex + 1} to column ${index + 1
+      `Moved ${newValue} mapping from column ${existingIndex + 1} to column ${
+        index + 1
       }`,
       "info"
     );
@@ -458,7 +459,7 @@ export function renderHeaderPreview(
   try {
     AppState.currentSuggestedMapping = Array.isArray(suggestedMapping)
       ? suggestedMapping.slice()
-      : new Array(headerRow.length).fill('–');
+      : new Array(headerRow.length).fill("–");
   } catch {
     // ignore if AppState not available in some environments
   }
@@ -473,56 +474,64 @@ export function renderHeaderPreview(
         <tr>
           <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Column</th>
           ${headerRow
-      .map(
-        (_, i) =>
-          `<th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">${i + 1
-          }</th>`
-      )
-      .join("")}
+            .map(
+              (_, i) =>
+                `<th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">${
+                  i + 1
+                }</th>`
+            )
+            .join("")}
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Header</td>
           ${headerRow
-      .map(
-        (header) =>
-          `<td style="padding: 8px; border: 1px solid #ddd;">${header || "<em>empty</em>"
-          }</td>`
-      )
-      .join("")}
+            .map(
+              (header) =>
+                `<td style="padding: 8px; border: 1px solid #ddd;">${
+                  header || "<em>empty</em>"
+                }</td>`
+            )
+            .join("")}
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Map To</td>
           ${headerRow
-      .map((_, i) => {
-        const selected = suggestedMapping?.[i] ?? "–";
-        return `
+            .map((_, i) => {
+              const selected = suggestedMapping?.[i] ?? "–";
+              return `
               <td style="padding: 8px; border: 1px solid #ddd;">
                 <select class="header-map" data-column-index="${i}" style="width: 100%;">
-                  <option value="–" ${selected === "–" ? "selected" : ""
-          }>–</option>
-                  <option value="Date" ${selected === "Date" ? "selected" : ""
-          }>Date</option>
-                  <option value="Description" ${selected === "Description" ? "selected" : ""
-          }>Description</option>
-                  <option value="Income" ${selected === "Income" ? "selected" : ""
-          }>Income</option>
-                  <option value="Expenses" ${selected === "Expenses" ? "selected" : ""
-          }>Expenses</option>
+                  <option value="–" ${
+                    selected === "–" ? "selected" : ""
+                  }>–</option>
+                  <option value="Date" ${
+                    selected === "Date" ? "selected" : ""
+                  }>Date</option>
+                  <option value="Description" ${
+                    selected === "Description" ? "selected" : ""
+                  }>Description</option>
+                  <option value="Income" ${
+                    selected === "Income" ? "selected" : ""
+                  }>Income</option>
+                  <option value="Expenses" ${
+                    selected === "Expenses" ? "selected" : ""
+                  }>Expenses</option>
                 </select>
               </td>
             `;
-      })
-      .join("")}
+            })
+            .join("")}
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Sample</td>
           ${dataRow
-      .map(
-        (cell) =>
-          `<td style="padding: 8px; border: 1px solid #ddd;">${cell || "<em>empty</em>"
-          }</td>`
-      )
-      .join("")}
+            .map(
+              (cell) =>
+                `<td style="padding: 8px; border: 1px solid #ddd;">${
+                  cell || "<em>empty</em>"
+                }</td>`
+            )
+            .join("")}
         </tr>
       </table>
     </div>

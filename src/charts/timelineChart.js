@@ -1,6 +1,6 @@
 import { AppState } from "../core/appState.js";
 import { createChart, destroyChart, getChartColors } from "./chartCore.js";
-import { formatDateToDDMMYYYY, parseDDMMYYYY } from "../utils/dateUtils.js";
+import { formatDateToDDMMYYYY, parseToISODate } from "../utils/dateUtils.js";
 
 /**
  * Validates chart data before processing
@@ -1048,7 +1048,12 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Export functions for use in other modules
-export { renderTimelineChart, groupTransactionsByPeriod, getPeriodLabel, formatChartData };
+export {
+  renderTimelineChart,
+  groupTransactionsByPeriod,
+  getPeriodLabel,
+  formatChartData,
+};
 
 /**
  * Format numbers safely for chart labels
@@ -1109,9 +1114,11 @@ function processTimelineData(transactions) {
 
   // Sort dates and prepare data arrays
   const sortedDates = Object.keys(dailyTotals).sort((a, b) => {
-    // Convert back to Date objects for proper sorting
-    const dateA = parseDDMMYYYY(a);
-    const dateB = parseDDMMYYYY(b);
+    // Convert back to Date objects for proper sorting using non-deprecated utils
+    const isoA = parseToISODate(a);
+    const isoB = parseToISODate(b);
+    const dateA = isoA ? new Date(isoA) : new Date(NaN);
+    const dateB = isoB ? new Date(isoB) : new Date(NaN);
     return dateA - dateB;
   });
 

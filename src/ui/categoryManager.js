@@ -240,20 +240,20 @@ function buildCategoriesGrid(categories) {
       "</div>" +
       (subCount > 0
         ? '<button class="btn-subcategories" data-category="' +
-        categoryName +
-        '">' +
-        '<span class="subcategory-icon">📁</span>' +
-        "<span>Manage " +
-        subCount +
-        " subcategories</span>" +
-        '<span class="expand-icon">▼</span>' +
-        "</button>"
+          categoryName +
+          '">' +
+          '<span class="subcategory-icon">📁</span>' +
+          "<span>Manage " +
+          subCount +
+          " subcategories</span>" +
+          '<span class="expand-icon">▼</span>' +
+          "</button>"
         : '<button class="btn-add-subcategory" data-category="' +
-        categoryName +
-        '">' +
-        '<span class="add-icon">+</span>' +
-        "<span>Add subcategory</span>" +
-        "</button>") +
+          categoryName +
+          '">' +
+          '<span class="add-icon">+</span>' +
+          "<span>Add subcategory</span>" +
+          "</button>") +
       "</div>" +
       "<!-- Edit Form (hidden by default) -->" +
       '<div class="category-edit-form" style="display: none;">' +
@@ -1053,8 +1053,8 @@ export function resetToDefaultCategories() {
 
       console.log(
         "Reset: Loaded " +
-        Object.keys(AppState.categories).length +
-        " default categories"
+          Object.keys(AppState.categories).length +
+          " default categories"
       );
 
       // Update all category UI elements
@@ -1234,8 +1234,8 @@ function attachSubcategoryModalEventListeners(container, modal, categoryName) {
       if (
         confirm(
           'Are you sure you want to remove the subcategory "' +
-          subcategoryName +
-          '"?'
+            subcategoryName +
+            '"?'
         )
       ) {
         delete AppState.categories[categoryName].subcategories[subcategoryName];
@@ -1582,8 +1582,8 @@ export function addSubcategory(parentName, subName, subColor) {
     import("./uiManager.js").then((module) => {
       module.showToast(
         'Parent category "' +
-        parentName +
-        '" not found. Please create it first.',
+          parentName +
+          '" not found. Please create it first.',
         "error"
       );
     });
@@ -1760,7 +1760,9 @@ function attachSubcategoryEventListeners(
   const addBtn = subcategoriesSection.querySelector(".add-subcategory-btn");
   if (addBtn) {
     addBtn.addEventListener("click", (e) => {
-      const parentName = (e.currentTarget || e.target).getAttribute("data-parent");
+      const parentName = (e.currentTarget || e.target).getAttribute(
+        "data-parent"
+      );
       const nameInput = subcategoriesSection.querySelector(".subname-input");
       const colorInput = subcategoriesSection.querySelector(".subcolor-input");
 
@@ -1802,8 +1804,12 @@ function attachSubcategoryEventListeners(
     .querySelectorAll(".btn-save-subcategory")
     .forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const parentName = (e.currentTarget || e.target).getAttribute("data-parent");
-        const oldSubName = (e.currentTarget || e.target).getAttribute("data-subcategory");
+        const parentName = (e.currentTarget || e.target).getAttribute(
+          "data-parent"
+        );
+        const oldSubName = (e.currentTarget || e.target).getAttribute(
+          "data-subcategory"
+        );
         const subcategoryCard = e.target.closest(".subcategory-card");
         const nameInput = subcategoryCard.querySelector(".edit-subname-input");
         const colorInput = subcategoryCard.querySelector(
@@ -1846,8 +1852,12 @@ function attachSubcategoryEventListeners(
     .querySelectorAll(".btn-delete-subcategory")
     .forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const parentName = (e.currentTarget || e.target).getAttribute("data-parent");
-        const subName = (e.currentTarget || e.target).getAttribute("data-subcategory");
+        const parentName = (e.currentTarget || e.target).getAttribute(
+          "data-parent"
+        );
+        const subName = (e.currentTarget || e.target).getAttribute(
+          "data-subcategory"
+        );
 
         if (confirm('Delete subcategory "' + subName + '"?')) {
           if (deleteSubcategory(parentName, subName)) {

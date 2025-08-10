@@ -79,7 +79,7 @@ export function initializeTheme() {
   document.body.classList.toggle("dark-mode", isDarkMode);
 
   // Update chart theme if Chart.js is loaded
-  if (isDarkMode && window.Chart && window.Chart.defaults) {
+  if (isDarkMode && window.Chart?.defaults) {
     updateChartTheme(isDarkMode);
   }
 
@@ -90,7 +90,7 @@ export function initializeTheme() {
  * Updates chart theme colors based on dark mode
  */
 function updateChartTheme(isDarkMode) {
-  if (window.Chart && window.Chart.defaults) {
+  if (window.Chart?.defaults) {
     window.Chart.defaults.color = isDarkMode ? "#e0e0e0" : "#666666";
     window.Chart.defaults.borderColor = isDarkMode ? "#444444" : "#dddddd";
   }

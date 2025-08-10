@@ -16,11 +16,13 @@
     "start": "serve src",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config jest.config.cjs",
   "test:all": "npm test -- --runInBand",
+  "test:ci": "npm test -- --runInBand --silent",
     "test:category": "node src/tests/categoryManager.test.js",
   "lint": "eslint --no-eslintrc -c .eslintrc.cjs \"src/**/*.js\"",
   "lint:fix": "eslint --no-eslintrc -c .eslintrc.cjs \"src/**/*.js\" --fix",
     "format": "prettier --write src/**/*.{js,html,css}",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "ci": "npm run lint && npm run test:ci"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
