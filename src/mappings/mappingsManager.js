@@ -1,5 +1,5 @@
-import { showModal } from '../ui/modalManager.js';
-import { showToast } from '../ui/uiManager.js';
+import { showModal } from "../ui/modalManager.js";
+import { showToast } from "../ui/uiManager.js";
 
 /**
  * Show mappings modal
@@ -7,18 +7,18 @@ import { showToast } from '../ui/uiManager.js';
 export function showMappingsModal() {
   console.log("Opening mappings modal...");
 
-  const modalContent = document.createElement('div');
-  modalContent.className = 'mappings-content';
+  const modalContent = document.createElement("div");
+  modalContent.className = "mappings-content";
 
   // Build the content
   modalContent.innerHTML = buildMappingsContent();
 
   // Create the modal
   const modal = showModal({
-    title: 'Format Mappings',
+    title: "Format Mappings",
     content: modalContent,
-    size: 'large',
-    closeOnClickOutside: true // FIXED: Enable click outside to close
+    size: "large",
+    closeOnClickOutside: true, // FIXED: Enable click outside to close
   });
 
   // Attach event listeners
@@ -31,7 +31,9 @@ export function showMappingsModal() {
  * Build the mappings content HTML
  */
 function buildMappingsContent() {
-  const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  const mappings = JSON.parse(
+    localStorage.getItem("fileFormatMappings") || "[]"
+  );
 
   if (mappings.length === 0) {
     return `
@@ -52,7 +54,9 @@ function buildMappingsContent() {
   `;
 
   mappings.forEach((mapping, index) => {
-    const createdDate = mapping.createdAt ? new Date(mapping.createdAt).toLocaleDateString() : 'Unknown';
+    const createdDate = mapping.createdAt
+      ? new Date(mapping.createdAt).toLocaleDateString()
+      : "Unknown";
     const fieldsCount = Object.keys(mapping.headerMapping || {}).length;
 
     html += `
@@ -60,7 +64,9 @@ function buildMappingsContent() {
         <div class="mapping-info">
           <div class="mapping-icon">🗂️</div>
           <div class="mapping-details">
-            <div class="mapping-signature">${mapping.signature || 'Unknown Format'}</div>
+            <div class="mapping-signature">${
+              mapping.signature || "Unknown Format"
+            }</div>
             <div class="mapping-stats">${fieldsCount} fields mapped • Created: ${createdDate}</div>
           </div>
         </div>
@@ -88,33 +94,33 @@ function buildMappingsContent() {
  */
 function attachMappingsEventListeners(container, modal) {
   // Close button
-  const closeBtn = container.querySelector('#closeMappingsBtn');
+  const closeBtn = container.querySelector("#closeMappingsBtn");
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener("click", () => {
       modal.close();
     });
   }
 
   // Clear all mappings button
-  const clearAllBtn = container.querySelector('#clearAllMappingsBtn');
+  const clearAllBtn = container.querySelector("#clearAllMappingsBtn");
   if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', () => {
+    clearAllBtn.addEventListener("click", () => {
       handleClearAllMappings(container, modal);
     });
   }
 
   // Remove mapping buttons
-  container.querySelectorAll('.remove-mapping-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const index = parseInt(e.target.getAttribute('data-index'));
+  container.querySelectorAll(".remove-mapping-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const index = parseInt(e.target.getAttribute("data-index"));
       handleRemoveMapping(index, container, modal);
     });
   });
 
   // View mapping buttons
-  container.querySelectorAll('.view-mapping-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const index = parseInt(e.target.getAttribute('data-index'));
+  container.querySelectorAll(".view-mapping-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const index = parseInt(e.target.getAttribute("data-index"));
       handleViewMapping(index);
     });
   });
@@ -124,7 +130,9 @@ function attachMappingsEventListeners(container, modal) {
  * Handle removing a single mapping
  */
 function handleRemoveMapping(index, container, modal) {
-  const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  const mappings = JSON.parse(
+    localStorage.getItem("fileFormatMappings") || "[]"
+  );
   const mapping = mappings[index];
 
   if (!mapping) return;
@@ -136,15 +144,14 @@ function handleRemoveMapping(index, container, modal) {
     // Save back to localStorage
     try {
       localStorage.setItem("fileFormatMappings", JSON.stringify(mappings));
-      showToast('Mapping removed successfully', 'success');
+      showToast("Mapping removed successfully", "success");
 
       // Refresh the modal content
       container.innerHTML = buildMappingsContent();
       attachMappingsEventListeners(container, modal);
-
     } catch (error) {
-      console.error('Error removing mapping:', error);
-      showToast('Error removing mapping', 'error');
+      console.error("Error removing mapping:", error);
+      showToast("Error removing mapping", "error");
     }
   }
 }
@@ -153,18 +160,21 @@ function handleRemoveMapping(index, container, modal) {
  * Handle clearing all mappings
  */
 function handleClearAllMappings(container, modal) {
-  if (confirm('Are you sure you want to clear ALL format mappings? This cannot be undone.')) {
+  if (
+    confirm(
+      "Are you sure you want to clear ALL format mappings? This cannot be undone."
+    )
+  ) {
     try {
       localStorage.removeItem("fileFormatMappings");
-      showToast('All mappings cleared successfully', 'success');
+      showToast("All mappings cleared successfully", "success");
 
       // Refresh the modal content
       container.innerHTML = buildMappingsContent();
       attachMappingsEventListeners(container, modal);
-
     } catch (error) {
-      console.error('Error clearing mappings:', error);
-      showToast('Error clearing mappings', 'error');
+      console.error("Error clearing mappings:", error);
+      showToast("Error clearing mappings", "error");
     }
   }
 }
@@ -173,55 +183,82 @@ function handleClearAllMappings(container, modal) {
  * Handle viewing mapping details
  */
 function handleViewMapping(index) {
-  const mappings = JSON.parse(localStorage.getItem("fileFormatMappings") || "[]");
+  const mappings = JSON.parse(
+    localStorage.getItem("fileFormatMappings") || "[]"
+  );
   const mapping = mappings[index];
 
   if (!mapping) return;
 
   // Create a details modal
-  const detailsContent = document.createElement('div');
-  detailsContent.className = 'mapping-details-view';
+  const detailsContent = document.createElement("div");
+  detailsContent.className = "mapping-details-view";
   detailsContent.innerHTML = `
     <h4>Mapping Details</h4>
-    <p><strong>Signature:</strong> ${mapping.signature || 'Unknown'}</p>
-    <p><strong>Created:</strong> ${mapping.createdAt ? new Date(mapping.createdAt).toLocaleString() : 'Unknown'}</p>
+    <p><strong>Signature:</strong> ${mapping.signature || "Unknown"}</p>
+    <p><strong>Created:</strong> ${
+      mapping.createdAt
+        ? new Date(mapping.createdAt).toLocaleString()
+        : "Unknown"
+    }</p>
 
     <h5>Field Mappings:</h5>
     <div class="field-mappings">
-      ${Object.entries(mapping.headerMapping || {}).map(([field, column]) =>
-    `<div class="field-mapping"><strong>${field}:</strong> Column "${column}"</div>`
-  ).join('')}
+      ${Object.entries(mapping.headerMapping || {})
+        .map(
+          ([field, column]) =>
+            `<div class="field-mapping"><strong>${field}:</strong> Column "${column}"</div>`
+        )
+        .join("")}
     </div>
   `;
 
   showModal({
-    title: 'Mapping Details',
+    title: "Mapping Details",
     content: detailsContent,
-    size: 'medium'
+    size: "medium",
   });
 }
 
 /**
  * Save headers and format mapping for future use
  */
-export function saveHeadersAndFormat(signature, headerMapping, fileName = null, headerRowIndex = 0, dataRowIndex = 1, currency = 'USD') {
+export function saveHeadersAndFormat(
+  signature,
+  headerMapping,
+  fileName = null,
+  headerRowIndex = 0,
+  dataRowIndex = 1,
+  currency = "USD"
+) {
   try {
-    console.log('CRITICAL: Saving format mapping:', { signature, headerMapping, fileName });
+    console.log("CRITICAL: Saving format mapping:", {
+      signature,
+      headerMapping,
+      fileName,
+    });
 
-    const mappings = JSON.parse(localStorage.getItem('fileFormatMappings') || '[]');
+    const mappings = JSON.parse(
+      localStorage.getItem("fileFormatMappings") || "[]"
+    );
 
     // CRITICAL FIX: Don't overwrite existing mapping, just update lastUsed
-    const existingIndex = mappings.findIndex(m => m.signature === signature);
+    const existingIndex = mappings.findIndex((m) => m.signature === signature);
 
     const mappingData = {
       signature,
       mapping: headerMapping,
-      fileName: fileName || (existingIndex !== -1 ? mappings[existingIndex].fileName : 'Unknown'),
+      fileName:
+        fileName ||
+        (existingIndex !== -1 ? mappings[existingIndex].fileName : "Unknown"),
       headerRowIndex,
       dataRowIndex,
       currency,
-      created: existingIndex !== -1 ? mappings[existingIndex].created : new Date().toISOString(),
-      lastUsed: new Date().toISOString()
+      created:
+        existingIndex !== -1
+          ? mappings[existingIndex].created
+          : new Date().toISOString(),
+      lastUsed: new Date().toISOString(),
     };
 
     if (existingIndex !== -1) {
@@ -230,20 +267,22 @@ export function saveHeadersAndFormat(signature, headerMapping, fileName = null, 
         ...mappings[existingIndex],
         ...mappingData,
         fileName: mappings[existingIndex].fileName, // Keep original fileName
-        created: mappings[existingIndex].created    // Keep original created date
+        created: mappings[existingIndex].created, // Keep original created date
       };
-      console.log('CRITICAL: Updated existing mapping at index', existingIndex);
+      console.log("CRITICAL: Updated existing mapping at index", existingIndex);
     } else {
       // Add new mapping
       mappings.push(mappingData);
-      console.log('CRITICAL: Added new mapping, total mappings:', mappings.length);
+      console.log(
+        "CRITICAL: Added new mapping, total mappings:",
+        mappings.length
+      );
     }
 
-    localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
-    console.log('CRITICAL: Saved format mappings to localStorage');
-
+    localStorage.setItem("fileFormatMappings", JSON.stringify(mappings));
+    console.log("CRITICAL: Saved format mappings to localStorage");
   } catch (error) {
-    console.error('CRITICAL ERROR: Failed to save format mapping:', error);
+    console.error("CRITICAL ERROR: Failed to save format mapping:", error);
   }
 }
 
@@ -252,11 +291,13 @@ export function saveHeadersAndFormat(signature, headerMapping, fileName = null, 
  */
 export function getMappings() {
   try {
-    const mappings = JSON.parse(localStorage.getItem('fileFormatMappings') || '[]');
-    console.log('CRITICAL: Retrieved mappings:', mappings.length);
+    const mappings = JSON.parse(
+      localStorage.getItem("fileFormatMappings") || "[]"
+    );
+    console.log("CRITICAL: Retrieved mappings:", mappings.length);
     return mappings;
   } catch (error) {
-    console.error('CRITICAL ERROR: Failed to retrieve mappings:', error);
+    console.error("CRITICAL ERROR: Failed to retrieve mappings:", error);
     return [];
   }
 }
@@ -267,36 +308,48 @@ export function getMappings() {
 export function findMappingBySignature(signature) {
   try {
     const mappings = getMappings();
-    console.log('CRITICAL: Searching for signature:', signature, 'in', mappings.length, 'mappings');
+    console.log(
+      "CRITICAL: Searching for signature:",
+      signature,
+      "in",
+      mappings.length,
+      "mappings"
+    );
 
     // Log all signatures for debugging
     mappings.forEach((mapping, index) => {
-      console.log(`CRITICAL: Mapping ${index}: signature="${mapping.signature}", fileName="${mapping.fileName}"`);
+      console.log(
+        `CRITICAL: Mapping ${index}: signature="${mapping.signature}", fileName="${mapping.fileName}"`
+      );
     });
 
     // First try exact signature match
-    let found = mappings.find(m => m.signature === signature);
+    let found = mappings.find((m) => m.signature === signature);
 
     if (found) {
-      console.log('CRITICAL: Found EXACT mapping for signature:', signature);
+      console.log("CRITICAL: Found EXACT mapping for signature:", signature);
       // Update last used timestamp
       found.lastUsed = new Date().toISOString();
-      localStorage.setItem('fileFormatMappings', JSON.stringify(mappings));
+      localStorage.setItem("fileFormatMappings", JSON.stringify(mappings));
       return found;
     }
 
     // CRITICAL FIX: If no exact match, don't automatically apply similar mappings from different files
-    console.log('CRITICAL: No exact match found, checking for similar structures...');
+    console.log(
+      "CRITICAL: No exact match found, checking for similar structures..."
+    );
 
     // Find mappings with similar structure patterns
-    const candidateMappings = mappings.filter(mapping => {
+    const candidateMappings = mappings.filter((mapping) => {
       // Check if signatures share similar structure patterns
-      const currentSigParts = signature.split('_');
-      const mappingSigParts = mapping.signature.split('_');
+      const currentSigParts = signature.split("_");
+      const mappingSigParts = mapping.signature.split("_");
 
       // Both should be structure-based signatures
-      if (currentSigParts[0] === 'struct' && mappingSigParts[0] === 'struct') {
-        console.log(`CRITICAL: Comparing structure signatures: current=${signature}, stored=${mapping.signature}`);
+      if (currentSigParts[0] === "struct" && mappingSigParts[0] === "struct") {
+        console.log(
+          `CRITICAL: Comparing structure signatures: current=${signature}, stored=${mapping.signature}`
+        );
         // CRITICAL FIX: Only consider truly similar structures, not just any struct-based ones
         return areStructuresSimilar(signature, mapping.signature);
       }
@@ -305,17 +358,20 @@ export function findMappingBySignature(signature) {
     });
 
     if (candidateMappings.length > 0) {
-      console.log(`CRITICAL: Found ${candidateMappings.length} candidate mappings but will NOT auto-apply from different files`);
-      console.log('CRITICAL: User should manually map this file or confirm to use existing mapping');
+      console.log(
+        `CRITICAL: Found ${candidateMappings.length} candidate mappings but will NOT auto-apply from different files`
+      );
+      console.log(
+        "CRITICAL: User should manually map this file or confirm to use existing mapping"
+      );
       // CRITICAL FIX: Don't automatically apply mappings from different files without user confirmation
       return null;
     }
 
-    console.log('CRITICAL: No mapping found for signature:', signature);
+    console.log("CRITICAL: No mapping found for signature:", signature);
     return null;
-
   } catch (error) {
-    console.error('CRITICAL ERROR: Failed to find mapping:', error);
+    console.error("CRITICAL ERROR: Failed to find mapping:", error);
     return null;
   }
 }
@@ -332,10 +388,10 @@ function areStructuresSimilar(sig1, sig2) {
     if (sig1 === sig2) return true;
 
     // Both must be structure-based signatures
-    const sig1Parts = sig1.split('_');
-    const sig2Parts = sig2.split('_');
+    const sig1Parts = sig1.split("_");
+    const sig2Parts = sig2.split("_");
 
-    if (sig1Parts[0] !== 'struct' || sig2Parts[0] !== 'struct') {
+    if (sig1Parts[0] !== "struct" || sig2Parts[0] !== "struct") {
       return false;
     }
 
@@ -347,11 +403,12 @@ function areStructuresSimilar(sig1, sig2) {
     // and compare actual column counts, data patterns, etc., but for now
     // we prioritize user control over automatic convenience
 
-    console.log(`CRITICAL: Structure comparison - signatures are different: ${sig1} != ${sig2}`);
+    console.log(
+      `CRITICAL: Structure comparison - signatures are different: ${sig1} != ${sig2}`
+    );
     return false;
-
   } catch (error) {
-    console.error('Error comparing structures:', error);
+    console.error("Error comparing structures:", error);
     return false;
   }
 }

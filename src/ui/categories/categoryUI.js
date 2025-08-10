@@ -5,7 +5,7 @@ import {
   deleteCategory,
   addSubcategory,
   updateSubcategory,
-  deleteSubcategory
+  deleteSubcategory,
 } from "../categoryManager.js";
 
 /**
@@ -13,12 +13,12 @@ import {
  */
 export function renderCategoryUI(container) {
   if (!container) {
-    console.error('No container provided for category UI');
+    console.error("No container provided for category UI");
     return;
   }
 
   // Clear existing content
-  container.innerHTML = '';
+  container.innerHTML = "";
 
   // Build and insert the category list HTML
   const categoryListHTML = buildCategoryList();
@@ -33,7 +33,9 @@ export function renderCategoryUI(container) {
  */
 export function buildCategoryList() {
   const categories = AppState.categories || {};
-  const sortedCategories = Object.keys(categories).sort((a, b) => a.localeCompare(b));
+  const sortedCategories = Object.keys(categories).sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   let html = `
     <div class="add-category-form">
@@ -47,13 +49,13 @@ export function buildCategoryList() {
   if (sortedCategories.length === 0) {
     html += '<p class="empty-state">No categories defined yet.</p>';
   } else {
-    sortedCategories.forEach(categoryName => {
+    sortedCategories.forEach((categoryName) => {
       const categoryValue = categories[categoryName];
       // Fix color format - ensure 6 digit hex
-      let color = '#cccccc'; // default
-      if (typeof categoryValue === 'string') {
+      let color = "#cccccc"; // default
+      if (typeof categoryValue === "string") {
         color = categoryValue;
-      } else if (typeof categoryValue === 'object' && categoryValue.color) {
+      } else if (typeof categoryValue === "object" && categoryValue.color) {
         color = categoryValue.color;
       }
 
@@ -70,17 +72,23 @@ export function buildCategoryList() {
           <button class="update-category-btn button secondary-btn" data-category="${categoryName}">Update</button>
           <button class="delete-category-btn button danger-btn" data-category="${categoryName}">Delete</button>
           <button class="toggle-subcategory-btn button" data-category="${categoryName}">
-            ${typeof categoryValue === 'object' && categoryValue.subcategories ? 'Hide' : 'Show'} Subcategories
+            ${
+              typeof categoryValue === "object" && categoryValue.subcategories
+                ? "Hide"
+                : "Show"
+            } Subcategories
           </button>
         </div>
 
-        ${typeof categoryValue === 'object' && categoryValue.subcategories ?
-          `<div class="subcategories-container" data-parent="${categoryName}" style="display: block;">
+        ${
+          typeof categoryValue === "object" && categoryValue.subcategories
+            ? `<div class="subcategories-container" data-parent="${categoryName}" style="display: block;">
             ${renderSubcategories(categoryName, categoryValue)}
-          </div>` :
-          `<div class="subcategories-container" data-parent="${categoryName}" style="display: none;">
+          </div>`
+            : `<div class="subcategories-container" data-parent="${categoryName}" style="display: none;">
             ${renderSubcategories(categoryName, { subcategories: {} })}
-          </div>`}
+          </div>`
+        }
       `;
     });
   }
@@ -102,20 +110,24 @@ function renderSubcategories(parentName, parentCategory) {
   let html = '<div style="margin-left: 20px;">';
 
   // Check if this category has subcategories
-  if (typeof parentCategory === 'object' && parentCategory.subcategories &&
-    Object.keys(parentCategory.subcategories).length > 0) {
-
+  if (
+    typeof parentCategory === "object" &&
+    parentCategory.subcategories &&
+    Object.keys(parentCategory.subcategories).length > 0
+  ) {
     // Sort subcategories alphabetically
-    const sortedSubcategories = Object.keys(parentCategory.subcategories).sort((a, b) => a.localeCompare(b));
+    const sortedSubcategories = Object.keys(parentCategory.subcategories).sort(
+      (a, b) => a.localeCompare(b)
+    );
 
-    sortedSubcategories.forEach(subName => {
+    sortedSubcategories.forEach((subName) => {
       let subColor = parentCategory.subcategories[subName];
       // Ensure color is 6 digits
       if (subColor && subColor.length === 4) {
         subColor = subColor + subColor.slice(1);
       }
       if (!subColor || subColor.length !== 7) {
-        subColor = '#8bd48b';
+        subColor = "#8bd48b";
       }
 
       html += `
@@ -132,7 +144,8 @@ function renderSubcategories(parentName, parentCategory) {
       `;
     });
   } else {
-    html += '<p style="font-style: italic; color: #666;">No subcategories yet</p>';
+    html +=
+      '<p style="font-style: italic; color: #666;">No subcategories yet</p>';
   }
 
   // Add form to create new subcategory
@@ -144,7 +157,7 @@ function renderSubcategories(parentName, parentCategory) {
     </div>
   `;
 
-  html += '</div>';
+  html += "</div>";
   return html;
 }
 
@@ -165,7 +178,7 @@ function attachCategoryEventListeners(container) {
       const color = colorInput.value;
 
       if (!name) {
-        import('../uiManager.js').then(module => {
+        import("../uiManager.js").then((module) => {
           module.showToast("Please enter a category name", "error");
         });
         return;
@@ -191,7 +204,7 @@ function attachCategoryEventListeners(container) {
   if (closeBtn) {
     closeBtn.addEventListener("click", () => {
       // Close the modal by finding and clicking the modal close button
-      const modalClose = document.querySelector('.modal-close');
+      const modalClose = document.querySelector(".modal-close");
       if (modalClose) {
         modalClose.click();
       }
@@ -199,7 +212,7 @@ function attachCategoryEventListeners(container) {
   }
 
   // Toggle subcategories buttons
-  container.querySelectorAll(".toggle-subcategory-btn").forEach(btn => {
+  container.querySelectorAll(".toggle-subcategory-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const categoryName = e.target.getAttribute("data-category");
       const subcategoriesContainer = container.querySelector(
@@ -209,13 +222,15 @@ function attachCategoryEventListeners(container) {
       if (subcategoriesContainer) {
         const isVisible = subcategoriesContainer.style.display !== "none";
         subcategoriesContainer.style.display = isVisible ? "none" : "block";
-        e.target.textContent = isVisible ? "Show Subcategories" : "Hide Subcategories";
+        e.target.textContent = isVisible
+          ? "Show Subcategories"
+          : "Hide Subcategories";
       }
     });
   });
 
   // Update category buttons
-  container.querySelectorAll(".update-category-btn").forEach(btn => {
+  container.querySelectorAll(".update-category-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const categoryName = e.target.getAttribute("data-category");
       const colorInput = container.querySelector(
@@ -231,7 +246,7 @@ function attachCategoryEventListeners(container) {
       const newName = nameInput.value.trim();
 
       if (!newName) {
-        import('../uiManager.js').then(module => {
+        import("../uiManager.js").then((module) => {
           module.showToast("Category name cannot be empty", "error");
         });
         return;
@@ -251,11 +266,15 @@ function attachCategoryEventListeners(container) {
   });
 
   // Delete category buttons
-  container.querySelectorAll(".delete-category-btn").forEach(btn => {
+  container.querySelectorAll(".delete-category-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const categoryName = e.target.getAttribute("data-category");
 
-      if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
+      if (
+        !confirm(
+          `Are you sure you want to delete the category "${categoryName}"?`
+        )
+      ) {
         return;
       }
 
@@ -273,7 +292,7 @@ function attachCategoryEventListeners(container) {
   });
 
   // Add subcategory buttons
-  container.querySelectorAll(".add-subcategory-btn").forEach(btn => {
+  container.querySelectorAll(".add-subcategory-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const parentName = e.target.getAttribute("data-parent");
       const colorInput = container.querySelector(
@@ -289,7 +308,7 @@ function attachCategoryEventListeners(container) {
       const subColor = colorInput.value;
 
       if (!subName) {
-        import('../uiManager.js').then(module => {
+        import("../uiManager.js").then((module) => {
           module.showToast("Please enter a subcategory name", "error");
         });
         return;
@@ -312,7 +331,7 @@ function attachCategoryEventListeners(container) {
   });
 
   // Update subcategory buttons
-  container.querySelectorAll(".update-subcategory-btn").forEach(btn => {
+  container.querySelectorAll(".update-subcategory-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const parentName = e.target.getAttribute("data-parent");
       const subName = e.target.getAttribute("data-subcategory");
@@ -329,7 +348,7 @@ function attachCategoryEventListeners(container) {
       const newSubName = nameInput.value.trim();
 
       if (!newSubName) {
-        import('../uiManager.js').then(module => {
+        import("../uiManager.js").then((module) => {
           module.showToast("Subcategory name cannot be empty", "error");
         });
         return;
@@ -342,12 +361,16 @@ function attachCategoryEventListeners(container) {
   });
 
   // Delete subcategory buttons
-  container.querySelectorAll(".delete-subcategory-btn").forEach(btn => {
+  container.querySelectorAll(".delete-subcategory-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const parentName = e.target.getAttribute("data-parent");
       const subName = e.target.getAttribute("data-subcategory");
 
-      if (!confirm(`Are you sure you want to delete the subcategory "${subName}"?`)) {
+      if (
+        !confirm(
+          `Are you sure you want to delete the subcategory "${subName}"?`
+        )
+      ) {
         return;
       }
 
@@ -365,13 +388,15 @@ function attachCategoryEventListeners(container) {
  * Initialize drag and drop functionality for categories
  */
 function initializeCategoryDragAndDrop(container) {
-  const categoryRows = container.querySelectorAll('.category-edit-row[draggable="true"]');
+  const categoryRows = container.querySelectorAll(
+    '.category-edit-row[draggable="true"]'
+  );
 
-  categoryRows.forEach(row => {
-    row.addEventListener('dragstart', handleDragStart);
-    row.addEventListener('dragover', handleDragOver);
-    row.addEventListener('drop', handleDrop);
-    row.addEventListener('dragend', handleDragEnd);
+  categoryRows.forEach((row) => {
+    row.addEventListener("dragstart", handleDragStart);
+    row.addEventListener("dragover", handleDragOver);
+    row.addEventListener("drop", handleDrop);
+    row.addEventListener("dragend", handleDragEnd);
   });
 }
 
@@ -379,16 +404,16 @@ let draggedElement = null;
 
 function handleDragStart(e) {
   draggedElement = this;
-  this.style.opacity = '0.5';
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/html', this.outerHTML);
+  this.style.opacity = "0.5";
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/html", this.outerHTML);
 }
 
 function handleDragOver(e) {
   if (e.preventDefault) {
     e.preventDefault();
   }
-  e.dataTransfer.dropEffect = 'move';
+  e.dataTransfer.dropEffect = "move";
   return false;
 }
 
@@ -398,14 +423,14 @@ function handleDrop(e) {
   }
 
   if (draggedElement !== this) {
-    const draggedCategory = draggedElement.getAttribute('data-category');
-    const targetCategory = this.getAttribute('data-category');
+    const draggedCategory = draggedElement.getAttribute("data-category");
+    const targetCategory = this.getAttribute("data-category");
 
     // Reorder categories in AppState
     reorderCategories(draggedCategory, targetCategory);
 
     // Re-render the UI
-    const container = this.closest('.category-manager-content');
+    const container = this.closest(".category-manager-content");
     if (container) {
       renderCategoryUI(container);
     }
@@ -414,7 +439,7 @@ function handleDrop(e) {
 }
 
 function handleDragEnd(e) {
-  this.style.opacity = '1';
+  this.style.opacity = "1";
   draggedElement = null;
 }
 
@@ -434,13 +459,13 @@ function reorderCategories(draggedCategory, targetCategory) {
 
     // Rebuild categories object with new order
     const reorderedCategories = {};
-    categoryKeys.forEach(key => {
+    categoryKeys.forEach((key) => {
       reorderedCategories[key] = categories[key];
     });
 
     AppState.categories = reorderedCategories;
 
     // Save to localStorage
-    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+    localStorage.setItem("categories", JSON.stringify(AppState.categories));
   }
 }

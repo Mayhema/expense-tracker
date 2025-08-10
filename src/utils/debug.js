@@ -1,5 +1,5 @@
-import { AppState } from '../core/appState.js';
-import { showModal } from '../ui/modalManager.js';
+import { AppState } from "../core/appState.js";
+import { showModal } from "../ui/modalManager.js";
 
 /**
  * Enhanced debug function for transaction data with detailed analysis
@@ -18,7 +18,7 @@ export function inspectTransactionData() {
             No transactions available to analyze
           </p>
         </div>
-      `
+      `,
     });
     return;
   }
@@ -39,7 +39,9 @@ export function inspectTransactionData() {
             <p><strong>Net Balance:</strong> ${analysis.netBalance}</p>
           </div>
           <div>
-            <p><strong>Currencies:</strong> ${analysis.currencies.join(', ')}</p>
+            <p><strong>Currencies:</strong> ${analysis.currencies.join(
+              ", "
+            )}</p>
             <p><strong>Categories:</strong> ${analysis.categoryCount} unique</p>
             <p><strong>Uncategorized:</strong> ${analysis.uncategorized}</p>
             <p><strong>Average Transaction:</strong> ${analysis.avgAmount}</p>
@@ -60,13 +62,21 @@ export function inspectTransactionData() {
               </tr>
             </thead>
             <tbody>
-              ${Object.entries(analysis.categoryBreakdown).map(([cat, data]) => `
+              ${Object.entries(analysis.categoryBreakdown)
+                .map(
+                  ([cat, data]) => `
                 <tr>
                   <td style="padding: 5px; border: 1px solid #ddd;">${cat}</td>
-                  <td style="padding: 5px; border: 1px solid #ddd;">${data.count}</td>
-                  <td style="padding: 5px; border: 1px solid #ddd;">${data.amount.toFixed(2)}</td>
+                  <td style="padding: 5px; border: 1px solid #ddd;">${
+                    data.count
+                  }</td>
+                  <td style="padding: 5px; border: 1px solid #ddd;">${data.amount.toFixed(
+                    2
+                  )}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
@@ -75,8 +85,14 @@ export function inspectTransactionData() {
       <div class="debug-section">
         <h3>Data Quality Issues</h3>
         <ul>
-          ${analysis.issues.map(issue => '<li style="color: #dc3545;">' + issue + '</li>').join('')}
-          ${analysis.issues.length === 0 ? '<li style="color: #28a745;">No data quality issues found</li>' : ''}
+          ${analysis.issues
+            .map((issue) => '<li style="color: #dc3545;">' + issue + "</li>")
+            .join("")}
+          ${
+            analysis.issues.length === 0
+              ? '<li style="color: #28a745;">No data quality issues found</li>'
+              : ""
+          }
         </ul>
       </div>
 
@@ -94,15 +110,31 @@ export function inspectTransactionData() {
               </tr>
             </thead>
             <tbody>
-              ${transactions.slice(0, 10).map(tx => `
+              ${transactions
+                .slice(0, 10)
+                .map(
+                  (tx) => `
                 <tr>
-                  <td style="padding: 4px; border: 1px solid #ddd;">${tx.date || 'N/A'}</td>
-                  <td style="padding: 4px; border: 1px solid #ddd; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${tx.description || ''}">${tx.description || 'N/A'}</td>
-                  <td style="padding: 4px; border: 1px solid #ddd;">${(parseFloat(tx.income) || 0) - (parseFloat(tx.expenses) || 0)}</td>
-                  <td style="padding: 4px; border: 1px solid #ddd;">${tx.category || 'Uncategorized'}</td>
-                  <td style="padding: 4px; border: 1px solid #ddd;">${tx.currency || 'N/A'}</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${
+                    tx.date || "N/A"
+                  }</td>
+                  <td style="padding: 4px; border: 1px solid #ddd; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${
+                    tx.description || ""
+                  }">${tx.description || "N/A"}</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${
+                    (parseFloat(tx.income) || 0) -
+                    (parseFloat(tx.expenses) || 0)
+                  }</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${
+                    tx.category || "Uncategorized"
+                  }</td>
+                  <td style="padding: 4px; border: 1px solid #ddd;">${
+                    tx.currency || "N/A"
+                  }</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
@@ -113,7 +145,7 @@ export function inspectTransactionData() {
   showModal({
     title: "Transaction Data Analysis",
     content: modalContent,
-    size: "large"
+    size: "large",
   });
 }
 
@@ -132,14 +164,14 @@ function analyzeTransactionData(transactions) {
     uncategorized: 0,
     sourceFiles: new Set(),
     issues: [],
-    dateRange: 'N/A',
-    avgAmount: 0
+    dateRange: "N/A",
+    avgAmount: 0,
   };
 
   let validDates = [];
   let totalAbsoluteAmount = 0;
 
-  transactions.forEach(tx => {
+  transactions.forEach((tx) => {
     // Income and expenses
     const income = parseFloat(tx.income) || 0;
     const expenses = parseFloat(tx.expenses) || 0;
@@ -154,8 +186,8 @@ function analyzeTransactionData(transactions) {
     }
 
     // Categories
-    const category = tx.category || 'Uncategorized';
-    if (category === 'Uncategorized') {
+    const category = tx.category || "Uncategorized";
+    if (category === "Uncategorized") {
       analysis.uncategorized++;
     }
 
@@ -179,16 +211,16 @@ function analyzeTransactionData(transactions) {
         analysis.issues.push(`Invalid date format: ${tx.date}`);
       }
     } else {
-      analysis.issues.push('Transaction missing date');
+      analysis.issues.push("Transaction missing date");
     }
 
     // Data quality checks
-    if (!tx.description || tx.description.trim() === '') {
-      analysis.issues.push('Transaction missing description');
+    if (!tx.description || tx.description.trim() === "") {
+      analysis.issues.push("Transaction missing description");
     }
 
     if (income === 0 && expenses === 0) {
-      analysis.issues.push('Transaction with zero amount');
+      analysis.issues.push("Transaction with zero amount");
     }
   });
 
@@ -197,14 +229,16 @@ function analyzeTransactionData(transactions) {
   analysis.currencies = Array.from(analysis.currencies);
   analysis.sourceFiles = Array.from(analysis.sourceFiles);
   analysis.categoryCount = Object.keys(analysis.categoryBreakdown).length;
-  analysis.avgAmount = transactions.length > 0 ? (totalAbsoluteAmount / transactions.length) : 0;
+  analysis.avgAmount =
+    transactions.length > 0 ? totalAbsoluteAmount / transactions.length : 0;
 
   // Date range
   if (validDates.length > 0) {
     validDates.sort((a, b) => a - b);
     const earliest = validDates[0].toDateString();
     const latest = validDates[validDates.length - 1].toDateString();
-    analysis.dateRange = earliest === latest ? earliest : `${earliest} - ${latest}`;
+    analysis.dateRange =
+      earliest === latest ? earliest : `${earliest} - ${latest}`;
   }
 
   return analysis;
@@ -216,23 +250,25 @@ function analyzeTransactionData(transactions) {
 export function debugMergedFiles() {
   console.log("Debug merged files triggered", AppState.mergedFiles);
 
-  const modalContent = document.createElement('div');
+  const modalContent = document.createElement("div");
 
   if (!AppState.mergedFiles || AppState.mergedFiles.length === 0) {
-    modalContent.innerHTML = '<p>No merged files available to debug.</p>';
+    modalContent.innerHTML = "<p>No merged files available to debug.</p>";
   } else {
-    const filesInfo = AppState.mergedFiles.map((file, index) => {
-      return `
+    const filesInfo = AppState.mergedFiles
+      .map((file, index) => {
+        return `
         <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
-          <h4>File ${index + 1}: ${file.fileName || 'Unknown'}</h4>
-          <p><strong>Signature:</strong> ${file.signature || 'None'}</p>
+          <h4>File ${index + 1}: ${file.fileName || "Unknown"}</h4>
+          <p><strong>Signature:</strong> ${file.signature || "None"}</p>
           <p><strong>Data rows:</strong> ${file.data ? file.data.length : 0}</p>
           <p><strong>Header row:</strong> ${file.headerRowIndex || 0}</p>
           <p><strong>Data start row:</strong> ${file.dataRowIndex || 1}</p>
-          <p><strong>Currency:</strong> ${file.currency || 'USD'}</p>
+          <p><strong>Currency:</strong> ${file.currency || "USD"}</p>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
     modalContent.innerHTML = `
       <h3>Merged Files Debug (${AppState.mergedFiles.length} files)</h3>
@@ -243,7 +279,7 @@ export function debugMergedFiles() {
   showModal({
     title: "Merged Files Debug",
     content: modalContent,
-    size: "large"
+    size: "large",
   });
 }
 
@@ -251,53 +287,75 @@ export function debugMergedFiles() {
  * Debug function for signatures
  */
 export function debugSignatures() {
-  const modalContent = document.createElement('div');
+  const modalContent = document.createElement("div");
 
   // Current file signature section
-  let currentFileSection = '<h3>Current File Signature</h3>';
+  let currentFileSection = "<h3>Current File Signature</h3>";
   if (AppState.currentFileSignature && AppState?.currentFileName) {
     currentFileSection += `
       <p><strong>File:</strong> ${AppState.currentFileName}</p>
       <p><strong>Signature:</strong> ${AppState.currentFileSignature}</p>
     `;
   } else {
-    currentFileSection += '<p>No current file signature available.</p>';
+    currentFileSection += "<p>No current file signature available.</p>";
   }
 
   // FIXED: Get saved mappings from localStorage
-  const mappings = JSON.parse(localStorage.getItem('fileFormatMappings') || '[]');
-  let mappingsSection = '<h3>Saved Format Mappings</h3>';
+  const mappings = JSON.parse(
+    localStorage.getItem("fileFormatMappings") || "[]"
+  );
+  let mappingsSection = "<h3>Saved Format Mappings</h3>";
 
   if (mappings.length > 0) {
-    mappingsSection += mappings.map((mapping, index) => {
-      const fields = mapping.mapping ? mapping.mapping.filter(m => m !== '–').join(', ') : 'No mapping';
-      const created = mapping.created ? new Date(mapping.created).toLocaleString() : 'Unknown';
+    mappingsSection += mappings
+      .map((mapping, index) => {
+        const fields = mapping.mapping
+          ? mapping.mapping.filter((m) => m !== "–").join(", ")
+          : "No mapping";
+        const created = mapping.created
+          ? new Date(mapping.created).toLocaleString()
+          : "Unknown";
 
-      return `
+        return `
         <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
-          <strong>Mapping ${index + 1}:</strong> ${mapping.signature || 'Unknown signature'}<br>
-          <strong>File:</strong> ${mapping.fileName || 'Unknown'}<br>
+          <strong>Mapping ${index + 1}:</strong> ${
+          mapping.signature || "Unknown signature"
+        }<br>
+          <strong>File:</strong> ${mapping.fileName || "Unknown"}<br>
           <strong>Fields:</strong> ${fields}<br>
           <strong>Created:</strong> ${created}
         </div>
       `;
-    }).join('');
+      })
+      .join("");
   } else {
-    mappingsSection += '<p>No saved mappings found.</p>';
+    mappingsSection += "<p>No saved mappings found.</p>";
   }
 
   // Merged files signatures section
-  let filesSection = '<h3>Merged Files Signatures</h3>';
+  let filesSection = "<h3>Merged Files Signatures</h3>";
   if (AppState.mergedFiles?.length > 0) {
-    filesSection += AppState.mergedFiles.map((file, index) => `
+    filesSection += AppState.mergedFiles
+      .map(
+        (file, index) => `
       <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
-        <strong>${file.fileName}:</strong> ${file.signature || 'No signature'}<br>
-        <strong>Mapping:</strong> ${file.headerMapping ? file.headerMapping.filter(m => m !== '–').join(', ') : 'No mapping'}<br>
-        <strong>Transactions:</strong> ${file.transactions ? file.transactions.length : 0}
+        <strong>${file.fileName}:</strong> ${
+          file.signature || "No signature"
+        }<br>
+        <strong>Mapping:</strong> ${
+          file.headerMapping
+            ? file.headerMapping.filter((m) => m !== "–").join(", ")
+            : "No mapping"
+        }<br>
+        <strong>Transactions:</strong> ${
+          file.transactions ? file.transactions.length : 0
+        }
       </div>
-    `).join('');
+    `
+      )
+      .join("");
   } else {
-    filesSection += '<p>No merged files available.</p>';
+    filesSection += "<p>No merged files available.</p>";
   }
 
   // Combine all sections
@@ -306,7 +364,7 @@ export function debugSignatures() {
   showModal({
     title: "🔍 Debug: File Signatures & Mappings",
     content: modalContent,
-    size: "large"
+    size: "large",
   });
 }
 
@@ -314,8 +372,10 @@ export function debugSignatures() {
  * Check if debug mode is active
  */
 function isDebugModeActive() {
-  return localStorage.getItem('debugMode') === 'true' &&
-    document.body.classList.contains('debug-mode');
+  return (
+    localStorage.getItem("debugMode") === "true" &&
+    document.body.classList.contains("debug-mode")
+  );
 }
 
 /**
@@ -361,17 +421,17 @@ function attachDebugButtonListeners() {
   // Use a more reliable method to attach listeners
   setTimeout(() => {
     const debugButtons = [
-      { id: 'debugFilesBtn', handler: debugMergedFiles },
-      { id: 'debugSignaturesBtn', handler: debugSignatures },
-      { id: 'debugTransactionsBtn', handler: inspectTransactionData },
-      { id: 'resetAppBtn', handler: resetApplication }
+      { id: "debugFilesBtn", handler: debugMergedFiles },
+      { id: "debugSignaturesBtn", handler: debugSignatures },
+      { id: "debugTransactionsBtn", handler: inspectTransactionData },
+      { id: "resetAppBtn", handler: resetApplication },
     ];
 
     debugButtons.forEach(({ id, handler }) => {
       const button = document.getElementById(id);
       if (button && !button?.dataset?.listenerAttached) {
-        button.addEventListener('click', handler);
-        button.dataset.listenerAttached = 'true';
+        button.addEventListener("click", handler);
+        button.dataset.listenerAttached = "true";
         console.log(`Attached listener to ${id}`);
       }
     });
@@ -386,24 +446,29 @@ function attachDebugButtonListeners() {
  */
 async function resetCategoriesAndFinalize(appStateModule) {
   try {
-    const categoryModule = await import('../ui/categoryManager.js');
+    const categoryModule = await import("../ui/categoryManager.js");
     if (categoryModule.resetToDefaultCategories) {
       categoryModule.resetToDefaultCategories();
-      console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
+      console.log(
+        "CRITICAL: Called resetToDefaultCategories() exactly like the reset button"
+      );
     }
   } catch (error) {
-    console.warn('Could not call resetToDefaultCategories:', error);
+    console.warn("Could not call resetToDefaultCategories:", error);
   }
 
   // Show confirmation and reload
   setTimeout(async () => {
     try {
-      const uiModule = await import('../ui/uiManager.js');
+      const uiModule = await import("../ui/uiManager.js");
       if (uiModule.showToast) {
-        uiModule.showToast('Application reset complete with default categories loaded. Reloading...', 'success');
+        uiModule.showToast(
+          "Application reset complete with default categories loaded. Reloading...",
+          "success"
+        );
       }
     } catch (error) {
-      console.warn('Could not show toast:', error);
+      console.warn("Could not show toast:", error);
     }
     window.location.reload();
   }, 500);
@@ -413,12 +478,21 @@ async function resetCategoriesAndFinalize(appStateModule) {
  * Helper function to handle app state setup
  */
 async function setupAppStateWithDefaults(categoriesModule) {
-  const appStateModule = await import('../core/appState.js');
-  appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
+  const appStateModule = await import("../core/appState.js");
+  appStateModule.AppState.categories = {
+    ...categoriesModule.DEFAULT_CATEGORIES,
+  };
 
   // Save categories immediately to localStorage
-  localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
-  console.log(`Reset: Loaded ${Object.keys(appStateModule.AppState.categories).length} default categories`);
+  localStorage.setItem(
+    "categories",
+    JSON.stringify(appStateModule.AppState.categories)
+  );
+  console.log(
+    `Reset: Loaded ${
+      Object.keys(appStateModule.AppState.categories).length
+    } default categories`
+  );
 
   await resetCategoriesAndFinalize(appStateModule);
 }
@@ -428,12 +502,15 @@ async function setupAppStateWithDefaults(categoriesModule) {
  */
 async function showResetError() {
   try {
-    const uiModule = await import('../ui/uiManager.js');
+    const uiModule = await import("../ui/uiManager.js");
     if (uiModule.showToast) {
-      uiModule.showToast('Error occurred during reset. Please refresh the page manually.', 'error');
+      uiModule.showToast(
+        "Error occurred during reset. Please refresh the page manually.",
+        "error"
+      );
     }
   } catch (error) {
-    console.warn('Could not show error toast:', error);
+    console.warn("Could not show error toast:", error);
   }
 }
 
@@ -443,7 +520,11 @@ async function showResetError() {
 export async function resetApplication() {
   console.log("Reset application triggered");
 
-  if (confirm('Are you sure you want to reset the application? This will clear all data and reload the page.')) {
+  if (
+    confirm(
+      "Are you sure you want to reset the application? This will clear all data and reload the page."
+    )
+  ) {
     try {
       // Clear all localStorage
       localStorage.clear();
@@ -452,7 +533,7 @@ export async function resetApplication() {
       sessionStorage.clear();
 
       // CRITICAL FIX: Reset AppState data immediately
-      const appStateModule = await import('../core/appState.js');
+      const appStateModule = await import("../core/appState.js");
 
       // Reset all app state data
       appStateModule.AppState.transactions = [];
@@ -463,16 +544,15 @@ export async function resetApplication() {
       appStateModule.AppState.lastFileId = 0;
 
       // Initialize default categories
-      const categoriesModule = await import('../constants/categories.js');
+      const categoriesModule = await import("../constants/categories.js");
       await setupAppStateWithDefaults(categoriesModule);
 
       // Force refresh UI after reset
       setTimeout(() => {
         window.location.reload();
       }, 100);
-
     } catch (error) {
-      console.error('Error during reset:', error);
+      console.error("Error during reset:", error);
       await showResetError();
     }
   }

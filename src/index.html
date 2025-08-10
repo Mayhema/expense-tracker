@@ -1,237 +1,327 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal Expense Tracker - Manage Your Finances</title>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Expense Tracker - Manage Your Finances</title>
+    <!-- Updated CSS paths - use single main stylesheet -->
+    <link rel="stylesheet" href="styles/styles.css" />
+    <link rel="stylesheet" href="styles/table-fixes.css" />
 
-  <!-- Updated CSS paths - use single main stylesheet -->
-  <link rel="stylesheet" href="styles/styles.css">
-  <link rel="stylesheet" href="styles/table-fixes.css">
+    <!-- Load XLSX library for Excel file support -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js with required utilities -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  </head>
 
-  <!-- Load XLSX library for Excel file support -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  <!-- Chart.js with required utilities -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-</head>
-
-<body>
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="app-title">
-      <h1>Personal Expense Tracker</h1>
-      <p class="app-subtitle">Manage your finances locally and securely</p>
-    </div>
-
-    <!-- Hamburger Menu Button - Moved inside header -->
-    <button class="hamburger-menu" id="hamburgerMenu" aria-label="Toggle menu">
-      <div class="hamburger-line"></div>
-      <div class="hamburger-line"></div>
-      <div class="hamburger-line"></div>
-    </button>
-  </header>
-
-  <!-- Sidebar Overlay -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-  <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-content">
-      <h2>Tools & Settings</h2>
-
-      <!-- File Management -->
-      <div class="action-buttons">
-        <button id="fileUploadBtn" class="action-button" title="Upload Transaction File">
-          <span class="action-icon">📁</span>
-          <span class="action-text">Upload</span>
-        </button>
-
-        <button id="showMergedFilesBtn" class="action-button" title="View Merged Files">
-          <span class="action-icon">📊</span>
-          <span class="action-text">Merged Files</span>
-        </button>
-
-        <button id="showMappingsBtn" class="action-button" title="Manage Format Mappings">
-          <span class="action-icon">🗂️</span>
-          <span class="action-text">Mappings</span>
-        </button>
-
-        <button id="editCategoriesSidebarBtn" class="action-button" title="Manage Categories">
-          <span class="action-icon">🏷️</span>
-          <span class="action-text">Categories</span>
-        </button>
-
-        <button id="enhancedCategoriesBtn" class="action-button" title="Enhanced Category Manager">
-          <span class="action-icon">🎨</span>
-          <span class="action-text">Enhanced Categories</span>
-        </button>
-
-        <button id="exportBtn" class="action-button" title="Export Data">
-          <span class="action-icon">💾</span>
-          <span class="action-text">Export</span>
-        </button>
+  <body>
+    <!-- App Header -->
+    <header class="app-header">
+      <div class="app-title">
+        <h1>Personal Expense Tracker</h1>
+        <p class="app-subtitle">Manage your finances locally and securely</p>
       </div>
 
-      <!-- Settings Section -->
-      <div class="sidebar-section">
-        <h3>Settings</h3>
+      <!-- Hamburger Menu Button - Moved inside header -->
+      <button
+        class="hamburger-menu"
+        id="hamburgerMenu"
+        aria-label="Toggle menu"
+      >
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+        <div class="hamburger-line"></div>
+      </button>
+    </header>
 
-        <div class="toggle-item">
-          <label for="darkModeToggle">Dark Mode</label>
-          <div class="toggle-switch">
-            <input type="checkbox" id="darkModeToggle" />
-            <span class="slider"></span>
-          </div>
-        </div>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <div class="toggle-item">
-          <label for="debugModeToggle">Debug Mode</label>
-          <div class="toggle-switch">
-            <input type="checkbox" id="debugModeToggle" />
-            <span class="slider"></span>
-          </div>
-        </div>
-      </div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-content">
+        <h2>Tools & Settings</h2>
 
-      <!-- Debug Tools Section -->
-      <div class="sidebar-section debug-only" id="debugToolsSection">
-        <h3>Debug Tools</h3>
-
+        <!-- File Management -->
         <div class="action-buttons">
-          <button id="debugFilesBtn" class="action-button" title="Debug Files">
-            <span class="action-icon">🗂️</span>
-            <span class="action-text">Files</span>
+          <button
+            id="fileUploadBtn"
+            class="action-button"
+            title="Upload Transaction File"
+          >
+            <span class="action-icon">📁</span>
+            <span class="action-text">Upload</span>
           </button>
 
-          <button id="debugSignaturesBtn" class="action-button" title="Debug Signatures">
-            <span class="action-icon">🔍</span>
-            <span class="action-text">Signatures</span>
-          </button>
-
-          <button id="debugTransactionsBtn" class="action-button" title="Debug Transactions">
+          <button
+            id="showMergedFilesBtn"
+            class="action-button"
+            title="View Merged Files"
+          >
             <span class="action-icon">📊</span>
-            <span class="action-text">Transactions</span>
+            <span class="action-text">Merged Files</span>
           </button>
 
-          <button id="saveLogBtn" class="action-button" title="Save Debug Log">
+          <button
+            id="showMappingsBtn"
+            class="action-button"
+            title="Manage Format Mappings"
+          >
+            <span class="action-icon">🗂️</span>
+            <span class="action-text">Mappings</span>
+          </button>
+
+          <button
+            id="editCategoriesSidebarBtn"
+            class="action-button"
+            title="Manage Categories"
+          >
+            <span class="action-icon">🏷️</span>
+            <span class="action-text">Categories</span>
+          </button>
+
+          <button
+            id="enhancedCategoriesBtn"
+            class="action-button"
+            title="Enhanced Category Manager"
+          >
+            <span class="action-icon">🎨</span>
+            <span class="action-text">Enhanced Categories</span>
+          </button>
+
+          <button id="exportBtn" class="action-button" title="Export Data">
             <span class="action-icon">💾</span>
-            <span class="action-text">Save Log</span>
-          </button>
-
-          <button id="resetAppBtn" class="action-button danger" title="Reset Application">
-            <span class="action-icon">🔄</span>
-            <span class="action-text">Reset</span>
+            <span class="action-text">Export</span>
           </button>
         </div>
-      </div>
 
-      <!-- About -->
-      <div class="sidebar-section">
-        <p>Expense Tracker v1.0</p>
-        <p>Manage your finances locally</p>
+        <!-- Settings Section -->
+        <div class="sidebar-section">
+          <h3>Settings</h3>
+
+          <div class="toggle-item">
+            <label for="darkModeToggle">Dark Mode</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="darkModeToggle" />
+              <span class="slider"></span>
+            </div>
+          </div>
+
+          <div class="toggle-item">
+            <label for="debugModeToggle">Debug Mode</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="debugModeToggle" />
+              <span class="slider"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Debug Tools Section -->
+        <div class="sidebar-section debug-only" id="debugToolsSection">
+          <h3>Debug Tools</h3>
+
+          <div class="action-buttons">
+            <button
+              id="debugFilesBtn"
+              class="action-button"
+              title="Debug Files"
+            >
+              <span class="action-icon">🗂️</span>
+              <span class="action-text">Files</span>
+            </button>
+
+            <button
+              id="debugSignaturesBtn"
+              class="action-button"
+              title="Debug Signatures"
+            >
+              <span class="action-icon">🔍</span>
+              <span class="action-text">Signatures</span>
+            </button>
+
+            <button
+              id="debugTransactionsBtn"
+              class="action-button"
+              title="Debug Transactions"
+            >
+              <span class="action-icon">📊</span>
+              <span class="action-text">Transactions</span>
+            </button>
+
+            <button
+              id="saveLogBtn"
+              class="action-button"
+              title="Save Debug Log"
+            >
+              <span class="action-icon">💾</span>
+              <span class="action-text">Save Log</span>
+            </button>
+
+            <button
+              id="resetAppBtn"
+              class="action-button danger"
+              title="Reset Application"
+            >
+              <span class="action-icon">🔄</span>
+              <span class="action-text">Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="sidebar-section">
+          <p>Expense Tracker v1.0</p>
+          <p>Manage your finances locally</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- CRITICAL FIX: Add modal container for file upload popups -->
+    <div id="modalContainer" class="modal-container"></div>
+
+    <!-- CRITICAL FIX: Add drop overlay for drag and drop file uploads -->
+    <div id="dropOverlay" class="drop-overlay" style="display: none">
+      <div class="drop-content">
+        <div class="drop-icon">📁</div>
+        <h3>Drop your file here</h3>
+        <p>Release to upload CSV, Excel, or XML files</p>
       </div>
     </div>
-  </aside>
 
-  <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+      <!-- Charts Section -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📊 Financial Overview</h2>
+          <div class="section-actions">
+            <!-- Chart controls -->
+            <div class="chart-controls debug-only">
+              <button
+                class="chart-toggle-btn active"
+                data-chart="expense"
+                title="Toggle Expense Chart"
+              >
+                <span class="action-icon">🥧</span>
+                <span class="action-text">Expenses</span>
+              </button>
 
-  <!-- CRITICAL FIX: Add modal container for file upload popups -->
-  <div id="modalContainer" class="modal-container"></div>
+              <button
+                class="chart-toggle-btn"
+                data-chart="income"
+                title="Toggle Income Chart"
+              >
+                <span class="action-icon">💰</span>
+                <span class="action-text">Income vs Expenses</span>
+              </button>
 
-  <!-- CRITICAL FIX: Add drop overlay for drag and drop file uploads -->
-  <div id="dropOverlay" class="drop-overlay" style="display: none;">
-    <div class="drop-content">
-      <div class="drop-icon">📁</div>
-      <h3>Drop your file here</h3>
-      <p>Release to upload CSV, Excel, or XML files</p>
-    </div>
-  </div>
+              <button
+                class="chart-toggle-btn"
+                data-chart="timeline"
+                title="Toggle Timeline Chart"
+              >
+                <span class="action-icon">📈</span>
+                <span class="action-text">Timeline</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-  <!-- Main Content -->
-  <main class="main-content" id="mainContent">
-    <!-- Charts Section -->
-    <div class="section">
-      <div class="section-header">
-        <h2>📊 Financial Overview</h2>
-        <div class="section-actions">
-          <!-- Chart controls -->
-          <div class="chart-controls debug-only">
-            <button class="chart-toggle-btn active" data-chart="expense" title="Toggle Expense Chart">
-              <span class="action-icon">🥧</span>
-              <span class="action-text">Expenses</span>
-            </button>
+        <div class="section-content">
+          <div class="charts-section">
+            <div class="charts-grid">
+              <!-- Expense Chart -->
+              <div
+                class="chart-wrapper"
+                id="expenseChartWrapper"
+                style="display: block; height: auto; min-height: 400px"
+              >
+                <h3>📊 Expenses by Category</h3>
+                <div
+                  class="chart-container"
+                  style="height: auto; min-height: 350px; flex: 1"
+                >
+                  <canvas
+                    id="categoryChart"
+                    style="
+                      height: auto !important;
+                      min-height: 300px !important;
+                    "
+                  ></canvas>
+                </div>
+              </div>
 
-            <button class="chart-toggle-btn" data-chart="income" title="Toggle Income Chart">
-              <span class="action-icon">💰</span>
-              <span class="action-text">Income vs Expenses</span>
-            </button>
+              <!-- Income vs Expense Chart -->
+              <div
+                class="chart-wrapper"
+                id="incomeExpenseChartWrapper"
+                style="display: none; height: auto; min-height: 400px"
+              >
+                <h3>💰 Income vs Expenses</h3>
+                <div
+                  class="chart-container"
+                  style="height: auto; min-height: 350px; flex: 1"
+                >
+                  <canvas
+                    id="monthlyChart"
+                    style="
+                      height: auto !important;
+                      min-height: 300px !important;
+                    "
+                  ></canvas>
+                </div>
+              </div>
 
-            <button class="chart-toggle-btn" data-chart="timeline" title="Toggle Timeline Chart">
-              <span class="action-icon">📈</span>
-              <span class="action-text">Timeline</span>
-            </button>
+              <!-- Timeline Chart -->
+              <div
+                class="chart-wrapper"
+                id="timelineChartWrapper"
+                style="display: none; height: auto; min-height: 400px"
+              >
+                <h3>📈 Spending Timeline</h3>
+                <div
+                  class="chart-container"
+                  style="height: auto; min-height: 350px; flex: 1"
+                >
+                  <canvas
+                    id="trendChart"
+                    style="
+                      height: auto !important;
+                      min-height: 300px !important;
+                    "
+                  ></canvas>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="section-content">
-        <div class="charts-section">
-          <div class="charts-grid">
-            <!-- Expense Chart -->
-            <div class="chart-wrapper" id="expenseChartWrapper"
-              style="display: block; height: auto; min-height: 400px;">
-              <h3>📊 Expenses by Category</h3>
-              <div class="chart-container" style="height: auto; min-height: 350px; flex: 1;">
-                <canvas id="categoryChart" style="height: auto !important; min-height: 300px !important;"></canvas>
-              </div>
-            </div>
+      <!-- Transactions Section -->
+      <div class="section" id="transactionsSection">
+        <div class="section-header">
+          <h2>💰 Transactions</h2>
+          <div class="section-actions">
+            <!-- Transaction action buttons will be added here -->
+          </div>
+        </div>
 
-            <!-- Income vs Expense Chart -->
-            <div class="chart-wrapper" id="incomeExpenseChartWrapper"
-              style="display: none; height: auto; min-height: 400px;">
-              <h3>💰 Income vs Expenses</h3>
-              <div class="chart-container" style="height: auto; min-height: 350px; flex: 1;">
-                <canvas id="monthlyChart" style="height: auto !important; min-height: 300px !important;"></canvas>
-              </div>
-            </div>
-
-            <!-- Timeline Chart -->
-            <div class="chart-wrapper" id="timelineChartWrapper"
-              style="display: none; height: auto; min-height: 400px;">
-              <h3>📈 Spending Timeline</h3>
-              <div class="chart-container" style="height: auto; min-height: 350px; flex: 1;">
-                <canvas id="trendChart" style="height: auto !important; min-height: 300px !important;"></canvas>
-              </div>
-            </div>
+        <div class="section-content">
+          <!-- Filters and table will be dynamically added here -->
+          <div id="transactionFilters" class="transaction-filters"></div>
+          <div id="categoryButtons" class="category-buttons-container"></div>
+          <div id="transactionTableWrapper" class="transaction-table-wrapper">
+            <p class="no-transactions">No transactions to display</p>
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <!-- Transactions Section -->
-    <div class="section" id="transactionsSection">
-      <div class="section-header">
-        <h2>💰 Transactions</h2>
-        <div class="section-actions">
-          <!-- Transaction action buttons will be added here -->
-        </div>
-      </div>
-
-      <div class="section-content">
-        <!-- Filters and table will be dynamically added here -->
-        <div id="transactionFilters" class="transaction-filters"></div>
-        <div id="categoryButtons" class="category-buttons-container"></div>
-        <div id="transactionTableWrapper" class="transaction-table-wrapper">
-          <p class="no-transactions">No transactions to display</p>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- Load main application -->
-  <script type="module" src="main.js"></script>
-</body>
-
+    <!-- Load main application -->
+    <script type="module" src="main.js"></script>
+  </body>
 </html>

@@ -5,23 +5,23 @@ let activeToast = null;
 export function showElement(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.style.display = 'block';
+  el.style.display = "block";
 }
 
 export function hideElement(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.style.display = 'none';
+  el.style.display = "none";
 }
 
 export function clearElement(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.innerHTML = '';
+  el.innerHTML = "";
 }
 
 export function toggleDarkMode() {
-  document.body.classList.toggle('dark-mode');
+  document.body.classList.toggle("dark-mode");
   const isDarkMode = document.body.classList.contains("dark-mode");
   localStorage.setItem("darkMode", isDarkMode);
 
@@ -36,13 +36,13 @@ export function toggleDarkMode() {
  * @param {boolean} isDarkMode - Whether dark mode is enabled
  */
 function updateDarkModeToggle(isDarkMode) {
-  const darkModeToggle = document.getElementById('darkModeToggle');
+  const darkModeToggle = document.getElementById("darkModeToggle");
   if (darkModeToggle) {
-    const icon = darkModeToggle.querySelector('.toggle-icon');
+    const icon = darkModeToggle.querySelector(".toggle-icon");
     if (icon) {
-      icon.textContent = isDarkMode ? '🌙' : '☀️';
+      icon.textContent = isDarkMode ? "🌙" : "☀️";
     }
-    darkModeToggle.classList.toggle('active', isDarkMode);
+    darkModeToggle.classList.toggle("active", isDarkMode);
   }
 }
 
@@ -50,7 +50,7 @@ function updateDarkModeToggle(isDarkMode) {
  * Updates the debug mode toggle icon state
  */
 function updateDebugModeToggle(isDebugMode) {
-  const debugToggle = document.getElementById('debugModeToggle');
+  const debugToggle = document.getElementById("debugModeToggle");
   if (debugToggle) {
     debugToggle.checked = isDebugMode;
   }
@@ -59,15 +59,15 @@ function updateDebugModeToggle(isDebugMode) {
 /**
  * Shows a simple toast notification at the top of the screen
  */
-export function showToast(message, type = 'info', duration = 3000) {
+export function showToast(message, type = "info", duration = 3000) {
   console.log(`Toast: ${type} - ${message}`);
 
   // Create toast container if it doesn't exist
-  let toastContainer = document.getElementById('toastContainer');
+  let toastContainer = document.getElementById("toastContainer");
   if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toastContainer';
-    toastContainer.className = 'toast-container';
+    toastContainer = document.createElement("div");
+    toastContainer.id = "toastContainer";
+    toastContainer.className = "toast-container";
     toastContainer.style.cssText = `
       position: fixed;
       top: 20px;
@@ -81,7 +81,7 @@ export function showToast(message, type = 'info', duration = 3000) {
   }
 
   // Create toast element
-  const toast = document.createElement('div');
+  const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   toast.style.cssText = `
     background: white;
@@ -101,12 +101,12 @@ export function showToast(message, type = 'info', duration = 3000) {
 
   // Animate in
   setTimeout(() => {
-    toast.style.transform = 'translateX(0)';
+    toast.style.transform = "translateX(0)";
   }, 10);
 
   // Remove after duration
   setTimeout(() => {
-    toast.style.transform = 'translateX(400px)';
+    toast.style.transform = "translateX(400px)";
     setTimeout(() => {
       if (toast.parentNode) {
         toast.parentNode.removeChild(toast);
@@ -117,17 +117,21 @@ export function showToast(message, type = 'info', duration = 3000) {
 
 function getToastColor(type) {
   switch (type) {
-    case 'success': return '#28a745';
-    case 'error': return '#dc3545';
-    case 'warning': return '#ffc107';
-    default: return '#17a2b8';
+    case "success":
+      return "#28a745";
+    case "error":
+      return "#dc3545";
+    case "warning":
+      return "#ffc107";
+    default:
+      return "#17a2b8";
   }
 }
 
 /**
  * Shows a loading indicator on an element
  */
-export function showLoading(elementId, message = 'Loading...') {
+export function showLoading(elementId, message = "Loading...") {
   const element = document.getElementById(elementId);
   if (!element) return;
 
@@ -159,9 +163,9 @@ export function hideLoading(elementId) {
 /**
  * Shows a loading overlay for the entire page
  */
-export function showPageLoadingOverlay(message = 'Loading...') {
-  const overlay = document.createElement('div');
-  overlay.className = 'page-loading-overlay';
+export function showPageLoadingOverlay(message = "Loading...") {
+  const overlay = document.createElement("div");
+  overlay.className = "page-loading-overlay";
   overlay.innerHTML = `
     <div class="loading-content">
       <div class="spinner"></div>
@@ -176,14 +180,14 @@ export function showPageLoadingOverlay(message = 'Loading...') {
       if (document.body.contains(overlay)) {
         document.body.removeChild(overlay);
       }
-    }
+    },
   };
 }
 
 /**
  * Shows chart loading with blink effect
  */
-export function showChartLoading(elementId, message = 'Loading chart...') {
+export function showChartLoading(elementId, message = "Loading chart...") {
   const element = document.getElementById(elementId);
   if (!element) return;
 
@@ -245,7 +249,7 @@ export function showChartLoading(elementId, message = 'Loading chart...') {
   `;
 
   // FIXED: Ensure wrapper is positioned relative for overlay
-  element.style.position = 'relative';
+  element.style.position = "relative";
 }
 
 /**
@@ -256,14 +260,14 @@ export function hideChartLoading(elementId) {
   if (!element) return;
 
   // FIXED: Remove only the loading overlay, preserve chart content
-  const overlay = element.querySelector('.chart-loading-overlay');
+  const overlay = element.querySelector(".chart-loading-overlay");
   if (overlay) {
     overlay.remove();
   }
 
   // FIXED: Don't restore original content, just ensure visibility
-  element.style.visibility = 'visible';
-  element.style.display = 'block';
+  element.style.visibility = "visible";
+  element.style.display = "block";
 }
 
 /**
@@ -271,13 +275,15 @@ export function hideChartLoading(elementId) {
  */
 function setupSidebar() {
   // Import and initialize sidebar manager
-  import('./sidebarManager.js').then(module => {
-    if (module.setupSidebarManager) {
-      module.setupSidebarManager();
-    }
-  }).catch(error => {
-    console.error('Error loading sidebar manager:', error);
-  });
+  import("./sidebarManager.js")
+    .then((module) => {
+      if (module.setupSidebarManager) {
+        module.setupSidebarManager();
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading sidebar manager:", error);
+    });
 }
 
 /**
@@ -285,16 +291,16 @@ function setupSidebar() {
  */
 function setupUIEventListeners() {
   // Remove this hamburger menu setup - it's handled in sidebarManager
-  console.log('UI event listeners set up');
+  console.log("UI event listeners set up");
 }
 
 /**
  * Initialize theme based on saved preferences
  */
 export function initializeTheme() {
-  const isDarkMode = localStorage.getItem('darkMode') === 'true';
+  const isDarkMode = localStorage.getItem("darkMode") === "true";
   if (isDarkMode) {
-    document.body.classList.add('dark-mode');
+    document.body.classList.add("dark-mode");
   }
 }
 
@@ -303,7 +309,7 @@ export function initializeTheme() {
  */
 export function hideElementByObject(element) {
   if (element) {
-    element.style.display = 'none';
+    element.style.display = "none";
   }
 }
 
@@ -312,7 +318,7 @@ export function hideElementByObject(element) {
  */
 export function showElementByObject(element) {
   if (element) {
-    element.style.display = 'block';
+    element.style.display = "block";
   }
 }
 
@@ -320,54 +326,61 @@ export function showElementByObject(element) {
  * Initialize debug action buttons
  */
 function initializeDebugActionButtons() {
-  const clearDataBtn = document.getElementById('clearDataBtn');
+  const clearDataBtn = document.getElementById("clearDataBtn");
   if (clearDataBtn) {
-    clearDataBtn.addEventListener('click', () => {
-      if (confirm('This will clear all your data. Are you sure?')) {
+    clearDataBtn.addEventListener("click", () => {
+      if (confirm("This will clear all your data. Are you sure?")) {
         try {
           // FIXED: Ensure default categories are loaded after clearing data
           localStorage.clear();
 
           // Initialize default categories immediately
-          import('../constants/categories.js').then(categoriesModule => {
-            import('../core/appState.js').then(appStateModule => {
-              appStateModule.AppState.categories = { ...categoriesModule.DEFAULT_CATEGORIES };
-              localStorage.setItem('categories', JSON.stringify(appStateModule.AppState.categories));
-              console.log('Clear Data: Restored default categories');
+          import("../constants/categories.js").then((categoriesModule) => {
+            import("../core/appState.js").then((appStateModule) => {
+              appStateModule.AppState.categories = {
+                ...categoriesModule.DEFAULT_CATEGORIES,
+              };
+              localStorage.setItem(
+                "categories",
+                JSON.stringify(appStateModule.AppState.categories)
+              );
+              console.log("Clear Data: Restored default categories");
               location.reload();
             });
           });
         } catch (error) {
-          console.error('Error clearing data:', error);
-          showToast('Error clearing data', 'error');
+          console.error("Error clearing data:", error);
+          showToast("Error clearing data", "error");
         }
       }
     });
   }
 
-  const exportDebugBtn = document.getElementById('exportDebugBtn');
+  const exportDebugBtn = document.getElementById("exportDebugBtn");
   if (exportDebugBtn) {
-    exportDebugBtn.addEventListener('click', () => {
+    exportDebugBtn.addEventListener("click", () => {
       try {
         const debugData = {
           localStorage: { ...localStorage },
           appState: window.AppState || {},
           timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent
+          userAgent: navigator.userAgent,
         };
 
-        const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(debugData, null, 2)], {
+          type: "application/json",
+        });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
         link.download = `expense-tracker-debug-${Date.now()}.json`;
         link.click();
         URL.revokeObjectURL(url);
 
-        showToast('Debug data exported', 'success');
+        showToast("Debug data exported", "success");
       } catch (error) {
-        console.error('Error exporting debug data:', error);
-        showToast('Error exporting debug data', 'error');
+        console.error("Error exporting debug data:", error);
+        showToast("Error exporting debug data", "error");
       }
     });
   }
@@ -377,44 +390,51 @@ function initializeDebugActionButtons() {
  * Updates UI elements based on debug mode state
  */
 export function updateDebugVisibility(isDebugMode) {
-  const debugElements = document.querySelectorAll('.debug-only');
-  console.log(`Found ${debugElements.length} debug elements to ${isDebugMode ? 'show' : 'hide'}`);
+  const debugElements = document.querySelectorAll(".debug-only");
+  console.log(
+    `Found ${debugElements.length} debug elements to ${
+      isDebugMode ? "show" : "hide"
+    }`
+  );
 
-  debugElements.forEach(element => {
+  debugElements.forEach((element) => {
     if (isDebugMode) {
       // Show the element with proper display type
-      if (element.classList.contains('inline-element')) {
-        element.style.display = 'inline-block';
-      } else if (element.classList.contains('flex-element')) {
-        element.style.display = 'flex';
+      if (element.classList.contains("inline-element")) {
+        element.style.display = "inline-block";
+      } else if (element.classList.contains("flex-element")) {
+        element.style.display = "flex";
       } else {
-        element.style.display = 'block';
+        element.style.display = "block";
       }
-      element.style.visibility = 'visible';
-      element.style.opacity = '1';
+      element.style.visibility = "visible";
+      element.style.opacity = "1";
     } else {
       // Hide the element
-      element.style.display = 'none';
-      element.style.visibility = 'hidden';
-      element.style.opacity = '0';
+      element.style.display = "none";
+      element.style.visibility = "hidden";
+      element.style.opacity = "0";
     }
   });
 
   // Update console logs button visibility
   const saveButton = document.querySelector('button[onclick*="saveLogs"]');
   if (saveButton) {
-    saveButton.style.display = isDebugMode ? 'block' : 'none';
+    saveButton.style.display = isDebugMode ? "block" : "none";
   }
 
-  console.log(`Debug visibility updated: ${isDebugMode ? 'shown' : 'hidden'} for ${debugElements.length} elements`);
+  console.log(
+    `Debug visibility updated: ${isDebugMode ? "shown" : "hidden"} for ${
+      debugElements.length
+    } elements`
+  );
 }
-
 
 /**
  * Initialize dark mode toggle functionality
  */
 function initializeDarkModeToggle() {
-  const darkModeToggle = document.getElementById('darkModeToggle');
+  const darkModeToggle = document.getElementById("darkModeToggle");
 
   if (!darkModeToggle) {
     console.warn("Dark mode toggle not found");
@@ -422,18 +442,18 @@ function initializeDarkModeToggle() {
   }
 
   // Set initial state
-  const isDarkMode = localStorage.getItem('darkMode') === 'true';
+  const isDarkMode = localStorage.getItem("darkMode") === "true";
   darkModeToggle.checked = isDarkMode;
-  document.body.classList.toggle('dark-mode', isDarkMode);
+  document.body.classList.toggle("dark-mode", isDarkMode);
 
   // Add event listener
-  darkModeToggle.addEventListener('change', (e) => {
+  darkModeToggle.addEventListener("change", (e) => {
     const isEnabled = e.target.checked;
-    document.body.classList.toggle('dark-mode', isEnabled);
-    localStorage.setItem('darkMode', isEnabled.toString());
+    document.body.classList.toggle("dark-mode", isEnabled);
+    localStorage.setItem("darkMode", isEnabled.toString());
 
     // Show toast notification
-    showToast(`Dark mode ${isEnabled ? 'enabled' : 'disabled'}`, 'info');
+    showToast(`Dark mode ${isEnabled ? "enabled" : "disabled"}`, "info");
   });
 
   console.log("Dark mode toggle initialized successfully");
@@ -443,10 +463,9 @@ function initializeDarkModeToggle() {
  * Toggle debug mode
  */
 function toggleDebugMode() {
-  const currentDebugMode = localStorage.getItem('debugMode') === 'true';
+  const currentDebugMode = localStorage.getItem("debugMode") === "true";
   const newDebugMode = !currentDebugMode;
-
-  updateDebugModeUI(newDebugMode);
+  updateDebugVisibility(newDebugMode);
   showToast(`Debug mode ${newDebugMode ? "enabled" : "disabled"}`, "info");
 
   console.log(`Debug mode toggled: ${newDebugMode}`);

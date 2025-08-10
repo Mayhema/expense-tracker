@@ -6,12 +6,12 @@
  * Supported date formats for parsing
  */
 const DATE_FORMATS = {
-  ISO: /^\d{4}-\d{2}-\d{2}$/,                    // YYYY-MM-DD
-  US: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,         // MM/DD/YYYY
-  EU: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,         // DD/MM/YYYY (same pattern, context-dependent)
-  DOT: /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/,        // DD.MM.YYYY
-  DASH: /^(\d{1,2})-(\d{1,2})-(\d{4})$/,         // DD-MM-YYYY
-  REVERSE: /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/     // YYYY/MM/DD
+  ISO: /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+  US: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY
+  EU: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // DD/MM/YYYY (same pattern, context-dependent)
+  DOT: /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // DD.MM.YYYY
+  DASH: /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // DD-MM-YYYY
+  REVERSE: /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/, // YYYY/MM/DD
 };
 
 /**
@@ -54,7 +54,7 @@ export function excelDateToJSDate(excelDate) {
 
     return jsDate;
   } catch (error) {
-    console.error('Error converting Excel date:', error);
+    console.error("Error converting Excel date:", error);
     return null;
   }
 }
@@ -69,8 +69,8 @@ export function excelDateToISOString(excelDate) {
   if (!jsDate) return null;
 
   const year = jsDate.getFullYear();
-  const month = String(jsDate.getMonth() + 1).padStart(2, '0');
-  const day = String(jsDate.getDate()).padStart(2, '0');
+  const month = String(jsDate.getMonth() + 1).padStart(2, "0");
+  const day = String(jsDate.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -93,7 +93,7 @@ export function formatExcelDateForPreview(excelDate) {
  * @returns {boolean} True if valid date
  */
 export function isValidDateString(dateStr) {
-  if (!dateStr || typeof dateStr !== 'string') return false;
+  if (!dateStr || typeof dateStr !== "string") return false;
 
   const date = new Date(dateStr);
   return !isNaN(date.getTime()) && date.getFullYear() > 1900;
@@ -132,12 +132,14 @@ export function parseToISODate(value) {
  */
 function parseCustomDateFormats(dateStr) {
   // Try specific format parsers
-  return parseUSFormat(dateStr) ||
+  return (
+    parseUSFormat(dateStr) ||
     parseEUFormat(dateStr) ||
     parseDotFormat(dateStr) ||
     parseDashFormat(dateStr) ||
     parseReverseFormat(dateStr) ||
-    parseNativeFormat(dateStr);
+    parseNativeFormat(dateStr)
+  );
 }
 
 /**
@@ -223,12 +225,12 @@ function parseNativeFormat(dateStr) {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     }
   } catch (error) {
-    console.warn('Failed to parse date string:', dateStr, error.message);
+    console.warn("Failed to parse date string:", dateStr, error.message);
   }
   return null;
 }
@@ -237,7 +239,7 @@ function parseNativeFormat(dateStr) {
  * Format components into ISO date string
  */
 function formatISODate(year, month, day) {
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
 /**
@@ -258,9 +260,11 @@ function isValidDateComponents(year, month, day) {
 
   // Create date and check if it's valid
   const date = new Date(y, m - 1, d);
-  return date.getFullYear() === y &&
+  return (
+    date.getFullYear() === y &&
     date.getMonth() === m - 1 &&
-    date.getDate() === d;
+    date.getDate() === d
+  );
 }
 
 /**
@@ -269,22 +273,22 @@ function isValidDateComponents(year, month, day) {
  * @param {string} format - Display format ('US', 'EU', 'ISO')
  * @returns {string} Formatted date string
  */
-export function formatDateForDisplay(isoDate, format = 'ISO') {
-  if (!isoDate || !isValidDateString(isoDate)) return isoDate || '';
+export function formatDateForDisplay(isoDate, format = "ISO") {
+  if (!isoDate || !isValidDateString(isoDate)) return isoDate || "";
 
   const date = new Date(isoDate);
   if (isNaN(date.getTime())) return isoDate;
 
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   switch (format.toUpperCase()) {
-    case 'US':
+    case "US":
       return `${month}/${day}/${year}`;
-    case 'EU':
+    case "EU":
       return `${day}/${month}/${year}`;
-    case 'ISO':
+    case "ISO":
     default:
       return `${year}-${month}-${day}`;
   }
@@ -302,7 +306,7 @@ export function isDateColumn(columnValues) {
   let totalValidValues = 0;
 
   for (const value of columnValues) {
-    if (value !== null && value !== undefined && value !== '') {
+    if (value !== null && value !== undefined && value !== "") {
       totalValidValues++;
 
       // Check if it's an Excel date or parseable date
@@ -313,7 +317,7 @@ export function isDateColumn(columnValues) {
   }
 
   // If at least 60% of non-empty values are dates, consider it a date column
-  return totalValidValues > 0 && (dateCount / totalValidValues) >= 0.6;
+  return totalValidValues > 0 && dateCount / totalValidValues >= 0.6;
 }
 
 /**
@@ -323,8 +327,8 @@ export function isDateColumn(columnValues) {
 export function getCurrentISODate() {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -337,7 +341,7 @@ export function validateAndNormalizeDate(value) {
   const result = {
     isValid: false,
     normalizedDate: null,
-    originalValue: value
+    originalValue: value,
   };
 
   if (!value && value !== 0) {
@@ -360,9 +364,11 @@ export function validateAndNormalizeDate(value) {
  * FIXED: Use formatDateForDisplay instead of deprecated function
  */
 export function formatDateToDDMMYYYYDeprecated(dateInput) {
-  console.warn('formatDateToDDMMYYYY is deprecated. Use formatDateForDisplay with EU format instead.');
+  console.warn(
+    "formatDateToDDMMYYYY is deprecated. Use formatDateForDisplay with EU format instead."
+  );
   const isoDate = parseToISODate(dateInput);
-  return isoDate ? formatDateForDisplay(isoDate, 'EU') : '';
+  return isoDate ? formatDateForDisplay(isoDate, "EU") : "";
 }
 
 /**
@@ -371,7 +377,7 @@ export function formatDateToDDMMYYYYDeprecated(dateInput) {
  * @returns {string|null} ISO date string or null if invalid
  */
 export function convertDDMMYYYYToISO(ddmmyyyy) {
-  if (!ddmmyyyy || typeof ddmmyyyy !== 'string') {
+  if (!ddmmyyyy || typeof ddmmyyyy !== "string") {
     return null;
   }
 
@@ -380,7 +386,7 @@ export function convertDDMMYYYYToISO(ddmmyyyy) {
   const match = datePattern.exec(ddmmyyyy.trim());
 
   if (!match) {
-    console.warn('Date format does not match dd/mm/yyyy:', ddmmyyyy);
+    console.warn("Date format does not match dd/mm/yyyy:", ddmmyyyy);
     return null;
   }
 
@@ -389,8 +395,15 @@ export function convertDDMMYYYYToISO(ddmmyyyy) {
   const year = parseInt(match[3], 10);
 
   // FIXED: Validate date components
-  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
-    console.warn('Invalid date components:', { day, month, year });
+  if (
+    day < 1 ||
+    day > 31 ||
+    month < 1 ||
+    month > 12 ||
+    year < 1900 ||
+    year > 2100
+  ) {
+    console.warn("Invalid date components:", { day, month, year });
     return null;
   }
 
@@ -398,14 +411,20 @@ export function convertDDMMYYYYToISO(ddmmyyyy) {
   const date = new Date(Date.UTC(year, month - 1, day));
 
   // FIXED: Verify the date was created correctly (handles invalid dates like 31/02)
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== (month - 1) || date.getUTCDate() !== day) {
-    console.warn('Invalid date created:', ddmmyyyy, 'resulted in:', date);
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    console.warn("Invalid date created:", ddmmyyyy, "resulted in:", date);
     return null;
   }
 
   // FIXED: Return ISO string in YYYY-MM-DD format using UTC
-  const isoString = date.toISOString().split('T')[0];
-  console.log(`✓ Date conversion: ${ddmmyyyy} → ${isoString} (Day: ${day}, Month: ${month}, Year: ${year})`);
+  const isoString = date.toISOString().split("T")[0];
+  console.log(
+    `✓ Date conversion: ${ddmmyyyy} → ${isoString} (Day: ${day}, Month: ${month}, Year: ${year})`
+  );
 
   return isoString;
 }
@@ -414,7 +433,7 @@ export function convertDDMMYYYYToISO(ddmmyyyy) {
  * @deprecated Use parseToISODate instead
  */
 export function parseDDMMYYYY(dateStr) {
-  console.warn('parseDDMMYYYY is deprecated. Use parseToISODate instead.');
+  console.warn("parseDDMMYYYY is deprecated. Use parseToISODate instead.");
   const isoDate = parseToISODate(dateStr);
   return isoDate ? new Date(isoDate) : null;
 }
@@ -423,15 +442,19 @@ export function parseDDMMYYYY(dateStr) {
  * @deprecated Use getCurrentISODate instead
  */
 export function getCurrentDateDDMMYYYY() {
-  console.warn('getCurrentDateDDMMYYYY is deprecated. Use getCurrentISODate instead.');
-  return formatDateForDisplay(getCurrentISODate(), 'EU');
+  console.warn(
+    "getCurrentDateDDMMYYYY is deprecated. Use getCurrentISODate instead."
+  );
+  return formatDateForDisplay(getCurrentISODate(), "EU");
 }
 
 /**
  * @deprecated Use validateAndNormalizeDate instead
  */
 export function isValidDDMMYYYY(dateStr) {
-  console.warn('isValidDDMMYYYY is deprecated. Use validateAndNormalizeDate instead.');
+  console.warn(
+    "isValidDDMMYYYY is deprecated. Use validateAndNormalizeDate instead."
+  );
   return validateAndNormalizeDate(dateStr).isValid;
 }
 
@@ -441,33 +464,35 @@ export function isValidDDMMYYYY(dateStr) {
  * @returns {string} Formatted date as dd/mm/yyyy
  */
 export function formatDateToDDMMYYYY(date) {
-  if (!date) return '';
+  if (!date) return "";
 
   let dateObj;
-  if (typeof date === 'string') {
+  if (typeof date === "string") {
     // FIXED: Parse ISO date string using UTC to avoid timezone shifts
-    if (date.includes('T')) {
+    if (date.includes("T")) {
       dateObj = new Date(date);
     } else {
       // For YYYY-MM-DD format, parse as UTC to avoid timezone issues
-      const [yearPart, monthPart, dayPart] = date.split('-').map(num => parseInt(num, 10));
+      const [yearPart, monthPart, dayPart] = date
+        .split("-")
+        .map((num) => parseInt(num, 10));
       dateObj = new Date(Date.UTC(yearPart, monthPart - 1, dayPart));
     }
   } else if (date instanceof Date) {
     dateObj = date;
   } else {
-    return '';
+    return "";
   }
 
   // FIXED: Validate date object
   if (isNaN(dateObj.getTime())) {
-    console.warn('Invalid date for formatting:', date);
-    return '';
+    console.warn("Invalid date for formatting:", date);
+    return "";
   }
 
   // FIXED: Format as dd/mm/yyyy using UTC to maintain consistency
-  const day = String(dateObj.getUTCDate()).padStart(2, '0');
-  const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getUTCDate()).padStart(2, "0");
+  const month = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
   const year = dateObj.getUTCFullYear();
 
   const formatted = `${day}/${month}/${year}`;

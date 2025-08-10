@@ -26,10 +26,10 @@
  * 2 - Test runner error
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { spawn } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,11 +37,7 @@ const __dirname = path.dirname(__filename);
 // Configuration
 const CONFIG = {
   testDir: __dirname,
-  testPatterns: [
-    /\.test\.js$/,
-    /^test-.*\.js$/,
-    /.*-test\.js$/
-  ],
+  testPatterns: [/\.test\.js$/, /^test-.*\.js$/, /.*-test\.js$/],
   excludePatterns: [
     /automated-test-runner\.js$/,
     /unified-test-runner\.js$/,
@@ -53,25 +49,25 @@ const CONFIG = {
     /utils\.test\.js$/,
     /test-filter-improvements\.js$/,
     /test-enhanced-filter-ui\.js$/,
-    /advancedFilters\.test\.js$/
+    /advancedFilters\.test\.js$/,
   ],
   timeoutMs: 30000,
   maxConcurrency: 5,
   generateReports: true,
-  silentMode: false
+  silentMode: false,
 };
 
 // Colors for console output
 const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  white: '\x1b[37m'
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
+  white: "\x1b[37m",
 };
 
 // Test results storage
@@ -83,7 +79,7 @@ const testResults = {
   startTime: null,
   endTime: null,
   duration: 0,
-  details: []
+  details: [],
 };
 
 /**
@@ -101,10 +97,14 @@ function discoverTestFiles() {
 
         if (item.isDirectory()) {
           scanDirectory(fullPath);
-        } else if (item.isFile() && item.name.endsWith('.js')) {
+        } else if (item.isFile() && item.name.endsWith(".js")) {
           // Check if file matches test patterns
-          const matchesPattern = CONFIG.testPatterns.some(pattern => pattern.test(item.name));
-          const isExcluded = CONFIG.excludePatterns.some(pattern => pattern.test(item.name));
+          const matchesPattern = CONFIG.testPatterns.some((pattern) =>
+            pattern.test(item.name)
+          );
+          const isExcluded = CONFIG.excludePatterns.some((pattern) =>
+            pattern.test(item.name)
+          );
 
           if (matchesPattern && !isExcluded) {
             testFiles.push(fullPath);
@@ -113,7 +113,14 @@ function discoverTestFiles() {
       }
     } catch (error) {
       if (!CONFIG.silentMode) {
-        console.warn(colors.yellow + 'Warning: Could not scan directory ' + dir + ': ' + error.message + colors.reset);
+        console.warn(
+          colors.yellow +
+            "Warning: Could not scan directory " +
+            dir +
+            ": " +
+            error.message +
+            colors.reset
+        );
       }
     }
   }
@@ -131,34 +138,34 @@ function runTestFile(filePath) {
     const startTime = Date.now();
 
     if (!CONFIG.silentMode) {
-      console.log(colors.blue + '📋 Running: ' + fileName + colors.reset);
+      console.log(colors.blue + "📋 Running: " + fileName + colors.reset);
     }
 
-    const child = spawn('node', [filePath], {
-      stdio: 'pipe',
+    const child = spawn("node", [filePath], {
+      stdio: "pipe",
       shell: true,
-      cwd: process.cwd() // Use the current working directory (project root)
+      cwd: process.cwd(), // Use the current working directory (project root)
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
     let timedOut = false;
 
     // Set up timeout
     const timeout = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
+      child.kill("SIGTERM");
     }, CONFIG.timeoutMs);
 
-    child.stdout.on('data', (data) => {
+    child.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    child.on('close', (code) => {
+    child.on("close", (code) => {
       clearTimeout(timeout);
       const duration = Date.now() - startTime;
 
@@ -171,25 +178,50 @@ function runTestFile(filePath) {
         stderr,
         passed: code === 0 && !timedOut,
         timedOut,
-        error: null
+        error: null,
       };
 
       if (result.passed) {
         testResults.passed++;
         if (!CONFIG.silentMode) {
-          console.log(colors.green + '✅ ' + fileName + ' (' + duration + 'ms)' + colors.reset);
+          console.log(
+            colors.green +
+              "✅ " +
+              fileName +
+              " (" +
+              duration +
+              "ms)" +
+              colors.reset
+          );
         }
       } else {
         testResults.failed++;
         if (timedOut) {
-          result.error = 'Test timed out after ' + CONFIG.timeoutMs + 'ms';
+          result.error = "Test timed out after " + CONFIG.timeoutMs + "ms";
           if (!CONFIG.silentMode) {
-            console.log(colors.yellow + '⏰ ' + fileName + ' timed out after ' + CONFIG.timeoutMs + 'ms' + colors.reset);
+            console.log(
+              colors.yellow +
+                "⏰ " +
+                fileName +
+                " timed out after " +
+                CONFIG.timeoutMs +
+                "ms" +
+                colors.reset
+            );
           }
         } else {
-          result.error = 'Exit code: ' + code;
+          result.error = "Exit code: " + code;
           if (!CONFIG.silentMode) {
-            console.log(colors.red + '❌ ' + fileName + ' (' + duration + 'ms) - Exit code: ' + code + colors.reset);
+            console.log(
+              colors.red +
+                "❌ " +
+                fileName +
+                " (" +
+                duration +
+                "ms) - Exit code: " +
+                code +
+                colors.reset
+            );
           }
         }
         testResults.errors.push(result);
@@ -199,7 +231,7 @@ function runTestFile(filePath) {
       resolve(result);
     });
 
-    child.on('error', (error) => {
+    child.on("error", (error) => {
       clearTimeout(timeout);
       const duration = Date.now() - startTime;
 
@@ -208,11 +240,11 @@ function runTestFile(filePath) {
         path: filePath,
         duration,
         code: -1,
-        stdout: '',
+        stdout: "",
         stderr: error.message,
         passed: false,
         timedOut: false,
-        error: error.message
+        error: error.message,
       };
 
       testResults.failed++;
@@ -220,7 +252,14 @@ function runTestFile(filePath) {
       testResults.details.push(result);
 
       if (!CONFIG.silentMode) {
-        console.log(colors.red + '❌ ' + fileName + ' - Exception: ' + error.message + colors.reset);
+        console.log(
+          colors.red +
+            "❌ " +
+            fileName +
+            " - Exception: " +
+            error.message +
+            colors.reset
+        );
       }
 
       resolve(result);
@@ -249,8 +288,10 @@ async function runAllTests(testFiles) {
 function generateHTMLReport() {
   if (!CONFIG.generateReports) return;
 
-  const reportPath = path.join(CONFIG.testDir, 'automated-test-report.html');
-  const successRate = ((testResults.passed / testResults.total) * 100).toFixed(1);
+  const reportPath = path.join(CONFIG.testDir, "automated-test-report.html");
+  const successRate = ((testResults.passed / testResults.total) * 100).toFixed(
+    1
+  );
 
   const html = `
 <!DOCTYPE html>
@@ -305,13 +346,25 @@ function generateHTMLReport() {
 
         <div class="test-list">
             <h2>Test Results</h2>
-            ${testResults.details.map(result => `
-                <div class="test-item ${result.passed ? 'passed' : 'failed'}">
-                    <div class="test-name">${result.passed ? '✅' : '❌'} ${result.file}</div>
-                    <div class="test-duration">Duration: ${result.duration}ms</div>
-                    ${result.error ? `<div class="test-error">Error: ${result.error}</div>` : ''}
+            ${testResults.details
+              .map(
+                (result) => `
+                <div class="test-item ${result.passed ? "passed" : "failed"}">
+                    <div class="test-name">${result.passed ? "✅" : "❌"} ${
+                  result.file
+                }</div>
+                    <div class="test-duration">Duration: ${
+                      result.duration
+                    }ms</div>
+                    ${
+                      result.error
+                        ? `<div class="test-error">Error: ${result.error}</div>`
+                        : ""
+                    }
                 </div>
-            `).join('')}
+            `
+              )
+              .join("")}
         </div>
 
         <div class="footer">
@@ -326,11 +379,18 @@ function generateHTMLReport() {
   try {
     fs.writeFileSync(reportPath, html);
     if (!CONFIG.silentMode) {
-      console.log(colors.cyan + '📄 HTML report generated: ' + reportPath + colors.reset);
+      console.log(
+        colors.cyan + "📄 HTML report generated: " + reportPath + colors.reset
+      );
     }
   } catch (error) {
     if (!CONFIG.silentMode) {
-      console.warn(colors.yellow + 'Warning: Could not generate HTML report: ' + error.message + colors.reset);
+      console.warn(
+        colors.yellow +
+          "Warning: Could not generate HTML report: " +
+          error.message +
+          colors.reset
+      );
     }
   }
 }
@@ -341,7 +401,7 @@ function generateHTMLReport() {
 function generateJSONReport() {
   if (!CONFIG.generateReports) return;
 
-  const reportPath = path.join(CONFIG.testDir, 'automated-test-report.json');
+  const reportPath = path.join(CONFIG.testDir, "automated-test-report.json");
   const report = {
     timestamp: new Date().toISOString(),
     summary: {
@@ -349,19 +409,26 @@ function generateJSONReport() {
       passed: testResults.passed,
       failed: testResults.failed,
       successRate: ((testResults.passed / testResults.total) * 100).toFixed(1),
-      duration: testResults.duration
+      duration: testResults.duration,
     },
-    tests: testResults.details
+    tests: testResults.details,
   };
 
   try {
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
     if (!CONFIG.silentMode) {
-      console.log(colors.cyan + '📄 JSON report generated: ' + reportPath + colors.reset);
+      console.log(
+        colors.cyan + "📄 JSON report generated: " + reportPath + colors.reset
+      );
     }
   } catch (error) {
     if (!CONFIG.silentMode) {
-      console.warn(colors.yellow + 'Warning: Could not generate JSON report: ' + error.message + colors.reset);
+      console.warn(
+        colors.yellow +
+          "Warning: Could not generate JSON report: " +
+          error.message +
+          colors.reset
+      );
     }
   }
 }
@@ -372,18 +439,36 @@ function generateJSONReport() {
 function printSummary() {
   if (CONFIG.silentMode) return;
 
-  console.log('\n' + colors.bright + colors.cyan + '📊 AUTOMATED TEST SUMMARY' + colors.reset);
-  console.log('='.repeat(50));
-  console.log('Total Tests: ' + colors.bright + testResults.total + colors.reset);
-  console.log('Passed: ' + colors.green + testResults.passed + colors.reset);
-  console.log('Failed: ' + colors.red + testResults.failed + colors.reset);
-  console.log('Success Rate: ' + colors.bright + ((testResults.passed / testResults.total) * 100).toFixed(1) + '%' + colors.reset);
-  console.log('Duration: ' + colors.bright + testResults.duration + 'ms' + colors.reset);
+  console.log(
+    "\n" +
+      colors.bright +
+      colors.cyan +
+      "📊 AUTOMATED TEST SUMMARY" +
+      colors.reset
+  );
+  console.log("=".repeat(50));
+  console.log(
+    "Total Tests: " + colors.bright + testResults.total + colors.reset
+  );
+  console.log("Passed: " + colors.green + testResults.passed + colors.reset);
+  console.log("Failed: " + colors.red + testResults.failed + colors.reset);
+  console.log(
+    "Success Rate: " +
+      colors.bright +
+      ((testResults.passed / testResults.total) * 100).toFixed(1) +
+      "%" +
+      colors.reset
+  );
+  console.log(
+    "Duration: " + colors.bright + testResults.duration + "ms" + colors.reset
+  );
 
   if (testResults.failed > 0) {
-    console.log('\n' + colors.red + '❌ FAILED TESTS:' + colors.reset);
-    testResults.errors.forEach(result => {
-      console.log(colors.red + '  • ' + result.file + ' - ' + result.error + colors.reset);
+    console.log("\n" + colors.red + "❌ FAILED TESTS:" + colors.reset);
+    testResults.errors.forEach((result) => {
+      console.log(
+        colors.red + "  • " + result.file + " - " + result.error + colors.reset
+      );
     });
   }
 }
@@ -397,8 +482,13 @@ async function main() {
     testResults.startTime = Date.now();
 
     if (!CONFIG.silentMode) {
-      console.log(colors.bright + colors.magenta + '🚀 AUTOMATED EXPENSE TRACKER TEST RUNNER' + colors.reset);
-      console.log('='.repeat(60) + '\n');
+      console.log(
+        colors.bright +
+          colors.magenta +
+          "🚀 AUTOMATED EXPENSE TRACKER TEST RUNNER" +
+          colors.reset
+      );
+      console.log("=".repeat(60) + "\n");
     }
 
     // Discover test files
@@ -406,13 +496,25 @@ async function main() {
     testResults.total = testFiles.length;
 
     if (testFiles.length === 0) {
-      console.log(colors.yellow + '⚠️  No test files found matching patterns' + colors.reset);
+      console.log(
+        colors.yellow +
+          "⚠️  No test files found matching patterns" +
+          colors.reset
+      );
       process.exit(0);
     }
 
     if (!CONFIG.silentMode) {
-      console.log(colors.cyan + '📂 Discovered ' + testFiles.length + ' test files' + colors.reset);
-      console.log('Running tests with max concurrency: ' + CONFIG.maxConcurrency + '\n');
+      console.log(
+        colors.cyan +
+          "📂 Discovered " +
+          testFiles.length +
+          " test files" +
+          colors.reset
+      );
+      console.log(
+        "Running tests with max concurrency: " + CONFIG.maxConcurrency + "\n"
+      );
     }
 
     // Run all tests
@@ -432,40 +534,50 @@ async function main() {
     // Exit with appropriate code
     if (testResults.failed > 0) {
       if (!CONFIG.silentMode) {
-        console.log('\n' + colors.red + '💥 SOME TESTS FAILED!' + colors.reset);
+        console.log("\n" + colors.red + "💥 SOME TESTS FAILED!" + colors.reset);
       }
       process.exit(1);
     } else {
       if (!CONFIG.silentMode) {
-        console.log('\n' + colors.green + '🎉 ALL TESTS PASSED!' + colors.reset);
+        console.log(
+          "\n" + colors.green + "🎉 ALL TESTS PASSED!" + colors.reset
+        );
       }
       process.exit(0);
     }
-
   } catch (error) {
-    console.error(colors.red + '💥 Test runner failed: ' + error.message + colors.reset);
+    console.error(
+      colors.red + "💥 Test runner failed: " + error.message + colors.reset
+    );
     process.exit(2);
   }
 }
 
 // Handle process events
-process.on('uncaughtException', (error) => {
-  console.error(colors.red + '💥 Uncaught Exception: ' + error.message + colors.reset);
+process.on("uncaughtException", (error) => {
+  console.error(
+    colors.red + "💥 Uncaught Exception: " + error.message + colors.reset
+  );
   process.exit(2);
 });
 
-process.on('unhandledRejection', (reason) => {
-  console.error(colors.red + '💥 Unhandled Rejection: ' + (reason instanceof Error ? reason.message : JSON.stringify(reason)) + colors.reset);
+process.on("unhandledRejection", (reason) => {
+  console.error(
+    colors.red +
+      "💥 Unhandled Rejection: " +
+      (reason instanceof Error ? reason.message : JSON.stringify(reason)) +
+      colors.reset
+  );
   process.exit(2);
 });
 
 // Run the test runner
 main();
 
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from "@jest/globals";
 
-describe('automated-test-runner', () => {
-  test('minimal automated test runner test passes', () => {
+describe("automated-test-runner", () => {
+  test("minimal automated test runner test passes", () => {
     expect(true).toBe(true);
   });
 });

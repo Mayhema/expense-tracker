@@ -12,7 +12,11 @@ export const descriptionCategoryMap = {
       const saved = localStorage.getItem("categoryMappings");
       if (saved) {
         this.map = JSON.parse(saved);
-        console.log(`Loaded ${Object.keys(this.map).length} category mappings from localStorage.`);
+        console.log(
+          `Loaded ${
+            Object.keys(this.map).length
+          } category mappings from localStorage.`
+        );
       } else {
         this.map = {};
         console.log("No saved category mappings found, initialized empty map.");
@@ -23,7 +27,7 @@ export const descriptionCategoryMap = {
     }
     this.isInitialized = true;
     return this;
-  }
+  },
 };
 
 /**
@@ -34,8 +38,15 @@ export function saveCategoryMappings() {
     descriptionCategoryMap.init();
   }
   try {
-    localStorage.setItem("categoryMappings", JSON.stringify(descriptionCategoryMap.map));
-    console.log(`Saved ${Object.keys(descriptionCategoryMap.map).length} category mappings to localStorage.`);
+    localStorage.setItem(
+      "categoryMappings",
+      JSON.stringify(descriptionCategoryMap.map)
+    );
+    console.log(
+      `Saved ${
+        Object.keys(descriptionCategoryMap.map).length
+      } category mappings to localStorage.`
+    );
   } catch (e) {
     console.error("Error saving category mappings:", e);
   }
@@ -44,9 +55,16 @@ export function saveCategoryMappings() {
 /**
  * Add or update a transaction description to category mapping.
  */
-export function learnOrUpdateMapping(description, category, subcategory = null, isRegex = false) {
+export function learnOrUpdateMapping(
+  description,
+  category,
+  subcategory = null,
+  isRegex = false
+) {
   if (!description || !category) {
-    console.warn("learnOrUpdateMapping: Description and category are required.");
+    console.warn(
+      "learnOrUpdateMapping: Description and category are required."
+    );
     return;
   }
 
@@ -82,13 +100,16 @@ export function getCategoryForDescription(description) {
 
   // Try regex patterns
   for (const pattern in descriptionCategoryMap.map) {
-    const isLikelyRegex = pattern.startsWith("^") || pattern.endsWith("$") ||
-      pattern.includes("*") || pattern.includes("(") ||
+    const isLikelyRegex =
+      pattern.startsWith("^") ||
+      pattern.endsWith("$") ||
+      pattern.includes("*") ||
+      pattern.includes("(") ||
       pattern.includes("[");
 
     if (isLikelyRegex) {
       try {
-        const regex = new RegExp(pattern, 'i');
+        const regex = new RegExp(pattern, "i");
         if (regex.test(normalizedDescription) || regex.test(description)) {
           return descriptionCategoryMap.map[pattern];
         }
@@ -113,14 +134,16 @@ export function applyCategoryMappings(transactions) {
   descriptionCategoryMap.init();
   let appliedCount = 0;
 
-  transactions.forEach(transaction => {
+  transactions.forEach((transaction) => {
     // Only apply if transaction doesn't already have a category
-    if (!transaction.category || transaction.category === '') {
-      const suggestedCategory = getCategoryForDescription(transaction.description);
+    if (!transaction.category || transaction.category === "") {
+      const suggestedCategory = getCategoryForDescription(
+        transaction.description
+      );
       if (suggestedCategory) {
         // Handle category:subcategory format
-        if (suggestedCategory.includes(':')) {
-          const [category, subcategory] = suggestedCategory.split(':');
+        if (suggestedCategory.includes(":")) {
+          const [category, subcategory] = suggestedCategory.split(":");
           transaction.category = category;
           transaction.subcategory = subcategory;
         } else {
@@ -147,12 +170,14 @@ export function updateCategoryNameInMappings(oldName, newName) {
   descriptionCategoryMap.init();
   let updatedCount = 0;
 
-  for (const [description, mapping] of Object.entries(descriptionCategoryMap.map)) {
+  for (const [description, mapping] of Object.entries(
+    descriptionCategoryMap.map
+  )) {
     if (mapping === oldName) {
       // Simple category mapping
       descriptionCategoryMap.map[description] = newName;
       updatedCount++;
-    } else if (mapping.startsWith(oldName + ':')) {
+    } else if (mapping.startsWith(oldName + ":")) {
       // Category with subcategory
       const subcategory = mapping.substring(oldName.length + 1);
       descriptionCategoryMap.map[description] = `${newName}:${subcategory}`;
@@ -162,14 +187,20 @@ export function updateCategoryNameInMappings(oldName, newName) {
 
   if (updatedCount > 0) {
     saveCategoryMappings();
-    console.log(`Updated ${updatedCount} category mappings from "${oldName}" to "${newName}"`);
+    console.log(
+      `Updated ${updatedCount} category mappings from "${oldName}" to "${newName}"`
+    );
   }
 }
 
 /**
  * Update subcategory name in mappings when a subcategory is renamed
  */
-export function updateSubcategoryNameInMappings(categoryName, oldSubName, newSubName) {
+export function updateSubcategoryNameInMappings(
+  categoryName,
+  oldSubName,
+  newSubName
+) {
   if (!categoryName || !oldSubName || !newSubName) return;
 
   descriptionCategoryMap.init();
@@ -178,7 +209,9 @@ export function updateSubcategoryNameInMappings(categoryName, oldSubName, newSub
   const oldMapping = `${categoryName}:${oldSubName}`;
   const newMapping = `${categoryName}:${newSubName}`;
 
-  for (const [description, mapping] of Object.entries(descriptionCategoryMap.map)) {
+  for (const [description, mapping] of Object.entries(
+    descriptionCategoryMap.map
+  )) {
     if (mapping === oldMapping) {
       descriptionCategoryMap.map[description] = newMapping;
       updatedCount++;
@@ -187,7 +220,9 @@ export function updateSubcategoryNameInMappings(categoryName, oldSubName, newSub
 
   if (updatedCount > 0) {
     saveCategoryMappings();
-    console.log(`Updated ${updatedCount} subcategory mappings from "${oldSubName}" to "${newSubName}"`);
+    console.log(
+      `Updated ${updatedCount} subcategory mappings from "${oldSubName}" to "${newSubName}"`
+    );
   }
 }
 

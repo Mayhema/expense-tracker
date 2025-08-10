@@ -31,7 +31,8 @@ export function showModal(options = {}) {
 
   // Set width if custom size
   if (options.size === "custom" && options.width) {
-    modal.style.width = typeof options.width === 'number' ? `${options.width}px` : options.width;
+    modal.style.width =
+      typeof options.width === "number" ? `${options.width}px` : options.width;
     modal.style.maxWidth = "90%";
   }
 
@@ -56,7 +57,8 @@ export function showModal(options = {}) {
 
   // Create header with title and close button
   const header = document.createElement("div");
-  header.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;";
+  header.style.cssText =
+    "display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;";
 
   const title = document.createElement("h3");
   title.textContent = options.title || "Modal";
@@ -104,7 +106,7 @@ export function showModal(options = {}) {
       if (typeof options.onClose === "function") {
         options.onClose();
       }
-    }
+    },
   };
 
   // Add close event to button
@@ -127,7 +129,7 @@ export function showModal(options = {}) {
  */
 export function closeModal() {
   const modals = document.querySelectorAll(".modal-backdrop");
-  modals.forEach(modal => {
+  modals.forEach((modal) => {
     document.body.removeChild(modal);
   });
 }

@@ -1,7 +1,10 @@
-import { AppState } from '../core/appState.js';
-import { showModal } from './modalManager.js';
-import { showToast } from './uiManager.js';
-import { exportTransactionsAsCSV, exportTransactionsAsJSON } from '../exports/exportManager.js';
+import { AppState } from "../core/appState.js";
+import { showModal } from "./modalManager.js";
+import { showToast } from "./uiManager.js";
+import {
+  exportTransactionsAsCSV,
+  exportTransactionsAsJSON,
+} from "../exports/exportManager.js";
 
 /**
  * Show export modal with options
@@ -10,12 +13,12 @@ export function showExportModal() {
   const transactions = AppState.transactions || [];
 
   if (transactions.length === 0) {
-    showToast('No transactions to export', 'warning');
+    showToast("No transactions to export", "warning");
     return;
   }
 
-  const modalContent = document.createElement('div');
-  modalContent.className = 'export-modal';
+  const modalContent = document.createElement("div");
+  modalContent.className = "export-modal";
 
   modalContent.innerHTML = `
     <div class="export-options">
@@ -42,7 +45,9 @@ export function showExportModal() {
           <span class="stat-label">Transactions</span>
         </div>
         <div class="stat-card">
-          <span class="stat-number">${new Set(transactions.map(t => t.fileName)).size}</span>
+          <span class="stat-number">${
+            new Set(transactions.map((t) => t.fileName)).size
+          }</span>
           <span class="stat-label">Source Files</span>
         </div>
       </div>
@@ -55,23 +60,25 @@ export function showExportModal() {
   `;
 
   const modal = showModal({
-    title: 'Export Transactions',
+    title: "Export Transactions",
     content: modalContent,
-    size: 'medium',
-    closeOnClickOutside: false
+    size: "medium",
+    closeOnClickOutside: false,
   });
 
   // Event listeners
-  document.getElementById('cancelExport').addEventListener('click', () => {
+  document.getElementById("cancelExport").addEventListener("click", () => {
     modal.close();
   });
 
-  document.getElementById('performExport').addEventListener('click', () => {
-    const format = document.querySelector('input[name="exportFormat"]:checked').value;
+  document.getElementById("performExport").addEventListener("click", () => {
+    const format = document.querySelector(
+      'input[name="exportFormat"]:checked'
+    ).value;
 
-    if (format === 'csv') {
+    if (format === "csv") {
       exportTransactionsAsCSV();
-    } else if (format === 'json') {
+    } else if (format === "json") {
       exportTransactionsAsJSON();
     }
 

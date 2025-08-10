@@ -54,7 +54,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
   line-height: 1.6;
   color: var(--text-primary);
   background-color: var(--bg-primary);
@@ -660,15 +661,18 @@ body.dark-mode .toast {
 /* Advanced Filters Dark Mode - Multi-column Layout with Futuristic Design */
 body.dark-mode .transaction-filters,
 body.dark-mode .advanced-filters {
-  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 25%, #16213e 75%, #0f0f23 100%) !important;
+  background: linear-gradient(
+    135deg,
+    #0a0a0f 0%,
+    #1a1a2e 25%,
+    #16213e 75%,
+    #0f0f23 100%
+  ) !important;
   border: 2px solid transparent !important;
   border-image: linear-gradient(45deg, #667eea, #764ba2, #f093fb) 1 !important;
   color: #e0e8ff !important;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 40px rgba(102, 126, 234, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 40px rgba(102, 126, 234, 0.1) !important;
   position: relative !important;
   border-radius: 16px !important;
   overflow: hidden !important;
@@ -685,7 +689,6 @@ body.dark-mode .filters-row {
 }
 
 @media (max-width: 1200px) {
-
   body.dark-mode .filter-row,
   body.dark-mode .filters-row {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -693,7 +696,6 @@ body.dark-mode .filters-row {
 }
 
 @media (max-width: 768px) {
-
   body.dark-mode .filter-row,
   body.dark-mode .filters-row {
     grid-template-columns: 1fr !important;
@@ -873,13 +875,18 @@ body.dark-mode .filter-group {
 }
 
 body.dark-mode .filter-group::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(102, 126, 234, 0.5),
+    transparent
+  );
 }
 
 /* ===== RESPONSIVE ===== */

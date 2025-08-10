@@ -1,16 +1,16 @@
 // Enhanced existing debug functionality
 export function initializeDebugMode() {
-  const debugToggle = document.getElementById('debugModeToggle');
+  const debugToggle = document.getElementById("debugModeToggle");
 
   if (debugToggle) {
     // Load saved debug state
-    const savedDebugMode = localStorage.getItem('debugMode') === 'true';
+    const savedDebugMode = localStorage.getItem("debugMode") === "true";
     debugToggle.checked = savedDebugMode;
     applyDebugMode(savedDebugMode);
 
-    debugToggle.addEventListener('change', (e) => {
+    debugToggle.addEventListener("change", (e) => {
       const isDebugMode = e.target.checked;
-      localStorage.setItem('debugMode', isDebugMode);
+      localStorage.setItem("debugMode", isDebugMode);
       applyDebugMode(isDebugMode);
     });
   }
@@ -18,13 +18,19 @@ export function initializeDebugMode() {
 
 function applyDebugMode(enabled) {
   if (enabled) {
-    document.body.classList.add('debug-mode');
-    console.log('🐛 Debug mode: ENABLED');
+    document.body.classList.add("debug-mode");
+    console.log("🐛 Debug mode: ENABLED");
   } else {
-    document.body.classList.remove('debug-mode');
-    console.log('🐛 Debug mode: DISABLED');
+    document.body.classList.remove("debug-mode");
+    console.log("🐛 Debug mode: DISABLED");
   }
 }
 
 // Export existing debug functions
-export { debugFiles, debugSignatures, debugTransactions, saveDebugLog, resetApplication } from './existing-debug-functions.js';
+export {
+  debugFiles,
+  debugSignatures,
+  debugTransactions,
+  saveDebugLog,
+  resetApplication,
+} from "./existing-debug-functions.js";

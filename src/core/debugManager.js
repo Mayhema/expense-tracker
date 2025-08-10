@@ -1,34 +1,34 @@
-import { AppState } from './appState.js';
-import { showToast } from '../ui/uiManager.js';
-import { DEFAULT_CATEGORIES } from '../constants/categories.js';
+import { AppState } from "./appState.js";
+import { showToast } from "../ui/uiManager.js";
+import { DEFAULT_CATEGORIES } from "../constants/categories.js";
 
 /**
  * Initialize debug mode functionality
  */
 export function initializeDebugMode() {
-  const debugToggle = document.getElementById('debugModeToggle');
+  const debugToggle = document.getElementById("debugModeToggle");
   if (debugToggle) {
     // Load saved debug mode state
-    const savedDebugMode = localStorage.getItem('debugMode') === 'true';
+    const savedDebugMode = localStorage.getItem("debugMode") === "true";
     debugToggle.checked = savedDebugMode;
     updateDebugMode(savedDebugMode);
 
     // Add event listener for debug mode toggle
-    debugToggle.addEventListener('change', (e) => {
+    debugToggle.addEventListener("change", (e) => {
       const isDebugMode = e.target.checked;
-      localStorage.setItem('debugMode', isDebugMode);
+      localStorage.setItem("debugMode", isDebugMode);
       updateDebugMode(isDebugMode);
 
       showToast(
-        isDebugMode ? '🐛 Debug mode enabled' : '🐛 Debug mode disabled',
-        'info'
+        isDebugMode ? "🐛 Debug mode enabled" : "🐛 Debug mode disabled",
+        "info"
       );
     });
   } else {
     console.warn("Debug toggle element not found");
   }
 
-  console.log('✅ Debug manager initialized');
+  console.log("✅ Debug manager initialized");
 }
 
 /**
@@ -36,12 +36,12 @@ export function initializeDebugMode() {
  */
 function updateDebugMode(isEnabled) {
   if (isEnabled) {
-    document.body.classList.add('debug-mode');
-    console.log('🐛 Debug mode: ENABLED');
-    console.log('📊 AppState:', AppState);
+    document.body.classList.add("debug-mode");
+    console.log("🐛 Debug mode: ENABLED");
+    console.log("📊 AppState:", AppState);
   } else {
-    document.body.classList.remove('debug-mode');
-    console.log('🐛 Debug mode: DISABLED');
+    document.body.classList.remove("debug-mode");
+    console.log("🐛 Debug mode: DISABLED");
   }
 }
 
@@ -53,25 +53,25 @@ export function debugFiles() {
     const mergedFiles = AppState.mergedFiles || [];
     const debugInfo = {
       totalFiles: mergedFiles.length,
-      files: mergedFiles.map(file => ({
+      files: mergedFiles.map((file) => ({
         fileName: file.fileName,
         signature: file.signature,
         currency: file.currency,
         transactionCount: file.transactions?.length || 0,
         dateProcessed: file.dateProcessed,
-        headerMapping: file.headerMapping
-      }))
+        headerMapping: file.headerMapping,
+      })),
     };
 
-    console.group('🗂️ Debug Files Information');
-    console.log('Total Files:', debugInfo.totalFiles);
+    console.group("🗂️ Debug Files Information");
+    console.log("Total Files:", debugInfo.totalFiles);
     console.table(debugInfo.files);
     console.groupEnd();
 
-    showToast(`Debug: ${debugInfo.totalFiles} files analyzed`, 'info');
+    showToast(`Debug: ${debugInfo.totalFiles} files analyzed`, "info");
   } catch (error) {
-    console.error('❌ Error in debug files:', error);
-    showToast('Error debugging files', 'error');
+    console.error("❌ Error in debug files:", error);
+    showToast("Error debugging files", "error");
   }
 }
 
@@ -81,20 +81,20 @@ export function debugFiles() {
 export function debugSignatures() {
   try {
     const mergedFiles = AppState.mergedFiles || [];
-    const signatures = mergedFiles.map(file => ({
+    const signatures = mergedFiles.map((file) => ({
       fileName: file.fileName,
       signature: file.signature,
-      columns: file.headerMapping?.length || 0
+      columns: file.headerMapping?.length || 0,
     }));
 
-    console.group('🔍 Debug File Signatures');
+    console.group("🔍 Debug File Signatures");
     console.table(signatures);
     console.groupEnd();
 
-    showToast(`Debug: ${signatures.length} signatures analyzed`, 'info');
+    showToast(`Debug: ${signatures.length} signatures analyzed`, "info");
   } catch (error) {
-    console.error('❌ Error in debug signatures:', error);
-    showToast('Error debugging signatures', 'error');
+    console.error("❌ Error in debug signatures:", error);
+    showToast("Error debugging signatures", "error");
   }
 }
 
@@ -110,24 +110,24 @@ export function debugTransactions() {
       byCategory: {},
       dateRange: {
         earliest: null,
-        latest: null
+        latest: null,
       },
       amounts: {
         totalIncome: 0,
-        totalExpenses: 0
+        totalExpenses: 0,
       },
       idConsistency: {
         withIds: 0,
         withoutIds: 0,
         duplicateIds: 0,
-        uniqueIds: new Set()
-      }
+        uniqueIds: new Set(),
+      },
     };
 
     const seenIds = new Set();
 
     // Analyze transactions
-    transactions.forEach(tx => {
+    transactions.forEach((tx) => {
       // ID consistency analysis
       if (tx.id) {
         debugInfo.idConsistency.withIds++;
@@ -143,17 +143,22 @@ export function debugTransactions() {
 
       // By file
       if (tx.fileName) {
-        debugInfo.byFile[tx.fileName] = (debugInfo.byFile[tx.fileName] || 0) + 1;
+        debugInfo.byFile[tx.fileName] =
+          (debugInfo.byFile[tx.fileName] || 0) + 1;
       }
 
       // By category
-      const category = tx.category || 'Uncategorized';
-      debugInfo.byCategory[category] = (debugInfo.byCategory[category] || 0) + 1;
+      const category = tx.category || "Uncategorized";
+      debugInfo.byCategory[category] =
+        (debugInfo.byCategory[category] || 0) + 1;
 
       // Date range
       if (tx.date) {
         const date = new Date(tx.date);
-        if (!debugInfo.dateRange.earliest || date < debugInfo.dateRange.earliest) {
+        if (
+          !debugInfo.dateRange.earliest ||
+          date < debugInfo.dateRange.earliest
+        ) {
           debugInfo.dateRange.earliest = date;
         }
         if (!debugInfo.dateRange.latest || date > debugInfo.dateRange.latest) {
@@ -170,31 +175,40 @@ export function debugTransactions() {
       }
     });
 
-    console.group('📊 Debug Transactions Information');
-    console.log('Total Transactions:', debugInfo.totalTransactions);
-    console.log('ID Consistency:', {
+    console.group("📊 Debug Transactions Information");
+    console.log("Total Transactions:", debugInfo.totalTransactions);
+    console.log("ID Consistency:", {
       withIds: debugInfo.idConsistency.withIds,
       withoutIds: debugInfo.idConsistency.withoutIds,
       duplicateIds: debugInfo.idConsistency.duplicateIds,
-      uniqueIdsCount: debugInfo.idConsistency.uniqueIds.size
+      uniqueIdsCount: debugInfo.idConsistency.uniqueIds.size,
     });
-    console.log('By File:', debugInfo.byFile);
-    console.log('By Category:', debugInfo.byCategory);
-    console.log('Date Range:', {
-      earliest: debugInfo.dateRange.earliest ? debugInfo.dateRange.earliest.toISOString().split('T')[0] : null,
-      latest: debugInfo.dateRange.latest ? debugInfo.dateRange.latest.toISOString().split('T')[0] : null
+    console.log("By File:", debugInfo.byFile);
+    console.log("By Category:", debugInfo.byCategory);
+    console.log("Date Range:", {
+      earliest: debugInfo.dateRange.earliest
+        ? debugInfo.dateRange.earliest.toISOString().split("T")[0]
+        : null,
+      latest: debugInfo.dateRange.latest
+        ? debugInfo.dateRange.latest.toISOString().split("T")[0]
+        : null,
     });
-    console.log('Amounts:', {
+    console.log("Amounts:", {
       totalIncome: debugInfo.amounts.totalIncome.toFixed(2),
       totalExpenses: debugInfo.amounts.totalExpenses.toFixed(2),
-      balance: (debugInfo.amounts.totalIncome - debugInfo.amounts.totalExpenses).toFixed(2)
+      balance: (
+        debugInfo.amounts.totalIncome - debugInfo.amounts.totalExpenses
+      ).toFixed(2),
     });
     console.groupEnd();
 
-    showToast(`Debug: ${debugInfo.totalTransactions} transactions analyzed`, 'info');
+    showToast(
+      `Debug: ${debugInfo.totalTransactions} transactions analyzed`,
+      "info"
+    );
   } catch (error) {
-    console.error('❌ Error in debug transactions:', error);
-    showToast('Error debugging transactions', 'error');
+    console.error("❌ Error in debug transactions:", error);
+    showToast("Error debugging transactions", "error");
   }
 }
 
@@ -208,22 +222,22 @@ export function saveDebugLog() {
       appState: {
         transactions: AppState.transactions?.length || 0,
         mergedFiles: AppState.mergedFiles?.length || 0,
-        categories: Object.keys(AppState.categories || {}).length
+        categories: Object.keys(AppState.categories || {}).length,
       },
       consoleHistory: window.consoleHistory || [],
       recentErrors: window.recentErrors || [],
       userAgent: navigator.userAgent,
-      url: window.location.href
+      url: window.location.href,
     };
 
     const debugContent = JSON.stringify(debugData, null, 2);
-    const blob = new Blob([debugContent], { type: 'application/json' });
+    const blob = new Blob([debugContent], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = `expense-tracker-debug-${Date.now()}.json`;
-    link.style.display = 'none';
+    link.style.display = "none";
 
     document.body.appendChild(link);
     link.click();
@@ -231,10 +245,10 @@ export function saveDebugLog() {
 
     URL.revokeObjectURL(url);
 
-    showToast('Debug log saved successfully', 'success');
+    showToast("Debug log saved successfully", "success");
   } catch (error) {
-    console.error('❌ Error saving debug log:', error);
-    showToast('Error saving debug log', 'error');
+    console.error("❌ Error saving debug log:", error);
+    showToast("Error saving debug log", "error");
   }
 }
 
@@ -245,18 +259,18 @@ export function resetApplication() {
   try {
     // Clear all localStorage data
     const keysToRemove = [
-      'expenseTrackerTransactions',
-      'expenseTrackerMergedFiles',
-      'expenseTrackerCategories',
-      'categories',
-      'transactions',
-      'mergedFiles',
-      'categoryOrder',
-      'darkMode',
-      'debugMode'
+      "expenseTrackerTransactions",
+      "expenseTrackerMergedFiles",
+      "expenseTrackerCategories",
+      "categories",
+      "transactions",
+      "mergedFiles",
+      "categoryOrder",
+      "darkMode",
+      "debugMode",
     ];
 
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       localStorage.removeItem(key);
     });
 
@@ -269,58 +283,76 @@ export function resetApplication() {
     AppState.categories = { ...DEFAULT_CATEGORIES };
 
     // FIXED: Save categories immediately to localStorage
-    localStorage.setItem('categories', JSON.stringify(AppState.categories));
-    console.log(`Reset and loaded ${Object.keys(AppState.categories).length} default categories automatically`);
+    localStorage.setItem("categories", JSON.stringify(AppState.categories));
+    console.log(
+      `Reset and loaded ${
+        Object.keys(AppState.categories).length
+      } default categories automatically`
+    );
 
     // Clear UI
-    const transactionContainer = document.getElementById('transactionTableContainer');
+    const transactionContainer = document.getElementById(
+      "transactionTableContainer"
+    );
     if (transactionContainer) {
-      transactionContainer.innerHTML = '<p class="no-transactions">No transactions to display</p>';
+      transactionContainer.innerHTML =
+        '<p class="no-transactions">No transactions to display</p>';
     }
 
     // Reset toggles
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    const debugModeToggle = document.getElementById('debugModeToggle');
+    const darkModeToggle = document.getElementById("darkModeToggle");
+    const debugModeToggle = document.getElementById("debugModeToggle");
 
     if (darkModeToggle) darkModeToggle.checked = false;
     if (debugModeToggle) debugModeToggle.checked = false;
 
     // Remove body classes
-    document.body.classList.remove('dark-mode', 'debug-mode');
+    document.body.classList.remove("dark-mode", "debug-mode");
 
-    showToast('Application reset successfully with default categories loaded', 'success');
+    showToast(
+      "Application reset successfully with default categories loaded",
+      "success"
+    );
 
     // CRITICAL FIX: Call the exact same function as the Reset to Defaults button
-    import('../ui/categoryManager.js').then(categoryModule => {
-      if (categoryModule.resetToDefaultCategories) {
-        // This ensures the exact same process as clicking the reset button
-        categoryModule.resetToDefaultCategories();
-        console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
-      }
-    }).catch(error => {
-      console.warn('Could not call resetToDefaultCategories:', error);
-    });
+    import("../ui/categoryManager.js")
+      .then((categoryModule) => {
+        if (categoryModule.resetToDefaultCategories) {
+          // This ensures the exact same process as clicking the reset button
+          categoryModule.resetToDefaultCategories();
+          console.log(
+            "CRITICAL: Called resetToDefaultCategories() exactly like the reset button"
+          );
+        }
+      })
+      .catch((error) => {
+        console.warn("Could not call resetToDefaultCategories:", error);
+      });
 
     // FIXED: Force immediate category UI update using the same method as reset button
-    import('./appState.js').then(appModule => {
-      if (appModule.initializeAppState) {
-        appModule.initializeAppState();
-      }
-    }).catch(error => {
-      console.warn('Could not re-initialize app state after reset:', error);
-    });
+    import("./appState.js")
+      .then((appModule) => {
+        if (appModule.initializeAppState) {
+          appModule.initializeAppState();
+        }
+      })
+      .catch((error) => {
+        console.warn("Could not re-initialize app state after reset:", error);
+      });
 
     // FIXED: Update transaction UI immediately like reset button does
-    import('../ui/transactionManager.js').then(txModule => {
-      if (txModule.updateAllCategoryUI) {
-        txModule.updateAllCategoryUI();
-      }
-      if (txModule.renderTransactions) {
-        txModule.renderTransactions([], true);
-      }
-    }).catch(error => {
-      console.warn('Could not update transaction UI after reset:', error);
-    });
+    import("../ui/transactionManager.js")
+      .then((txModule) => {
+        if (txModule.updateAllCategoryUI) {
+          txModule.updateAllCategoryUI();
+        }
+        if (txModule.renderTransactions) {
+          txModule.renderTransactions([], true);
+        }
+      })
+      .catch((error) => {
+        console.warn("Could not update transaction UI after reset:", error);
+      });
 
     // FIXED: Ensure global state is immediately available
     window.AppState = AppState;
@@ -329,10 +361,9 @@ export function resetApplication() {
     setTimeout(() => {
       window.location.reload();
     }, 1000);
-
   } catch (error) {
-    console.error('❌ Error resetting application:', error);
-    showToast('Error resetting application', 'error');
+    console.error("❌ Error resetting application:", error);
+    showToast("Error resetting application", "error");
   }
 }
 
@@ -346,18 +377,22 @@ export function getDebugInfo() {
       transactions: AppState.transactions?.length || 0,
       mergedFiles: AppState.mergedFiles?.length || 0,
       categories: Object.keys(AppState.categories || {}).length,
-      currentFileName: AppState.currentFileName || null
+      currentFileName: AppState.currentFileName || null,
     },
     localStorage: {
       size: JSON.stringify(localStorage).length,
-      keys: Object.keys(localStorage)
+      keys: Object.keys(localStorage),
     },
     performance: {
-      memory: performance.memory ? {
-        used: Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB',
-        total: Math.round(performance.memory.totalJSHeapSize / 1048576) + ' MB'
-      } : 'Not available'
+      memory: performance.memory
+        ? {
+            used:
+              Math.round(performance.memory.usedJSHeapSize / 1048576) + " MB",
+            total:
+              Math.round(performance.memory.totalJSHeapSize / 1048576) + " MB",
+          }
+        : "Not available",
     },
-    errors: window.recentErrors || []
+    errors: window.recentErrors || [],
   };
 }

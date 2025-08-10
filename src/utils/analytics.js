@@ -3,10 +3,13 @@
  */
 export function getMonthlyTrends(transactions = []) {
   const map = {};
-  transactions.forEach(tx => {
+  transactions.forEach((tx) => {
     if (!tx.date) return;
     const d = new Date(tx.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
     map[key] = (map[key] || 0) + ((tx.expenses || 0) - (tx.income || 0));
   });
   return Object.entries(map)
@@ -18,16 +21,17 @@ export function getMonthlyTrends(transactions = []) {
  * Returns average expense per category.
  */
 export function getCategoryAverages(transactions = []) {
-  const sum = {}, count = {};
-  transactions.forEach(tx => {
+  const sum = {},
+    count = {};
+  transactions.forEach((tx) => {
     if (tx?.expenses && tx?.category) {
       sum[tx.category] = (sum[tx.category] || 0) + parseFloat(tx.expenses);
       count[tx.category] = (count[tx.category] || 0) + 1;
     }
   });
-  return Object.keys(sum).map(cat => ({
+  return Object.keys(sum).map((cat) => ({
     category: cat,
-    avg: sum[cat] / count[cat]
+    avg: sum[cat] / count[cat],
   }));
 }
 
@@ -37,7 +41,7 @@ export function getCategoryAverages(transactions = []) {
  */
 export function getOverspendAlerts(transactions = [], budgets = {}) {
   const used = {};
-  transactions.forEach(tx => {
+  transactions.forEach((tx) => {
     if (tx?.expenses && tx?.category) {
       used[tx.category] = (used[tx.category] || 0) + parseFloat(tx.expenses);
     }

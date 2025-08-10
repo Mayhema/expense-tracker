@@ -1,13 +1,16 @@
-import { showModal } from './modalManager.js';
-import { getMappings, deleteFormatMapping } from '../mappings/mappingsManager.js';
-import { showToast } from './uiManager.js';
+import { showModal } from "./modalManager.js";
+import {
+  getMappings,
+  deleteFormatMapping,
+} from "../mappings/mappingsManager.js";
+import { showToast } from "./uiManager.js";
 
 /**
  * Show format mappings modal
  */
 export function showFormatMappingsModal() {
-  const modalContent = document.createElement('div');
-  modalContent.className = 'format-mappings-modal';
+  const modalContent = document.createElement("div");
+  modalContent.className = "format-mappings-modal";
 
   modalContent.innerHTML = `
     <div class="mappings-info">
@@ -26,35 +29,39 @@ export function showFormatMappingsModal() {
   `;
 
   showModal({
-    title: 'Format Mappings',
+    title: "Format Mappings",
     content: modalContent,
-    size: 'large',
-    closeOnClickOutside: true
+    size: "large",
+    closeOnClickOutside: true,
   });
 
   // Initial render
   renderMappingsList();
 
   // Event listeners
-  document.getElementById('refreshMappingsBtn').addEventListener('click', () => {
-    renderMappingsList();
-    showToast('Mappings refreshed', 'info');
-  });
-
-  document.getElementById('clearAllMappingsBtn').addEventListener('click', () => {
-    if (confirm('Are you sure you want to delete ALL format mappings?')) {
-      localStorage.removeItem('fileFormatMappings');
+  document
+    .getElementById("refreshMappingsBtn")
+    .addEventListener("click", () => {
       renderMappingsList();
-      showToast('All format mappings cleared', 'success');
-    }
-  });
+      showToast("Mappings refreshed", "info");
+    });
+
+  document
+    .getElementById("clearAllMappingsBtn")
+    .addEventListener("click", () => {
+      if (confirm("Are you sure you want to delete ALL format mappings?")) {
+        localStorage.removeItem("fileFormatMappings");
+        renderMappingsList();
+        showToast("All format mappings cleared", "success");
+      }
+    });
 }
 
 /**
  * Render the mappings list
  */
 function renderMappingsList() {
-  const container = document.getElementById('formatMappingsList');
+  const container = document.getElementById("formatMappingsList");
   if (!container) return;
 
   // CRITICAL FIX: Use the mappingsManager to get mappings
@@ -86,11 +93,11 @@ function renderMappingsList() {
   `;
 
   mappings.forEach((mapping, index) => {
-    const signature = mapping.signature || 'Unknown';
-    const fileName = mapping.fileName || 'Unknown';
+    const signature = mapping.signature || "Unknown";
+    const fileName = mapping.fileName || "Unknown";
 
     const fields = Array.isArray(mapping.mapping)
-      ? mapping.mapping.filter(m => m !== "–").join(", ")
+      ? mapping.mapping.filter((m) => m !== "–").join(", ")
       : "Unknown mapping";
 
     const currency = mapping.currency || "USD";
@@ -102,7 +109,7 @@ function renderMappingsList() {
       <tr>
         <td style="padding: 8px; border: 1px solid #ddd;">${fileName}</td>
         <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; word-break: break-all; max-width: 150px;">
-          ${signature.substring(0, 15)}${signature.length > 15 ? '...' : ''}
+          ${signature.substring(0, 15)}${signature.length > 15 ? "..." : ""}
         </td>
         <td style="padding: 8px; border: 1px solid #ddd;">${fields}</td>
         <td style="padding: 8px; border: 1px solid #ddd;">${currency}</td>
@@ -130,8 +137,8 @@ function renderMappingsList() {
 window.deleteMappingAtIndex = function (index) {
   if (deleteFormatMapping(index)) {
     renderMappingsList();
-    showToast('Format mapping deleted', 'success');
+    showToast("Format mapping deleted", "success");
   } else {
-    showToast('Error deleting format mapping', 'error');
+    showToast("Error deleting format mapping", "error");
   }
 };

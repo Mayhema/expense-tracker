@@ -1,5 +1,10 @@
-import { createChart, destroyChart, updateChartData, getCategoryColors } from './chartCore.js';
-import { AppState } from '../core/appState.js';
+import {
+  createChart,
+  destroyChart,
+  updateChartData,
+  getCategoryColors,
+} from "./chartCore.js";
+import { AppState } from "../core/appState.js";
 
 let pieChart = null;
 let showSubcategories = false;
@@ -9,9 +14,18 @@ let expenseCategoryChart = null;
 
 // Define chart colors at module level
 const CHART_COLORS = [
-  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-  '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
-  '#4BC0C0', '#FF6384', '#36A2EB', '#FFCE56'
+  "#FF6384",
+  "#36A2EB",
+  "#FFCE56",
+  "#4BC0C0",
+  "#9966FF",
+  "#FF9F40",
+  "#FF6384",
+  "#C9CBCF",
+  "#4BC0C0",
+  "#FF6384",
+  "#36A2EB",
+  "#FFCE56",
 ];
 
 function getChartColors(count) {
@@ -30,7 +44,7 @@ function getChartColors(count) {
 function groupTransactionsByCategory(transactions) {
   const categoryTotals = {};
 
-  transactions.forEach(tx => {
+  transactions.forEach((tx) => {
     // Only consider expenses (not income)
     const amount = parseFloat(tx.expenses) || 0;
     if (!amount) return;
@@ -62,26 +76,31 @@ function groupTransactionsByCategory(transactions) {
  */
 function createChartConfig(categories, categoryTotals) {
   // Create colors array based on categories or subcategories
-  const colors = categories.map(category => {
-    if (showSubcategories && category.includes(':')) {
+  const colors = categories.map((category) => {
+    if (showSubcategories && category.includes(":")) {
       // Extract subcategory color
-      const [mainCat, subCat] = category.split(':');
+      const [mainCat, subCat] = category.split(":");
       const mainCategory = AppState.categories[mainCat];
-      if (mainCategory && typeof mainCategory === 'object' &&
-        mainCategory.subcategories?.subcategories?.[subCat]) {
+      if (
+        mainCategory &&
+        typeof mainCategory === "object" &&
+        mainCategory.subcategories?.subcategories?.[subCat]
+      ) {
         return mainCategory.subcategories[subCat];
       }
     }
 
     // Default to category color or generate based on name
-    const mainCatName = category.includes(':') ? category.split(':')[0] : category;
+    const mainCatName = category.includes(":")
+      ? category.split(":")[0]
+      : category;
     return generateCategoryColor(mainCatName);
   });
 
   // Create display labels (format subcategory labels)
-  const displayLabels = categories.map(category => {
-    if (category.includes(':')) {
-      const [mainCat, subCat] = category.split(':');
+  const displayLabels = categories.map((category) => {
+    if (category.includes(":")) {
+      const [mainCat, subCat] = category.split(":");
       return `${mainCat}: ${subCat}`;
     }
     return category;
@@ -90,15 +109,17 @@ function createChartConfig(categories, categoryTotals) {
   // Create the chart data
   const chartData = {
     labels: displayLabels,
-    datasets: [{
-      data: categories.map(cat => categoryTotals[cat]),
-      backgroundColor: colors,
-      borderWidth: 1
-    }]
+    datasets: [
+      {
+        data: categories.map((cat) => categoryTotals[cat]),
+        backgroundColor: colors,
+        borderWidth: 1,
+      },
+    ],
   };
 
   return {
-    type: 'pie',
+    type: "pie",
     data: chartData,
     options: {
       responsive: true,
@@ -108,34 +129,39 @@ function createChartConfig(categories, categoryTotals) {
           top: 20,
           right: 20,
           bottom: 20,
-          left: 20
-        }
+          left: 20,
+        },
       },
       plugins: {
         legend: {
-          position: 'right',
+          position: "right",
           labels: {
             boxWidth: 15,
-            padding: 10
-          }
+            padding: 10,
+          },
         },
         tooltip: {
           callbacks: {
             label: function (context) {
               const value = context.raw || 0;
-              return '$' + value.toLocaleString('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2
-              });
-            }
-          }
+              return (
+                "$" +
+                value.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })
+              );
+            },
+          },
         },
         title: {
           display: true,
-          text: showSubcategories ? 'Expenses by Subcategory' : 'Expenses by Category'
-        }
-      }
-    }
+          text: showSubcategories
+            ? "Expenses by Subcategory"
+            : "Expenses by Category",
+        },
+      },
+    },
   };
 }
 
@@ -144,7 +170,7 @@ function createChartConfig(categories, categoryTotals) {
  * @param {HTMLCanvasElement} canvas - The canvas to clear
  */
 function clearCanvas(canvas) {
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   return false;
 }
@@ -157,18 +183,26 @@ function handleChartError(error) {
   console.error("Error creating expense chart:", error);
 
   // Fall back to canvas rendering
-  const canvas = document.getElementById('expenseChart');
+  const canvas = document.getElementById("expenseChart");
   if (!canvas) return;
 
   try {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#333' : '#f5f5f5';
+    ctx.fillStyle = document.body.classList.contains("dark-mode")
+      ? "#333"
+      : "#f5f5f5";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#666';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Error creating expense chart', canvas.width / 2, canvas.height / 2);
+    ctx.fillStyle = document.body.classList.contains("dark-mode")
+      ? "#e0e0e0"
+      : "#666";
+    ctx.font = "14px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "Error creating expense chart",
+      canvas.width / 2,
+      canvas.height / 2
+    );
   } catch (fallbackError) {
     console.error("Error creating fallback display:", fallbackError);
   }
@@ -178,18 +212,22 @@ function handleChartError(error) {
  * Initialize expense chart with proper error handling
  */
 export function initializeExpenseChart() {
-  const canvas = document.getElementById('expenseChart');
+  const canvas = document.getElementById("expenseChart");
   if (!canvas) {
-    console.warn("Expense chart canvas not found - charts section may not be loaded yet");
+    console.warn(
+      "Expense chart canvas not found - charts section may not be loaded yet"
+    );
 
     // Try again after a delay to allow DOM to load
     setTimeout(() => {
-      const retryCanvas = document.getElementById('expenseChart');
+      const retryCanvas = document.getElementById("expenseChart");
       if (retryCanvas) {
         console.log("Found expense chart canvas on retry, initializing...");
         initializeExpenseChartWithCanvas(retryCanvas);
       } else {
-        console.error("Expense chart canvas still not found after retry. Check if charts section exists in HTML.");
+        console.error(
+          "Expense chart canvas still not found after retry. Check if charts section exists in HTML."
+        );
       }
     }, 1000);
     return;
@@ -203,34 +241,36 @@ export function initializeExpenseChart() {
  */
 function initializeExpenseChartWithCanvas(canvas) {
   const config = {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
-      labels: ['No Data'],
-      datasets: [{
-        data: [1],
-        backgroundColor: ['#e0e0e0'],
-        borderWidth: 0
-      }]
+      labels: ["No Data"],
+      datasets: [
+        {
+          data: [1],
+          backgroundColor: ["#e0e0e0"],
+          borderWidth: 0,
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         title: {
-          display: false // Title is handled by HTML h3
+          display: false, // Title is handled by HTML h3
         },
         legend: {
-          position: 'bottom',
+          position: "bottom",
           labels: {
             padding: 15,
-            usePointStyle: true
-          }
-        }
-      }
-    }
+            usePointStyle: true,
+          },
+        },
+      },
+    },
   };
 
-  createChart(canvas, 'doughnut', config.data, config.options);
+  createChart(canvas, "doughnut", config.data, config.options);
   console.log("Expense chart initialized successfully");
 }
 
@@ -245,10 +285,10 @@ export function updateExpenseChart(transactions) {
 
   // Group expenses by category
   const categoryTotals = {};
-  transactions.forEach(tx => {
+  transactions.forEach((tx) => {
     const expense = parseFloat(tx.expenses) || 0;
     if (expense > 0) {
-      const category = tx.category || 'Uncategorized';
+      const category = tx.category || "Uncategorized";
       categoryTotals[category] = (categoryTotals[category] || 0) + expense;
     }
   });
@@ -262,20 +302,26 @@ export function updateExpenseChart(transactions) {
   }
 
   // Get category colors from AppState or use chart colors
-  import('../core/appState.js').then(module => {
-    const isDarkMode = document.body.classList.contains('dark-mode');
-    const colors = getCategoryColors(categories, module.AppState.categories, isDarkMode);
+  import("../core/appState.js").then((module) => {
+    const isDarkMode = document.body.classList.contains("dark-mode");
+    const colors = getCategoryColors(
+      categories,
+      module.AppState.categories,
+      isDarkMode
+    );
 
     const chartData = {
       labels: categories,
-      datasets: [{
-        data: amounts,
-        backgroundColor: colors,
-        borderWidth: 1
-      }]
+      datasets: [
+        {
+          data: amounts,
+          backgroundColor: colors,
+          borderWidth: 1,
+        },
+      ],
     };
 
-    updateChartData('expenseChart', chartData);
+    updateChartData("expenseChart", chartData);
     console.log(`Updated expense chart with ${categories.length} categories`);
   });
 }
@@ -285,48 +331,62 @@ export function updateExpenseChart(transactions) {
  */
 function addToggleSubcategoriesButton() {
   // Check if button already exists
-  let toggleBtn = document.getElementById('toggleSubcategoriesBtn');
+  let toggleBtn = document.getElementById("toggleSubcategoriesBtn");
 
   if (!toggleBtn) {
     // Create button
-    toggleBtn = document.createElement('button');
-    toggleBtn.id = 'toggleSubcategoriesBtn';
-    toggleBtn.className = 'toggle-subcategories-btn';
-    toggleBtn.title = showSubcategories ? 'Show Main Categories' : 'Show Subcategories';
-    toggleBtn.innerHTML = showSubcategories ? '📊 Main Categories' : '🔍 Show Subcategories';
-    toggleBtn.style.position = 'absolute';
-    toggleBtn.style.top = '10px';
-    toggleBtn.style.right = '10px';
-    toggleBtn.style.zIndex = '10';
-    toggleBtn.style.padding = '5px 10px';
-    toggleBtn.style.fontSize = '12px';
-    toggleBtn.style.backgroundColor = '#f0f0f0';
-    toggleBtn.style.border = '1px solid #ddd';
-    toggleBtn.style.borderRadius = '4px';
-    toggleBtn.style.cursor = 'pointer';
+    toggleBtn = document.createElement("button");
+    toggleBtn.id = "toggleSubcategoriesBtn";
+    toggleBtn.className = "toggle-subcategories-btn";
+    toggleBtn.title = showSubcategories
+      ? "Show Main Categories"
+      : "Show Subcategories";
+    toggleBtn.innerHTML = showSubcategories
+      ? "📊 Main Categories"
+      : "🔍 Show Subcategories";
+    toggleBtn.style.position = "absolute";
+    toggleBtn.style.top = "10px";
+    toggleBtn.style.right = "10px";
+    toggleBtn.style.zIndex = "10";
+    toggleBtn.style.padding = "5px 10px";
+    toggleBtn.style.fontSize = "12px";
+    toggleBtn.style.backgroundColor = "#f0f0f0";
+    toggleBtn.style.border = "1px solid #ddd";
+    toggleBtn.style.borderRadius = "4px";
+    toggleBtn.style.cursor = "pointer";
 
     // Find the chart wrapper to append
-    const chartWrapper = document.getElementById('expenseChart').closest('.chart-wrapper');
+    const chartWrapper = document
+      .getElementById("expenseChart")
+      .closest(".chart-wrapper");
     if (chartWrapper) {
-      chartWrapper.style.position = 'relative';
+      chartWrapper.style.position = "relative";
       chartWrapper.appendChild(toggleBtn);
     }
 
     // Add event listener
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener("click", () => {
       showSubcategories = !showSubcategories;
-      toggleBtn.title = showSubcategories ? 'Show Main Categories' : 'Show Subcategories';
-      toggleBtn.innerHTML = showSubcategories ? '📊 Main Categories' : '🔍 Show Subcategories';
+      toggleBtn.title = showSubcategories
+        ? "Show Main Categories"
+        : "Show Subcategories";
+      toggleBtn.innerHTML = showSubcategories
+        ? "📊 Main Categories"
+        : "🔍 Show Subcategories";
 
       // Update chart with current transactions
-      import('../core/appState.js').then(module => {
+      import("../core/appState.js").then((module) => {
         updateExpenseChart(module.AppState.transactions);
       });
     });
   } else {
     // Just update existing button text
-    toggleBtn.title = showSubcategories ? 'Show Main Categories' : 'Show Subcategories';
-    toggleBtn.innerHTML = showSubcategories ? '📊 Main Categories' : '🔍 Show Subcategories';
+    toggleBtn.title = showSubcategories
+      ? "Show Main Categories"
+      : "Show Subcategories";
+    toggleBtn.innerHTML = showSubcategories
+      ? "📊 Main Categories"
+      : "🔍 Show Subcategories";
   }
 }
 
@@ -338,7 +398,7 @@ function addToggleSubcategoriesButton() {
 function generateCategoryColor(categoryName) {
   if (AppState.categories[categoryName]) {
     const catValue = AppState.categories[categoryName];
-    if (typeof catValue === 'string') {
+    if (typeof catValue === "string") {
       return catValue;
     } else if (catValue?.color) {
       return catValue.color;
@@ -348,10 +408,10 @@ function generateCategoryColor(categoryName) {
   // Fallback to a stable generated color
   let hash = 0;
   for (let i = 0; i < categoryName.length; i++) {
-    hash = ((hash << 5) - hash) + categoryName.charCodeAt(i);
+    hash = (hash << 5) - hash + categoryName.charCodeAt(i);
     hash = hash & hash;
   }
-  return `#${Math.abs(hash).toString(16).substring(0, 6).padStart(6, '0')}`;
+  return `#${Math.abs(hash).toString(16).substring(0, 6).padStart(6, "0")}`;
 }
 
 /**
@@ -374,13 +434,15 @@ function showEmptyStateChart() {
   }
 
   window.expenseChart = createSafeChart(ctx, {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
       labels: [],
-      datasets: [{
-        data: [],
-        backgroundColor: []
-      }]
+      datasets: [
+        {
+          data: [],
+          backgroundColor: [],
+        },
+      ],
     },
     options: {
       responsive: true,
@@ -389,9 +451,9 @@ function showEmptyStateChart() {
         legend: { display: false },
         tooltip: { enabled: false },
         // Remove the "No data" text entirely
-        title: { display: false }
-      }
-    }
+        title: { display: false },
+      },
+    },
   });
 }
 
@@ -410,17 +472,17 @@ export function destroyExpenseChart() {
  * Creates the expense category chart
  */
 export async function createExpenseCategoryChart() {
-  console.log('Creating expense category chart...');
+  console.log("Creating expense category chart...");
 
   try {
     // Use global Chart.js (loaded via CDN in HTML)
-    if (typeof Chart === 'undefined') {
-      throw new Error('Chart.js is not loaded');
+    if (typeof Chart === "undefined") {
+      throw new Error("Chart.js is not loaded");
     }
 
-    const canvas = document.getElementById('expenseCategoryChart');
+    const canvas = document.getElementById("expenseCategoryChart");
     if (!canvas) {
-      console.warn('Expense category chart canvas not found');
+      console.warn("Expense category chart canvas not found");
       return null;
     }
 
@@ -439,49 +501,53 @@ export async function createExpenseCategoryChart() {
 
     // Create the chart
     const chartInstance = new Chart(canvas, {
-      type: 'pie',
+      type: "pie",
       data: {
         labels: data.labels,
-        datasets: [{
-          data: data.values,
-          backgroundColor: getChartColors(data.labels.length),
-          borderWidth: 2,
-          borderColor: '#fff'
-        }]
+        datasets: [
+          {
+            data: data.values,
+            backgroundColor: getChartColors(data.labels.length),
+            borderWidth: 2,
+            borderColor: "#fff",
+          },
+        ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'bottom',
+            position: "bottom",
             labels: {
               padding: 20,
-              usePointStyle: true
-            }
+              usePointStyle: true,
+            },
           },
           tooltip: {
             callbacks: {
               label: function (context) {
                 const value = context.parsed;
                 const total = data.values.reduce((sum, val) => sum + val, 0);
-                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
-              }
-            }
-          }
-        }
-      }
+                const percentage =
+                  total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${context.label}: $${value.toFixed(
+                  2
+                )} (${percentage}%)`;
+              },
+            },
+          },
+        },
+      },
     });
 
     // Store reference
     window.expenseCategoryChartInstance = chartInstance;
 
-    console.log('✓ expense category chart created successfully');
+    console.log("✓ expense category chart created successfully");
     return chartInstance;
-
   } catch (error) {
-    console.error('❌ Error creating expense category chart:', error);
+    console.error("❌ Error creating expense category chart:", error);
     return null;
   }
 }
@@ -510,7 +576,7 @@ function getExpenseCategoryData() {
 
   return {
     labels: Object.keys(categoryTotals),
-    values: Object.values(categoryTotals)
+    values: Object.values(categoryTotals),
   };
 }
 
@@ -521,7 +587,7 @@ function createSafeChart(canvas, config) {
   try {
     return new Chart(canvas, config);
   } catch (error) {
-    console.error('Error creating chart:', error);
+    console.error("Error creating chart:", error);
     return null;
   }
 }
@@ -529,7 +595,10 @@ function createSafeChart(canvas, config) {
 /**
  * Show no data message
  */
-function showNoDataMessage(canvas, message = 'No expense data available') {
+export function showNoDataMessage(
+  canvas,
+  message = "No expense data available"
+) {
   displayNoDataMessage(canvas, message);
 }
 
@@ -539,19 +608,19 @@ function showNoDataMessage(canvas, message = 'No expense data available') {
  * @param {string} message - The message to display
  */
 function displayNoDataMessage(canvas, message) {
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
 
   // Clear canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Set text properties
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '14px Arial';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "14px Arial";
 
   // Determine text color based on theme
-  const isDarkMode = document.body.classList.contains('dark-mode');
-  ctx.fillStyle = isDarkMode ? '#aaaaaa' : '#666666';
+  const isDarkMode = document.body.classList.contains("dark-mode");
+  ctx.fillStyle = isDarkMode ? "#aaaaaa" : "#666666";
 
   // Draw message in center of canvas
   ctx.fillText(message, canvas.width / 2, canvas.height / 2);
@@ -569,8 +638,8 @@ function calculateCategoryTotals(transactions) {
     return totals;
   }
 
-  transactions.forEach(transaction => {
-    const category = transaction.category || 'Uncategorized';
+  transactions.forEach((transaction) => {
+    const category = transaction.category || "Uncategorized";
     const amount = parseFloat(transaction.expenses || 0);
 
     if (amount > 0) {

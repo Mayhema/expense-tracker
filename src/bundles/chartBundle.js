@@ -1,4 +1,4 @@
-import { createChart, getChartColors } from '../charts/chartCore.js';
+import { createChart, getChartColors } from "../charts/chartCore.js";
 
 /**
  * Chart Bundle - Consolidated chart management
@@ -28,7 +28,7 @@ export function initializeCharts() {
  */
 function initializeIncomeExpenseChart() {
   try {
-    const canvas = document.getElementById('incomeExpenseChart');
+    const canvas = document.getElementById("incomeExpenseChart");
     if (!canvas) {
       console.warn("Income/Expense chart canvas not found");
       return;
@@ -36,12 +36,14 @@ function initializeIncomeExpenseChart() {
 
     // Create basic chart structure
     const chartData = {
-      labels: ['Income', 'Expenses'],
-      datasets: [{
-        data: [0, 0],
-        backgroundColor: getChartColors(2),
-        borderWidth: 1
-      }]
+      labels: ["Income", "Expenses"],
+      datasets: [
+        {
+          data: [0, 0],
+          backgroundColor: getChartColors(2),
+          borderWidth: 1,
+        },
+      ],
     };
 
     const options = {
@@ -49,12 +51,12 @@ function initializeIncomeExpenseChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          position: 'top'
-        }
-      }
+          position: "top",
+        },
+      },
     };
 
-    createChart(canvas, 'doughnut', chartData, options);
+    createChart(canvas, "doughnut", chartData, options);
     console.log("Income/Expense chart initialized");
   } catch (error) {
     console.error("Error initializing income/expense chart:", error);
@@ -66,7 +68,7 @@ function initializeIncomeExpenseChart() {
  */
 function initializeTimelineChart() {
   try {
-    const canvas = document.getElementById('timelineChart');
+    const canvas = document.getElementById("timelineChart");
     if (!canvas) {
       console.warn("Timeline chart canvas not found");
       return;
@@ -75,19 +77,22 @@ function initializeTimelineChart() {
     // Create basic chart structure
     const chartData = {
       labels: [],
-      datasets: [{
-        label: 'Income',
-        data: [],
-        backgroundColor: getChartColors(1)[0],
-        borderColor: getChartColors(1)[0],
-        tension: 0.1
-      }, {
-        label: 'Expenses',
-        data: [],
-        backgroundColor: getChartColors(2)[1],
-        borderColor: getChartColors(2)[1],
-        tension: 0.1
-      }]
+      datasets: [
+        {
+          label: "Income",
+          data: [],
+          backgroundColor: getChartColors(1)[0],
+          borderColor: getChartColors(1)[0],
+          tension: 0.1,
+        },
+        {
+          label: "Expenses",
+          data: [],
+          backgroundColor: getChartColors(2)[1],
+          borderColor: getChartColors(2)[1],
+          tension: 0.1,
+        },
+      ],
     };
 
     const options = {
@@ -95,12 +100,12 @@ function initializeTimelineChart() {
       maintainAspectRatio: false,
       scales: {
         y: {
-          beginAtZero: true
-        }
-      }
+          beginAtZero: true,
+        },
+      },
     };
 
-    createChart(canvas, 'line', chartData, options);
+    createChart(canvas, "line", chartData, options);
     console.log("Timeline chart initialized");
   } catch (error) {
     console.error("Error initializing timeline chart:", error);
@@ -124,14 +129,18 @@ export function updateCharts(transactions = []) {
  */
 function updateIncomeExpenseChart(transactions) {
   // FIXED: Filter transactions by date range if needed
-  const filteredTransactions = transactions.filter(tx => {
+  const filteredTransactions = transactions.filter((tx) => {
     if (!tx.date) return true;
     // Validate date format
     const date = new Date(tx.date);
     return !isNaN(date.getTime());
   });
 
-  console.log("Updating income/expense chart with", filteredTransactions.length, "transactions");
+  console.log(
+    "Updating income/expense chart with",
+    filteredTransactions.length,
+    "transactions"
+  );
 }
 
 /**
@@ -139,12 +148,16 @@ function updateIncomeExpenseChart(transactions) {
  */
 function updateTimelineChart(transactions) {
   // FIXED: Filter transactions by date range if needed
-  const filteredTransactions = transactions.filter(tx => {
+  const filteredTransactions = transactions.filter((tx) => {
     if (!tx.date) return true;
     // Validate date format
     const date = new Date(tx.date);
     return !isNaN(date.getTime());
   });
 
-  console.log("Updating timeline chart with", filteredTransactions.length, "transactions");
+  console.log(
+    "Updating timeline chart with",
+    filteredTransactions.length,
+    "transactions"
+  );
 }

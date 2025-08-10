@@ -15,8 +15,8 @@ export function revertTransactionById(transactionId) {
   }
 
   // Check if we have original data to revert to - ONLY data fields count
-  const hasOriginalData = tx.originalData &&
-    Object.keys(tx.originalData).length > 0;
+  const hasOriginalData =
+    tx.originalData && Object.keys(tx.originalData).length > 0;
 
   // If no actual data field edits, just return
   if (!hasOriginalData) {
@@ -33,7 +33,8 @@ export function revertTransactionById(transactionId) {
 
     // Only revert actual data fields, not category/currency
     if (original.date !== undefined) tx.date = original.date;
-    if (original.description !== undefined) tx.description = original.description;
+    if (original.description !== undefined)
+      tx.description = original.description;
     if (original.income !== undefined) tx.income = original.income;
     if (original.expenses !== undefined) tx.expenses = original.expenses;
 
@@ -65,13 +66,13 @@ export function revertTransactionById(transactionId) {
   // Update charts after reverting
   setTimeout(async () => {
     try {
-      const chartsModule = await import('./charts.js');
+      const chartsModule = await import("./charts.js");
       if (chartsModule?.updateCharts) {
         chartsModule.updateCharts();
         console.log("Charts updated after revert");
       }
     } catch (error) {
-      console.log('Charts not available for update:', error.message);
+      console.log("Charts not available for update:", error.message);
     }
   }, 100);
 }
@@ -81,7 +82,8 @@ export function revertTransactionById(transactionId) {
  * @param {Object} tx - Transaction to revert
  */
 function performRevert(tx) {
-  const hasOriginalData = tx.originalData && Object.keys(tx.originalData).length > 0;
+  const hasOriginalData =
+    tx.originalData && Object.keys(tx.originalData).length > 0;
 
   if (!hasOriginalData) {
     showToast("No data changes to revert", "info");
@@ -133,13 +135,13 @@ export function revertTransaction(index) {
 
   setTimeout(async () => {
     try {
-      const chartsModule = await import('./charts.js');
+      const chartsModule = await import("./charts.js");
       if (chartsModule?.updateCharts) {
         chartsModule.updateCharts();
         console.log("Charts updated after revert");
       }
     } catch (error) {
-      console.log('Charts not available for update:', error.message);
+      console.log("Charts not available for update:", error.message);
     }
   }, 100);
 }

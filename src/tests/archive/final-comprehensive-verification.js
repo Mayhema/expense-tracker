@@ -1,7 +1,7 @@
-﻿import { describe, test, expect } from '@jest/globals';
+﻿import { describe, test, expect } from "@jest/globals";
 
-describe('final-comprehensive-verification', () => {
-  test('should pass minimal test', () => {
+describe("final-comprehensive-verification", () => {
+  test("should pass minimal test", () => {
     expect(true).toBe(true);
   });
 });

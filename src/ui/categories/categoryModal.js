@@ -7,7 +7,7 @@ import {
   deleteCategory,
   addSubcategory,
   updateSubcategory,
-  deleteSubcategory
+  deleteSubcategory,
 } from "../../ui/categoryManager.js";
 
 /**
@@ -196,7 +196,7 @@ export function showCategoryModal() {
     title: "Category Management",
     content: modalContent,
     size: "large",
-    closeOnClickOutside: false
+    closeOnClickOutside: false,
   });
 
   // Mark modal as open
@@ -222,23 +222,25 @@ export function showCategoryModal() {
     const modal = showModal({
       title: `Add Subcategories to ${categoryName}`,
       content: modalContent,
-      size: "small"
+      size: "small",
     });
 
-    document.getElementById("addSubcategoryBtn").addEventListener("click", () => {
-      const name = document.getElementById("newSubcategoryName").value.trim();
-      const color = document.getElementById("newSubcategoryColor").value;
+    document
+      .getElementById("addSubcategoryBtn")
+      .addEventListener("click", () => {
+        const name = document.getElementById("newSubcategoryName").value.trim();
+        const color = document.getElementById("newSubcategoryColor").value;
 
-      if (!name) {
-        showToast("Please enter a subcategory name", "error");
-        return;
-      }
+        if (!name) {
+          showToast("Please enter a subcategory name", "error");
+          return;
+        }
 
-      if (addSubcategory(categoryName, name, color)) {
-        modal.close();
-        renderCategories();
-      }
-    });
+        if (addSubcategory(categoryName, name, color)) {
+          modal.close();
+          renderCategories();
+        }
+      });
   }
 
   // Make sure imported functions are accessible to event handlers
@@ -302,7 +304,9 @@ function renderCategories() {
   categoriesContainer.innerHTML = "";
 
   // Sort categories alphabetically
-  const sortedCategories = Object.entries(AppState.categories).sort((a, b) => a[0].localeCompare(b[0]));
+  const sortedCategories = Object.entries(AppState.categories).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
 
   // Render each category
   sortedCategories.forEach(([name, value]) => {
@@ -331,7 +335,8 @@ function createCategoryElement(name, value) {
   categoryDiv.className = "category-item";
 
   // Determine color
-  const color = typeof value === 'object' ? value.color || '#cccccc' : value || '#cccccc';
+  const color =
+    typeof value === "object" ? value.color || "#cccccc" : value || "#cccccc";
 
   // Create the category element HTML
   categoryDiv.innerHTML = `
@@ -339,33 +344,41 @@ function createCategoryElement(name, value) {
     <div class="category-name">${name}</div>
     <div class="category-actions">
       <button class="action-btn edit-btn edit-category-btn" data-name="${name}" data-color="${color}">Edit</button>
-      ${typeof value === 'object' ? `
+      ${
+        typeof value === "object"
+          ? `
         <button class="action-btn secondary-btn manage-subcategories-btn" data-name="${name}">
           Subcategories
         </button>
-      ` : `
+      `
+          : `
         <button class="action-btn secondary-btn add-subcategories-btn" data-name="${name}">
           + Sub
         </button>
-      `}
+      `
+      }
       <button class="action-btn danger-btn delete-category-btn" data-name="${name}">Delete</button>
     </div>
   `;
 
   // Add event handlers
-  categoryDiv.querySelector(".edit-category-btn").addEventListener("click", (e) => {
-    const name = e.target.getAttribute("data-name");
-    const color = e.target.getAttribute("data-color");
-    showEditCategoryModal(name, color);
-  });
+  categoryDiv
+    .querySelector(".edit-category-btn")
+    .addEventListener("click", (e) => {
+      const name = e.target.getAttribute("data-name");
+      const color = e.target.getAttribute("data-color");
+      showEditCategoryModal(name, color);
+    });
 
-  categoryDiv.querySelector(".delete-category-btn").addEventListener("click", (e) => {
-    const name = e.target.getAttribute("data-name");
-    if (confirm(`Delete category "${name}"?`)) {
-      deleteCategory(name);
-      renderCategories();
-    }
-  });
+  categoryDiv
+    .querySelector(".delete-category-btn")
+    .addEventListener("click", (e) => {
+      const name = e.target.getAttribute("data-name");
+      if (confirm(`Delete category "${name}"?`)) {
+        deleteCategory(name);
+        renderCategories();
+      }
+    });
 
   // Handle subcategory buttons
   const addSubBtn = categoryDiv.querySelector(".add-subcategories-btn");
@@ -374,7 +387,10 @@ function createCategoryElement(name, value) {
   if (addSubBtn) {
     addSubBtn.addEventListener("click", (e) => {
       const name = e.target.getAttribute("data-name");
-      addSubcategoriesToCategory(name, color);
+      // Use the window-exposed helper defined in showCategoryModal
+      if (typeof window.addSubcategoriesToCategory === "function") {
+        window.addSubcategoriesToCategory(name, color);
+      }
     });
   }
 
@@ -385,17 +401,19 @@ function createCategoryElement(name, value) {
     });
 
     // If this category has subcategories, render them
-    if (typeof value === 'object' && value.subcategories) {
+    if (typeof value === "object" && value.subcategories) {
       const subcategoriesDiv = document.createElement("div");
       subcategoriesDiv.className = "subcategories-container";
 
       // Render each subcategory
       Object.entries(value.subcategories).forEach(([subName, subColor]) => {
-        subcategoriesDiv.appendChild(createSubcategoryElement(name, subName, subColor));
+        subcategoriesDiv.appendChild(
+          createSubcategoryElement(name, subName, subColor)
+        );
       });
 
       // Append subcategories below the category
-      categoryDiv.insertAdjacentElement('afterend', subcategoriesDiv);
+      categoryDiv.insertAdjacentElement("afterend", subcategoriesDiv);
     }
   }
 
@@ -427,22 +445,26 @@ function createSubcategoryElement(categoryName, subcategoryName, color) {
   `;
 
   // Add event handlers
-  subDiv.querySelector(".edit-subcategory-btn").addEventListener("click", (e) => {
-    const category = e.target.getAttribute("data-category");
-    const name = e.target.getAttribute("data-name");
-    const color = e.target.getAttribute("data-color");
-    showEditSubcategoryModal(category, name, color);
-  });
+  subDiv
+    .querySelector(".edit-subcategory-btn")
+    .addEventListener("click", (e) => {
+      const category = e.target.getAttribute("data-category");
+      const name = e.target.getAttribute("data-name");
+      const color = e.target.getAttribute("data-color");
+      showEditSubcategoryModal(category, name, color);
+    });
 
-  subDiv.querySelector(".delete-subcategory-btn").addEventListener("click", (e) => {
-    const category = e.target.getAttribute("data-category");
-    const name = e.target.getAttribute("data-name");
+  subDiv
+    .querySelector(".delete-subcategory-btn")
+    .addEventListener("click", (e) => {
+      const category = e.target.getAttribute("data-category");
+      const name = e.target.getAttribute("data-name");
 
-    if (confirm(`Delete subcategory "${name}" from "${category}"?`)) {
-      deleteSubcategory(category, name);
-      renderCategories();
-    }
-  });
+      if (confirm(`Delete subcategory "${name}" from "${category}"?`)) {
+        deleteSubcategory(category, name);
+        renderCategories();
+      }
+    });
 
   return subDiv;
 }
@@ -476,29 +498,33 @@ function showEditCategoryModal(name, color) {
   const modal = showModal({
     title: `Edit Category: ${name}`,
     content: modalContent,
-    size: "small"
+    size: "small",
   });
 
   // Handle cancel
-  document.getElementById("cancelEditCategoryBtn").addEventListener("click", () => {
-    modal.close();
-  });
+  document
+    .getElementById("cancelEditCategoryBtn")
+    .addEventListener("click", () => {
+      modal.close();
+    });
 
   // Handle save
-  document.getElementById("saveEditCategoryBtn").addEventListener("click", () => {
-    const newName = document.getElementById("editCategoryName").value.trim();
-    const newColor = document.getElementById("editCategoryColor").value;
+  document
+    .getElementById("saveEditCategoryBtn")
+    .addEventListener("click", () => {
+      const newName = document.getElementById("editCategoryName").value.trim();
+      const newColor = document.getElementById("editCategoryColor").value;
 
-    if (!newName) {
-      showToast("Category name cannot be empty", "error");
-      return;
-    }
+      if (!newName) {
+        showToast("Category name cannot be empty", "error");
+        return;
+      }
 
-    if (updateCategory(name, newName, newColor)) {
-      modal.close();
-      renderCategories();
-    }
-  });
+      if (updateCategory(name, newName, newColor)) {
+        modal.close();
+        renderCategories();
+      }
+    });
 }
 
 /**
@@ -507,7 +533,7 @@ function showEditCategoryModal(name, color) {
  */
 function showSubcategoriesModal(categoryName) {
   const categoryValue = AppState.categories[categoryName];
-  if (!categoryValue || typeof categoryValue !== 'object') return;
+  if (!categoryValue || typeof categoryValue !== "object") return;
 
   const subcategories = categoryValue.subcategories || {};
 
@@ -531,7 +557,7 @@ function showSubcategoriesModal(categoryName) {
   const modal = showModal({
     title: `Manage Subcategories: ${categoryName}`,
     content: modalContent,
-    size: "medium"
+    size: "medium",
   });
 
   // Render subcategories list
@@ -548,14 +574,19 @@ function showSubcategoriesModal(categoryName) {
     }
 
     addSubcategory(categoryName, name, color);
-    renderSubcategories(categoryName, AppState.categories[categoryName].subcategories || {});
+    renderSubcategories(
+      categoryName,
+      AppState.categories[categoryName].subcategories || {}
+    );
   });
 
   // Handle close
-  document.getElementById("closeSubcategoriesBtn").addEventListener("click", () => {
-    modal.close();
-    renderCategories(); // Refresh main categories view
-  });
+  document
+    .getElementById("closeSubcategoriesBtn")
+    .addEventListener("click", () => {
+      modal.close();
+      renderCategories(); // Refresh main categories view
+    });
 }
 
 /**
@@ -570,7 +601,9 @@ function renderSubcategories(categoryName, subcategories) {
   container.innerHTML = "";
 
   // Sort subcategories alphabetically
-  const sortedSubcategories = Object.entries(subcategories).sort((a, b) => a[0].localeCompare(b[0]));
+  const sortedSubcategories = Object.entries(subcategories).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
 
   sortedSubcategories.forEach(([name, color]) => {
     const subItem = document.createElement("div");
@@ -590,23 +623,33 @@ function renderSubcategories(categoryName, subcategories) {
     container.appendChild(subItem);
 
     // Add event handlers
-    subItem.querySelector(".edit-subcategory-modal-btn").addEventListener("click", (e) => {
-      const name = e.target.getAttribute("data-name");
-      const color = e.target.getAttribute("data-color");
+    subItem
+      .querySelector(".edit-subcategory-modal-btn")
+      .addEventListener("click", (e) => {
+        const name = e.target.getAttribute("data-name");
+        const color = e.target.getAttribute("data-color");
 
-      showEditSubcategoryModal(categoryName, name, color, () => {
-        renderSubcategories(categoryName, AppState.categories[categoryName].subcategories || {});
+        showEditSubcategoryModal(categoryName, name, color, () => {
+          renderSubcategories(
+            categoryName,
+            AppState.categories[categoryName].subcategories || {}
+          );
+        });
       });
-    });
 
-    subItem.querySelector(".delete-subcategory-modal-btn").addEventListener("click", (e) => {
-      const name = e.target.getAttribute("data-name");
+    subItem
+      .querySelector(".delete-subcategory-modal-btn")
+      .addEventListener("click", (e) => {
+        const name = e.target.getAttribute("data-name");
 
-      if (confirm(`Delete subcategory "${name}"?`)) {
-        deleteSubcategory(categoryName, name);
-        renderSubcategories(categoryName, AppState.categories[categoryName].subcategories || {});
-      }
-    });
+        if (confirm(`Delete subcategory "${name}"?`)) {
+          deleteSubcategory(categoryName, name);
+          renderSubcategories(
+            categoryName,
+            AppState.categories[categoryName].subcategories || {}
+          );
+        }
+      });
   });
 
   // If no subcategories, show message
@@ -617,4 +660,62 @@ function renderSubcategories(categoryName, subcategories) {
       </div>
     `;
   }
+}
+
+/**
+ * Shows modal to edit a subcategory
+ * @param {string} categoryName
+ * @param {string} subcategoryName
+ * @param {string} color
+ * @param {Function} onSaved optional callback
+ */
+function showEditSubcategoryModal(
+  categoryName,
+  subcategoryName,
+  color,
+  onSaved
+) {
+  const modalContent = document.createElement("div");
+  modalContent.innerHTML = `
+    <div style="padding: 10px;">
+      <div style="margin-bottom: 20px;">
+        <label for="editSubcategoryName">Subcategory Name:</label>
+        <input type="text" id="editSubcategoryName" value="${subcategoryName}" style="width: 100%; padding: 8px; margin-top: 5px;">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label for="editSubcategoryColor">Subcategory Color:</label>
+        <input type="color" id="editSubcategoryColor" value="${color}" style="width: 100%; height: 40px; margin-top: 5px;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="cancelEditSubcategoryBtn" class="action-btn secondary-btn">Cancel</button>
+        <button id="saveEditSubcategoryBtn" class="action-btn primary-btn">Save Changes</button>
+      </div>
+    </div>
+  `;
+
+  const modal = showModal({
+    title: `Edit Subcategory: ${subcategoryName}`,
+    content: modalContent,
+    size: "small",
+  });
+
+  document
+    .getElementById("cancelEditSubcategoryBtn")
+    ?.addEventListener("click", () => modal.close());
+  document
+    .getElementById("saveEditSubcategoryBtn")
+    ?.addEventListener("click", () => {
+      const newName = document
+        .getElementById("editSubcategoryName")
+        .value.trim();
+      const newColor = document.getElementById("editSubcategoryColor").value;
+      if (!newName) {
+        showToast("Subcategory name cannot be empty", "error");
+        return;
+      }
+      // update then refresh
+      updateSubcategory(categoryName, subcategoryName, newName, newColor);
+      modal.close();
+      if (typeof onSaved === "function") onSaved();
+    });
 }

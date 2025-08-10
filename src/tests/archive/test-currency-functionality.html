@@ -1,164 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Currency Filter Test - Expense Tracker</title>
+    <link rel="stylesheet" href="src/styles/main.css" />
+    <link rel="stylesheet" href="src/styles/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Currency Filter Test - Expense Tracker</title>
-  <link rel="stylesheet" href="src/styles/main.css">
-  <link rel="stylesheet" href="src/styles/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-
-<body>
-  <div class="app-header">
-    <div class="app-title">
-      <h1>Currency Filter Test 💰</h1>
-      <div class="app-subtitle">Testing currency filter functionality</div>
-    </div>
-  </div>
-
-  <div class="main-content">
-    <div class="section">
-      <div class="section-header">
-        <h2>Test Instructions</h2>
-      </div>
-      <div class="section-content">
-        <p>1. Load sample transactions with multiple currencies (USD, EUR, GBP)</p>
-        <p>2. Use the currency filter to change between currencies</p>
-        <p>3. Verify that charts and summary tables update immediately</p>
-        <button id="loadSampleData" class="btn primary-btn">Load Sample Multi-Currency Data</button>
-        <button id="clearData" class="btn secondary-btn">Clear All Data</button>
+  <body>
+    <div class="app-header">
+      <div class="app-title">
+        <h1>Currency Filter Test 💰</h1>
+        <div class="app-subtitle">Testing currency filter functionality</div>
       </div>
     </div>
 
-    <!-- Transaction section will be dynamically created here -->
-    <!-- Charts section will be dynamically created here -->
-  </div>
+    <div class="main-content">
+      <div class="section">
+        <div class="section-header">
+          <h2>Test Instructions</h2>
+        </div>
+        <div class="section-content">
+          <p>
+            1. Load sample transactions with multiple currencies (USD, EUR, GBP)
+          </p>
+          <p>2. Use the currency filter to change between currencies</p>
+          <p>3. Verify that charts and summary tables update immediately</p>
+          <button id="loadSampleData" class="btn primary-btn">
+            Load Sample Multi-Currency Data
+          </button>
+          <button id="clearData" class="btn secondary-btn">
+            Clear All Data
+          </button>
+        </div>
+      </div>
 
-  <script type="module">
-    import { AppState, initialize } from './src/core/appState.js';
-    import { renderTransactions } from './src/ui/transactionManager.js';
-    import { initializeCharts, updateCharts } from './src/ui/charts.js';
+      <!-- Transaction section will be dynamically created here -->
+      <!-- Charts section will be dynamically created here -->
+    </div>
 
-    // Initialize the application
-    await initialize();
+    <script type="module">
+      import { AppState, initialize } from "./src/core/appState.js";
+      import { renderTransactions } from "./src/ui/transactionManager.js";
+      import { initializeCharts, updateCharts } from "./src/ui/charts.js";
 
-    // Initialize charts
-    await initializeCharts();
+      // Initialize the application
+      await initialize();
 
-    // Sample multi-currency transactions
-    const sampleTransactions = [
-      {
-        fileName: "test-usd.csv",
-        currency: "USD",
-        date: "2024-01-15",
-        description: "Grocery Shopping",
-        category: "Food",
-        income: 0,
-        expenses: 120.50
-      },
-      {
-        fileName: "test-usd.csv",
-        currency: "USD",
-        date: "2024-01-16",
-        description: "Salary Payment",
-        category: "Income",
-        income: 3000.00,
-        expenses: 0
-      },
-      {
-        fileName: "test-eur.csv",
-        currency: "EUR",
-        date: "2024-01-17",
-        description: "Coffee Shop",
-        category: "Food",
-        income: 0,
-        expenses: 4.50
-      },
-      {
-        fileName: "test-eur.csv",
-        currency: "EUR",
-        date: "2024-01-18",
-        description: "Freelance Work",
-        category: "Income",
-        income: 500.00,
-        expenses: 0
-      },
-      {
-        fileName: "test-gbp.csv",
-        currency: "GBP",
-        date: "2024-01-19",
-        description: "Gas Station",
-        category: "Transportation",
-        income: 0,
-        expenses: 45.20
-      },
-      {
-        fileName: "test-gbp.csv",
-        currency: "GBP",
-        date: "2024-01-20",
-        description: "Consulting Fee",
-        category: "Income",
-        income: 800.00,
-        expenses: 0
+      // Initialize charts
+      await initializeCharts();
+
+      // Sample multi-currency transactions
+      const sampleTransactions = [
+        {
+          fileName: "test-usd.csv",
+          currency: "USD",
+          date: "2024-01-15",
+          description: "Grocery Shopping",
+          category: "Food",
+          income: 0,
+          expenses: 120.5,
+        },
+        {
+          fileName: "test-usd.csv",
+          currency: "USD",
+          date: "2024-01-16",
+          description: "Salary Payment",
+          category: "Income",
+          income: 3000.0,
+          expenses: 0,
+        },
+        {
+          fileName: "test-eur.csv",
+          currency: "EUR",
+          date: "2024-01-17",
+          description: "Coffee Shop",
+          category: "Food",
+          income: 0,
+          expenses: 4.5,
+        },
+        {
+          fileName: "test-eur.csv",
+          currency: "EUR",
+          date: "2024-01-18",
+          description: "Freelance Work",
+          category: "Income",
+          income: 500.0,
+          expenses: 0,
+        },
+        {
+          fileName: "test-gbp.csv",
+          currency: "GBP",
+          date: "2024-01-19",
+          description: "Gas Station",
+          category: "Transportation",
+          income: 0,
+          expenses: 45.2,
+        },
+        {
+          fileName: "test-gbp.csv",
+          currency: "GBP",
+          date: "2024-01-20",
+          description: "Consulting Fee",
+          category: "Income",
+          income: 800.0,
+          expenses: 0,
+        },
+      ];
+
+      // Load sample data button
+      document
+        .getElementById("loadSampleData")
+        .addEventListener("click", () => {
+          console.log("CRITICAL TEST: Loading sample multi-currency data...");
+
+          // Clear existing data
+          AppState.transactions = [];
+
+          // Add sample transactions
+          AppState.transactions.push(...sampleTransactions);
+
+          // Save to localStorage
+          localStorage.setItem(
+            "transactions",
+            JSON.stringify(AppState.transactions)
+          );
+
+          console.log(
+            `CRITICAL TEST: Loaded ${AppState.transactions.length} sample transactions`
+          );
+          console.log("CRITICAL TEST: Currencies in data:", [
+            ...new Set(AppState.transactions.map((tx) => tx.currency)),
+          ]);
+
+          // Render transactions
+          renderTransactions(AppState.transactions, false);
+
+          // Update charts
+          setTimeout(() => {
+            updateCharts();
+          }, 500);
+
+          alert(
+            "Sample multi-currency data loaded! Now test the currency filter."
+          );
+        });
+
+      // Clear data button
+      document.getElementById("clearData").addEventListener("click", () => {
+        console.log("CRITICAL TEST: Clearing all data...");
+
+        AppState.transactions = [];
+        localStorage.removeItem("transactions");
+        localStorage.removeItem("mergedFiles");
+
+        // Render empty state
+        renderTransactions([], false);
+
+        alert("All data cleared!");
+      });
+
+      // Add some initial logging
+      console.log("CRITICAL TEST: Currency filter test page loaded");
+      console.log(
+        "CRITICAL TEST: Current transactions:",
+        AppState.transactions.length
+      );
+
+      // If we already have data, render it
+      if (AppState.transactions && AppState.transactions.length > 0) {
+        console.log("CRITICAL TEST: Rendering existing transactions...");
+        renderTransactions(AppState.transactions, false);
+        setTimeout(() => {
+          updateCharts();
+        }, 500);
       }
-    ];
-
-    // Load sample data button
-    document.getElementById('loadSampleData').addEventListener('click', () => {
-      console.log('CRITICAL TEST: Loading sample multi-currency data...');
-
-      // Clear existing data
-      AppState.transactions = [];
-
-      // Add sample transactions
-      AppState.transactions.push(...sampleTransactions);
-
-      // Save to localStorage
-      localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
-
-      console.log(`CRITICAL TEST: Loaded ${AppState.transactions.length} sample transactions`);
-      console.log('CRITICAL TEST: Currencies in data:', [...new Set(AppState.transactions.map(tx => tx.currency))]);
-
-      // Render transactions
-      renderTransactions(AppState.transactions, false);
-
-      // Update charts
-      setTimeout(() => {
-        updateCharts();
-      }, 500);
-
-      alert('Sample multi-currency data loaded! Now test the currency filter.');
-    });
-
-    // Clear data button
-    document.getElementById('clearData').addEventListener('click', () => {
-      console.log('CRITICAL TEST: Clearing all data...');
-
-      AppState.transactions = [];
-      localStorage.removeItem('transactions');
-      localStorage.removeItem('mergedFiles');
-
-      // Render empty state
-      renderTransactions([], false);
-
-      alert('All data cleared!');
-    });
-
-    // Add some initial logging
-    console.log('CRITICAL TEST: Currency filter test page loaded');
-    console.log('CRITICAL TEST: Current transactions:', AppState.transactions.length);
-
-    // If we already have data, render it
-    if (AppState.transactions && AppState.transactions.length > 0) {
-      console.log('CRITICAL TEST: Rendering existing transactions...');
-      renderTransactions(AppState.transactions, false);
-      setTimeout(() => {
-        updateCharts();
-      }, 500);
-    }
-  </script>
-</body>
-
+    </script>
+  </body>
 </html>

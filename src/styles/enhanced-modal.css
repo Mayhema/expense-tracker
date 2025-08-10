@@ -125,7 +125,7 @@
 }
 
 .modal-loading::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -139,7 +139,7 @@
 }
 
 .modal-loading::after {
-  content: '⏳ Loading...';
+  content: "⏳ Loading...";
   position: absolute;
   top: 50%;
   left: 50%;

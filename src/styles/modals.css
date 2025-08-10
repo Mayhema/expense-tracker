@@ -68,10 +68,8 @@ body.dark-mode .modal-content,
 body.dark-mode .modal-content[style] {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
   border: 2px solid rgba(102, 126, 234, 0.3) !important;
-  box-shadow:
-    0 25px 80px rgba(0, 0, 0, 0.8),
-    0 10px 40px rgba(102, 126, 234, 0.2),
-    0 0 40px rgba(118, 75, 162, 0.1) !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8),
+    0 10px 40px rgba(102, 126, 234, 0.2), 0 0 40px rgba(118, 75, 162, 0.1) !important;
   color: #e0e8ff !important;
 }
 

@@ -1,5 +1,5 @@
-import { AppState } from '../core/appState.js';
-import { showToast } from './uiManager.js';
+import { AppState } from "../core/appState.js";
+import { showToast } from "./uiManager.js";
 
 /**
  * FIXED: Add singleton pattern to prevent duplicate modals
@@ -12,25 +12,25 @@ let fileListModalInstance = null;
 export function showMergedFilesModal() {
   // FIXED: Prevent multiple modals
   if (fileListModalInstance) {
-    console.log('File list modal already open');
+    console.log("File list modal already open");
     return fileListModalInstance;
   }
 
   console.log("Opening merged files modal...");
 
-  const modalContent = document.createElement('div');
-  modalContent.className = 'merged-files-content';
+  const modalContent = document.createElement("div");
+  modalContent.className = "merged-files-content";
 
   // Build the content
   modalContent.innerHTML = buildMergedFilesContent();
 
   // Create the modal using the modal manager
-  import('./modalManager.js').then(module => {
+  import("./modalManager.js").then((module) => {
     const modal = module.showModal({
-      title: '📁 Merged Files',
+      title: "📁 Merged Files",
       content: modalContent,
-      size: 'large',
-      closeOnClickOutside: true
+      size: "large",
+      closeOnClickOutside: true,
     });
 
     // Store reference and override close method
@@ -88,10 +88,12 @@ function buildMergedFilesContent() {
     } else if (file.data) {
       transactionCount = file.data.length - (file.dataRowIndex || 1);
     }
-    const currency = file.currency || 'USD';
-    const signature = file.signature || 'No signature';
-    const importDate = file.mergedAt ? new Date(file.mergedAt).toLocaleDateString() : 'Unknown';
-    const fileName = file.fileName || 'Unknown File';
+    const currency = file.currency || "USD";
+    const signature = file.signature || "No signature";
+    const importDate = file.mergedAt
+      ? new Date(file.mergedAt).toLocaleDateString()
+      : "Unknown";
+    const fileName = file.fileName || "Unknown File";
 
     html += `
       <tr>
@@ -99,7 +101,7 @@ function buildMergedFilesContent() {
         <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${transactionCount}</td>
         <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${currency}</td>
         <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; word-break: break-all; max-width: 150px;">
-          ${signature.substring(0, 15)}${signature.length > 15 ? '...' : ''}
+          ${signature.substring(0, 15)}${signature.length > 15 ? "..." : ""}
         </td>
         <td style="padding: 8px; border: 1px solid #ddd;">${importDate}</td>
         <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
@@ -128,25 +130,25 @@ function buildMergedFilesContent() {
  */
 function attachMergedFilesEventListeners(container, modal) {
   // Close button
-  const closeBtn = container.querySelector('#closeMergedFilesBtn');
+  const closeBtn = container.querySelector("#closeMergedFilesBtn");
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener("click", () => {
       modal.close();
     });
   }
 
   // Remove file buttons
-  container.querySelectorAll('.remove-file-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const index = parseInt(e.target.getAttribute('data-index'));
+  container.querySelectorAll(".remove-file-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const index = parseInt(e.target.getAttribute("data-index"));
       handleRemoveFile(index, container, modal);
     });
   });
 
   // Edit file buttons
-  container.querySelectorAll('.edit-file-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const index = parseInt(e.target.getAttribute('data-index'));
+  container.querySelectorAll(".edit-file-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const index = parseInt(e.target.getAttribute("data-index"));
       handleEditFile(index);
     });
   });
@@ -163,13 +165,21 @@ function handleRemoveFile(index, container, modal) {
     // FIXED: Remove transactions associated with this file first
     if (AppState.transactions) {
       const originalTransactionCount = AppState.transactions.length;
-      AppState.transactions = AppState.transactions.filter(tx => tx.fileName !== file.fileName);
-      const removedTransactionCount = originalTransactionCount - AppState.transactions.length;
+      AppState.transactions = AppState.transactions.filter(
+        (tx) => tx.fileName !== file.fileName
+      );
+      const removedTransactionCount =
+        originalTransactionCount - AppState.transactions.length;
 
       if (removedTransactionCount > 0) {
-        console.log(`Removed ${removedTransactionCount} transactions associated with file: ${file.fileName}`);
+        console.log(
+          `Removed ${removedTransactionCount} transactions associated with file: ${file.fileName}`
+        );
         // Save updated transactions
-        localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+        localStorage.setItem(
+          "transactions",
+          JSON.stringify(AppState.transactions)
+        );
       }
     }
 
@@ -178,15 +188,18 @@ function handleRemoveFile(index, container, modal) {
 
     // Save to localStorage
     try {
-      localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
-      showToast(`File "${file.fileName}" and its transactions removed successfully`, 'success');
+      localStorage.setItem("mergedFiles", JSON.stringify(AppState.mergedFiles));
+      showToast(
+        `File "${file.fileName}" and its transactions removed successfully`,
+        "success"
+      );
 
       // Refresh the modal content
       container.innerHTML = buildMergedFilesContent();
       attachMergedFilesEventListeners(container, modal);
 
       // Update transactions UI
-      import('./transactionManager.js').then(module => {
+      import("./transactionManager.js").then((module) => {
         if (module.renderTransactions) {
           module.renderTransactions(AppState.transactions, true);
         }
@@ -194,10 +207,9 @@ function handleRemoveFile(index, container, modal) {
           module.updateTransactions();
         }
       });
-
     } catch (error) {
-      console.error('Error removing file:', error);
-      showToast('Error removing file', 'error');
+      console.error("Error removing file:", error);
+      showToast("Error removing file", "error");
     }
   }
 }
@@ -209,8 +221,7 @@ function handleEditFile(index) {
   const file = AppState.mergedFiles[index];
   if (!file) return;
 
-  showToast('File editing feature coming soon', 'info');
-
+  showToast("File editing feature coming soon", "info");
 }
 
 /**

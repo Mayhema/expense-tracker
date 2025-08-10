@@ -1,3 +1,4 @@
+import { AppState } from "../core/appState.js";
 // Module variables
 let darkModeToggle = null;
 let debugModeToggle = null;
@@ -121,7 +122,7 @@ function initializeDebugModeToggle() {
   updateDebugVisibility(isDebugMode);
 
   // Add the event listener ONLY to the checkbox input
-  newToggle.addEventListener('change', (e) => {
+  newToggle.addEventListener("change", (e) => {
     const isEnabled = e.target.checked;
     document.body.classList.toggle("debug-mode", isEnabled);
     localStorage.setItem("debugMode", isEnabled);
@@ -133,7 +134,7 @@ function initializeDebugModeToggle() {
         // FIXED: Re-initialize debug buttons when debug mode is enabled
         initializeDebugButtons();
 
-        import('../utils/debug.js').then(module => {
+        import("../utils/debug.js").then((module) => {
           if (module.attachDebugFunctions) {
             module.attachDebugFunctions();
           }
@@ -141,55 +142,58 @@ function initializeDebugModeToggle() {
       }, 100);
     }
 
-    console.log(`Debug mode ${isEnabled ? 'enabled' : 'disabled'}`);
+    console.log(`Debug mode ${isEnabled ? "enabled" : "disabled"}`);
   });
 
   // FIXED: Add click listeners to toggle switch visual elements to make them clickable
   const toggleContainer = newToggle.parentNode;
-  const slider = toggleContainer.querySelector('.slider');
+  const slider = toggleContainer.querySelector(".slider");
 
   // FIXED: Also add click listener to the label to ensure visual state updates
   const label = document.querySelector('label[for="debugModeToggle"]');
 
   if (label) {
-    label.addEventListener('click', (e) => {
+    label.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Debug label clicked, current state:', newToggle.checked);
+      console.log("Debug label clicked, current state:", newToggle.checked);
       newToggle.checked = !newToggle.checked;
-      console.log('Debug label new state:', newToggle.checked);
+      console.log("Debug label new state:", newToggle.checked);
       // Trigger the same enhanced behavior as toggle clicks
-      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
-      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+      newToggle.dispatchEvent(new Event("change", { bubbles: true }));
+      newToggle.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
 
-  if (toggleContainer?.classList.contains('toggle-switch')) {
-    toggleContainer.addEventListener('click', (e) => {
+  if (toggleContainer?.classList.contains("toggle-switch")) {
+    toggleContainer.addEventListener("click", (e) => {
       // Prevent double triggering if clicking the checkbox itself
       if (e.target !== newToggle) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Debug toggle container clicked, current state:', newToggle.checked);
+        console.log(
+          "Debug toggle container clicked, current state:",
+          newToggle.checked
+        );
         newToggle.checked = !newToggle.checked;
-        console.log('Debug toggle new state:', newToggle.checked);
+        console.log("Debug toggle new state:", newToggle.checked);
         // Use both change and input events to ensure CSS updates
-        newToggle.dispatchEvent(new Event('change', { bubbles: true }));
-        newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+        newToggle.dispatchEvent(new Event("change", { bubbles: true }));
+        newToggle.dispatchEvent(new Event("input", { bubbles: true }));
       }
     });
   }
 
   if (slider) {
-    slider.addEventListener('click', (e) => {
+    slider.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Debug slider clicked, current state:', newToggle.checked);
+      console.log("Debug slider clicked, current state:", newToggle.checked);
       newToggle.checked = !newToggle.checked;
-      console.log('Debug slider new state:', newToggle.checked);
+      console.log("Debug slider new state:", newToggle.checked);
       // Use both change and input events to ensure CSS updates
-      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
-      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+      newToggle.dispatchEvent(new Event("change", { bubbles: true }));
+      newToggle.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
 
@@ -218,59 +222,65 @@ function initializeDarkModeToggle() {
   document.body.classList.toggle("dark-mode", isDarkMode);
 
   // Add event listener ONLY to the checkbox input
-  newToggle.addEventListener('change', (e) => {
+  newToggle.addEventListener("change", (e) => {
     const isDark = e.target.checked;
     document.body.classList.toggle("dark-mode", isDark);
     localStorage.setItem("darkMode", isDark);
-    console.log(`Dark mode ${isDark ? 'enabled' : 'disabled'}`);
+    console.log(`Dark mode ${isDark ? "enabled" : "disabled"}`);
   });
 
   // FIXED: Add click listeners to toggle switch visual elements to make them clickable
   const toggleContainer = newToggle.parentNode;
-  const slider = toggleContainer.querySelector('.slider');
+  const slider = toggleContainer.querySelector(".slider");
 
   // FIXED: Also add click listener to the label to ensure visual state updates
   const label = document.querySelector('label[for="darkModeToggle"]');
 
   if (label) {
-    label.addEventListener('click', (e) => {
+    label.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Dark mode label clicked, current state:', newToggle.checked);
+      console.log("Dark mode label clicked, current state:", newToggle.checked);
       newToggle.checked = !newToggle.checked;
-      console.log('Dark mode label new state:', newToggle.checked);
+      console.log("Dark mode label new state:", newToggle.checked);
       // Trigger the same enhanced behavior as toggle clicks
-      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
-      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+      newToggle.dispatchEvent(new Event("change", { bubbles: true }));
+      newToggle.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
 
-  if (toggleContainer?.classList.contains('toggle-switch')) {
-    toggleContainer.addEventListener('click', (e) => {
+  if (toggleContainer?.classList.contains("toggle-switch")) {
+    toggleContainer.addEventListener("click", (e) => {
       // Prevent double triggering if clicking the checkbox itself
       if (e.target !== newToggle) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Dark mode toggle container clicked, current state:', newToggle.checked);
+        console.log(
+          "Dark mode toggle container clicked, current state:",
+          newToggle.checked
+        );
         newToggle.checked = !newToggle.checked;
-        console.log('Dark mode toggle new state:', newToggle.checked);
+        console.log("Dark mode toggle new state:", newToggle.checked);
         // Use both change and input events to ensure CSS updates
-        newToggle.dispatchEvent(new Event('change', { bubbles: true }));
-        newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+        newToggle.dispatchEvent(new Event("change", { bubbles: true }));
+        newToggle.dispatchEvent(new Event("input", { bubbles: true }));
       }
     });
   }
 
   if (slider) {
-    slider.addEventListener('click', (e) => {
+    slider.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Dark mode slider clicked, current state:', newToggle.checked);
+      console.log(
+        "Dark mode slider clicked, current state:",
+        newToggle.checked
+      );
       newToggle.checked = !newToggle.checked;
-      console.log('Dark mode slider new state:', newToggle.checked);
+      console.log("Dark mode slider new state:", newToggle.checked);
       // Use both change and input events to ensure CSS updates
-      newToggle.dispatchEvent(new Event('change', { bubbles: true }));
-      newToggle.dispatchEvent(new Event('input', { bubbles: true }));
+      newToggle.dispatchEvent(new Event("change", { bubbles: true }));
+      newToggle.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
 
@@ -281,30 +291,38 @@ function initializeDarkModeToggle() {
  * Updates debug element visibility based on debug mode state
  */
 function updateDebugVisibility(isDebugMode) {
-  const debugElements = document.querySelectorAll('.debug-only');
-  console.log(`Found ${debugElements.length} debug elements to ${isDebugMode ? 'show' : 'hide'}`);
+  const debugElements = document.querySelectorAll(".debug-only");
+  console.log(
+    `Found ${debugElements.length} debug elements to ${
+      isDebugMode ? "show" : "hide"
+    }`
+  );
 
-  debugElements.forEach(element => {
+  debugElements.forEach((element) => {
     if (isDebugMode) {
       // Show the element with proper display type
-      if (element.classList.contains('inline-element')) {
-        element.style.display = 'inline-block';
-      } else if (element.classList.contains('flex-element')) {
-        element.style.display = 'flex';
+      if (element.classList.contains("inline-element")) {
+        element.style.display = "inline-block";
+      } else if (element.classList.contains("flex-element")) {
+        element.style.display = "flex";
       } else {
-        element.style.display = 'block';
+        element.style.display = "block";
       }
-      element.style.visibility = 'visible';
+      element.style.visibility = "visible";
     } else {
-      element.style.display = 'none';
-      element.style.visibility = 'hidden';
+      element.style.display = "none";
+      element.style.visibility = "hidden";
     }
   });
 
   // Ensure body class is correctly set
-  document.body.classList.toggle('debug-mode', isDebugMode);
+  document.body.classList.toggle("debug-mode", isDebugMode);
 
-  console.log(`Debug visibility updated: ${isDebugMode ? 'shown' : 'hidden'} for ${debugElements.length} elements`);
+  console.log(
+    `Debug visibility updated: ${isDebugMode ? "shown" : "hidden"} for ${
+      debugElements.length
+    } elements`
+  );
 }
 
 /**
@@ -353,7 +371,10 @@ function initializeActionButtons() {
   const showMergedFilesBtn = document.getElementById("showMergedFilesBtn");
   if (showMergedFilesBtn) {
     const newMergedFilesBtn = showMergedFilesBtn.cloneNode(true);
-    showMergedFilesBtn.parentNode.replaceChild(newMergedFilesBtn, showMergedFilesBtn);
+    showMergedFilesBtn.parentNode.replaceChild(
+      newMergedFilesBtn,
+      showMergedFilesBtn
+    );
 
     newMergedFilesBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -365,7 +386,10 @@ function initializeActionButtons() {
   const editCategoriesBtn = document.getElementById("editCategoriesSidebarBtn");
   if (editCategoriesBtn) {
     const newCategoriesBtn = editCategoriesBtn.cloneNode(true);
-    editCategoriesBtn.parentNode.replaceChild(newCategoriesBtn, editCategoriesBtn);
+    editCategoriesBtn.parentNode.replaceChild(
+      newCategoriesBtn,
+      editCategoriesBtn
+    );
 
     newCategoriesBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -375,10 +399,15 @@ function initializeActionButtons() {
   }
 
   // Enhanced Category Manager Button
-  const enhancedCategoriesBtn = document.getElementById("enhancedCategoriesBtn");
+  const enhancedCategoriesBtn = document.getElementById(
+    "enhancedCategoriesBtn"
+  );
   if (enhancedCategoriesBtn) {
     const newEnhancedCategoriesBtn = enhancedCategoriesBtn.cloneNode(true);
-    enhancedCategoriesBtn.parentNode.replaceChild(newEnhancedCategoriesBtn, enhancedCategoriesBtn);
+    enhancedCategoriesBtn.parentNode.replaceChild(
+      newEnhancedCategoriesBtn,
+      enhancedCategoriesBtn
+    );
 
     newEnhancedCategoriesBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -399,47 +428,52 @@ function initializeActionButtons() {
 function initializeDebugButtons() {
   const debugButtons = [
     {
-      id: "debugFilesBtn", handler: () => {
-        import("../utils/debug.js").then(module => {
+      id: "debugFilesBtn",
+      handler: () => {
+        import("../utils/debug.js").then((module) => {
           if (module.debugMergedFiles) {
             module.debugMergedFiles();
           }
         });
-      }
+      },
     },
     {
-      id: "debugSignaturesBtn", handler: () => {
-        import("../utils/debug.js").then(module => {
+      id: "debugSignaturesBtn",
+      handler: () => {
+        import("../utils/debug.js").then((module) => {
           if (module.debugSignatures) {
             module.debugSignatures();
           }
         });
-      }
+      },
     },
     {
-      id: "debugTransactionsBtn", handler: () => {
-        import("../utils/debug.js").then(module => {
+      id: "debugTransactionsBtn",
+      handler: () => {
+        import("../utils/debug.js").then((module) => {
           if (module.inspectTransactionData) {
             module.inspectTransactionData();
           }
         });
-      }
+      },
     },
     {
-      id: "saveLogBtn", handler: handleSaveLogClick
+      id: "saveLogBtn",
+      handler: handleSaveLogClick,
     },
     {
-      id: "resetAppBtn", handler: () => {
-        import("../utils/debug.js").then(module => {
+      id: "resetAppBtn",
+      handler: () => {
+        import("../utils/debug.js").then((module) => {
           if (module.resetApplication) {
             module.resetApplication();
           }
         });
-      }
-    }
+      },
+    },
   ];
 
-  debugButtons.forEach(button => {
+  debugButtons.forEach((button) => {
     const element = document.getElementById(button.id);
     if (element) {
       // FIXED: Remove any existing listeners first to prevent duplicates
@@ -456,13 +490,16 @@ function initializeDebugButtons() {
  * Show mappings manager modal
  */
 function _handleShowMappings() {
-  const mappings = JSON.parse(localStorage.getItem('fileFormatMappings') || '[]');
+  const mappings = JSON.parse(
+    localStorage.getItem("fileFormatMappings") || "[]"
+  );
 
-  const modalContent = document.createElement('div');
-  modalContent.className = 'mappings-modal-content';
+  const modalContent = document.createElement("div");
+  modalContent.className = "mappings-modal-content";
 
   // FIXED: Show current file signature properly
-  const currentSignature = AppState.currentFileSignature || 'No current file signature available';
+  const currentSignature =
+    AppState.currentFileSignature || "No current file signature available";
 
   let html = `
     <div class="current-signature-section">
@@ -476,37 +513,47 @@ function _handleShowMappings() {
   } else {
     // CRITICAL FIX: Group mappings by signature and show all files that use each mapping
     const mappingsBySignature = {};
-    mappings.forEach(mapping => {
+    mappings.forEach((mapping) => {
       if (!mappingsBySignature[mapping.signature]) {
         mappingsBySignature[mapping.signature] = {
           signature: mapping.signature,
           mapping: mapping.mapping,
           files: [],
           created: mapping.created,
-          lastUsed: mapping.lastUsed
+          lastUsed: mapping.lastUsed,
         };
       }
       mappingsBySignature[mapping.signature].files.push(mapping.fileName);
     });
 
-    const mappingsHTML = Object.values(mappingsBySignature).map((groupedMapping, index) => {
-      const fields = groupedMapping.mapping ? groupedMapping.mapping.filter(m => m !== '–').join(', ') : 'No mapping';
-      const created = groupedMapping.created ? new Date(groupedMapping.created).toLocaleString() : 'Unknown';
-      const filesList = groupedMapping.files.join(', ');
+    const mappingsHTML = Object.values(mappingsBySignature)
+      .map((groupedMapping, index) => {
+        const fields = groupedMapping.mapping
+          ? groupedMapping.mapping.filter((m) => m !== "–").join(", ")
+          : "No mapping";
+        const created = groupedMapping.created
+          ? new Date(groupedMapping.created).toLocaleString()
+          : "Unknown";
+        const filesList = groupedMapping.files.join(", ");
 
-      return `
+        return `
         <div class="mapping-item" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px;">
-          <div><strong>Mapping ${index + 1}: ${groupedMapping.signature}</strong></div>
+          <div><strong>Mapping ${index + 1}: ${
+          groupedMapping.signature
+        }</strong></div>
           <div><strong>Files:</strong> ${filesList}</div>
           <div><strong>Fields:</strong> ${fields}</div>
           <div><strong>Created:</strong> ${created}</div>
           <button class="danger" onclick="removeMapping(${index})" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 10px;">Remove</button>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
     html += `
-      <h3>Saved Format Mappings (${Object.keys(mappingsBySignature).length})</h3>
+      <h3>Saved Format Mappings (${
+        Object.keys(mappingsBySignature).length
+      })</h3>
       ${mappingsHTML}
     `;
   }
@@ -514,19 +561,19 @@ function _handleShowMappings() {
   modalContent.innerHTML = html;
 
   // Show modal using the modal manager
-  import('./modalManager.js').then(module => {
+  import("./modalManager.js").then((module) => {
     const modal = module.showModal({
-      title: '🗂️ File Format Mappings',
+      title: "🗂️ File Format Mappings",
       content: modalContent,
-      size: 'large',
-      closeOnClickOutside: true
+      size: "large",
+      closeOnClickOutside: true,
     });
 
     // Add remove function to window temporarily for the modal
     window.removeMapping = function (index) {
-      if (confirm('Are you sure you want to remove this mapping?')) {
+      if (confirm("Are you sure you want to remove this mapping?")) {
         const mappingsBySignature = {};
-        mappings.forEach(mapping => {
+        mappings.forEach((mapping) => {
           if (!mappingsBySignature[mapping.signature]) {
             mappingsBySignature[mapping.signature] = [];
           }
@@ -534,9 +581,14 @@ function _handleShowMappings() {
         });
 
         const signatureToRemove = Object.keys(mappingsBySignature)[index];
-        const updatedMappings = mappings.filter(m => m.signature !== signatureToRemove);
+        const updatedMappings = mappings.filter(
+          (m) => m.signature !== signatureToRemove
+        );
 
-        localStorage.setItem('fileFormatMappings', JSON.stringify(updatedMappings));
+        localStorage.setItem(
+          "fileFormatMappings",
+          JSON.stringify(updatedMappings)
+        );
         modal.close();
         // Re-open with updated data
         setTimeout(() => _handleShowMappings(), 100);
@@ -549,54 +601,63 @@ function _handleShowMappings() {
  * Show merged files manager modal
  */
 function _handleShowMergedFiles() {
-  import('./fileListUI.js').then(module => {
-    if (module.showMergedFilesModal) {
-      module.showMergedFilesModal();
-    } else {
-      console.error('showMergedFilesModal function not found');
-    }
-  }).catch(err => {
-    console.error('Error loading file list UI:', err);
-    import('./uiManager.js').then(uiModule => {
-      if (uiModule.showToast) {
-        uiModule.showToast('Error opening file list manager', 'error');
+  import("./fileListUI.js")
+    .then((module) => {
+      if (module.showMergedFilesModal) {
+        module.showMergedFilesModal();
+      } else {
+        console.error("showMergedFilesModal function not found");
       }
+    })
+    .catch((err) => {
+      console.error("Error loading file list UI:", err);
+      import("./uiManager.js").then((uiModule) => {
+        if (uiModule.showToast) {
+          uiModule.showToast("Error opening file list manager", "error");
+        }
+      });
     });
-  });
 }
 
 function _handleEditCategories() {
-  import('./categoryManager.js').then(module => {
-    if (module.showCategoryManagerModal) {
-      module.showCategoryManagerModal();
-    } else {
-      console.error('showCategoryManagerModal function not found');
-    }
-  }).catch(err => {
-    console.error('Error loading category manager:', err);
-    import('./uiManager.js').then(uiModule => {
-      if (uiModule.showToast) {
-        uiModule.showToast('Error opening category manager', 'error');
+  import("./categoryManager.js")
+    .then((module) => {
+      if (module.showCategoryManagerModal) {
+        module.showCategoryManagerModal();
+      } else {
+        console.error("showCategoryManagerModal function not found");
       }
+    })
+    .catch((err) => {
+      console.error("Error loading category manager:", err);
+      import("./uiManager.js").then((uiModule) => {
+        if (uiModule.showToast) {
+          uiModule.showToast("Error opening category manager", "error");
+        }
+      });
     });
-  });
 }
 
 function _handleEnhancedCategories() {
-  import('./enhancedCategoryManager.js').then(async module => {
-    if (module.showEnhancedCategoryManagerModal) {
-      await module.showEnhancedCategoryManagerModal();
-    } else {
-      console.error('showEnhancedCategoryManagerModal function not found');
-    }
-  }).catch(err => {
-    console.error('Error loading enhanced category manager:', err);
-    import('./uiManager.js').then(uiModule => {
-      if (uiModule.showToast) {
-        uiModule.showToast('Error opening enhanced category manager', 'error');
+  import("./enhancedCategoryManager.js")
+    .then(async (module) => {
+      if (module.showEnhancedCategoryManagerModal) {
+        await module.showEnhancedCategoryManagerModal();
+      } else {
+        console.error("showEnhancedCategoryManagerModal function not found");
       }
+    })
+    .catch((err) => {
+      console.error("Error loading enhanced category manager:", err);
+      import("./uiManager.js").then((uiModule) => {
+        if (uiModule.showToast) {
+          uiModule.showToast(
+            "Error opening enhanced category manager",
+            "error"
+          );
+        }
+      });
     });
-  });
 }
 
 /**
@@ -607,17 +668,19 @@ function handleFileUploadClick(e) {
   e.stopPropagation();
   console.log("CRITICAL: Upload button clicked - initiating file upload");
 
-  import("../ui/fileUpload.js").then(module => {
-    if (module.createNewFileInput) {
-      console.log("CRITICAL: Calling createNewFileInput()");
-      // FIXED: Don't call input.click() here - createNewFileInput() already handles the click
-      module.createNewFileInput();
-    } else {
-      console.error("createNewFileInput function not found");
-    }
-  }).catch(err => {
-    console.error("Error loading file upload module:", err);
-  });
+  import("../ui/fileUpload.js")
+    .then((module) => {
+      if (module.createNewFileInput) {
+        console.log("CRITICAL: Calling createNewFileInput()");
+        // FIXED: Don't call input.click() here - createNewFileInput() already handles the click
+        module.createNewFileInput();
+      } else {
+        console.error("createNewFileInput function not found");
+      }
+    })
+    .catch((err) => {
+      console.error("Error loading file upload module:", err);
+    });
 }
 
 /**
@@ -628,23 +691,27 @@ function handleCategoryManagerClick(e) {
   e.stopPropagation();
   console.log("Category manager button clicked");
 
-  import("../ui/categoryManager.js").then(module => {
-    if (module.showCategoryManagerModal) {
-      module.showCategoryManagerModal();
-    } else {
-      console.error("showCategoryManagerModal function not found");
-    }
-  }).catch(err => {
-    console.error("Error loading category manager module:", err);
-    // Fallback to alternative category modal
-    import("../ui/categoryModal.js").then(fallbackModule => {
-      if (fallbackModule.showCategoryManagerModal) {
-        fallbackModule.showCategoryManagerModal();
+  import("../ui/categoryManager.js")
+    .then((module) => {
+      if (module.showCategoryManagerModal) {
+        module.showCategoryManagerModal();
+      } else {
+        console.error("showCategoryManagerModal function not found");
       }
-    }).catch(fallbackErr => {
-      console.error("Error loading fallback category modal:", fallbackErr);
+    })
+    .catch((err) => {
+      console.error("Error loading category manager module:", err);
+      // Fallback to alternative category modal
+      import("../ui/categoryModal.js")
+        .then((fallbackModule) => {
+          if (fallbackModule.showCategoryManagerModal) {
+            fallbackModule.showCategoryManagerModal();
+          }
+        })
+        .catch((fallbackErr) => {
+          console.error("Error loading fallback category modal:", fallbackErr);
+        });
     });
-  });
 }
 
 /**
@@ -655,22 +722,28 @@ function handleSaveLogClick() {
 
   try {
     // Check if console logger is available
-    if (window.saveConsoleLogs && typeof window.saveConsoleLogs === 'function') {
+    if (
+      window.saveConsoleLogs &&
+      typeof window.saveConsoleLogs === "function"
+    ) {
       window.saveConsoleLogs();
     } else {
       // Try to wait for console logger to initialize
       setTimeout(() => {
-        if (window.saveConsoleLogs && typeof window.saveConsoleLogs === 'function') {
+        if (
+          window.saveConsoleLogs &&
+          typeof window.saveConsoleLogs === "function"
+        ) {
           window.saveConsoleLogs();
         } else {
           console.error("Console logger not available");
-          showErrorToast('Console logger not available');
+          showErrorToast("Console logger not available");
         }
       }, 100);
     }
   } catch (error) {
     console.error("Error saving console logs:", error);
-    showErrorToast('Error saving console logs');
+    showErrorToast("Error saving console logs");
   }
 }
 
@@ -679,13 +752,15 @@ function handleSaveLogClick() {
  */
 async function resetToDefaultCategories() {
   try {
-    const categoryModule = await import('./categoryManager.js');
+    const categoryModule = await import("./categoryManager.js");
     if (categoryModule.resetToDefaultCategories) {
       categoryModule.resetToDefaultCategories();
-      console.log('CRITICAL: Called resetToDefaultCategories() exactly like the reset button');
+      console.log(
+        "CRITICAL: Called resetToDefaultCategories() exactly like the reset button"
+      );
     }
   } catch (error) {
-    console.warn('Could not call resetToDefaultCategories:', error);
+    console.warn("Could not call resetToDefaultCategories:", error);
   }
 }
 
@@ -696,30 +771,32 @@ async function handleExportClick() {
   try {
     // FIXED: Check if export modal exists first, then fallback to direct export
     try {
-      const exportModalModule = await import('../ui/exportManager.js');
+      const exportModalModule = await import("../ui/exportManager.js");
       if (exportModalModule.showExportModal) {
         exportModalModule.showExportModal();
         return;
       }
     } catch (modalError) {
-      console.log('Export modal not available, using direct export:', modalError.message);
+      console.log(
+        "Export modal not available, using direct export:",
+        modalError.message
+      );
       // Intentionally continue to fallback
     }
 
     // Fallback to direct export
-    const module = await import('../exports/exportManager.js');
+    const module = await import("../exports/exportManager.js");
     if (module.exportTransactionsAsCSV) {
       module.exportTransactionsAsCSV();
     } else {
-      console.error('exportTransactionsAsCSV function not found');
-      await showErrorToast('Export function not available');
+      console.error("exportTransactionsAsCSV function not found");
+      await showErrorToast("Export function not available");
     }
   } catch (err) {
-    console.error('Error loading export manager:', err);
-    await showErrorToast('Error loading export function');
+    console.error("Error loading export manager:", err);
+    await showErrorToast("Error loading export function");
   }
 }
-
 
 /**
  * Waits for console logger to initialize
@@ -732,7 +809,7 @@ async function waitForConsoleLogger() {
         resolve();
       } else {
         console.error("Console logger failed to initialize");
-        showErrorToast('Console logger not available');
+        showErrorToast("Console logger not available");
         resolve();
       }
     }, 100);
@@ -744,11 +821,11 @@ async function waitForConsoleLogger() {
  */
 async function showErrorToast(message) {
   try {
-    const uiModule = await import('../ui/uiManager.js');
+    const uiModule = await import("../ui/uiManager.js");
     if (uiModule.showToast) {
-      uiModule.showToast(message, 'error');
+      uiModule.showToast(message, "error");
     }
   } catch (error) {
-    console.error('Could not show error toast:', error);
+    console.error("Could not show error toast:", error);
   }
 }

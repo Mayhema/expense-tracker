@@ -52,8 +52,15 @@ function addTestResult(testName, passed, message = '') {
  * Setup DOM environment for testing
  */
 async function setupTestEnvironment() {
-  const indexPath = path.join(__dirname, '../../src/index.html');
-  let indexContent = fs.readFileSync(indexPath, 'utf8');
+  // Prefer canonical HTML within src/, then repo root, then legacy nested src/src
+  const candidatePaths = [
+    path.join(__dirname, '../index.html'),
+    path.join(__dirname, '../../index.html'),
+    path.join(__dirname, '../../src/index.html')
+  ];
+  const existing = candidatePaths.find(p => fs.existsSync(p));
+  if (!existing) throw new Error('index.html not found for test environment');
+  let indexContent = fs.readFileSync(existing, 'utf8');
 
   // Strip external stylesheet links to avoid jsdom resource fetch after teardown
   indexContent = indexContent.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
@@ -101,7 +108,8 @@ async function testEnhancedCategoryButton() {
  */
 async function checkButtonExistence() {
   const rootIndexPath = path.join(__dirname, '../../index.html');
-  const srcIndexPath = path.join(__dirname, '../../src/index.html');
+  const srcIndexPath = path.join(__dirname, '../index.html');
+  const legacyIndexPath = path.join(__dirname, '../../src/index.html');
   let button = null;
   let hasButtonInHTML = false;
 
@@ -114,8 +122,8 @@ async function checkButtonExistence() {
 
   // In JSDOM environment or if button not found in DOM, check HTML files instead
   if (!button) {
-    // Check both root and src index.html files
-    for (const htmlPath of [rootIndexPath, srcIndexPath]) {
+    // Check root, canonical src, and legacy nested src/src index.html files
+    for (const htmlPath of [rootIndexPath, srcIndexPath, legacyIndexPath]) {
       if (fs.existsSync(htmlPath)) {
         const htmlContent = fs.readFileSync(htmlPath, 'utf8');
         if (htmlContent.includes('id="enhancedCategoriesBtn"')) {
@@ -527,7 +535,8 @@ async function testCssImport() {
     const mainCssPath = path.join(__dirname, '../../src/styles/styles.css');
     const mainCssContent = fs.readFileSync(mainCssPath, 'utf8');
 
-    const hasImport = mainCssContent.includes("@import './enhanced-category-manager.css'");
+    // Accept any presence of enhanced-category-manager.css reference (robust to formatting/quotes)
+    const hasImport = mainCssContent.includes('enhanced-category-manager.css');
 
     addTestResult(
       'Enhanced Category Manager CSS Import',
@@ -544,7 +553,12 @@ async function testCssImport() {
  */
 async function testHtmlUpdates() {
   try {
-    const htmlPath = path.join(__dirname, '../../src/index.html');
+    const htmlCandidates = [
+      path.join(__dirname, '../index.html'),
+      path.join(__dirname, '../../index.html'),
+      path.join(__dirname, '../../src/index.html')
+    ];
+    const htmlPath = htmlCandidates.find(p => fs.existsSync(p));
     const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
     const hasEnhancedButton = htmlContent.includes('id="enhancedCategoriesBtn"');
@@ -568,6 +582,9 @@ async function testEnhancedFeatures() {
   try {
     const modulePath = path.join(__dirname, '../../src/ui/enhancedCategoryManager.js');
     const moduleContent = fs.readFileSync(modulePath, 'utf8');
+    // Also read canonical CSS to detect responsive design moved out of JS
+    const cssPath = path.join(__dirname, '../../src/styles/enhanced-category-manager.css');
+    const cssContent = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '';
 
     // Test modern UI features
     const features = {
@@ -585,7 +602,8 @@ async function testEnhancedFeatures() {
       'Tooltips': moduleContent.includes('tooltip'),
       'Validation': moduleContent.includes('validation'),
       'Error Handling': moduleContent.includes('catch'),
-      'Responsive Design': moduleContent.includes('@media')
+      // Responsive design may live in CSS, not inline JS
+      'Responsive Design': moduleContent.includes('@media') || cssContent.includes('@media')
     };
 
     const implementedFeatures = Object.entries(features).filter(([_, implemented]) => implemented);

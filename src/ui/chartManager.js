@@ -2,7 +2,7 @@
 const chartCache = {
   containers: new Map(),
   charts: new Map(),
-  eventListeners: new Map()
+  eventListeners: new Map(),
 };
 
 /**
@@ -12,10 +12,13 @@ const chartCache = {
  * @param {string} chartType - Chart type
  * @returns {Promise<Chart|null>} Chart instance or null
  */
-function initializeChart(containerId, chartData, chartType = 'doughnut') {
+function initializeChart(containerId, chartData, chartType = "doughnut") {
   // Cache DOM element
   if (!chartCache.containers.has(containerId)) {
-    chartCache.containers.set(containerId, document.getElementById(containerId));
+    chartCache.containers.set(
+      containerId,
+      document.getElementById(containerId)
+    );
   }
 
   const container = chartCache.containers.get(containerId);
@@ -34,8 +37,8 @@ function initializeChart(containerId, chartData, chartType = 'doughnut') {
         }
 
         // Check if Chart.js is available
-        if (typeof Chart === 'undefined') {
-          console.error('Chart.js is not available');
+        if (typeof Chart === "undefined") {
+          console.error("Chart.js is not available");
           resolve(null);
           return;
         }
@@ -44,7 +47,7 @@ function initializeChart(containerId, chartData, chartType = 'doughnut') {
         chartCache.charts.set(containerId, chart);
         resolve(chart);
       } catch (error) {
-        console.error('Error initializing chart:', error);
+        console.error("Error initializing chart:", error);
         resolve(null);
       }
     });
@@ -59,8 +62,8 @@ function initializeChart(containerId, chartData, chartType = 'doughnut') {
  * @returns {Chart} Chart instance
  */
 function createChart(container, chartData, chartType) {
-  const canvas = container.querySelector('canvas') || container;
-  const ctx = canvas.getContext('2d');
+  const canvas = container.querySelector("canvas") || container;
+  const ctx = canvas.getContext("2d");
 
   return new Chart(ctx, {
     type: chartType,
@@ -70,10 +73,10 @@ function createChart(container, chartData, chartType) {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          position: 'top'
-        }
-      }
-    }
+          position: "top",
+        },
+      },
+    },
   });
 }
 
@@ -141,5 +144,5 @@ export {
   initializeChart,
   cleanupChart,
   addEventListenerWithCleanup,
-  cleanupAllCharts
+  cleanupAllCharts,
 };

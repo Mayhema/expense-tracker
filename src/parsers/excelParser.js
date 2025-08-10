@@ -6,7 +6,10 @@
 const createBinding = (target, source, key, key2) => {
   if (key2 === undefined) key2 = key;
   let desc = Object.getOwnPropertyDescriptor(source, key);
-  if (!desc || ("get" in desc ? !source.__esModule : desc.writable || desc.configurable)) {
+  if (
+    !desc ||
+    ("get" in desc ? !source.__esModule : desc.writable || desc.configurable)
+  ) {
     desc = { enumerable: true, get: () => source[key] };
   }
   Object.defineProperty(target, key2, desc);
@@ -22,7 +25,7 @@ const importStar = (mod) => {
     return Object.getOwnPropertyNames(obj);
   };
 
-  if (mod && mod.__esModule) return mod;
+  if (mod?.__esModule) return mod;
   const result = {};
   if (mod != null) {
     const keys = getOwnKeys(mod);
@@ -41,31 +44,34 @@ let uuid;
 // Initialize dependencies
 const initializeDependencies = async () => {
   try {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Browser environment - assume XLSX is loaded globally
       XLSX = window.XLSX;
 
       // Generate UUID without external dependency
       uuid = {
         v4: () => {
-          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            const r = Math.random() * 16 | 0;
-            const v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-          });
-        }
+          return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+            /[xy]/g,
+            function (c) {
+              const r = (Math.random() * 16) | 0;
+              const v = c == "x" ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            }
+          );
+        },
       };
     } else {
       // Node.js environment
-      const xlsxModule = await import('xlsx');
+      const xlsxModule = await import("xlsx");
       XLSX = xlsxModule.default || xlsxModule;
 
-      const uuidModule = await import('uuid');
+      const uuidModule = await import("uuid");
       uuid = uuidModule;
     }
   } catch (error) {
-    console.error('Error initializing Excel parser dependencies:', error);
-    throw new Error('Failed to load required dependencies for Excel parsing');
+    console.error("Error initializing Excel parser dependencies:", error);
+    throw new Error("Failed to load required dependencies for Excel parsing");
   }
 };
 
@@ -86,21 +92,21 @@ class ExcelParser {
       await this.ensureInitialized();
 
       if (!XLSX) {
-        throw new Error('XLSX library not available');
+        throw new Error("XLSX library not available");
       }
 
       // Parse the Excel file
-      const workbook = XLSX.read(fileContent, { type: 'string' });
+      const workbook = XLSX.read(fileContent, { type: "string" });
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-        throw new Error('No worksheets found in Excel file');
+        throw new Error("No worksheets found in Excel file");
       }
 
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
 
       if (!sheet) {
-        throw new Error('Could not access worksheet data');
+        throw new Error("Could not access worksheet data");
       }
 
       // Convert sheet to JSON with error handling
@@ -108,24 +114,31 @@ class ExcelParser {
       try {
         rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
       } catch (jsonError) {
-        throw new Error('Failed to convert Excel data to JSON: ' + jsonError.message);
+        throw new Error(
+          "Failed to convert Excel data to JSON: " + jsonError.message
+        );
       }
 
       if (!Array.isArray(rawData) || rawData.length === 0) {
-        throw new Error('Excel file appears to be empty or has no readable data');
+        throw new Error(
+          "Excel file appears to be empty or has no readable data"
+        );
       }
 
       // Return raw data as 2D array for header mapping
       return rawData;
-
     } catch (error) {
-      console.error('Error parsing Excel data:', error);
+      console.error("Error parsing Excel data:", error);
 
       // Provide more specific error messages
-      if (error.message.includes('Unsupported file')) {
-        throw new Error('Unsupported Excel file format. Please save as .xlsx or .xls');
-      } else if (error.message.includes('Cannot read property')) {
-        throw new Error('Excel file appears to be corrupted or has invalid structure');
+      if (error.message.includes("Unsupported file")) {
+        throw new Error(
+          "Unsupported Excel file format. Please save as .xlsx or .xls"
+        );
+      } else if (error.message.includes("Cannot read property")) {
+        throw new Error(
+          "Excel file appears to be corrupted or has invalid structure"
+        );
       }
 
       throw new Error(`Excel parsing failed: ${error.message}`);
@@ -140,18 +153,28 @@ class ExcelParser {
    * @param {number} dataRowIndex - Index of first data row (0-based)
    * @returns {Promise<Array>} Array of transaction objects
    */
-  async parseWithMapping(fileContent, headerMapping, headerRowIndex = 0, dataRowIndex = 1) {
+  async parseWithMapping(
+    fileContent,
+    headerMapping,
+    headerRowIndex = 0,
+    dataRowIndex = 1
+  ) {
     try {
       const rawData = await this.parse(fileContent);
       this.validateRawData(rawData, dataRowIndex);
 
-      const transactions = this.processDataRows(rawData, headerMapping, dataRowIndex);
+      const transactions = this.processDataRows(
+        rawData,
+        headerMapping,
+        dataRowIndex
+      );
 
-      console.log(`Successfully parsed ${transactions.length} transactions from Excel file`);
+      console.log(
+        `Successfully parsed ${transactions.length} transactions from Excel file`
+      );
       return transactions;
-
     } catch (error) {
-      console.error('Error parsing Excel with mapping:', error);
+      console.error("Error parsing Excel with mapping:", error);
       throw error;
     }
   }
@@ -163,7 +186,7 @@ class ExcelParser {
    */
   validateRawData(rawData, dataRowIndex) {
     if (!rawData || rawData.length <= dataRowIndex) {
-      throw new Error('Insufficient data rows in Excel file');
+      throw new Error("Insufficient data rows in Excel file");
     }
   }
 
@@ -182,7 +205,11 @@ class ExcelParser {
 
       if (this.isEmptyRow(row)) continue;
 
-      const transaction = this.createTransactionFromRow(row, headerMapping, rowIndex);
+      const transaction = this.createTransactionFromRow(
+        row,
+        headerMapping,
+        rowIndex
+      );
 
       if (transaction.date) {
         transactions.push(transaction);
@@ -211,8 +238,8 @@ class ExcelParser {
   createTransactionFromRow(row, headerMapping, rowIndex) {
     const transaction = {
       id: uuid.v4(),
-      fileName: 'excel-import',
-      sourceRow: rowIndex + 1
+      fileName: "excel-import",
+      sourceRow: rowIndex + 1,
     };
 
     this.mapRowToTransaction(row, headerMapping, transaction);
@@ -226,12 +253,19 @@ class ExcelParser {
    * @param {Object} transaction - Transaction object to populate
    */
   mapRowToTransaction(row, headerMapping, transaction) {
-    for (let colIndex = 0; colIndex < headerMapping.length && colIndex < row.length; colIndex++) {
+    for (
+      let colIndex = 0;
+      colIndex < headerMapping.length && colIndex < row.length;
+      colIndex++
+    ) {
       const fieldName = headerMapping[colIndex];
       const cellValue = row[colIndex];
 
       if (this.isValidFieldValue(fieldName, cellValue)) {
-        transaction[fieldName.toLowerCase()] = this.convertCellValue(fieldName, cellValue);
+        transaction[fieldName.toLowerCase()] = this.convertCellValue(
+          fieldName,
+          cellValue
+        );
       }
     }
   }
@@ -243,7 +277,12 @@ class ExcelParser {
    * @returns {boolean} True if valid
    */
   isValidFieldValue(fieldName, cellValue) {
-    return fieldName && fieldName !== '–' && cellValue !== null && cellValue !== undefined;
+    return (
+      fieldName &&
+      fieldName !== "–" &&
+      cellValue !== null &&
+      cellValue !== undefined
+    );
   }
 
   /**
@@ -253,7 +292,7 @@ class ExcelParser {
    * @returns {string} Converted value
    */
   convertCellValue(fieldName, cellValue) {
-    if (fieldName.toLowerCase() === 'date' && this.isExcelDate(cellValue)) {
+    if (fieldName.toLowerCase() === "date" && this.isExcelDate(cellValue)) {
       return this.convertExcelDate(cellValue);
     }
     return String(cellValue).trim();
@@ -289,17 +328,18 @@ class ExcelParser {
       const msPerDay = 24 * 60 * 60 * 1000;
 
       // FIXED: Use (excelDate - 1) instead of (excelDate - 2) for correct date calculation
-      const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * msPerDay);
+      const jsDate = new Date(
+        excelEpoch.getTime() + (excelDate - 1) * msPerDay
+      );
 
       if (isNaN(jsDate.getTime())) {
         return String(excelDate); // Return original if conversion fails
       }
 
       // Return ISO date string (YYYY-MM-DD)
-      return jsDate.toISOString().split('T')[0];
-
+      return jsDate.toISOString().split("T")[0];
     } catch (error) {
-      console.error('Error converting Excel date:', error);
+      console.error("Error converting Excel date:", error);
       return String(excelDate);
     }
   }
@@ -314,14 +354,13 @@ class ExcelParser {
       await this.ensureInitialized();
 
       if (!XLSX) {
-        throw new Error('XLSX library not available');
+        throw new Error("XLSX library not available");
       }
 
-      const workbook = XLSX.read(fileContent, { type: 'string' });
+      const workbook = XLSX.read(fileContent, { type: "string" });
       return workbook.SheetNames || [];
-
     } catch (error) {
-      console.error('Error getting sheet names:', error);
+      console.error("Error getting sheet names:", error);
       return [];
     }
   }
@@ -337,22 +376,24 @@ class ExcelParser {
       await this.ensureInitialized();
 
       if (!XLSX) {
-        throw new Error('XLSX library not available');
+        throw new Error("XLSX library not available");
       }
 
-      const workbook = XLSX.read(fileContent, { type: 'string' });
+      const workbook = XLSX.read(fileContent, { type: "string" });
 
       if (!workbook.Sheets[sheetName]) {
         throw new Error(`Sheet '${sheetName}' not found`);
       }
 
       const sheet = workbook.Sheets[sheetName];
-      const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+      const rawData = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: false,
+      });
 
       return rawData;
-
     } catch (error) {
-      console.error('Error parsing specific sheet:', error);
+      console.error("Error parsing specific sheet:", error);
       throw error;
     }
   }
@@ -361,11 +402,11 @@ class ExcelParser {
 // Export for both CommonJS and ES modules
 const excelParser = new ExcelParser();
 
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports = ExcelParser;
   module.exports.default = ExcelParser;
   module.exports.excelParser = excelParser;
-} else if (typeof window !== 'undefined') {
+} else if (typeof window !== "undefined") {
   window.ExcelParser = ExcelParser;
   window.excelParser = excelParser;
 }

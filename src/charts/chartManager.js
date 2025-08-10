@@ -33,7 +33,7 @@ function getCleanCanvas(canvasId) {
   }
 
   // Clear the canvas completely
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Reset canvas size to force re-initialization
@@ -43,8 +43,8 @@ function getCleanCanvas(canvasId) {
 
   canvas.width = parentWidth;
   canvas.height = parentHeight;
-  canvas.style.width = parentWidth + 'px';
-  canvas.style.height = parentHeight + 'px';
+  canvas.style.width = parentWidth + "px";
+  canvas.style.height = parentHeight + "px";
 
   return canvas;
 }
@@ -59,7 +59,7 @@ function destroyFromGlobalRegistry(canvasId) {
 
   const chart = globalChartRegistry.get(canvasId);
   try {
-    if (chart && typeof chart.destroy === 'function') {
+    if (chart && typeof chart.destroy === "function") {
       chart.destroy();
       console.log(`Destroyed chart from registry: ${canvasId}`);
     }
@@ -73,8 +73,7 @@ function destroyFromGlobalRegistry(canvasId) {
  * Destroy chart from Chart.js global registry
  */
 function destroyFromChartJsRegistry(canvas, canvasId) {
-
-  if (!(window.Chart?.getChart)) {
+  if (!window.Chart?.getChart) {
     return;
   }
 
@@ -96,7 +95,7 @@ function destroyFromChartJsRegistry(canvas, canvasId) {
  */
 function clearCanvasContext(canvas, canvasId) {
   try {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
@@ -128,10 +127,14 @@ function forceDestroyChart(canvasId) {
 async function clearAllCharts() {
   console.log("Clearing all chart instances with aggressive cleanup");
 
-  const canvasIds = ['incomeExpenseChart', 'expenseCategoryChart', 'timelineChart'];
+  const canvasIds = [
+    "incomeExpenseChart",
+    "expenseCategoryChart",
+    "timelineChart",
+  ];
 
   // Force destroy all charts
-  canvasIds.forEach(canvasId => {
+  canvasIds.forEach((canvasId) => {
     forceDestroyChart(canvasId);
   });
 
@@ -139,7 +142,7 @@ async function clearAllCharts() {
   globalChartRegistry.clear();
 
   // Wait for cleanup to complete
-  await new Promise(resolve => setTimeout(resolve, 50)); // Reduced wait time
+  await new Promise((resolve) => setTimeout(resolve, 50)); // Reduced wait time
 
   console.log("Chart cleanup completed");
 }
@@ -154,26 +157,28 @@ function filterTransactionsForCharts(transactions) {
   }
 
   // Get current filter values
-  const periodFilter = document.getElementById('chartPeriodSelect')?.value || 'all';
-  const currencyFilter = document.getElementById('chartCurrencySelect')?.value || 'all';
+  const periodFilter =
+    document.getElementById("chartPeriodSelect")?.value || "all";
+  const currencyFilter =
+    document.getElementById("chartCurrencySelect")?.value || "all";
 
   let filtered = [...transactions];
 
   // Apply period filter
-  if (periodFilter !== 'all') {
+  if (periodFilter !== "all") {
     const now = new Date();
     let startDate;
 
     switch (periodFilter) {
-      case 'month':
+      case "month":
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
-      case 'quarter': {
+      case "quarter": {
         const quarter = Math.floor(now.getMonth() / 3);
         startDate = new Date(now.getFullYear(), quarter * 3, 1);
         break;
       }
-      case 'year':
+      case "year":
         startDate = new Date(now.getFullYear(), 0, 1);
         break;
       default:
@@ -181,7 +186,7 @@ function filterTransactionsForCharts(transactions) {
     }
 
     if (startDate) {
-      filtered = filtered.filter(tx => {
+      filtered = filtered.filter((tx) => {
         try {
           const txDate = new Date(tx.date);
           if (isNaN(txDate.getTime())) {
@@ -189,7 +194,12 @@ function filterTransactionsForCharts(transactions) {
           }
           return txDate >= startDate;
         } catch (e) {
-          console.warn("Invalid date in transaction:", tx.date, "Error:", e.message);
+          console.warn(
+            "Invalid date in transaction:",
+            tx.date,
+            "Error:",
+            e.message
+          );
           // Handle the exception by excluding invalid transactions
           return false;
         }
@@ -198,8 +208,8 @@ function filterTransactionsForCharts(transactions) {
   }
 
   // Apply currency filter
-  if (currencyFilter !== 'all') {
-    filtered = filtered.filter(tx => tx.currency === currencyFilter);
+  if (currencyFilter !== "all") {
+    filtered = filtered.filter((tx) => tx.currency === currencyFilter);
   }
 
   return filtered;
@@ -221,14 +231,14 @@ function createChartWithRegistration(canvasId, config) {
   try {
     // Ensure Chart.js is available
     if (!window.Chart) {
-      console.error('Chart.js is not available');
+      console.error("Chart.js is not available");
       return null;
     }
 
     const Chart = window.Chart;
 
     // Add a small delay to ensure canvas is ready
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) {
       console.error(`Could not get 2D context for canvas ${canvasId}`);
       return null;
@@ -237,8 +247,8 @@ function createChartWithRegistration(canvasId, config) {
     // Ensure canvas has proper dimensions
     if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
       console.warn(`Canvas ${canvasId} has zero dimensions, setting defaults`);
-      canvas.style.width = '400px';
-      canvas.style.height = '300px';
+      canvas.style.width = "400px";
+      canvas.style.height = "300px";
     }
 
     const chart = new Chart(ctx, config);
@@ -266,17 +276,23 @@ export async function updateChartsWithCurrentData(retryCount = 0) {
   console.log("Updating charts with current data...");
 
   // Check if all chart canvases exist
-  const incomeCanvas = document.getElementById('incomeExpenseChart');
-  const expenseCanvas = document.getElementById('expenseChart');
-  const timelineCanvas = document.getElementById('timelineChart');
+  const incomeCanvas = document.getElementById("incomeExpenseChart");
+  const expenseCanvas = document.getElementById("expenseChart");
+  const timelineCanvas = document.getElementById("timelineChart");
 
   if (!incomeCanvas || !expenseCanvas || !timelineCanvas) {
     if (retryCount < 5) {
-      console.warn(`Chart canvas not found (retry ${retryCount + 1}/5), retrying in 200ms...`);
+      console.warn(
+        `Chart canvas not found (retry ${
+          retryCount + 1
+        }/5), retrying in 200ms...`
+      );
       setTimeout(() => updateChartsWithCurrentData(retryCount + 1), 200);
       return;
     } else {
-      console.error('Chart canvases still not found after 5 retries. Charts will not update.');
+      console.error(
+        "Chart canvases still not found after 5 retries. Charts will not update."
+      );
       return;
     }
   }
@@ -288,18 +304,25 @@ export async function updateChartsWithCurrentData(retryCount = 0) {
   const chartResults = await Promise.allSettled([
     createIncomeExpenseChartSafely(transactions),
     createExpenseCategoryChartSafely(transactions),
-    createTimelineChartSafely(transactions)
+    createTimelineChartSafely(transactions),
   ]);
 
   // Analyze results
-  const successful = chartResults.filter(result => result.status === 'fulfilled').length;
-  const failed = chartResults.filter(result => result.status === 'rejected').length;
+  const successful = chartResults.filter(
+    (result) => result.status === "fulfilled"
+  ).length;
+  const failed = chartResults.filter(
+    (result) => result.status === "rejected"
+  ).length;
 
   // Log failed charts with details
   chartResults.forEach((result, index) => {
-    const chartNames = ['income/expense', 'expense category', 'timeline'];
-    if (result.status === 'rejected') {
-      console.error(`Failed to create ${chartNames[index]} chart:`, result.reason);
+    const chartNames = ["income/expense", "expense category", "timeline"];
+    if (result.status === "rejected") {
+      console.error(
+        `Failed to create ${chartNames[index]} chart:`,
+        result.reason
+      );
     } else {
       console.log(`✓ ${chartNames[index]} chart created successfully`);
     }
@@ -309,7 +332,9 @@ export async function updateChartsWithCurrentData(retryCount = 0) {
   if (failed === 0) {
     console.log(`✓ All ${successful} charts updated successfully`);
   } else {
-    console.warn(`⚠️ Chart update completed: ${successful} successful, ${failed} failed`);
+    console.warn(
+      `⚠️ Chart update completed: ${successful} successful, ${failed} failed`
+    );
   }
 
   return chartResults;
@@ -321,9 +346,11 @@ export async function updateChartsWithCurrentData(retryCount = 0) {
 async function createIncomeExpenseChartSafely(transactions) {
   try {
     console.log("Creating income/expense chart...");
-    const { createIncomeExpenseChart } = await import('./incomeExpenseChart.js');
+    const { createIncomeExpenseChart } = await import(
+      "./incomeExpenseChart.js"
+    );
     await createIncomeExpenseChart(transactions);
-    return { success: true, chart: 'income-expense' };
+    return { success: true, chart: "income-expense" };
   } catch (error) {
     console.error("Error creating income/expense chart:", error);
     throw error; // Re-throw so Promise.allSettled can catch it
@@ -336,9 +363,9 @@ async function createIncomeExpenseChartSafely(transactions) {
 async function createExpenseCategoryChartSafely(transactions) {
   try {
     console.log("Creating expense category chart...");
-    const { createExpenseCategoryChart } = await import('./expenseChart.js');
+    const { createExpenseCategoryChart } = await import("./expenseChart.js");
     await createExpenseCategoryChart(transactions);
-    return { success: true, chart: 'expense-category' };
+    return { success: true, chart: "expense-category" };
   } catch (error) {
     console.error("Error creating expense category chart:", error);
     throw error; // Re-throw so Promise.allSettled can catch it
@@ -351,9 +378,9 @@ async function createExpenseCategoryChartSafely(transactions) {
 async function createTimelineChartSafely(transactions) {
   try {
     console.log("Creating timeline chart...");
-    const { createTimelineChart } = await import('./timelineChart.js');
+    const { createTimelineChart } = await import("./timelineChart.js");
     await createTimelineChart(transactions);
-    return { success: true, chart: 'timeline' };
+    return { success: true, chart: "timeline" };
   } catch (error) {
     console.error("Error creating timeline chart:", error);
     throw error; // Re-throw so Promise.allSettled can catch it
@@ -367,17 +394,17 @@ export function initializeCharts() {
   console.log("Initializing charts...");
 
   // Initialize chart controls if they exist
-  const periodSelect = document.getElementById('chartPeriodSelect');
-  const currencySelect = document.getElementById('chartCurrencySelect');
+  const periodSelect = document.getElementById("chartPeriodSelect");
+  const currencySelect = document.getElementById("chartCurrencySelect");
 
   if (periodSelect) {
-    periodSelect.addEventListener('change', () => {
+    periodSelect.addEventListener("change", () => {
       updateChartsWithCurrentData();
     });
   }
 
   if (currencySelect) {
-    currencySelect.addEventListener('change', () => {
+    currencySelect.addEventListener("change", () => {
       updateChartsWithCurrentData();
     });
   }

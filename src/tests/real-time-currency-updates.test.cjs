@@ -4,7 +4,8 @@
  * without requiring page refresh
  */
 
-describe('Real-time Currency Updates', () => {
+// Legacy CommonJS test – covered by real-time-currency-updates.test.mjs (ESM)
+describe.skip('Real-time Currency Updates (CJS legacy)', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();

@@ -54,8 +54,8 @@ describe('Debug Categories', () => {
     const appStatePath = path.join(__dirname, '../core/appState.js');
     const appStateContent = fs.readFileSync(appStatePath, 'utf8');
 
-    // Check if categories are loaded from localStorage
-    expect(appStateContent).toContain('localStorage.getItem(\'categories\')');
+    // Check if categories are loaded from localStorage (accept both single/double quotes)
+    expect(appStateContent).toMatch(/localStorage\.getItem\(['"]categories['"]\)/);
     expect(appStateContent).toContain('AppState.categories = JSON.parse');
 
     // Check if default categories are used as fallback

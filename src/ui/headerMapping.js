@@ -1,5 +1,5 @@
-import { AppState } from '../core/appState.js';
-import { showToast } from './uiManager.js';
+import { AppState } from "../core/appState.js";
+import { showToast } from "./uiManager.js";
 
 /**
  * Suggests mapping for headers based on naming
@@ -13,9 +13,12 @@ export function suggestHeaderMapping(headerText) {
 
   // Check each type in order of priority
   if (/date|day|time|תאריך|день/i.test(text)) return "Date";
-  if (/expense|debit|cost|payment|out|חובה|gasto|ausgabe/i.test(text)) return "Expenses";
-  if (/income|credit|deposit|revenue|in|זכות|ingreso|einkommen/i.test(text)) return "Income";
-  if (/desc|note|memo|text|detail|תאור|פרטים|descrip/i.test(text)) return "Description";
+  if (/expense|debit|cost|payment|out|חובה|gasto|ausgabe/i.test(text))
+    return "Expenses";
+  if (/income|credit|deposit|revenue|in|זכות|ingreso|einkommen/i.test(text))
+    return "Income";
+  if (/desc|note|memo|text|detail|תאור|פרטים|descrip/i.test(text))
+    return "Description";
 
   return "–"; // Default case
 }
@@ -27,7 +30,7 @@ export function suggestHeaderMapping(headerText) {
  * @returns {Array} Suggested header mappings
  */
 export function analyzeHeaders(headers, state) {
-  return headers.map(cell => processHeaderCell(cell, state));
+  return headers.map((cell) => processHeaderCell(cell, state));
 }
 
 function processHeaderCell(cell, state) {
@@ -120,12 +123,14 @@ function getSampleRows(data) {
 }
 
 function getColumnValues(rows, columnIndex) {
-  return rows.map(row => row[columnIndex]).filter(val => val !== null && val !== undefined && val !== '');
+  return rows
+    .map((row) => row[columnIndex])
+    .filter((val) => val !== null && val !== undefined && val !== "");
 }
 
 function isExcelDateColumn(values) {
   // Check if values look like Excel date numbers
-  return values.every(val => {
+  return values.every((val) => {
     const num = parseFloat(val);
     // FIXED: Use the same range as the centralized dateUtils
     return !isNaN(num) && num >= 25000 && num <= 100000; // Excel date range
@@ -134,7 +139,7 @@ function isExcelDateColumn(values) {
 
 function isDateColumn(values) {
   // Check if values look like dates
-  return values.some(val => {
+  return values.some((val) => {
     try {
       const date = new Date(val);
       return !isNaN(date.getTime()) && date.getFullYear() > 1900;
@@ -146,14 +151,14 @@ function isDateColumn(values) {
 
 function isDescriptionColumn(values) {
   // Check if values are text-like
-  return values.some(val => {
-    return typeof val === 'string' && val.length > 5 && /[a-zA-Z]/.test(val);
+  return values.some((val) => {
+    return typeof val === "string" && val.length > 5 && /[a-zA-Z]/.test(val);
   });
 }
 
 function isMonetaryColumn(values) {
   // Check if values are numeric
-  return values.some(val => {
+  return values.some((val) => {
     const num = parseFloat(val);
     return !isNaN(num) && num !== 0;
   });
@@ -161,8 +166,8 @@ function isMonetaryColumn(values) {
 
 function classifyMonetaryColumn(values, state) {
   // Simple heuristic: positive values are income, negative are expenses
-  const hasPositive = values.some(val => parseFloat(val) > 0);
-  const hasNegative = values.some(val => parseFloat(val) < 0);
+  const hasPositive = values.some((val) => parseFloat(val) > 0);
+  const hasNegative = values.some((val) => parseFloat(val) < 0);
 
   if (hasNegative && !hasPositive && !state.expensesColumnFound) {
     state.expensesColumnFound = true;
@@ -255,7 +260,7 @@ export function suggestMapping(data) {
     const state = {
       dateColumnFound: false,
       incomeColumnFound: false,
-      expensesColumnFound: false
+      expensesColumnFound: false,
     };
 
     // Get the header row (first row by default)
@@ -283,6 +288,15 @@ export function updateHeaderMapping(select, index) {
   // Split into smaller functions
   const newValue = select.value;
 
+  // Ensure mapping array exists with proper length
+  if (!AppState.currentSuggestedMapping) {
+    const totalSelects =
+      document.querySelectorAll(".header-map").length ||
+      document.querySelectorAll(".header-select").length ||
+      0;
+    AppState.currentSuggestedMapping = new Array(totalSelects).fill("\u2013");
+  }
+
   if (newValue === "–") {
     handlePlaceholderSelection(select, newValue);
     return;
@@ -299,15 +313,24 @@ export function updateHeaderMapping(select, index) {
 
 // Helper functions to break down complexity
 function handlePlaceholderSelection(selectElement, selectedValue) {
-  const columnIndex = Array.from(selectElement.closest('tr').children).indexOf(selectElement.closest('td'));
+  const columnIndex = Array.from(selectElement.closest("tr").children).indexOf(
+    selectElement.closest("td")
+  );
 
-  console.log(`Handling placeholder selection: ${selectedValue} for column ${columnIndex}`);
+  console.log(
+    `Handling placeholder selection: ${selectedValue} for column ${columnIndex}`
+  );
 
   // Update the current mapping array
   if (!AppState.currentSuggestedMapping) {
-    AppState.currentSuggestedMapping = new Array(document.querySelectorAll('.header-select').length).fill('–');
+    AppState.currentSuggestedMapping = new Array(
+      document.querySelectorAll(".header-select").length
+    ).fill("–");
   }
-  if (columnIndex >= 0 && columnIndex < AppState.currentSuggestedMapping.length) {
+  if (
+    columnIndex >= 0 &&
+    columnIndex < AppState.currentSuggestedMapping.length
+  ) {
     AppState.currentSuggestedMapping[columnIndex] = selectedValue;
   }
 
@@ -315,13 +338,16 @@ function handlePlaceholderSelection(selectElement, selectedValue) {
 }
 
 function isDuplicateMapping(selectedValue, currentColumnIndex) {
-  if (!currentMapping || !Array.isArray(currentMapping)) {
+  const mappingRef = AppState.currentSuggestedMapping;
+  if (!mappingRef || !Array.isArray(mappingRef)) {
     return false;
   }
 
-  return currentMapping.findIndex((mapping, index) => {
-    return mapping === selectedValue && index !== currentColumnIndex;
-  }) !== -1;
+  return (
+    mappingRef.findIndex((mapping, index) => {
+      return mapping === selectedValue && index !== currentColumnIndex;
+    }) !== -1
+  );
 }
 
 function handleDuplicateMapping(newValue, index) {
@@ -335,12 +361,19 @@ function handleDuplicateMapping(newValue, index) {
     AppState.currentSuggestedMapping[existingIndex] = "–";
 
     // Update the UI for the affected dropdown
-    const existingSelect = document.querySelector(`select[data-column-index="${existingIndex}"]`);
+    const existingSelect = document.querySelector(
+      `select[data-column-index="${existingIndex}"]`
+    );
     if (existingSelect) {
       existingSelect.value = "–";
     }
 
-    showToast(`Moved ${newValue} mapping from column ${existingIndex + 1} to column ${index + 1}`, 'info');
+    showToast(
+      `Moved ${newValue} mapping from column ${existingIndex + 1} to column ${
+        index + 1
+      }`,
+      "info"
+    );
   }
 }
 
@@ -350,23 +383,25 @@ function updateCurrentMapping(index, newValue) {
 
 function updateSaveButtonState() {
   const hasDate = AppState.currentSuggestedMapping.includes("Date");
-  const hasAmount = AppState.currentSuggestedMapping.includes("Income") ||
+  const hasAmount =
+    AppState.currentSuggestedMapping.includes("Income") ||
     AppState.currentSuggestedMapping.includes("Expenses");
 
   const saveButton = document.getElementById("saveHeadersBtn");
   if (saveButton) {
     // CRITICAL FIX: Always enable the button to allow user interaction
     saveButton.disabled = false;
-    saveButton.removeAttribute('disabled');
-    saveButton.style.pointerEvents = 'auto';
-    saveButton.style.cursor = 'pointer';
-    saveButton.style.opacity = '1';
+    saveButton.removeAttribute("disabled");
+    saveButton.style.pointerEvents = "auto";
+    saveButton.style.cursor = "pointer";
+    saveButton.style.opacity = "1";
 
-    saveButton.title = hasDate && hasAmount ?
-      "Save this mapping" :
-      "Click to configure mapping (Date and Income/Expenses needed)";
+    saveButton.title =
+      hasDate && hasAmount
+        ? "Save this mapping"
+        : "Click to configure mapping (Date and Income/Expenses needed)";
 
-    console.log('CRITICAL: headerMapping.js - Save button FORCE ENABLED');
+    console.log("CRITICAL: headerMapping.js - Save button FORCE ENABLED");
   }
 }
 
@@ -382,7 +417,12 @@ function checkForDuplicateHeaders() {
  * @param {string} headerInputId - ID of header row input
  * @param {string} dataInputId - ID of data row input
  */
-export function renderHeaderPreview(data, containerId, headerInputId, dataInputId) {
+export function renderHeaderPreview(
+  data,
+  containerId,
+  headerInputId,
+  dataInputId
+) {
   const container = document.getElementById(containerId);
   if (!container) {
     console.error(`Container ${containerId} not found`);
@@ -393,13 +433,19 @@ export function renderHeaderPreview(data, containerId, headerInputId, dataInputI
   const headerRowInput = document.getElementById(headerInputId);
   const dataRowInput = document.getElementById(dataInputId);
 
-  const headerRowIndex = headerRowInput ? parseInt(headerRowInput.value, 10) - 1 : 0;
+  const headerRowIndex = headerRowInput
+    ? parseInt(headerRowInput.value, 10) - 1
+    : 0;
   const dataRowIndex = dataRowInput ? parseInt(dataRowInput.value, 10) - 1 : 1;
 
   // Validate indices
-  if (headerRowIndex < 0 || headerRowIndex >= data.length ||
-    dataRowIndex < 0 || dataRowIndex >= data.length) {
-    container.innerHTML = '<p>Invalid row selection</p>';
+  if (
+    headerRowIndex < 0 ||
+    headerRowIndex >= data.length ||
+    dataRowIndex < 0 ||
+    dataRowIndex >= data.length
+  ) {
+    container.innerHTML = "<p>Invalid row selection</p>";
     return;
   }
 
@@ -418,32 +464,65 @@ export function renderHeaderPreview(data, containerId, headerInputId, dataInputI
       <table class="preview-table" style="width: 100%; border-collapse: collapse;">
         <tr>
           <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Column</th>
-          ${headerRow.map((_, i) => `<th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">${i + 1}</th>`).join('')}
+          ${headerRow
+            .map(
+              (_, i) =>
+                `<th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">${
+                  i + 1
+                }</th>`
+            )
+            .join("")}
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Header</td>
-          ${headerRow.map(header => `<td style="padding: 8px; border: 1px solid #ddd;">${header || "<em>empty</em>"}</td>`).join('')}
+          ${headerRow
+            .map(
+              (header) =>
+                `<td style="padding: 8px; border: 1px solid #ddd;">${
+                  header || "<em>empty</em>"
+                }</td>`
+            )
+            .join("")}
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Map To</td>
-          ${headerRow.map((_, i) => {
-    const selected = suggestedMapping?.[i] ?? "–";
-    return `
+          ${headerRow
+            .map((_, i) => {
+              const selected = suggestedMapping?.[i] ?? "–";
+              return `
               <td style="padding: 8px; border: 1px solid #ddd;">
                 <select class="header-map" data-column-index="${i}" style="width: 100%;">
-                  <option value="–" ${selected === "–" ? 'selected' : ''}>–</option>
-                  <option value="Date" ${selected === "Date" ? 'selected' : ''}>Date</option>
-                  <option value="Description" ${selected === "Description" ? 'selected' : ''}>Description</option>
-                  <option value="Income" ${selected === "Income" ? 'selected' : ''}>Income</option>
-                  <option value="Expenses" ${selected === "Expenses" ? 'selected' : ''}>Expenses</option>
+                  <option value="–" ${
+                    selected === "–" ? "selected" : ""
+                  }>–</option>
+                  <option value="Date" ${
+                    selected === "Date" ? "selected" : ""
+                  }>Date</option>
+                  <option value="Description" ${
+                    selected === "Description" ? "selected" : ""
+                  }>Description</option>
+                  <option value="Income" ${
+                    selected === "Income" ? "selected" : ""
+                  }>Income</option>
+                  <option value="Expenses" ${
+                    selected === "Expenses" ? "selected" : ""
+                  }>Expenses</option>
                 </select>
               </td>
             `;
-  }).join('')}
+            })
+            .join("")}
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Sample</td>
-          ${dataRow.map(cell => `<td style="padding: 8px; border: 1px solid #ddd;">${cell || "<em>empty</em>"}</td>`).join('')}
+          ${dataRow
+            .map(
+              (cell) =>
+                `<td style="padding: 8px; border: 1px solid #ddd;">${
+                  cell || "<em>empty</em>"
+                }</td>`
+            )
+            .join("")}
         </tr>
       </table>
     </div>
@@ -453,9 +532,9 @@ export function renderHeaderPreview(data, containerId, headerInputId, dataInputI
 
   // Add event listeners to dropdowns
   setTimeout(() => {
-    const selects = container.querySelectorAll('.header-map');
+    const selects = container.querySelectorAll(".header-map");
     selects.forEach((select, index) => {
-      select.addEventListener('change', (e) => {
+      select.addEventListener("change", (e) => {
         updateHeaderMapping(e.target, index);
       });
     });

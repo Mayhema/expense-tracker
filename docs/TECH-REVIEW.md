@@ -61,15 +61,54 @@ Key CSS (reference patch shown in Section 5.1).
 - Warning in `src/tests/archive/automated-test-report.html`.
 - Add `lang="en"` to `<html>`. See Section 5.2.
 
----
 
 ### 3.3 CI/linter noise from vendor files in node_modules
+  - Modal height/scrolling fixed with body-owned scroll; toolbar wraps; width capped at 700px.
+  - CSS conflicts resolved in the enhanced modal styles; no forced 100vh on inner content.
+  - Jest environment stabilized (VirtualConsole fix, setup file to mute noisy logs, minimal Chart stub).
+- Parser consolidation complete:
+  - Excel/XML moved to `src/parsers/` and all imports updated to the new paths.
+  - Legacy `src/parser/` removed from the repo (no remaining code references to it).
+- Tests: All suites pass headlessly without manual steps. Archive and vendor noise excluded from runs.
 
-- Errors/warnings from a third-party workflow YAML under node_modules.
-- Adjust linter/test scanners to ignore `node_modules/` and `src/tests/archive/`.
-- Do not edit vendor files. See Section 5.3 for ignore configs.
+Next (P1):
 
----
+Planned (P2–P3):
+
+
+## 6) Roadmap and Status (P0 done, P1 in progress)
+
+- P0 (Done):
+  - Modal height/scrolling fixed; toolbar wraps; width ≤ 700px (asserted by tests).
+  - Stabilized test env (VirtualConsole, setup file, Chart stub); headless runs pass.
+  - Parser consolidation: moved to `src/parsers/`; legacy removed; imports updated.
+
+- P1 (In progress):
+  - Duplicate cleanup: verify and remove any remaining duplicate modules (e.g., `src/src/` if unused).
+  - CSS normalization: consolidate `.enhanced-toolbar` definitions to a single canonical rule; reduce specificity conflicts.
+  - Tooling hygiene: lint/format sweep; ensure archives/vendor excluded in CI; address minor code-style warnings.
+
+Recent P1 actions (2025-08-09):
+- Consolidated Enhanced Category Manager styles into the canonical stylesheet; removed large inline CSS injection from `enhancedCategoryManager.js`.
+- Added regression test `regression-enhanced-manager-css.test.cjs` to prevent reintroducing inline CSS and to verify the canonical import in `styles.css`.
+- Audited duplicate chart managers; keeping `src/ui/charts.js` as the primary orchestrator. `src/charts/chartManager.js` remains available for targeted imports.
+- Pruned trivial placeholder tests in favor of higher-value regression tests.
+- Fixed minor warnings (exception handling in style loader; regex literal in tests).
+ - Removed legacy nested `src/src/index.html` after updating tests to prefer canonical `src/index.html` with safe fallbacks.
+ - Documented chart orchestrator stance: `src/ui/charts.js` for DOM/UI integration; `src/charts/chartManager.js` for functional chart creation used by tests/editor.
+ - Verified full headless test run passes without manual interaction.
+
+Automation notes:
+- All Jest suites run fully in a headless environment (no manual prompts). Test discovery ignores `src/tests/archive/`.
+- Local server on port 3000 is not required for the unit/integration tests; URLs use http://localhost:3000 only for consistent origins under JSDOM.
+
+- P2 (Queued): Parsing worker + virtualized table.
+- P3 (Queued): PWA polish + feature expansions.
+
+P1 completion summary (so far):
+- CSS hygiene: toolbar rules consolidated; modal/body scroll maintained; width cap ≤ 700px intact.
+- Test automation: all suites run unattended; archive ignored; regression guard in place.
+- Duplicate cleanup: removed nested `src/src/index.html`; no runtime impact; tests adjusted.
 
 ### 3.4 Directory duplication and naming ambiguities
 

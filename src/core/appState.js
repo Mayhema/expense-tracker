@@ -1,4 +1,4 @@
-import { DEFAULT_CATEGORIES } from '../constants/categories.js';
+import { DEFAULT_CATEGORIES } from "../constants/categories.js";
 
 /**
  * Application State Management
@@ -14,7 +14,7 @@ export const AppState = {
   currentPreviewData: null,
   currentFileSignature: null,
   currentSuggestedMapping: null,
-  currentPreviewModal: null
+  currentPreviewModal: null,
 };
 
 /**
@@ -25,10 +25,12 @@ export function initialize() {
 
   try {
     // Load transactions from localStorage
-    const savedTransactions = localStorage.getItem('transactions');
+    const savedTransactions = localStorage.getItem("transactions");
     if (savedTransactions) {
       AppState.transactions = JSON.parse(savedTransactions);
-      console.log(`✅ LOADED: ${AppState.transactions.length} transactions from localStorage`);
+      console.log(
+        `✅ LOADED: ${AppState.transactions.length} transactions from localStorage`
+      );
 
       // Ensure all transactions have IDs
       let idsAdded = 0;
@@ -40,25 +42,36 @@ export function initialize() {
       });
 
       if (idsAdded > 0) {
-        console.log(`📝 EDITED TRANSACTIONS: Added ${idsAdded} missing transaction IDs`);
+        console.log(
+          `📝 EDITED TRANSACTIONS: Added ${idsAdded} missing transaction IDs`
+        );
         // Save back to localStorage with IDs
-        localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+        localStorage.setItem(
+          "transactions",
+          JSON.stringify(AppState.transactions)
+        );
       }
 
       // Count edited transactions
-      const editedTransactions = AppState.transactions.filter(tx => tx.edited).length;
-      console.log(`📝 EDITED TRANSACTIONS: Found ${editedTransactions} edited transactions after load`);
+      const editedTransactions = AppState.transactions.filter(
+        (tx) => tx.edited
+      ).length;
+      console.log(
+        `📝 EDITED TRANSACTIONS: Found ${editedTransactions} edited transactions after load`
+      );
     }
 
     // Load merged files from localStorage
-    const savedMergedFiles = localStorage.getItem('mergedFiles');
+    const savedMergedFiles = localStorage.getItem("mergedFiles");
     if (savedMergedFiles) {
       AppState.mergedFiles = JSON.parse(savedMergedFiles);
-      console.log(`Loaded ${AppState.mergedFiles.length} merged files from localStorage`);
+      console.log(
+        `Loaded ${AppState.mergedFiles.length} merged files from localStorage`
+      );
     }
 
     // FIXED: Load categories from localStorage with consistent key
-    const savedCategories = localStorage.getItem('categories');
+    const savedCategories = localStorage.getItem("categories");
     if (savedCategories) {
       AppState.categories = JSON.parse(savedCategories);
       console.log(`Loaded categories from localStorage`);
@@ -83,75 +96,93 @@ export function initializeAppState() {
 
   // Load merged files
   try {
-    const savedMergedFiles = localStorage.getItem('mergedFiles');
+    const savedMergedFiles = localStorage.getItem("mergedFiles");
     if (savedMergedFiles) {
       AppState.mergedFiles = JSON.parse(savedMergedFiles);
       console.log(`Loaded ${AppState.mergedFiles.length} merged files`);
     }
   } catch (error) {
-    console.error('Error loading merged files:', error);
+    console.error("Error loading merged files:", error);
     AppState.mergedFiles = [];
   }
 
   // CRITICAL FIX: Load transactions directly from localStorage
   try {
-    const savedTransactions = localStorage.getItem('transactions');
+    const savedTransactions = localStorage.getItem("transactions");
     if (savedTransactions) {
       AppState.transactions = JSON.parse(savedTransactions);
-      console.log(`Loaded ${AppState.transactions.length} transactions from localStorage`);
+      console.log(
+        `Loaded ${AppState.transactions.length} transactions from localStorage`
+      );
     } else if (AppState.mergedFiles && AppState.mergedFiles.length > 0) {
       // If no saved transactions, process from merged files
-      console.log("No saved transactions found, processing from merged files...");
+      console.log(
+        "No saved transactions found, processing from merged files..."
+      );
       AppState.transactions = [];
 
-      AppState.mergedFiles.forEach(file => {
+      AppState.mergedFiles.forEach((file) => {
         if (file.transactions && Array.isArray(file.transactions)) {
-          AppState.transactions = AppState.transactions.concat(file.transactions);
+          AppState.transactions = AppState.transactions.concat(
+            file.transactions
+          );
         }
       });
 
-      console.log(`Processed ${AppState.transactions.length} transactions from merged files`);
+      console.log(
+        `Processed ${AppState.transactions.length} transactions from merged files`
+      );
 
       // Save the processed transactions
       if (AppState.transactions.length > 0) {
-        localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+        localStorage.setItem(
+          "transactions",
+          JSON.stringify(AppState.transactions)
+        );
       }
     }
   } catch (error) {
-    console.error('Error loading transactions:', error);
+    console.error("Error loading transactions:", error);
     AppState.transactions = [];
   }
 
   // Load categories
   try {
-    const savedCategories = localStorage.getItem('categories');
+    const savedCategories = localStorage.getItem("categories");
     if (savedCategories) {
       AppState.categories = JSON.parse(savedCategories);
-      console.log(`Loaded categories from localStorage:`, Object.keys(AppState.categories));
+      console.log(
+        `Loaded categories from localStorage:`,
+        Object.keys(AppState.categories)
+      );
     } else {
       // Initialize with default categories
       console.log("No saved categories found, initializing with defaults...");
       AppState.categories = { ...DEFAULT_CATEGORIES };
-      localStorage.setItem('categories', JSON.stringify(AppState.categories));
-      console.log(`Initialized ${Object.keys(AppState.categories).length} default categories`);
+      localStorage.setItem("categories", JSON.stringify(AppState.categories));
+      console.log(
+        `Initialized ${
+          Object.keys(AppState.categories).length
+        } default categories`
+      );
     }
   } catch (error) {
-    console.error('Error loading categories:', error);
+    console.error("Error loading categories:", error);
     AppState.categories = { ...DEFAULT_CATEGORIES };
-    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+    localStorage.setItem("categories", JSON.stringify(AppState.categories));
   }
 
   console.log("AppState initialized:", {
     transactions: AppState.transactions.length,
     mergedFiles: AppState.mergedFiles.length,
-    categories: Object.keys(AppState.categories).length
+    categories: Object.keys(AppState.categories).length,
   });
 }
 
 // FIXED: Add function to set current file signature
 export function setCurrentFileSignature(signature) {
   AppState.currentFileSignature = signature;
-  console.log('CRITICAL: Set current file signature:', signature);
+  console.log("CRITICAL: Set current file signature:", signature);
 }
 
 /**
@@ -170,7 +201,9 @@ export function ensureAllTransactionIds() {
       // Generate new unique ID
       let newId;
       do {
-        newId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
+        newId = `tx_${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2, 11)}_${index}`;
       } while (usedIds.has(newId));
 
       tx.id = newId;
@@ -183,17 +216,17 @@ export function ensureAllTransactionIds() {
   if (idsAdded > 0) {
     console.log(`Added ${idsAdded} unique IDs to transactions`);
     // Save updated transactions
-    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
   }
 }
 
 // FIXED: Add function to rebuild transactions from merged files
 function rebuildTransactionsFromFiles() {
-  console.log('Rebuilding transactions from merged files...');
+  console.log("Rebuilding transactions from merged files...");
 
   let allTransactions = [];
 
-  AppState.mergedFiles.forEach(file => {
+  AppState.mergedFiles.forEach((file) => {
     if (file.transactions && Array.isArray(file.transactions)) {
       allTransactions = allTransactions.concat(file.transactions);
     }
@@ -205,7 +238,9 @@ function rebuildTransactionsFromFiles() {
     if (!tx.id || usedIds.has(tx.id)) {
       let newId;
       do {
-        newId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
+        newId = `tx_${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2, 11)}_${index}`;
       } while (usedIds.has(newId));
       tx.id = newId;
     }
@@ -213,9 +248,11 @@ function rebuildTransactionsFromFiles() {
   });
 
   AppState.transactions = allTransactions;
-  localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+  localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
 
-  console.log(`Rebuilt ${allTransactions.length} transactions from merged files`);
+  console.log(
+    `Rebuilt ${allTransactions.length} transactions from merged files`
+  );
 }
 
 /**
@@ -228,10 +265,14 @@ function initializeDefaultCategories() {
   AppState.categories = { ...DEFAULT_CATEGORIES };
 
   try {
-    localStorage.setItem('categories', JSON.stringify(AppState.categories));
-    console.log(`Initialized ${Object.keys(AppState.categories).length} default categories`);
+    localStorage.setItem("categories", JSON.stringify(AppState.categories));
+    console.log(
+      `Initialized ${
+        Object.keys(AppState.categories).length
+      } default categories`
+    );
   } catch (error) {
-    console.error('Error saving default categories to localStorage:', error);
+    console.error("Error saving default categories to localStorage:", error);
   }
 }
 
@@ -249,10 +290,14 @@ export function forceResetToDefaultCategories() {
 
   // Save immediately
   try {
-    localStorage.setItem('categories', JSON.stringify(AppState.categories));
-    console.log(`Force reset: Loaded ${Object.keys(AppState.categories).length} default categories`);
+    localStorage.setItem("categories", JSON.stringify(AppState.categories));
+    console.log(
+      `Force reset: Loaded ${
+        Object.keys(AppState.categories).length
+      } default categories`
+    );
   } catch (error) {
-    console.error('Error saving default categories during force reset:', error);
+    console.error("Error saving default categories during force reset:", error);
   }
 }
 
@@ -261,7 +306,7 @@ export function forceResetToDefaultCategories() {
  */
 export function saveCategories() {
   try {
-    localStorage.setItem('categories', JSON.stringify(AppState.categories));
+    localStorage.setItem("categories", JSON.stringify(AppState.categories));
     console.log("Categories saved to localStorage");
   } catch (error) {
     console.error("Error saving categories:", error);
@@ -273,7 +318,7 @@ export function saveCategories() {
  */
 export function saveMergedFiles() {
   try {
-    localStorage.setItem('mergedFiles', JSON.stringify(AppState.mergedFiles));
+    localStorage.setItem("mergedFiles", JSON.stringify(AppState.mergedFiles));
     console.log("Merged files saved to localStorage");
   } catch (error) {
     console.error("Error saving merged files:", error);
@@ -285,7 +330,7 @@ export function saveMergedFiles() {
  */
 export function saveTransactions() {
   try {
-    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
+    localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
     console.log("Transactions saved to localStorage");
   } catch (error) {
     console.error("Error saving transactions:", error);
@@ -308,13 +353,13 @@ export function resetFileState() {
  * Add a category to the state
  */
 export function addCategory(name, color, order) {
-  if (!name || typeof name !== 'string') {
-    throw new Error('Category name is required and must be a string');
+  if (!name || typeof name !== "string") {
+    throw new Error("Category name is required and must be a string");
   }
 
   AppState.categories[name] = {
-    color: color || '#cccccc',
-    order: order || Object.keys(AppState.categories).length + 1
+    color: color || "#cccccc",
+    order: order || Object.keys(AppState.categories).length + 1,
   };
 
   saveCategories();
@@ -326,7 +371,7 @@ export function addCategory(name, color, order) {
  */
 export function removeCategory(name) {
   if (!name || !AppState.categories[name]) {
-    throw new Error('Category not found');
+    throw new Error("Category not found");
   }
 
   delete AppState.categories[name];
@@ -339,12 +384,12 @@ export function removeCategory(name) {
  */
 export function updateCategory(name, updates) {
   if (!name || !AppState.categories[name]) {
-    throw new Error('Category not found');
+    throw new Error("Category not found");
   }
 
   AppState.categories[name] = {
     ...AppState.categories[name],
-    ...updates
+    ...updates,
   };
 
   saveCategories();
@@ -357,8 +402,10 @@ export function updateCategory(name, updates) {
 export function getCategories() {
   return Object.entries(AppState.categories)
     .sort(([, a], [, b]) => {
-      const orderA = (typeof a === 'object' && a.order !== undefined) ? a.order : 999;
-      const orderB = (typeof b === 'object' && b.order !== undefined) ? b.order : 999;
+      const orderA =
+        typeof a === "object" && a.order !== undefined ? a.order : 999;
+      const orderB =
+        typeof b === "object" && b.order !== undefined ? b.order : 999;
       return orderA - orderB;
     })
     .reduce((acc, [name, data]) => {
@@ -377,9 +424,9 @@ export function clearState() {
   resetFileState();
 
   // Clear localStorage
-  localStorage.removeItem('transactions');
-  localStorage.removeItem('mergedFiles');
-  localStorage.removeItem('categories');
+  localStorage.removeItem("transactions");
+  localStorage.removeItem("mergedFiles");
+  localStorage.removeItem("categories");
 
   console.log("Application state cleared");
 }
@@ -392,38 +439,50 @@ export async function loadAppState() {
 
   try {
     // Load transactions
-    const savedTransactions = localStorage.getItem('transactions');
+    const savedTransactions = localStorage.getItem("transactions");
     if (savedTransactions) {
       AppState.transactions = JSON.parse(savedTransactions);
-      console.log(`✅ LOADED: ${AppState.transactions.length} transactions from localStorage`);
+      console.log(
+        `✅ LOADED: ${AppState.transactions.length} transactions from localStorage`
+      );
 
       // Count edited transactions
-      const editedCount = AppState.transactions.filter(tx => tx.edited).length;
-      console.log(`📝 EDITED TRANSACTIONS: Found ${editedCount} edited transactions after load`);
+      const editedCount = AppState.transactions.filter(
+        (tx) => tx.edited
+      ).length;
+      console.log(
+        `📝 EDITED TRANSACTIONS: Found ${editedCount} edited transactions after load`
+      );
 
       if (editedCount > 0) {
-        console.log(`🔍 EDITED TX DETAILS:`, AppState.transactions.filter(tx => tx.edited).map(tx => ({
-          id: tx.id,
-          description: tx.description?.substring(0, 30),
-          edited: tx.edited
-        })));
+        console.log(
+          `🔍 EDITED TX DETAILS:`,
+          AppState.transactions
+            .filter((tx) => tx.edited)
+            .map((tx) => ({
+              id: tx.id,
+              description: tx.description?.substring(0, 30),
+              edited: tx.edited,
+            }))
+        );
       }
     }
 
     // Load merged files
-    const savedMergedFiles = localStorage.getItem('mergedFiles');
+    const savedMergedFiles = localStorage.getItem("mergedFiles");
     if (savedMergedFiles) {
       AppState.mergedFiles = JSON.parse(savedMergedFiles);
-      console.log(`Loaded ${AppState.mergedFiles.length} merged files from localStorage`);
+      console.log(
+        `Loaded ${AppState.mergedFiles.length} merged files from localStorage`
+      );
     }
 
     // Load categories
-    const savedCategories = localStorage.getItem('categories');
+    const savedCategories = localStorage.getItem("categories");
     if (savedCategories) {
       AppState.categories = JSON.parse(savedCategories);
       console.log(`Loaded categories from localStorage`);
     }
-
   } catch (error) {
     console.error("Error loading app state:", error);
   }

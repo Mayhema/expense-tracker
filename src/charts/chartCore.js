@@ -14,12 +14,12 @@ export const defaultChartConfig = {
   maintainAspectRatio: false, // CRITICAL: Allow height to adjust for content
   interaction: {
     intersect: false,
-    mode: 'index'
+    mode: "index",
   },
   plugins: {
     legend: {
       display: true,
-      position: 'top',
+      position: "top",
       // FIXED: Ensure legend has proper spacing and wrapping
       labels: {
         padding: 15,
@@ -31,52 +31,52 @@ export const defaultChartConfig = {
           const labels = original.call(this, chart);
 
           // Ensure labels wrap properly
-          labels.forEach(label => {
+          labels.forEach((label) => {
             if (label?.text && label.text.length > 20) {
-              label.text = label.text.substring(0, 20) + '...';
+              label.text = label.text.substring(0, 20) + "...";
             }
           });
 
           return labels;
-        }
-      }
+        },
+      },
     },
     tooltip: {
       enabled: true,
-      mode: 'index',
+      mode: "index",
       intersect: false,
       // FIXED: Ensure tooltips don't get cut off
-      position: 'nearest',
+      position: "nearest",
       bodySpacing: 4,
       titleSpacing: 4,
       footerSpacing: 4,
       xPadding: 8,
-      yPadding: 8
-    }
+      yPadding: 8,
+    },
   },
   scales: {
     x: {
       display: true,
       grid: {
-        display: true
+        display: true,
       },
       // FIXED: Ensure x-axis labels don't get cut off
       ticks: {
         maxRotation: 45,
-        minRotation: 0
-      }
+        minRotation: 0,
+      },
     },
     y: {
       display: true,
       beginAtZero: true,
       grid: {
-        display: true
+        display: true,
       },
       // FIXED: Ensure y-axis has proper padding
       ticks: {
-        padding: 10
-      }
-    }
+        padding: 10,
+      },
+    },
   },
   // FIXED: Ensure proper padding for all chart elements
   layout: {
@@ -84,14 +84,14 @@ export const defaultChartConfig = {
       top: 20,
       bottom: 20,
       left: 20,
-      right: 20
-    }
+      right: 20,
+    },
   },
   // Prevent animations from causing memory leaks
   animation: {
     duration: 400,
-    easing: 'easeInOutQuart'
-  }
+    easing: "easeInOutQuart",
+  },
 };
 
 /**
@@ -119,12 +119,12 @@ export function createChart(canvas, type, data, options = {}) {
     const container = canvas.parentElement;
     if (container) {
       // FIXED: Don't set fixed dimensions, use CSS for responsiveness
-      canvas.style.width = '100%';
-      canvas.style.height = 'auto';
-      canvas.style.maxWidth = '100%';
-      canvas.style.maxHeight = '100%';
-      canvas.style.display = 'block';
-      canvas.style.boxSizing = 'border-box';
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      canvas.style.maxWidth = "100%";
+      canvas.style.maxHeight = "100%";
+      canvas.style.display = "block";
+      canvas.style.boxSizing = "border-box";
     }
 
     // FIXED: Merge options with special handling for chart-specific configurations
@@ -139,18 +139,24 @@ export function createChart(canvas, type, data, options = {}) {
         const container = chart?.canvas?.parentElement;
         if (container) {
           const maxWidth = container.offsetWidth;
-          const maxHeight = Math.min(container.offsetHeight, window.innerHeight * 0.8);
+          const maxHeight = Math.min(
+            container.offsetHeight,
+            window.innerHeight * 0.8
+          );
 
           if (size.width > maxWidth || size.height > maxHeight) {
-            chart.resize(Math.min(size.width, maxWidth), Math.min(size.height, maxHeight));
+            chart.resize(
+              Math.min(size.width, maxWidth),
+              Math.min(size.height, maxHeight)
+            );
           }
         }
-      }
+      },
     };
 
     // FIXED: Special handling for pie/doughnut charts to ensure legend fits
-    if (type === 'pie' || type === 'doughnut') {
-      chartOptions.plugins.legend.position = 'bottom';
+    if (type === "pie" || type === "doughnut") {
+      chartOptions.plugins.legend.position = "bottom";
       chartOptions.layout.padding.bottom = 30;
     }
 
@@ -158,7 +164,7 @@ export function createChart(canvas, type, data, options = {}) {
     const chart = new Chart(canvas, {
       type: type,
       data: data,
-      options: chartOptions
+      options: chartOptions,
     });
 
     // Register the chart
@@ -170,7 +176,7 @@ export function createChart(canvas, type, data, options = {}) {
 
     // FIXED: Ensure chart resizes properly when container changes
     setTimeout(() => {
-      if (chart && typeof chart?.resize === 'function') {
+      if (chart && typeof chart?.resize === "function") {
         chart.resize();
       }
     }, 100);
@@ -196,10 +202,10 @@ function addZoomMonitoring(canvas, chart) {
       setTimeout(() => {
         if (chart?.canvas?.isConnected) {
           // Reset canvas styling
-          canvas.style.width = '100%';
-          canvas.style.height = 'auto';
-          canvas.style.maxWidth = '100%';
-          canvas.style.maxHeight = '100%';
+          canvas.style.width = "100%";
+          canvas.style.height = "auto";
+          canvas.style.maxWidth = "100%";
+          canvas.style.maxHeight = "100%";
 
           // Force resize
           chart.resize();
@@ -209,7 +215,7 @@ function addZoomMonitoring(canvas, chart) {
     }
   };
 
-  window.addEventListener('resize', checkZoom);
+  window.addEventListener("resize", checkZoom);
 
   // Store for cleanup
   if (!canvas._zoomHandlers) {
@@ -248,12 +254,12 @@ function setupGlobalResizeHandler() {
     }, 150);
   };
 
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 
   // Return cleanup function
   return () => {
     clearTimeout(resizeTimeout);
-    window.removeEventListener('resize', handleResize);
+    window.removeEventListener("resize", handleResize);
   };
 }
 
@@ -288,26 +294,30 @@ export function destroyChart(canvasId) {
  * @returns {Object} Empty chart data
  */
 function getEmptyChartData(type) {
-  if (type === 'pie' || type === 'doughnut') {
+  if (type === "pie" || type === "doughnut") {
     return {
-      labels: ['No Data'],
-      datasets: [{
-        data: [1],
-        backgroundColor: ['#e0e0e0'],
-        borderWidth: 0
-      }]
+      labels: ["No Data"],
+      datasets: [
+        {
+          data: [1],
+          backgroundColor: ["#e0e0e0"],
+          borderWidth: 0,
+        },
+      ],
     };
   }
 
   return {
     labels: [],
-    datasets: [{
-      label: 'No Data',
-      data: [],
-      borderColor: '#e0e0e0',
-      backgroundColor: 'rgba(224, 224, 224, 0.1)',
-      borderWidth: 1
-    }]
+    datasets: [
+      {
+        label: "No Data",
+        data: [],
+        borderColor: "#e0e0e0",
+        backgroundColor: "rgba(224, 224, 224, 0.1)",
+        borderWidth: 1,
+      },
+    ],
   };
 }
 
@@ -320,7 +330,7 @@ function addResizeHandler(canvas, chart) {
   let resizeTimeout;
   let isResizing = false;
 
-  const resizeObserver = new ResizeObserver(entries => {
+  const resizeObserver = new ResizeObserver((entries) => {
     if (isResizing) return; // Prevent recursive calls
 
     clearTimeout(resizeTimeout);
@@ -341,13 +351,13 @@ function addResizeHandler(canvas, chart) {
             canvas.height = maxHeight;
 
             // Trigger chart resize
-            if (chart && typeof chart?.resize === 'function') {
+            if (chart && typeof chart?.resize === "function") {
               chart.resize(maxWidth, maxHeight);
             }
           }
         }
       } catch (error) {
-        console.error('Error in resize handler:', error);
+        console.error("Error in resize handler:", error);
       } finally {
         isResizing = false;
       }
@@ -382,7 +392,7 @@ export function updateChartData(canvasId, newData) {
     chart.data.datasets = newData.datasets || [];
 
     // Update chart
-    chart.update('none'); // Disable animations for updates
+    chart.update("none"); // Disable animations for updates
 
     console.log(`Chart data updated: ${canvasId}`);
   } catch (error) {
@@ -419,45 +429,63 @@ export function cleanupAllCharts() {
  * Initialize chart containers with proper CSS for flexible heights
  */
 export function initializeChartContainers() {
-  const chartContainers = document.querySelectorAll('.chart-container, .chart-wrapper');
+  const chartContainers = document.querySelectorAll(
+    ".chart-container, .chart-wrapper"
+  );
 
-  chartContainers.forEach(container => {
+  chartContainers.forEach((container) => {
     // FIXED: Set container CSS to allow flexible heights
-    container.style.width = '100%';
-    container.style.height = 'auto';
-    container.style.minHeight = '400px';
-    container.style.maxHeight = 'none';
-    container.style.overflow = 'visible';
-    container.style.position = 'relative';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
+    container.style.width = "100%";
+    container.style.height = "auto";
+    container.style.minHeight = "400px";
+    container.style.maxHeight = "none";
+    container.style.overflow = "visible";
+    container.style.position = "relative";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
 
     // Find canvas inside container
-    const canvas = container.querySelector('canvas');
+    const canvas = container.querySelector("canvas");
     if (canvas) {
-      canvas.style.width = '100%';
-      canvas.style.height = 'auto';
-      canvas.style.minHeight = '300px';
-      canvas.style.maxHeight = 'none';
-      canvas.style.flex = '1';
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      canvas.style.minHeight = "300px";
+      canvas.style.maxHeight = "none";
+      canvas.style.flex = "1";
     }
   });
 }
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', cleanupAllCharts);
+window.addEventListener("beforeunload", cleanupAllCharts);
 
 /**
  * Default chart color palette
  */
 const DEFAULT_CHART_COLORS = [
-  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-  '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+  "#FF6384",
+  "#36A2EB",
+  "#FFCE56",
+  "#4BC0C0",
+  "#9966FF",
+  "#FF9F40",
+  "#FF6384",
+  "#C9CBCF",
+  "#4BC0C0",
+  "#FF6384",
 ];
 
 const DARK_CHART_COLORS = [
-  '#FF7F9A', '#5BC0EB', '#FFD56B', '#66D9D9', '#B380FF',
-  '#FFB366', '#FF7F9A', '#E0E0E0', '#66D9D9', '#FF7F9A'
+  "#FF7F9A",
+  "#5BC0EB",
+  "#FFD56B",
+  "#66D9D9",
+  "#B380FF",
+  "#FFB366",
+  "#FF7F9A",
+  "#E0E0E0",
+  "#66D9D9",
+  "#FF7F9A",
 ];
 
 /**
@@ -496,7 +524,11 @@ export function getChartColor(index = 0, isDarkMode = false) {
  * @param {boolean} isDarkMode - Whether dark mode is active
  * @returns {Array<string>} Array of colors matching categories
  */
-export function getCategoryColors(categories, categoryColors = {}, isDarkMode = false) {
+export function getCategoryColors(
+  categories,
+  categoryColors = {},
+  isDarkMode = false
+) {
   return categories.map((category, index) => {
     // Use category-specific color if available
     if (categoryColors[category]) {
@@ -518,19 +550,21 @@ function handleResize() {
       registeredCharts.forEach((chart, canvasId) => {
         // Check if chart and its canvas still exist in DOM
         if (!chart?.canvas?.ownerDocument) {
-          console.warn(`Chart ${canvasId} canvas no longer in DOM, removing from tracking`);
+          console.warn(
+            `Chart ${canvasId} canvas no longer in DOM, removing from tracking`
+          );
           registeredCharts.delete(canvasId);
           return;
         }
 
         // FIXED: Reset canvas dimensions before resize
         const canvas = chart?.canvas;
-        canvas.style.width = '100%';
-        canvas.style.height = 'auto';
-        canvas.style.maxWidth = '100%';
-        canvas.style.maxHeight = '100%';
+        canvas.style.width = "100%";
+        canvas.style.height = "auto";
+        canvas.style.maxWidth = "100%";
+        canvas.style.maxHeight = "100%";
 
-        if (typeof chart.resize === 'function') {
+        if (typeof chart.resize === "function") {
           chart.resize();
         }
       });
@@ -541,4 +575,4 @@ function handleResize() {
 }
 
 // Attach resize handler to window resize events
-window.addEventListener('resize', handleResize);
+window.addEventListener("resize", handleResize);

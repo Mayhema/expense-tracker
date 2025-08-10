@@ -5,11 +5,11 @@ import { AppState } from "../core/appState.js";
 import {
   isExcelDate,
   excelDateToJSDate,
+  validateAndNormalizeDate,
+} from "../utils/dateUtils.js";
 
-  validateAndNormalizeDate
-} from '../utils/dateUtils.js';
-
-console.log("XLSX object:", XLSX);
+// Guarded log to avoid ReferenceError in non-browser/test environments
+console.log("XLSX object:", typeof XLSX !== "undefined" ? XLSX : "not loaded");
 
 // Add better file validation
 function validateFileData(data) {
@@ -18,14 +18,20 @@ function validateFileData(data) {
   }
 
   if (data.length < 2) {
-    throw new Error("File must contain at least one header row and one data row.");
+    throw new Error(
+      "File must contain at least one header row and one data row."
+    );
   }
 
   // Clean up data - remove empty rows and empty cells at the beginning
-  const cleanedData = data.filter(row =>
-    Array.isArray(row) &&
-    row.length > 0 &&
-    row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')
+  const cleanedData = data.filter(
+    (row) =>
+      Array.isArray(row) &&
+      row.length > 0 &&
+      row.some(
+        (cell) =>
+          cell !== null && cell !== undefined && cell.toString().trim() !== ""
+      )
   );
 
   if (cleanedData.length === 0) {
@@ -33,8 +39,11 @@ function validateFileData(data) {
   }
 
   // Find the first non-empty row to use as headers
-  const headerIndex = cleanedData.findIndex(row =>
-    row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')
+  const headerIndex = cleanedData.findIndex((row) =>
+    row.some(
+      (cell) =>
+        cell !== null && cell !== undefined && cell.toString().trim() !== ""
+    )
   );
 
   if (headerIndex === -1) {
@@ -43,7 +52,9 @@ function validateFileData(data) {
 
   // Make sure there's at least one data row after the header
   if (cleanedData.length <= headerIndex + 1) {
-    throw new Error("File must contain at least one data row after the header.");
+    throw new Error(
+      "File must contain at least one data row after the header."
+    );
   }
 
   return cleanedData;
@@ -63,15 +74,15 @@ export async function handleFileUpload(file) {
     throw new Error("No file provided");
   }
 
-  const fileExtension = file.name.split('.').pop().toLowerCase();
+  const fileExtension = file.name.split(".").pop().toLowerCase();
 
   switch (fileExtension) {
-    case 'csv':
+    case "csv":
       return await parseCSV(file);
-    case 'xlsx':
-    case 'xls':
+    case "xlsx":
+    case "xls":
       return await parseExcel(file);
-    case 'xml':
+    case "xml":
       return await parseXML(file);
     default:
       throw new Error(`Unsupported file type: ${fileExtension}`);
@@ -90,10 +101,13 @@ async function parseCSV(file) {
     reader.onload = function (e) {
       try {
         const text = e.target.result;
-        const rows = text.split('\n').map(row => {
-          // Simple CSV parsing - handles quoted fields
-          return parseCSVRow(row);
-        }).filter(row => row.length > 0);
+        const rows = text
+          .split("\n")
+          .map((row) => {
+            // Simple CSV parsing - handles quoted fields
+            return parseCSVRow(row);
+          })
+          .filter((row) => row.length > 0);
 
         console.log(`Parsed CSV: ${rows.length} rows`);
         resolve(rows);
@@ -114,13 +128,15 @@ async function parseCSV(file) {
  */
 async function parseExcel(file) {
   // Check if XLSX library is available
-  if (typeof XLSX === 'undefined') {
+  if (typeof XLSX === "undefined") {
     // Try to load XLSX dynamically
     try {
       await loadXLSXLibrary();
     } catch (error) {
       console.error("Failed to load XLSX library:", error);
-      throw new Error(`Excel parsing requires XLSX library. Load failed: ${error.message}`);
+      throw new Error(
+        `Excel parsing requires XLSX library. Load failed: ${error.message}`
+      );
     }
   }
 
@@ -130,7 +146,7 @@ async function parseExcel(file) {
     reader.onload = function (e) {
       try {
         const data = e.target.result;
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: "array" });
 
         // Get first worksheet
         const sheetName = workbook.SheetNames[0];
@@ -139,7 +155,9 @@ async function parseExcel(file) {
         // Convert to array of arrays
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-        console.log(`Parsed Excel: ${jsonData.length} rows from sheet "${sheetName}"`);
+        console.log(
+          `Parsed Excel: ${jsonData.length} rows from sheet "${sheetName}"`
+        );
         resolve(jsonData);
       } catch (error) {
         reject(new Error(`Excel parsing error: ${error.message}`));
@@ -188,7 +206,7 @@ async function parseXML(file) {
  */
 function parseCSVRow(row) {
   const result = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
   let i = 0;
 
@@ -205,10 +223,10 @@ function parseCSVRow(row) {
         inQuotes = !inQuotes;
         i++;
       }
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === "," && !inQuotes) {
       // Field separator
       result.push(current.trim());
-      current = '';
+      current = "";
       i++;
     } else {
       current += char;
@@ -219,7 +237,7 @@ function parseCSVRow(row) {
   // Add last field
   result.push(current.trim());
 
-  return result.filter(field => field !== '');
+  return result.filter((field) => field !== "");
 }
 
 /**
@@ -230,7 +248,7 @@ function parseCSVRow(row) {
 function parseXMLToRows(xmlDoc) {
   // This is a basic implementation - customize based on your XML structure
   const rows = [];
-  const elements = xmlDoc.getElementsByTagName('*');
+  const elements = xmlDoc.getElementsByTagName("*");
 
   // Simple approach: treat each element as a potential row
   for (const element of elements) {
@@ -251,9 +269,14 @@ function parseXMLToRows(xmlDoc) {
  * @param {string} currency - File currency (optional)
  * @returns {string} File signature
  */
-export function generateFileSignature(fileName, data, mapping = null, currency = null) {
+export function generateFileSignature(
+  fileName,
+  data,
+  mapping = null,
+  currency = null
+) {
   if (!data?.[0]) {
-    return 'empty-file';
+    return "empty-file";
   }
 
   try {
@@ -261,12 +284,17 @@ export function generateFileSignature(fileName, data, mapping = null, currency =
     const columnCount = data[0] ? data[0].length : 0;
 
     // FIXED: Include header content in signature for better uniqueness, normalized
-    const headerContent = data[0] ? data[0].map(cell => {
-      if (!cell) return '';
-      return String(cell).toLowerCase()
-        .replace(/[^a-z0-9]/g, '')  // Remove special chars
-        .substring(0, 10);          // Limit length
-    }).join('|') : '';
+    const headerContent = data[0]
+      ? data[0]
+          .map((cell) => {
+            if (!cell) return "";
+            return String(cell)
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, "") // Remove special chars
+              .substring(0, 10); // Limit length
+          })
+          .join("|")
+      : "";
 
     // FIXED: Analyze data patterns to create structure fingerprint
     const dataPatterns = analyzeDataPatterns(data);
@@ -277,7 +305,7 @@ export function generateFileSignature(fileName, data, mapping = null, currency =
       headerContent: headerContent,
       hasSecondRow: data.length > 1,
       rowCount: Math.min(data.length, 5), // First 5 rows for pattern
-      dataPatterns: dataPatterns
+      dataPatterns: dataPatterns,
       // REMOVED: file extension completely from signature
     };
 
@@ -287,16 +315,23 @@ export function generateFileSignature(fileName, data, mapping = null, currency =
     let hash = 0;
     for (let i = 0; i < structureString.length; i++) {
       const char = structureString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
 
     const signature = `struct_${Math.abs(hash).toString(36)}`;
-    console.log('CRITICAL: Generated STRUCTURE-BASED signature:', signature, 'for file:', fileName, 'structure:', structureData);
+    console.log(
+      "CRITICAL: Generated STRUCTURE-BASED signature:",
+      signature,
+      "for file:",
+      fileName,
+      "structure:",
+      structureData
+    );
 
     return signature;
   } catch (error) {
-    console.error('CRITICAL ERROR: Error generating signature:', error);
+    console.error("CRITICAL ERROR: Error generating signature:", error);
     return `fallback_${Date.now()}`;
   }
 }
@@ -317,43 +352,45 @@ function analyzeDataPatterns(data) {
     const patterns = {
       hasData: true,
       columnTypes: [],
-      nonEmptyColumns: 0
+      nonEmptyColumns: 0,
     };
 
     // Analyze each column's data type pattern
     for (let colIndex = 0; colIndex < (data[0]?.length || 0); colIndex++) {
       const columnValues = sampleRows
-        .map(row => row[colIndex])
-        .filter(val => val !== null && val !== undefined && val !== '');
+        .map((row) => row[colIndex])
+        .filter((val) => val !== null && val !== undefined && val !== "");
 
       if (columnValues.length === 0) {
-        patterns.columnTypes[colIndex] = 'empty';
+        patterns.columnTypes[colIndex] = "empty";
         continue;
       }
 
       patterns.nonEmptyColumns++;
 
       // Determine column type based on content
-      const hasNumbers = columnValues.some(val => !isNaN(parseFloat(val)));
-      const hasText = columnValues.some(val => isNaN(parseFloat(val)) && String(val).length > 2);
-      const hasDates = columnValues.some(val => {
+      const hasNumbers = columnValues.some((val) => !isNaN(parseFloat(val)));
+      const hasText = columnValues.some(
+        (val) => isNaN(parseFloat(val)) && String(val).length > 2
+      );
+      const hasDates = columnValues.some((val) => {
         return isExcelDate(val) || !isNaN(Date.parse(val));
       });
 
       if (hasDates) {
-        patterns.columnTypes[colIndex] = 'date';
+        patterns.columnTypes[colIndex] = "date";
       } else if (hasNumbers && !hasText) {
-        patterns.columnTypes[colIndex] = 'number';
+        patterns.columnTypes[colIndex] = "number";
       } else if (hasText) {
-        patterns.columnTypes[colIndex] = 'text';
+        patterns.columnTypes[colIndex] = "text";
       } else {
-        patterns.columnTypes[colIndex] = 'mixed';
+        patterns.columnTypes[colIndex] = "mixed";
       }
     }
 
     return patterns;
   } catch (error) {
-    console.error('Error analyzing data patterns:', error);
+    console.error("Error analyzing data patterns:", error);
     return { hasData: false, error: true };
   }
 }
@@ -373,11 +410,11 @@ function createContentSignature(data) {
       if (data[i]) {
         // Take the first few cells from each row
         const rowSample = data[i].slice(0, Math.min(3, data[i].length));
-        samples.push(rowSample.join('|'));
+        samples.push(rowSample.join("|"));
       }
     }
 
-    return samples.join('::');
+    return samples.join("::");
   } catch (error) {
     console.error("Error creating content signature:", error);
     return "error";
@@ -388,46 +425,50 @@ function createContentSignature(data) {
 export function getSignatureString(signature) {
   if (!signature) return "";
 
-  if (typeof signature === 'string') {
+  if (typeof signature === "string") {
     return signature;
   }
 
   // Use toString if available (for our new signature objects)
-  if (typeof signature.toString === 'function' &&
-    signature.toString !== Object.prototype.toString) {
+  if (
+    typeof signature.toString === "function" &&
+    signature.toString !== Object.prototype.toString
+  ) {
     return signature.toString();
   }
 
   // Otherwise extract one of the signatures
-  return signature.mappingSig ||
+  return (
+    signature.mappingSig ||
     signature.formatSig ||
     signature.contentSig ||
     signature.structureSig ||
-    JSON.stringify(signature);
+    JSON.stringify(signature)
+  );
 }
 
 // Format signature - based purely on column count and file type
 function createFormatSignature(fileName, data) {
-  const fileFormat = fileName.split('.').pop().toLowerCase();
+  const fileFormat = fileName.split(".").pop().toLowerCase();
   const columnCount = data[0]?.length || 0;
   return simpleHash(`${fileFormat}:${columnCount}:format`);
 }
 
 // Mapping signature - based on user-defined header mapping
 function createMappingSignature(fileName, headerMapping) {
-  const fileFormat = fileName.split('.').pop().toLowerCase();
-  const filterMapping = headerMapping.filter(h => h !== "–");
-  const mappingString = filterMapping.join('|');
+  const fileFormat = fileName.split(".").pop().toLowerCase();
+  const filterMapping = headerMapping.filter((h) => h !== "–");
+  const mappingString = filterMapping.join("|");
   return simpleHash(`${fileFormat}:${mappingString}:mapping`);
 }
 
 // Update the signature generation for XML files
 
 function createSignatureFromStructure(fileName, data) {
-  const fileFormat = fileName.split('.').pop().toLowerCase();
+  const fileFormat = fileName.split(".").pop().toLowerCase();
 
   // For XML files, use a more consistent approach
-  if (fileFormat === 'xml') {
+  if (fileFormat === "xml") {
     // Focus on column count and pattern rather than specific content
     const columnCount = data[0]?.length || 0;
 
@@ -439,9 +480,9 @@ function createSignatureFromStructure(fileName, data) {
 }
 
 function createSignatureFromMapping(fileName, headerMapping, data) {
-  const fileFormat = fileName.split('.').pop().toLowerCase();
-  const filterMapping = headerMapping.filter(h => h !== "–");
-  const mappingString = filterMapping.join('|');
+  const fileFormat = fileName.split(".").pop().toLowerCase();
+  const filterMapping = headerMapping.filter((h) => h !== "–");
+  const mappingString = filterMapping.join("|");
 
   // Create a signature that includes both structure and user-defined mapping
   const mappingSignature = `${fileFormat}:${filterMapping.length}:${mappingString}`;
@@ -452,7 +493,7 @@ function simpleHash(str) {
   let hash = 0;
   for (const char of str) {
     const charCode = char.charCodeAt(0);
-    hash = ((hash << 5) - hash) + charCode;
+    hash = (hash << 5) - hash + charCode;
     hash = hash & hash;
   }
   return Math.abs(hash).toString(36).substring(0, 12);
@@ -463,7 +504,9 @@ function simpleHash(str) {
  * @deprecated Use isExcelDate from dateUtils instead
  */
 export function isExcelDateLocal(value) {
-  console.warn('fileHandler.isExcelDateLocal is deprecated. Use isExcelDate from dateUtils instead.');
+  console.warn(
+    "fileHandler.isExcelDateLocal is deprecated. Use isExcelDate from dateUtils instead."
+  );
   return isExcelDate(value);
 }
 
@@ -471,7 +514,7 @@ export function isExcelDateLocal(value) {
  * Helper function to be used in transactionManager.js
  */
 export function convertExcelDates(transactions) {
-  return transactions.map(tx => {
+  return transactions.map((tx) => {
     if (tx.date) {
       const dateValidation = validateAndNormalizeDate(tx.date);
       if (dateValidation.isValid) {
@@ -487,7 +530,9 @@ export function convertExcelDates(transactions) {
  * @deprecated Use excelDateToISOString from dateUtils instead
  */
 export function excelDateToJSDateLocal(excelDate) {
-  console.warn('fileHandler.excelDateToJSDateLocal is deprecated. Use excelDateToISOString from dateUtils instead.');
+  console.warn(
+    "fileHandler.excelDateToJSDateLocal is deprecated. Use excelDateToISOString from dateUtils instead."
+  );
   return excelDateToJSDate(excelDate);
 }
 
@@ -501,19 +546,25 @@ export function excelDateToJSDateLocal(excelDate) {
  */
 export function isDuplicateFile(fileName, signature) {
   // First check by exact file name
-  const duplicateByName = AppState.mergedFiles.find(f => f.fileName === fileName);
+  const duplicateByName = AppState.mergedFiles.find(
+    (f) => f.fileName === fileName
+  );
   if (duplicateByName) return duplicateByName;
 
   // Next check by signature
-  const duplicateBySig = AppState.mergedFiles.find(f => {
+  const duplicateBySig = AppState.mergedFiles.find((f) => {
     // Normalizing signatures for comparison
-    const fileSig = typeof f.signature === 'object'
-      ? (f.signature.formatSig || f.signature.structureSig || f.signature.mappingSig)
-      : f.signature;
+    const fileSig =
+      typeof f.signature === "object"
+        ? f.signature.formatSig ||
+          f.signature.structureSig ||
+          f.signature.mappingSig
+        : f.signature;
 
-    const checkSig = typeof signature === 'object'
-      ? (signature.formatSig || signature.structureSig || signature.mappingSig)
-      : signature;
+    const checkSig =
+      typeof signature === "object"
+        ? signature.formatSig || signature.structureSig || signature.mappingSig
+        : signature;
 
     return fileSig === checkSig;
   });
@@ -536,7 +587,9 @@ export function ensureTransactionIds(transactions) {
       // Generate new unique ID
       let newId;
       do {
-        newId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
+        newId = `tx_${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2, 11)}_${index}`;
       } while (usedIds.has(newId));
 
       tx.id = newId;
@@ -547,74 +600,9 @@ export function ensureTransactionIds(transactions) {
   });
 }
 
-// KEEP ONLY ONE VERSION of each function to fix duplicate declarations
-
-// Keep only one getOption function
+// Utility: safely read option with default
 function getOption(options, name, defaultValue) {
   return options && options[name] !== undefined ? options[name] : defaultValue;
-}
-
-// Keep only one processDataRows function
-function processDataRows(rows, format) {
-  // Convert traditional for loop to for-of
-  for (const row of rows) {
-    // Process each row directly
-    processRow(row, format);
-  }
-}
-
-// Keep only one processItems function
-function processItems(items) {
-  // Convert traditional for loop to for-of
-  for (const item of items) {
-    // Process each item directly
-    processItem(item);
-  }
-}
-
-// Keep only one processRecords function
-function processRecords(records) {
-  // Convert traditional for loop to for-of
-  for (const record of records) {
-    // Process each record directly
-    processRecord(record);
-  }
-}
-
-// IMPORTANT: REMOVE ALL duplicate function declarations:
-// - Any other getOption functions
-// - Any other processDataRows functions
-// - Any other processItems functions
-// - Any other processRecords functions
-
-// Fix exception handling
-try {
-  // ...existing code...
-} catch (error) {
-  console.error("Error processing file:", error);
-  // Properly handle the exception
-  throw new Error(`File processing failed: ${error.message}`);
-}
-
-// Fix unhandled exceptions
-export function parseFile(file) {
-  try {
-    const content = readFile(file);
-    return processFileContent(content);
-  } catch (error) {
-    console.error("Error parsing file:", error);
-    throw new Error(`Failed to parse ${file.name}: ${error.message}`);
-  }
-}
-
-function processFileContent(content) {
-  try {
-    // Processing logic
-    return processedData;
-  } catch (error) {
-    console.error("Error processing file content:", error);
-    throw new Error(`Content processing failed: ${error.message}`);
-  }
 }
 
 /**
@@ -624,14 +612,15 @@ function processFileContent(content) {
 async function loadXLSXLibrary() {
   return new Promise((resolve, reject) => {
     // Check if already loaded
-    if (typeof XLSX !== 'undefined') {
+    if (typeof XLSX !== "undefined") {
       resolve();
       return;
     }
 
     // Create script element
-    const script = document.createElement('script');
-    script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+    const script = document.createElement("script");
+    script.src =
+      "https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js";
     script.onload = () => {
       console.log("XLSX library loaded successfully");
       resolve();

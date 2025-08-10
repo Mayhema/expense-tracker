@@ -13,8 +13,8 @@ import {
   isValidDateString,
   formatDateForDisplay,
   isDateColumn as isDateColumnUtil,
-  validateAndNormalizeDate
-} from './dateUtils.js';
+  validateAndNormalizeDate,
+} from "./dateUtils.js";
 
 // Re-export date utilities for backward compatibility
 export {
@@ -24,7 +24,7 @@ export {
   isValidDateString as isValidDate,
   formatDateForDisplay as formatDate,
   isDateColumnUtil as isDateColumn,
-  validateAndNormalizeDate
+  validateAndNormalizeDate,
 };
 
 /**
@@ -32,7 +32,9 @@ export {
  * @deprecated
  */
 export function excelDateToString(excelDate) {
-  console.warn('excelDateToString is deprecated. Use excelDateToISOString from dateUtils instead.');
+  console.warn(
+    "excelDateToString is deprecated. Use excelDateToISOString from dateUtils instead."
+  );
   return excelDateToISOString(excelDate);
 }
 
@@ -62,7 +64,7 @@ export function isExcelDateColumn(columnValues) {
   let totalValidValues = 0;
 
   for (const value of columnValues) {
-    if (value !== null && value !== undefined && value !== '') {
+    if (value !== null && value !== undefined && value !== "") {
       totalValidValues++;
       if (isExcelDate(value)) {
         excelDateCount++;
@@ -71,7 +73,7 @@ export function isExcelDateColumn(columnValues) {
   }
 
   // If at least 60% of non-empty values are Excel dates, consider it an Excel date column
-  return totalValidValues > 0 && (excelDateCount / totalValidValues) >= 0.6;
+  return totalValidValues > 0 && excelDateCount / totalValidValues >= 0.6;
 }
 
 /**
@@ -93,28 +95,28 @@ function isDateColumnLegacy(columnValues) {
   let totalValidValues = 0;
 
   for (const value of columnValues) {
-    if (value !== null && value !== undefined && value !== '') {
+    if (value !== null && value !== undefined && value !== "") {
       totalValidValues++;
 
       const str = String(value).trim();
 
       // Check for various date formats
       const datePatterns = [
-        /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/,        // YYYY-MM-DD, YYYY/MM/DD
-        /^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/,        // DD-MM-YYYY, MM/DD/YYYY
-        /^\d{1,2}[-/]\d{1,2}[-/]\d{2}$/,        // DD-MM-YY, MM/DD/YY
-        /^\d{4}\d{2}\d{2}$/,                     // YYYYMMDD
-        /^\d{2}\d{2}\d{4}$/                      // DDMMYYYY or MMDDYYYY
+        /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/, // YYYY-MM-DD, YYYY/MM/DD
+        /^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/, // DD-MM-YYYY, MM/DD/YYYY
+        /^\d{1,2}[-/]\d{1,2}[-/]\d{2}$/, // DD-MM-YY, MM/DD/YY
+        /^\d{4}\d{2}\d{2}$/, // YYYYMMDD
+        /^\d{2}\d{2}\d{4}$/, // DDMMYYYY or MMDDYYYY
       ];
 
-      if (datePatterns.some(pattern => pattern.test(str))) {
+      if (datePatterns.some((pattern) => pattern.test(str))) {
         dateCount++;
       }
     }
   }
 
   // If at least 50% of non-empty values are dates, consider it a date column
-  return totalValidValues > 0 && (dateCount / totalValidValues) >= 0.5;
+  return totalValidValues > 0 && dateCount / totalValidValues >= 0.5;
 }
 
 /**
@@ -124,16 +126,16 @@ function isDateColumnLegacy(columnValues) {
  * @deprecated Use parseToISODate from dateUtils.js instead
  */
 function parseToDateStringLegacy(value) {
-  if (value === null || value === undefined || value === '') return null;
+  if (value === null || value === undefined || value === "") return null;
   if (isExcelDate(value)) return excelDateToISOString(parseFloat(value));
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const stringDateResult = parseStringToDateFormat(value);
     if (stringDateResult) return stringDateResult;
 
     const date = new Date(value);
-    if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+    if (!isNaN(date.getTime())) return date.toISOString().split("T")[0];
   }
-  if (value instanceof Date) return value.toISOString().split('T')[0];
+  if (value instanceof Date) return value.toISOString().split("T")[0];
   return null;
 }
 
@@ -169,21 +171,21 @@ function determineYear(part1, part3) {
 function determineMonthAndDay(part1, part2, part3) {
   if (part1.length === 4) {
     return {
-      month: part2.padStart(2, '0'),
-      day: part3.padStart(2, '0')
+      month: part2.padStart(2, "0"),
+      day: part3.padStart(2, "0"),
     };
   }
 
   if (parseInt(part1) > 12) {
     return {
-      month: part2.padStart(2, '0'),
-      day: part1.padStart(2, '0')
+      month: part2.padStart(2, "0"),
+      day: part1.padStart(2, "0"),
     };
   }
 
   return {
-    month: part1.padStart(2, '0'),
-    day: part2.padStart(2, '0')
+    month: part1.padStart(2, "0"),
+    day: part2.padStart(2, "0"),
   };
 }
 
@@ -223,7 +225,7 @@ export function getContrastColor(hexColor) {
  * @returns {object} Cloned object
  */
 export function deepClone(obj) {
-  if (obj === null || typeof obj !== 'object') {
+  if (obj === null || typeof obj !== "object") {
     return obj;
   }
   return JSON.parse(JSON.stringify(obj));
@@ -235,7 +237,9 @@ export function deepClone(obj) {
  * @returns {string} Unique ID
  */
 export function generateId(prefix = "") {
-  return `${prefix}${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  return `${prefix}${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 11)}`;
 }
 
 /**
@@ -244,9 +248,9 @@ export function generateId(prefix = "") {
  * @returns {string} Formatted currency string
  */
 export function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
   }).format(value);
 }
 
@@ -259,10 +263,10 @@ export function formatCurrency(value) {
 function formatDateLegacy(dateStr) {
   try {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   } catch (e) {
     console.error("Error formatting date:", e);
@@ -276,10 +280,10 @@ function formatDateLegacy(dateStr) {
  * @returns {string} Cleaned path
  */
 export function cleanPath(path) {
-  if (!path) return '';
+  if (!path) return "";
   // Remove path traversal sequences
   const pattern = /\/path\/to\/file/; // No escaping needed with RegExp constructor
-  return path.replace(pattern, '');
+  return path.replace(pattern, "");
 }
 
 /**
@@ -355,19 +359,19 @@ export function processComplexData(args) {
 // Helper functions to reduce complexity
 function processFirstPart(args) {
   // Part 1 logic
-  return args ? { processed: true, source: 'part1' } : null;
+  return args ? { processed: true, source: "part1" } : null;
 }
 
 function processSecondPart(args) {
   // Part 2 logic
-  return args ? { processed: true, source: 'part2' } : null;
+  return args ? { processed: true, source: "part2" } : null;
 }
 
 function mergeResults(result1, result2) {
   // Combine logic
   return {
     combined: true,
-    parts: [result1, result2]
+    parts: [result1, result2],
   };
 }
 
@@ -415,7 +419,7 @@ export function processData(params) {
 
   return {
     result: combinedResults,
-    status: 'success'
+    status: "success",
   };
 }
 
@@ -444,7 +448,9 @@ function processTransactions(transactions) {
 
     // Ensure transaction has unique ID
     if (!processed.id) {
-      processed.id = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`;
+      processed.id = `tx_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 11)}_${index}`;
     }
 
     // Handle income and expenses
@@ -482,7 +488,7 @@ export function findTransactionById(transactions, transactionId) {
   if (!transactions || !Array.isArray(transactions) || !transactionId) {
     return null;
   }
-  return transactions.find(tx => tx.id === transactionId) || null;
+  return transactions.find((tx) => tx.id === transactionId) || null;
 }
 
 /**
@@ -495,7 +501,7 @@ export function findTransactionIndexById(transactions, transactionId) {
   if (!transactions || !Array.isArray(transactions) || !transactionId) {
     return -1;
   }
-  return transactions.findIndex(tx => tx.id === transactionId);
+  return transactions.findIndex((tx) => tx.id === transactionId);
 }
 
 /**
@@ -506,11 +512,12 @@ export function findTransactionIndexById(transactions, transactionId) {
  */
 export function toggleActiveState(element, active) {
   // Define isActive locally to avoid reference error
-  const isActive = active !== undefined ? active : !element.classList.contains('active');
+  const isActive =
+    active !== undefined ? active : !element.classList.contains("active");
 
   // Apply the appropriate classes
-  element.classList.toggle('active', isActive);
-  element.classList.toggle('inactive', !isActive);
+  element.classList.toggle("active", isActive);
+  element.classList.toggle("inactive", !isActive);
 
   return isActive;
 }

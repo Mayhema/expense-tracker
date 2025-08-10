@@ -4,28 +4,44 @@
  */
 
 // Import the new revertTransaction functionality
-import '../ui/revertTransaction.js';
+import "../ui/revertTransaction.js";
+
+// Local imports for internal usage (while preserving re-exports below)
+import {
+  showModal as __showModal,
+  closeAllModals as __closeAllModals,
+} from "../ui/modalManager.js";
+import { showToast as __showToast } from "../ui/uiManager.js";
 
 // Re-export UI functionality - no CSS imports
-export { initializeUI, showToast, hideElement, showElement } from '../ui/uiManager.js';
-export { setupSidebarManager } from '../ui/sidebarManager.js';
+export {
+  initializeUI,
+  showToast,
+  hideElement,
+  showElement,
+} from "../ui/uiManager.js";
+export { setupSidebarManager } from "../ui/sidebarManager.js";
 export {
   updateTransactions,
   renderTransactions,
-  renderCategoryButtons
-} from '../ui/transactionManager.js';
-export { showModal, closeAllModals } from '../ui/modalManager.js';
-export { revertTransaction } from '../ui/revertTransaction.js';
+  renderCategoryButtons,
+} from "../ui/transactionManager.js";
+export { showModal, closeAllModals } from "../ui/modalManager.js";
+export { revertTransaction } from "../ui/revertTransaction.js";
 
 // Re-export file handling UI
 export {
   onFileUpload,
   clearPreview,
   createNewFileInput,
-  onSaveHeaders
-} from '../ui/fileUpload.js';
-export { renderHeaderPreview, suggestMapping, updateHeaderMapping } from '../ui/headerMapping.js';
-export { renderMergedFiles } from '../ui/fileListUI.js';
+  onSaveHeaders,
+} from "../ui/fileUpload.js";
+export {
+  renderHeaderPreview,
+  suggestMapping,
+  updateHeaderMapping,
+} from "../ui/headerMapping.js";
+export { renderMergedFiles } from "../ui/fileListUI.js";
 
 /**
  * Initialize all UI components in one call
@@ -33,9 +49,11 @@ export { renderMergedFiles } from '../ui/fileListUI.js';
 export async function initializeAllUI() {
   try {
     // Load essential modules
-    const { initializeUI } = await import('../ui/uiManager.js');
-    const { setupSidebarManager } = await import('../ui/sidebarManager.js');
-    const { renderCategoryButtons } = await import('../ui/transactionManager.js');
+    const { initializeUI } = await import("../ui/uiManager.js");
+    const { setupSidebarManager } = await import("../ui/sidebarManager.js");
+    const { renderCategoryButtons } = await import(
+      "../ui/transactionManager.js"
+    );
 
     // Initialize in the proper order
     initializeUI();
@@ -84,10 +102,10 @@ export const UIUtils = {
    * Show a modal with enhanced configuration
    */
   showEnhancedModal: (config) => {
-    return showModal({
+    return __showModal({
       ...config,
-      className: `enhanced-modal ${config.className || ''}`,
-      closeOnClickOutside: config.closeOnClickOutside !== false
+      className: `enhanced-modal ${config.className || ""}`,
+      closeOnClickOutside: config.closeOnClickOutside !== false,
     });
   },
 
@@ -96,7 +114,7 @@ export const UIUtils = {
    */
   closeAllModals: () => {
     try {
-      closeAllModals();
+      __closeAllModals();
     } catch (error) {
       console.error("Error closing modals:", error);
     }
@@ -106,20 +124,20 @@ export const UIUtils = {
    * Show success toast
    */
   showSuccess: (message) => {
-    showToast(message, "success");
+    __showToast(message, "success");
   },
 
   /**
    * Show error toast
    */
   showError: (message) => {
-    showToast(message, "error");
+    __showToast(message, "error");
   },
 
   /**
    * Show warning toast
    */
   showWarning: (message) => {
-    showToast(message, "warning");
-  }
+    __showToast(message, "warning");
+  },
 };

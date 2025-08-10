@@ -16,10 +16,10 @@
  * - Regression test accumulation
  */
 
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from "@jest/globals";
 
-describe('test-runner', () => {
-  test('should pass minimal runner test', () => {
+describe("test-runner", () => {
+  test("should pass minimal runner test", () => {
     expect(true).toBe(true);
   });
 });

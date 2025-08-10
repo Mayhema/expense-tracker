@@ -40,8 +40,8 @@
 }
 
 /* Ensure specific filter elements maintain proper sizing */
-.filter-group>select,
-.filter-group>input {
+.filter-group > select,
+.filter-group > input {
   min-width: 120px !important;
   max-width: 150px !important;
   box-sizing: border-box !important;
@@ -151,8 +151,8 @@ div#transactionFilters div.filter-group {
 }
 
 /* Override ANY possible grid or other layout */
-.filter-row>*,
-.filter-row>div,
+.filter-row > *,
+.filter-row > div,
 .filter-row .filter-group {
   display: flex !important;
   flex-direction: column !important;
@@ -162,9 +162,9 @@ div#transactionFilters div.filter-group {
 }
 
 /* Ensure filter controls are properly sized */
-.filter-group>select,
-.filter-group>input,
-.filter-group>button {
+.filter-group > select,
+.filter-group > input,
+.filter-group > button {
   width: 100% !important;
   min-width: 120px !important;
   box-sizing: border-box !important;
@@ -526,8 +526,6 @@ body.dark-mode .no-transactions {
   color: #007bff !important;
 }
 
-
-
 /* FIXED: ULTIMATE TRANSACTION SUMMARY WHITE BACKGROUND FIX - MAXIMUM SPECIFICITY */
 /* These selectors have the highest possible CSS specificity to override ANY white backgrounds */
 
@@ -546,9 +544,7 @@ html body.dark-mode [class*="transaction"] .summary-card {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
   border: 2px solid rgba(102, 126, 234, 0.3) !important;
   color: #e0e8ff !important;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(102, 126, 234, 0.2),
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(102, 126, 234, 0.2),
     inset 0 1px 0 rgba(102, 126, 234, 0.1) !important;
   backdrop-filter: blur(10px) !important;
 }

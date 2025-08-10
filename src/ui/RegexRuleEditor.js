@@ -1,4 +1,7 @@
-import { descriptionCategoryMap, saveCategoryMappings } from "../ui/categoryMapping.js";
+import {
+  descriptionCategoryMap,
+  saveCategoryMappings,
+} from "../ui/categoryMapping.js";
 import { showModal } from "./modalManager.js";
 import { showToast } from "./uiManager.js";
 import { AppState } from "../core/appState.js";
@@ -6,7 +9,7 @@ import { AppState } from "../core/appState.js";
 // Open regex rule editor modal
 export function openRegexRuleEditor() {
   // First close any existing modals to prevent double modals
-  document.querySelectorAll('.modal-backdrop').forEach(modal => {
+  document.querySelectorAll(".modal-backdrop").forEach((modal) => {
     if (modal.parentNode) modal.parentNode.removeChild(modal);
   });
 
@@ -100,9 +103,10 @@ export function openRegexRuleEditor() {
         <label for="ruleCategory">Category:</label>
         <select id="ruleCategory" class="category-select">
           <option value="">Select a category</option>
-          ${Object.keys(AppState.categories || {}).sort((a, b) => a.localeCompare(b)).map(cat =>
-    `<option value="${cat}">${cat}</option>`
-  ).join('')}
+          ${Object.keys(AppState.categories || {})
+            .sort((a, b) => a.localeCompare(b))
+            .map((cat) => `<option value="${cat}">${cat}</option>`)
+            .join("")}
         </select>
       </div>
       <div class="form-row" id="ruleSubcategoryContainer">
@@ -118,9 +122,16 @@ export function openRegexRuleEditor() {
     <p>These patterns will automatically categorize matching transactions.</p>
 
     <div class="regex-rules-container">
-      ${Object.entries(categoryMappings).filter(([pattern]) =>
-    pattern.startsWith('^') || pattern.endsWith('$') || pattern.includes('*')
-  ).map(([pattern, category]) => `
+      ${
+        Object.entries(categoryMappings)
+          .filter(
+            ([pattern]) =>
+              pattern.startsWith("^") ||
+              pattern.endsWith("$") ||
+              pattern.includes("*")
+          )
+          .map(
+            ([pattern, category]) => `
         <div class="regex-rule-row" data-pattern="${pattern}">
           <div class="regex-pattern" title="${pattern}">${pattern}</div>
           <div class="regex-category">${category}</div>
@@ -128,7 +139,10 @@ export function openRegexRuleEditor() {
             <button class="delete-rule-btn icon-btn" data-pattern="${pattern}" title="Delete Rule">🗑️</button>
           </div>
         </div>
-      `).join('') || '<div class="regex-rule-row">No regex rules found</div>'}
+      `
+          )
+          .join("") || '<div class="regex-rule-row">No regex rules found</div>'
+      }
     </div>
   `;
 
@@ -137,7 +151,7 @@ export function openRegexRuleEditor() {
     title: "Automatic Category Rules", // Changed title
     content: container,
     size: "medium",
-    width: 600
+    width: 600,
   });
 
   // Add event listener for the save button
@@ -171,7 +185,7 @@ export function openRegexRuleEditor() {
   });
 
   // Add event listeners to delete buttons
-  container.querySelectorAll(".delete-rule-btn").forEach(btn => {
+  container.querySelectorAll(".delete-rule-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const pattern = btn.getAttribute("data-pattern");
       if (pattern && confirm(`Delete rule "${pattern}"?`)) {
@@ -186,7 +200,8 @@ export function openRegexRuleEditor() {
         }
         // If no rules left, show message
         if (container.querySelectorAll(".regex-rule-row").length === 0) {
-          container.querySelector(".regex-rules-container").innerHTML = '<div class="regex-rule-row">No regex rules found</div>';
+          container.querySelector(".regex-rules-container").innerHTML =
+            '<div class="regex-rule-row">No regex rules found</div>';
         }
       }
     });
@@ -198,28 +213,33 @@ export function openRegexRuleEditor() {
 // Update category select when a category is selected
 export function updateSubcategorySelect() {
   const categorySelect = document.getElementById("ruleCategory");
-  const subcategoryContainer = document.getElementById("ruleSubcategoryContainer");
+  const subcategoryContainer = document.getElementById(
+    "ruleSubcategoryContainer"
+  );
 
   if (!categorySelect || !subcategoryContainer) return;
 
   const selectedCategory = categorySelect.value;
   if (!selectedCategory) {
-    subcategoryContainer.innerHTML = '<input id="ruleSub" type="text" placeholder="Subcategory (optional)" disabled />';
+    subcategoryContainer.innerHTML =
+      '<input id="ruleSub" type="text" placeholder="Subcategory (optional)" disabled />';
     return;
   }
 
   const category = AppState.categories[selectedCategory];
-  if (category && typeof category === 'object' && category.subcategories) {
+  if (category && typeof category === "object" && category.subcategories) {
     // Generate subcategory dropdown
     subcategoryContainer.innerHTML = `
       <select id="ruleSub">
         <option value="">No subcategory</option>
-        ${Object.keys(category.subcategories).sort((a, b) => a.localeCompare(b)).map(sub =>
-      `<option value="${sub}">${sub}</option>`
-    ).join('')}
+        ${Object.keys(category.subcategories)
+          .sort((a, b) => a.localeCompare(b))
+          .map((sub) => `<option value="${sub}">${sub}</option>`)
+          .join("")}
       </select>
     `;
   } else {
-    subcategoryContainer.innerHTML = '<input id="ruleSub" type="text" placeholder="Subcategory (optional)" />';
+    subcategoryContainer.innerHTML =
+      '<input id="ruleSub" type="text" placeholder="Subcategory (optional)" />';
   }
 }

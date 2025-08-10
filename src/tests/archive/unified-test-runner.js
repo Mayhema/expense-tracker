@@ -25,11 +25,11 @@
  * npm run test:all
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
-import { describe, test, expect } from '@jest/globals';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { spawn } from "child_process";
+import { describe, test, expect } from "@jest/globals";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,30 +37,22 @@ const __dirname = path.dirname(__filename);
 // Test runner configuration
 const config = {
   testPaths: [__dirname],
-  testPatterns: [
-    /\.test\.js$/,
-    /^test-.*\.js$/,
-    /.*-test\.js$/
-  ],
-  excludePatterns: [
-    /unified-test-runner\.js$/,
-    /node_modules/,
-    /\.min\.js$/
-  ],
+  testPatterns: [/\.test\.js$/, /^test-.*\.js$/, /.*-test\.js$/],
+  excludePatterns: [/unified-test-runner\.js$/, /node_modules/, /\.min\.js$/],
   timeoutMs: 30000,
-  verbose: true
+  verbose: true,
 };
 
 // Colors for console output
 const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
 };
 
 /**
@@ -82,8 +74,12 @@ function findTestFiles(directory = __dirname) {
           scanDirectory(fullPath);
         } else if (stat.isFile()) {
           // Check if file matches test patterns
-          const isTestFile = config.testPatterns.some(pattern => pattern.test(item));
-          const isExcluded = config.excludePatterns.some(pattern => pattern.test(fullPath));
+          const isTestFile = config.testPatterns.some((pattern) =>
+            pattern.test(item)
+          );
+          const isExcluded = config.excludePatterns.some((pattern) =>
+            pattern.test(fullPath)
+          );
 
           if (isTestFile && !isExcluded) {
             testFiles.push(fullPath);
@@ -91,11 +87,18 @@ function findTestFiles(directory = __dirname) {
         }
       }
     } catch (error) {
-      console.warn(colors.yellow + 'Warning: Could not scan directory ' + dir + ': ' + error.message + colors.reset);
+      console.warn(
+        colors.yellow +
+          "Warning: Could not scan directory " +
+          dir +
+          ": " +
+          error.message +
+          colors.reset
+      );
     }
   }
 
-  config.testPaths.forEach(testPath => scanDirectory(testPath));
+  config.testPaths.forEach((testPath) => scanDirectory(testPath));
   return testFiles.sort((a, b) => a.localeCompare(b));
 }
 
@@ -108,26 +111,26 @@ async function runTestFile(testFilePath) {
 
   return new Promise((resolve) => {
     try {
-      console.log(colors.blue + '📋 Running: ' + fileName + colors.reset);
+      console.log(colors.blue + "📋 Running: " + fileName + colors.reset);
 
       // For Node.js test files, run them directly
-      const child = spawn('node', [testFilePath], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: path.resolve(__dirname, '../..')  // Set to project root
+      const child = spawn("node", [testFilePath], {
+        stdio: ["pipe", "pipe", "pipe"],
+        cwd: path.resolve(__dirname, "../.."), // Set to project root
       });
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      child.stdout.on('data', (data) => {
+      child.stdout.on("data", (data) => {
         stdout += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr.on("data", (data) => {
         stderr += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         const endTime = Date.now();
         const duration = endTime - startTime;
 
@@ -138,19 +141,36 @@ async function runTestFile(testFilePath) {
           duration,
           stdout,
           stderr,
-          exitCode: code
+          exitCode: code,
         };
 
         if (result.success) {
-          console.log(colors.green + '✅ ' + fileName + ' (' + duration + 'ms)' + colors.reset);
+          console.log(
+            colors.green +
+              "✅ " +
+              fileName +
+              " (" +
+              duration +
+              "ms)" +
+              colors.reset
+          );
         } else {
-          console.log(colors.red + '❌ ' + fileName + ' (' + duration + 'ms) - Exit code: ' + code + colors.reset);
+          console.log(
+            colors.red +
+              "❌ " +
+              fileName +
+              " (" +
+              duration +
+              "ms) - Exit code: " +
+              code +
+              colors.reset
+          );
         }
 
         resolve(result);
       });
 
-      child.on('error', (error) => {
+      child.on("error", (error) => {
         const endTime = Date.now();
         const duration = endTime - startTime;
 
@@ -159,36 +179,59 @@ async function runTestFile(testFilePath) {
           path: testFilePath,
           success: false,
           duration,
-          stdout: '',
+          stdout: "",
           stderr: error.message,
           exitCode: -1,
-          error: error.message
+          error: error.message,
         };
 
-        console.log(colors.red + '❌ ' + fileName + ' (' + duration + 'ms) - Error: ' + error.message + colors.reset);
+        console.log(
+          colors.red +
+            "❌ " +
+            fileName +
+            " (" +
+            duration +
+            "ms) - Error: " +
+            error.message +
+            colors.reset
+        );
         resolve(result);
       });
 
       // Set timeout
       setTimeout(() => {
-        child.kill('SIGTERM');
-        console.log(colors.yellow + '⏰ ' + fileName + ' timed out after ' + config.timeoutMs + 'ms' + colors.reset);
+        child.kill("SIGTERM");
+        console.log(
+          colors.yellow +
+            "⏰ " +
+            fileName +
+            " timed out after " +
+            config.timeoutMs +
+            "ms" +
+            colors.reset
+        );
       }, config.timeoutMs);
-
     } catch (error) {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.log(colors.red + '❌ ' + fileName + ' - Exception: ' + error.message + colors.reset);
+      console.log(
+        colors.red +
+          "❌ " +
+          fileName +
+          " - Exception: " +
+          error.message +
+          colors.reset
+      );
       resolve({
         file: fileName,
         path: testFilePath,
         success: false,
         duration,
-        stdout: '',
+        stdout: "",
         stderr: error.message,
         exitCode: -1,
-        error: error.message
+        error: error.message,
       });
     }
   });
@@ -199,30 +242,52 @@ async function runTestFile(testFilePath) {
  */
 function generateReport(results) {
   const totalTests = results.length;
-  const passedTests = results.filter(r => r.success).length;
+  const passedTests = results.filter((r) => r.success).length;
   const failedTests = totalTests - passedTests;
   const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
-  console.log('\n' + colors.bright + colors.cyan + '📊 TEST SUMMARY' + colors.reset);
-  console.log('='.repeat(50));
-  console.log('Total Tests: ' + colors.bright + totalTests + colors.reset);
-  console.log('Passed: ' + colors.green + passedTests + colors.reset);
+  console.log(
+    "\n" + colors.bright + colors.cyan + "📊 TEST SUMMARY" + colors.reset
+  );
+  console.log("=".repeat(50));
+  console.log("Total Tests: " + colors.bright + totalTests + colors.reset);
+  console.log("Passed: " + colors.green + passedTests + colors.reset);
   console.log(`Failed: ${colors.red}${failedTests}${colors.reset}`);
-  console.log(`Success Rate: ${colors.bright}${((passedTests / totalTests) * 100).toFixed(1)}%${colors.reset}`);
-  console.log(`Total Duration: ${colors.bright}${totalDuration}ms${colors.reset}`);
-  console.log(`Average Duration: ${colors.bright}${(totalDuration / totalTests).toFixed(1)}ms${colors.reset}`);
+  console.log(
+    `Success Rate: ${colors.bright}${((passedTests / totalTests) * 100).toFixed(
+      1
+    )}%${colors.reset}`
+  );
+  console.log(
+    `Total Duration: ${colors.bright}${totalDuration}ms${colors.reset}`
+  );
+  console.log(
+    `Average Duration: ${colors.bright}${(totalDuration / totalTests).toFixed(
+      1
+    )}ms${colors.reset}`
+  );
 
   if (failedTests > 0) {
-    console.log(`\n${colors.red}${colors.bright}❌ FAILED TESTS:${colors.reset}`);
-    results.filter(r => !r.success).forEach(result => {
-      console.log(colors.red + '  • ' + result.file + colors.reset);
-      if (result.stderr) {
-        console.log(`    ${colors.red}Error: ${result.stderr.slice(0, 200)}...${colors.reset}`);
-      }
-      if (result.error) {
-        console.log(`    ${colors.red}Exception: ${result.error}${colors.reset}`);
-      }
-    });
+    console.log(
+      `\n${colors.red}${colors.bright}❌ FAILED TESTS:${colors.reset}`
+    );
+    results
+      .filter((r) => !r.success)
+      .forEach((result) => {
+        console.log(colors.red + "  • " + result.file + colors.reset);
+        if (result.stderr) {
+          console.log(
+            `    ${colors.red}Error: ${result.stderr.slice(0, 200)}...${
+              colors.reset
+            }`
+          );
+        }
+        if (result.error) {
+          console.log(
+            `    ${colors.red}Exception: ${result.error}${colors.reset}`
+          );
+        }
+      });
   }
 
   // Generate HTML report
@@ -236,7 +301,7 @@ function generateReport(results) {
  */
 function generateHTMLReport(results) {
   const totalTests = results.length;
-  const passedTests = results.filter(r => r.success).length;
+  const passedTests = results.filter((r) => r.success).length;
   const failedTests = totalTests - passedTests;
   const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
@@ -289,7 +354,10 @@ function generateHTMLReport(results) {
                     <div class="stat-label">Failed</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${((passedTests / totalTests) * 100).toFixed(1)}%</div>
+                    <div class="stat-number">${(
+                      (passedTests / totalTests) *
+                      100
+                    ).toFixed(1)}%</div>
                     <div class="stat-label">Success Rate</div>
                 </div>
                 <div class="stat-card">
@@ -300,15 +368,30 @@ function generateHTMLReport(results) {
 
             <h3>Test Results</h3>
             <div class="test-results">
-                ${results.map(result => `
-                    <div class="test-item ${result.success ? 'test-success' : 'test-failure'}">
+                ${results
+                  .map(
+                    (result) => `
+                    <div class="test-item ${
+                      result.success ? "test-success" : "test-failure"
+                    }">
                         <div>
-                            <div class="test-name">${result.success ? '✅' : '❌'} ${result.file}</div>
-                            ${!result.success && result.stderr ? `<div style="color: #dc3545; font-size: 0.9em; margin-top: 5px;">${result.stderr.slice(0, 100)}...</div>` : ''}
+                            <div class="test-name">${
+                              result.success ? "✅" : "❌"
+                            } ${result.file}</div>
+                            ${
+                              !result.success && result.stderr
+                                ? `<div style="color: #dc3545; font-size: 0.9em; margin-top: 5px;">${result.stderr.slice(
+                                    0,
+                                    100
+                                  )}...</div>`
+                                : ""
+                            }
                         </div>
                         <div class="test-duration">${result.duration}ms</div>
                     </div>
-                `).join('')}
+                `
+                  )
+                  .join("")}
             </div>
 
             <div class="timestamp">
@@ -320,11 +403,18 @@ function generateHTMLReport(results) {
 </html>`;
 
   try {
-    const reportPath = path.join(__dirname, 'test-report.html');
+    const reportPath = path.join(__dirname, "test-report.html");
     fs.writeFileSync(reportPath, html);
-    console.log(`\n${colors.cyan}📄 HTML report generated: ${reportPath}${colors.reset}`);
+    console.log(
+      `\n${colors.cyan}📄 HTML report generated: ${reportPath}${colors.reset}`
+    );
   } catch (error) {
-    console.warn(colors.yellow + 'Warning: Could not generate HTML report: ' + error.message + colors.reset);
+    console.warn(
+      colors.yellow +
+        "Warning: Could not generate HTML report: " +
+        error.message +
+        colors.reset
+    );
   }
 }
 
@@ -332,22 +422,38 @@ function generateHTMLReport(results) {
  * Main test runner function
  */
 async function runAllTests() {
-  console.log(colors.bright + colors.magenta + '🚀 UNIFIED EXPENSE TRACKER TEST RUNNER' + colors.reset);
-  console.log('='.repeat(60) + '\n');
+  console.log(
+    colors.bright +
+      colors.magenta +
+      "🚀 UNIFIED EXPENSE TRACKER TEST RUNNER" +
+      colors.reset
+  );
+  console.log("=".repeat(60) + "\n");
 
   // Discover test files
   const testFiles = findTestFiles();
 
   if (testFiles.length === 0) {
-    console.log(colors.yellow + '⚠️  No test files found matching patterns: ' + config.testPatterns.map(p => p.toString()).join(', ') + colors.reset);
+    console.log(
+      colors.yellow +
+        "⚠️  No test files found matching patterns: " +
+        config.testPatterns.map((p) => p.toString()).join(", ") +
+        colors.reset
+    );
     return false;
   }
 
-  console.log(colors.cyan + '📂 Discovered ' + testFiles.length + ' test files:' + colors.reset);
-  testFiles.forEach(file => {
+  console.log(
+    colors.cyan +
+      "📂 Discovered " +
+      testFiles.length +
+      " test files:" +
+      colors.reset
+  );
+  testFiles.forEach((file) => {
     console.log(`  • ${path.relative(__dirname, file)}`);
   });
-  console.log('');
+  console.log("");
 
   // Run all tests
   const startTime = Date.now();
@@ -361,41 +467,56 @@ async function runAllTests() {
   const endTime = Date.now();
   const totalDuration = endTime - startTime;
 
-  console.log(`\n${colors.bright}⏱️  Total execution time: ${totalDuration}ms${colors.reset}`);
+  console.log(
+    `\n${colors.bright}⏱️  Total execution time: ${totalDuration}ms${colors.reset}`
+  );
 
   // Generate report
   const allPassed = generateReport(results);
 
   if (allPassed) {
-    console.log(`\n${colors.green}${colors.bright}🎉 ALL TESTS PASSED!${colors.reset}`);
+    console.log(
+      `\n${colors.green}${colors.bright}🎉 ALL TESTS PASSED!${colors.reset}`
+    );
     process.exit(0);
   } else {
-    console.log(`\n${colors.red}${colors.bright}💥 SOME TESTS FAILED!${colors.reset}`);
+    console.log(
+      `\n${colors.red}${colors.bright}💥 SOME TESTS FAILED!${colors.reset}`
+    );
     process.exit(1);
   }
 }
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error(colors.red + '💥 Uncaught Exception: ' + error.message + colors.reset);
+process.on("uncaughtException", (error) => {
+  console.error(
+    colors.red + "💥 Uncaught Exception: " + error.message + colors.reset
+  );
   console.error(error.stack);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason) => {
-  console.error(colors.red + '💥 Unhandled Rejection: ' + (reason instanceof Error ? reason.message : JSON.stringify(reason)) + colors.reset);
+process.on("unhandledRejection", (reason) => {
+  console.error(
+    colors.red +
+      "💥 Unhandled Rejection: " +
+      (reason instanceof Error ? reason.message : JSON.stringify(reason)) +
+      colors.reset
+  );
   process.exit(1);
 });
 
 // Run the tests
-runAllTests().catch(error => {
-  console.error(colors.red + '💥 Test runner failed: ' + error.message + colors.reset);
+runAllTests().catch((error) => {
+  console.error(
+    colors.red + "💥 Test runner failed: " + error.message + colors.reset
+  );
   console.error(error.stack);
   process.exit(1);
 });
 
-describe('unified-test-runner', () => {
-  test('minimal unified test runner passes', () => {
+describe("unified-test-runner", () => {
+  test("minimal unified test runner passes", () => {
     expect(true).toBe(true);
   });
 });

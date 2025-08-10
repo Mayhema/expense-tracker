@@ -1,6 +1,10 @@
-import { AppState, saveCategories } from '../core/appState.js';
-import { showToast } from './uiManager.js';
-import { addCategory, updateCategory, updateSubcategory } from '../constants/categories.js';
+import { AppState, saveCategories } from "../core/appState.js";
+import { showToast } from "./uiManager.js";
+import {
+  addCategory,
+  updateCategory,
+  updateSubcategory,
+} from "../constants/categories.js";
 
 // Singleton pattern to ensure only one modal is open
 let categoryModalInstance = null;
@@ -15,8 +19,8 @@ export function showCategoryManagerModal() {
   }
 
   try {
-    const modalContent = document.createElement('div');
-    modalContent.className = 'category-modal-content';
+    const modalContent = document.createElement("div");
+    modalContent.className = "category-modal-content";
 
     modalContent.innerHTML = `
       <div class="category-manager">
@@ -49,12 +53,12 @@ export function showCategoryManagerModal() {
     `;
 
     // Show modal using modal manager
-    import('./modalManager.js').then(module => {
+    import("./modalManager.js").then((module) => {
       categoryModalInstance = module.showModal({
-        title: '📂 Category Manager',
+        title: "📂 Category Manager",
         content: modalContent,
-        size: 'large',
-        closeOnClickOutside: false
+        size: "large",
+        closeOnClickOutside: false,
       });
 
       // Override the close method to reset instance
@@ -68,9 +72,8 @@ export function showCategoryManagerModal() {
       renderCategoryList(modalContent);
       attachEventHandlers(modalContent, categoryModalInstance);
     });
-
   } catch (error) {
-    console.error('Error showing category manager modal:', error);
+    console.error("Error showing category manager modal:", error);
     categoryModalInstance = null;
   }
 }
@@ -83,7 +86,9 @@ function renderCategoryList(container) {
   if (!categoriesList) return;
 
   const categories = AppState.categories || {};
-  const sortedCategories = Object.keys(categories).sort((a, b) => a.localeCompare(b));
+  const sortedCategories = Object.keys(categories).sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   if (sortedCategories.length === 0) {
     categoriesList.innerHTML = `
@@ -99,7 +104,7 @@ function renderCategoryList(container) {
 
   sortedCategories.forEach((name, index) => {
     const category = categories[name];
-    const isComplexCategory = typeof category === 'object';
+    const isComplexCategory = typeof category === "object";
     const color = isComplexCategory ? category.color : category;
 
     html += `
@@ -113,23 +118,32 @@ function renderCategoryList(container) {
           </div>
           <div class="category-details">
             <input type="text" class="category-name-input" value="${name}" data-original-name="${name}">
-            ${isComplexCategory && category.subcategories ?
-        `<span class="subcategory-count">${Object.keys(category.subcategories).length} subcategories</span>` :
-        '<span class="subcategory-count">No subcategories</span>'
-      }
+            ${
+              isComplexCategory && category.subcategories
+                ? `<span class="subcategory-count">${
+                    Object.keys(category.subcategories).length
+                  } subcategories</span>`
+                : '<span class="subcategory-count">No subcategories</span>'
+            }
           </div>
         </div>
         <div class="category-actions">
           <button class="action-btn save-btn primary-btn" data-category="${name}">Save</button>
           <button class="action-btn delete-btn danger-btn" data-category="${name}">Delete</button>
-          ${isComplexCategory ? `
+          ${
+            isComplexCategory
+              ? `
             <button class="action-btn subcategories-btn secondary-btn toggle-subcategories" data-category="${name}">
               <span class="subcategories-text">Subcategories</span>
             </button>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       </div>
-      ${isComplexCategory ? `
+      ${
+        isComplexCategory
+          ? `
         <div class="subcategories-container" data-category="${name}" style="display: none;">
           <div class="subcategories-header">
             <h5>Subcategories for ${name}</h5>
@@ -143,11 +157,13 @@ function renderCategoryList(container) {
             <button class="primary-btn add-subcategory-btn" data-parent="${name}">Add Subcategory</button>
           </div>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
     `;
   });
 
-  html += '</div>';
+  html += "</div>";
   categoriesList.innerHTML = html;
 
   // Add styles for improved layout
@@ -162,7 +178,9 @@ function renderSubcategories(parentName, subcategories) {
     return '<div class="empty-subcategories">No subcategories</div>';
   }
 
-  return Object.entries(subcategories).map(([subName, subColor]) => `
+  return Object.entries(subcategories)
+    .map(
+      ([subName, subColor]) => `
     <div class="subcategory-row">
       <input type="color" class="subcategory-color-input" value="${subColor}" data-parent="${parentName}" data-subcategory="${subName}">
       <input type="text" class="subcategory-name-input" value="${subName}" data-parent="${parentName}" data-original-name="${subName}">
@@ -171,17 +189,19 @@ function renderSubcategories(parentName, subcategories) {
         <button class="action-btn delete-btn danger-btn delete-subcategory-btn" data-parent="${parentName}" data-subcategory="${subName}">Delete</button>
       </div>
     </div>
-  `).join('');
+  `
+    )
+    .join("");
 }
 
 /**
  * Add enhanced styles for better modal layout
  */
 function addCategoryModalStyles() {
-  if (document.getElementById('categoryModalStyles')) return;
+  if (document.getElementById("categoryModalStyles")) return;
 
   const style = document.createElement("style");
-  style.id = 'categoryModalStyles';
+  style.id = "categoryModalStyles";
   style.textContent = `
     .category-manager {
       max-width: 100%;
@@ -472,9 +492,11 @@ function addCategoryModalStyles() {
  */
 function attachEventHandlers(container, modal) {
   // Close button handler
-  container.querySelector("#closeCategoryManagerBtn").addEventListener("click", () => {
-    modal.close();
-  });
+  container
+    .querySelector("#closeCategoryManagerBtn")
+    .addEventListener("click", () => {
+      modal.close();
+    });
 
   // Add category button handler
   const addCategoryBtn = container.querySelector("#addCategoryBtn");
@@ -502,23 +524,28 @@ function attachEventHandlers(container, modal) {
   }
 
   // Delegate event handling for category buttons
-  container.querySelector("#categoriesList").addEventListener("click", (event) => {
-    const target = event.target;
+  container
+    .querySelector("#categoriesList")
+    .addEventListener("click", (event) => {
+      const target = event.target;
 
-    if (target.classList.contains("save-btn")) {
-      handleSaveCategoryClick(target, container);
-    } else if (target.classList.contains("delete-btn")) {
-      handleDeleteCategoryClick(target, container);
-    } else if (target.classList.contains("toggle-subcategories") || target.classList.contains("subcategories-btn")) {
-      handleToggleSubcategoriesClick(target, container);
-    } else if (target.classList.contains("save-subcategory-btn")) {
-      handleSaveSubcategoryClick(target, container);
-    } else if (target.classList.contains("delete-subcategory-btn")) {
-      handleDeleteSubcategoryClick(target, container);
-    } else if (target.classList.contains("add-subcategory-btn")) {
-      handleAddSubcategoryClick(target, container);
-    }
-  });
+      if (target.classList.contains("save-btn")) {
+        handleSaveCategoryClick(target, container);
+      } else if (target.classList.contains("delete-btn")) {
+        handleDeleteCategoryClick(target, container);
+      } else if (
+        target.classList.contains("toggle-subcategories") ||
+        target.classList.contains("subcategories-btn")
+      ) {
+        handleToggleSubcategoriesClick(target, container);
+      } else if (target.classList.contains("save-subcategory-btn")) {
+        handleSaveSubcategoryClick(target, container);
+      } else if (target.classList.contains("delete-subcategory-btn")) {
+        handleDeleteSubcategoryClick(target, container);
+      } else if (target.classList.contains("add-subcategory-btn")) {
+        handleAddSubcategoryClick(target, container);
+      }
+    });
 
   // Handler functions for different button types
   function handleSaveCategoryClick(target, container) {
@@ -539,7 +566,9 @@ function attachEventHandlers(container, modal) {
   function handleDeleteCategoryClick(target, container) {
     const categoryName = target.getAttribute("data-category");
 
-    if (confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
+    if (
+      confirm(`Are you sure you want to delete the category "${categoryName}"?`)
+    ) {
       delete AppState.categories[categoryName];
       saveCategories();
       renderCategoryList(container);
@@ -549,16 +578,20 @@ function attachEventHandlers(container, modal) {
 
   function handleToggleSubcategoriesClick(target, container) {
     const categoryName = target.getAttribute("data-category");
-    const subcategoriesContainer = container.querySelector(`.subcategories-container[data-category="${categoryName}"]`);
-    const textSpan = target.querySelector('.subcategories-text');
+    const subcategoriesContainer = container.querySelector(
+      `.subcategories-container[data-category="${categoryName}"]`
+    );
+    const textSpan = target.querySelector(".subcategories-text");
 
     if (subcategoriesContainer) {
-      const isHidden = subcategoriesContainer.style.display === 'none';
-      subcategoriesContainer.style.display = isHidden ? 'block' : 'none';
+      const isHidden = subcategoriesContainer.style.display === "none";
+      subcategoriesContainer.style.display = isHidden ? "block" : "none";
 
       // Update button text
       if (textSpan) {
-        textSpan.textContent = isHidden ? 'Hide Subcategories' : 'Subcategories';
+        textSpan.textContent = isHidden
+          ? "Hide Subcategories"
+          : "Subcategories";
       }
     }
   }
@@ -573,7 +606,9 @@ function attachEventHandlers(container, modal) {
     const newName = nameInput.value.trim();
     const newColor = colorInput.value;
 
-    if (handleUpdateSubcategory(parentName, subcategoryName, newName, newColor)) {
+    if (
+      handleUpdateSubcategory(parentName, subcategoryName, newName, newColor)
+    ) {
       renderCategoryList(container);
       showToast(`Subcategory "${newName}" updated successfully`, "success");
     }
@@ -583,7 +618,11 @@ function attachEventHandlers(container, modal) {
     const parentName = target.getAttribute("data-parent");
     const subcategoryName = target.getAttribute("data-subcategory");
 
-    if (confirm(`Are you sure you want to delete the subcategory "${subcategoryName}"?`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete the subcategory "${subcategoryName}"?`
+      )
+    ) {
       const parentCategory = AppState.categories[parentName];
       if (parentCategory?.subcategories) {
         delete parentCategory.subcategories[subcategoryName];
@@ -625,8 +664,11 @@ function attachEventHandlers(container, modal) {
 
   function ensureSubcategoriesExist(categoryName) {
     if (!AppState.categories[categoryName]) {
-      AppState.categories[categoryName] = { color: '#cccccc', subcategories: {} };
-    } else if (typeof AppState.categories[categoryName] === 'string') {
+      AppState.categories[categoryName] = {
+        color: "#cccccc",
+        subcategories: {},
+      };
+    } else if (typeof AppState.categories[categoryName] === "string") {
       const color = AppState.categories[categoryName];
       AppState.categories[categoryName] = { color, subcategories: {} };
     } else if (!AppState.categories[categoryName].subcategories) {
@@ -635,9 +677,11 @@ function attachEventHandlers(container, modal) {
   }
 
   // Add event handler for regex editor button
-  container.querySelector("#openRegexEditorBtnModal").addEventListener("click", () => {
-    showToast("Regex editor feature coming soon", "info");
-  });
+  container
+    .querySelector("#openRegexEditorBtnModal")
+    .addEventListener("click", () => {
+      showToast("Regex editor feature coming soon", "info");
+    });
 }
 
 /**
@@ -661,14 +705,21 @@ function handleUpdateCategory(oldName, newName, newColor) {
 /**
  * Handles subcategory update with validation
  */
-function handleUpdateSubcategory(parentName, oldSubName, newSubName, newSubColor) {
+function handleUpdateSubcategory(
+  parentName,
+  oldSubName,
+  newSubName,
+  newSubColor
+) {
   if (!newSubName.trim()) {
     showToast("Subcategory name cannot be empty", "error");
     return false;
   }
 
-  if (newSubName !== oldSubName &&
-    AppState.categories[parentName]?.subcategories?.[newSubName]) {
+  if (
+    newSubName !== oldSubName &&
+    AppState.categories[parentName]?.subcategories?.[newSubName]
+  ) {
     showToast(`Subcategory "${newSubName}" already exists`, "error");
     return false;
   }

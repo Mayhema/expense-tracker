@@ -6,14 +6,16 @@
  * separation of concerns.
  */
 
-import { AppState } from '../../core/appState.js';
-import { convertDDMMYYYYToISO } from '../../utils/dateUtils.js';
+import { AppState } from "../../core/appState.js";
+import { convertDDMMYYYYToISO } from "../../utils/dateUtils.js";
 
 /**
  * Check if a row has any changes
  */
 export function checkRowForChanges(row) {
-  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const fields = row.querySelectorAll(
+    ".edit-field:not(.currency-field):not(.category-select)"
+  );
   for (let field of fields) {
     if (field.value !== field.dataset.original) {
       return true;
@@ -32,7 +34,7 @@ export function saveFieldChangeById(transactionId, fieldName, newValue) {
   console.log(`🔄 New Value: "${newValue}"`);
 
   if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
-    console.error('❌ No transactions array in AppState');
+    console.error("❌ No transactions array in AppState");
     console.groupEnd();
     return;
   }
@@ -64,11 +66,22 @@ export function saveFieldChangeById(transactionId, fieldName, newValue) {
  * Helper function to find transaction by ID
  */
 function findTransactionById(transactionId) {
-  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  const transactionIndex = AppState.transactions.findIndex(
+    (tx) => tx.id === transactionId
+  );
 
   if (transactionIndex === -1) {
-    console.error(`❌ Transaction with ID ${transactionId} not found in AppState.transactions`);
-    console.log(`📋 Available transaction IDs:`, AppState.transactions.map((tx, idx) => ({ index: idx, id: tx.id, desc: tx.description?.substring(0, 30) })));
+    console.error(
+      `❌ Transaction with ID ${transactionId} not found in AppState.transactions`
+    );
+    console.log(
+      `📋 Available transaction IDs:`,
+      AppState.transactions.map((tx, idx) => ({
+        index: idx,
+        id: tx.id,
+        desc: tx.description?.substring(0, 30),
+      }))
+    );
   }
 
   return transactionIndex;
@@ -79,7 +92,9 @@ function findTransactionById(transactionId) {
  */
 function logTransactionInfo(transaction, transactionIndex) {
   console.log(`✓ Found transaction at index ${transactionIndex}:`);
-  console.log(`  📝 Description: "${transaction.description?.substring(0, 50)}..."`);
+  console.log(
+    `  📝 Description: "${transaction.description?.substring(0, 50)}..."`
+  );
   console.log(`  🏷️ Current category: "${transaction.category}"`);
   console.log(`  📂 Current subcategory: "${transaction.subcategory}"`);
 }
@@ -88,14 +103,16 @@ function logTransactionInfo(transaction, transactionIndex) {
  * Helper function to prepare transaction for editing
  */
 function prepareTransactionForEdit(transaction, fieldName) {
-  const isDataField = ['date', 'description', 'income', 'expenses'].includes(fieldName);
+  const isDataField = ["date", "description", "income", "expenses"].includes(
+    fieldName
+  );
 
   if (isDataField && !transaction.originalData) {
     transaction.originalData = {
       date: transaction.date,
       description: transaction.description,
       income: transaction.income,
-      expenses: transaction.expenses
+      expenses: transaction.expenses,
     };
   }
 
@@ -108,16 +125,20 @@ function prepareTransactionForEdit(transaction, fieldName) {
  * Helper function to update transaction field
  */
 function updateTransactionField(transaction, fieldName, newValue) {
-  if (fieldName === 'category') {
+  if (fieldName === "category") {
     updateCategoryField(transaction, newValue);
   } else {
     const oldValue = transaction[fieldName];
     transaction[fieldName] = newValue;
-    console.log(`🔄 Updated field ${fieldName} from "${oldValue}" to "${newValue}"`);
+    console.log(
+      `🔄 Updated field ${fieldName} from "${oldValue}" to "${newValue}"`
+    );
     transaction.editedFields[fieldName] = true;
   }
 
-  const isDataField = ['date', 'description', 'income', 'expenses'].includes(fieldName);
+  const isDataField = ["date", "description", "income", "expenses"].includes(
+    fieldName
+  );
   if (isDataField && !transaction.edited) {
     transaction.edited = true;
     console.log(`✏️ Marked transaction as edited`);
@@ -138,15 +159,19 @@ function updateCategoryField(transaction, newValue) {
     transaction.originalSubcategory = oldSubcategory;
   }
 
-  if (newValue.includes(':')) {
-    const [mainCategory, subCategory] = newValue.split(':');
+  if (newValue.includes(":")) {
+    const [mainCategory, subCategory] = newValue.split(":");
     transaction.category = mainCategory.trim();
     transaction.subcategory = subCategory.trim();
-    console.log(`🔄 Updated category from "${oldCategory}:${oldSubcategory}" to "${mainCategory}:${subCategory}"`);
+    console.log(
+      `🔄 Updated category from "${oldCategory}:${oldSubcategory}" to "${mainCategory}:${subCategory}"`
+    );
   } else {
     transaction.category = newValue;
-    transaction.subcategory = '';
-    console.log(`🔄 Updated category from "${oldCategory}" to "${newValue}", cleared subcategory`);
+    transaction.subcategory = "";
+    console.log(
+      `🔄 Updated category from "${oldCategory}" to "${newValue}", cleared subcategory`
+    );
   }
 
   transaction.editedFields.category = true;
@@ -156,16 +181,20 @@ function updateCategoryField(transaction, newValue) {
  * Helper function to save transaction to localStorage
  */
 function saveTransactionToStorage(transactionId, fieldName, transaction) {
-  localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
-  console.log(`💾 Saved transaction ${transactionId} field ${fieldName} to localStorage`);
+  localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+  console.log(
+    `💾 Saved transaction ${transactionId} field ${fieldName} to localStorage`
+  );
 
   // Verify the save worked
-  const savedData = localStorage.getItem('transactions');
+  const savedData = localStorage.getItem("transactions");
   if (savedData) {
     const parsedData = JSON.parse(savedData);
-    const savedTransaction = parsedData.find(t => t.id === transactionId);
+    const savedTransaction = parsedData.find((t) => t.id === transactionId);
     if (savedTransaction) {
-      console.log(`✅ Verified: ${fieldName} = "${savedTransaction[fieldName]}" in localStorage`);
+      console.log(
+        `✅ Verified: ${fieldName} = "${savedTransaction[fieldName]}" in localStorage`
+      );
     }
   }
 }
@@ -173,12 +202,19 @@ function saveTransactionToStorage(transactionId, fieldName, transaction) {
 /**
  * Helper function to update UI after field change
  */
-function updateUIAfterFieldChange(transactionId, fieldName, newValue, transaction) {
-  if (fieldName === 'category') {
+function updateUIAfterFieldChange(
+  transactionId,
+  fieldName,
+  newValue,
+  transaction
+) {
+  if (fieldName === "category") {
     updateCategoryDisplay(transactionId, newValue);
   }
 
-  const isDataField = ['date', 'description', 'income', 'expenses'].includes(fieldName);
+  const isDataField = ["date", "description", "income", "expenses"].includes(
+    fieldName
+  );
   if (isDataField) {
     markCellAsEdited(transactionId, fieldName);
     showRevertButton(transactionId);
@@ -189,46 +225,50 @@ function updateUIAfterFieldChange(transactionId, fieldName, newValue, transactio
  * Helper function to update category display
  */
 function updateCategoryDisplay(transactionId, categoryName) {
-  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  const row = document.querySelector(
+    `tr[data-transaction-id="${transactionId}"]`
+  );
   if (row) {
-    const categoryCell = row.querySelector('.category-cell');
+    const categoryCell = row.querySelector(".category-cell");
     if (categoryCell && categoryName) {
       const categoryColor = getCategoryColor(categoryName);
       categoryCell.style.cssText = `background-color: ${categoryColor}20; border-left: 3px solid ${categoryColor};`;
     }
   }
-  console.log('🔄 Category updated successfully');
+  console.log("🔄 Category updated successfully");
 }
 
 /**
  * Helper function to mark cell as edited
  */
 function markCellAsEdited(transactionId, fieldName) {
-  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  const row = document.querySelector(
+    `tr[data-transaction-id="${transactionId}"]`
+  );
   if (!row) return;
 
   let cellClass;
-  if (fieldName === 'income' || fieldName === 'expenses') {
-    cellClass = '.amount-cell';
-  } else if (fieldName === 'description') {
-    cellClass = '.description-cell';
-  } else if (fieldName === 'date') {
-    cellClass = '.date-cell';
+  if (fieldName === "income" || fieldName === "expenses") {
+    cellClass = ".amount-cell";
+  } else if (fieldName === "description") {
+    cellClass = ".description-cell";
+  } else if (fieldName === "date") {
+    cellClass = ".date-cell";
   } else {
     cellClass = `.${fieldName}-cell`;
   }
 
   let cell;
-  if (fieldName === 'income') {
-    cell = row.querySelectorAll('.amount-cell')[0];
-  } else if (fieldName === 'expenses') {
-    cell = row.querySelectorAll('.amount-cell')[1];
+  if (fieldName === "income") {
+    cell = row.querySelectorAll(".amount-cell")[0];
+  } else if (fieldName === "expenses") {
+    cell = row.querySelectorAll(".amount-cell")[1];
   } else {
     cell = row.querySelector(cellClass);
   }
 
   if (cell) {
-    cell.classList.add('edited-cell');
+    cell.classList.add("edited-cell");
     console.log(`✏️ Marked ${fieldName} cell as edited`);
   }
 }
@@ -237,11 +277,13 @@ function markCellAsEdited(transactionId, fieldName) {
  * Helper function to show revert button
  */
 function showRevertButton(transactionId) {
-  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  const row = document.querySelector(
+    `tr[data-transaction-id="${transactionId}"]`
+  );
   if (row) {
-    const revertAllBtn = row.querySelector('.btn-revert-all');
+    const revertAllBtn = row.querySelector(".btn-revert-all");
     if (revertAllBtn) {
-      revertAllBtn.style.display = 'inline-block';
+      revertAllBtn.style.display = "inline-block";
     }
   }
 }
@@ -250,9 +292,9 @@ function showRevertButton(transactionId) {
  * Helper function to handle special field updates
  */
 function handleSpecialFieldUpdates(transactionId, fieldName, newValue) {
-  if (fieldName === 'currency') {
+  if (fieldName === "currency") {
     handleCurrencyUpdate(transactionId, newValue);
-  } else if (fieldName === 'category') {
+  } else if (fieldName === "category") {
     handleCategoryUpdate(transactionId, newValue);
   }
 }
@@ -261,30 +303,38 @@ function handleSpecialFieldUpdates(transactionId, fieldName, newValue) {
  * Helper function to handle currency updates
  */
 function handleCurrencyUpdate(transactionId, newValue) {
-  console.log(`💱 Currency changed for transaction ${transactionId} to ${newValue}`);
+  console.log(
+    `💱 Currency changed for transaction ${transactionId} to ${newValue}`
+  );
 
   // Update transaction summary to reflect new currency distribution
   setTimeout(async () => {
     try {
-      const { updateTransactionSummary } = await import('./transactionSummary.js');
+      const { updateTransactionSummary } = await import(
+        "./transactionSummary.js"
+      );
       // Use modern filtering approach instead of deprecated applyFilters
-      const { filterTransactions } = await import('../filters/advancedFilters.js');
+      const { filterTransactions } = await import(
+        "../filters/advancedFilters.js"
+      );
       const filteredTransactions = filterTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after currency change");
     } catch (error) {
-      console.log('Error updating transaction summary:', error.message);
+      console.log("Error updating transaction summary:", error.message);
     }
   }, 100);
 
   // Update currency filter dropdown options to include new currency
   setTimeout(async () => {
     try {
-      const { updateCurrencyFilterOptions } = await import('../filters/advancedFilters.js');
+      const { updateCurrencyFilterOptions } = await import(
+        "../filters/advancedFilters.js"
+      );
       updateCurrencyFilterOptions();
       console.log("💱 Currency filter options updated after currency change");
     } catch (error) {
-      console.log('Error updating currency filter options:', error.message);
+      console.log("Error updating currency filter options:", error.message);
     }
   }, 150);
 
@@ -292,19 +342,24 @@ function handleCurrencyUpdate(transactionId, newValue) {
   setTimeout(async () => {
     try {
       // Only update charts if chart canvases exist (charts section is visible)
-      const incomeChartCanvas = document.getElementById('incomeExpenseChart');
-      const expenseChartCanvas = document.getElementById('expenseChart');
-      const timelineChartCanvas = document.getElementById('timelineChart');
+      const incomeChartCanvas = document.getElementById("incomeExpenseChart");
+      const expenseChartCanvas = document.getElementById("expenseChart");
+      const timelineChartCanvas = document.getElementById("timelineChart");
 
       if (incomeChartCanvas || expenseChartCanvas || timelineChartCanvas) {
-        const { updateChartsWithCurrentData } = await import('../../charts/chartManager.js');
+        const { updateChartsWithCurrentData } = await import(
+          "../../charts/chartManager.js"
+        );
         updateChartsWithCurrentData();
         console.log("📊 Charts updated after currency change");
       } else {
         console.log("📊 Charts not visible, skipping chart update");
       }
     } catch (error) {
-      console.log('Error updating charts after currency change:', error.message);
+      console.log(
+        "Error updating charts after currency change:",
+        error.message
+      );
     }
   }, 200);
 }
@@ -313,29 +368,37 @@ function handleCurrencyUpdate(transactionId, newValue) {
  * Helper function to handle category updates
  */
 function handleCategoryUpdate(transactionId, newValue) {
-  console.log(`🏷️ Category changed for transaction ${transactionId} to ${newValue}`);
+  console.log(
+    `🏷️ Category changed for transaction ${transactionId} to ${newValue}`
+  );
 
   // Update charts to reflect new category distribution
   setTimeout(async () => {
     try {
-      const { updateChartsWithCurrentData } = await import('../../charts/chartManager.js');
+      const { updateChartsWithCurrentData } = await import(
+        "../../charts/chartManager.js"
+      );
       updateChartsWithCurrentData();
       console.log("📊 Charts updated after category change");
     } catch (error) {
-      console.log('Error updating charts:', error.message);
+      console.log("Error updating charts:", error.message);
     }
   }, 100);
 
   // Update transaction summary to reflect new category distribution
   setTimeout(async () => {
     try {
-      const { updateTransactionSummary } = await import('./transactionSummary.js');
-      const { filterTransactions } = await import('../filters/advancedFilters.js');
+      const { updateTransactionSummary } = await import(
+        "./transactionSummary.js"
+      );
+      const { filterTransactions } = await import(
+        "../filters/advancedFilters.js"
+      );
       const filteredTransactions = filterTransactions(AppState.transactions);
       updateTransactionSummary(filteredTransactions);
       console.log("🔄 Transaction summary updated after category change");
     } catch (error) {
-      console.log('Error updating transaction summary:', error.message);
+      console.log("Error updating transaction summary:", error.message);
     }
   }, 150);
 }
@@ -344,10 +407,10 @@ function handleCategoryUpdate(transactionId, newValue) {
  * Helper function to handle save errors
  */
 function handleSaveError(error) {
-  console.error('❌ Error saving transaction:', error);
-  import('../uiManager.js').then(module => {
+  console.error("❌ Error saving transaction:", error);
+  import("../uiManager.js").then((module) => {
     if (module.showToast) {
-      module.showToast('Error saving transaction', 'error');
+      module.showToast("Error saving transaction", "error");
     }
   });
 }
@@ -356,18 +419,18 @@ function handleSaveError(error) {
  * Get category color helper function
  */
 function getCategoryColor(categoryName) {
-  if (!categoryName || !AppState.categories) return '#cccccc';
+  if (!categoryName || !AppState.categories) return "#cccccc";
 
   const categoryData = AppState.categories[categoryName];
-  if (!categoryData) return '#cccccc';
+  if (!categoryData) return "#cccccc";
 
-  if (typeof categoryData === 'string') {
+  if (typeof categoryData === "string") {
     return categoryData;
-  } else if (typeof categoryData === 'object' && categoryData.color) {
+  } else if (typeof categoryData === "object" && categoryData.color) {
     return categoryData.color;
   }
 
-  return '#cccccc';
+  return "#cccccc";
 }
 
 /**
@@ -377,25 +440,31 @@ export function saveTransactionChangesById(transactionId) {
   console.log(`💾 SAVING BY ID: Transaction ${transactionId}`);
 
   if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
-    console.error('❌ No transactions array in AppState');
+    console.error("❌ No transactions array in AppState");
     return;
   }
 
   // Find transaction by ID instead of relying on index
-  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  const transactionIndex = AppState.transactions.findIndex(
+    (tx) => tx.id === transactionId
+  );
   if (transactionIndex === -1) {
     console.error(`❌ Transaction with ID ${transactionId} not found`);
     return;
   }
 
   const transaction = AppState.transactions[transactionIndex];
-  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  const row = document.querySelector(
+    `tr[data-transaction-id="${transactionId}"]`
+  );
   if (!row) {
     console.error(`❌ Row not found for transaction ID ${transactionId}`);
     return;
   }
 
-  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const fields = row.querySelectorAll(
+    ".edit-field:not(.currency-field):not(.category-select)"
+  );
 
   // Store original data before first edit
   prepareTransactionForBatchEdit(transaction);
@@ -421,7 +490,7 @@ function prepareTransactionForBatchEdit(transaction) {
       date: transaction.date,
       description: transaction.description,
       income: transaction.income,
-      expenses: transaction.expenses
+      expenses: transaction.expenses,
     };
   }
 
@@ -437,7 +506,7 @@ function processFieldChanges(fields, transaction) {
   let dateChanged = false;
   let hasChanges = false;
 
-  fields.forEach(field => {
+  fields.forEach((field) => {
     const fieldName = field.dataset.field;
     let newValue = field.value;
     const originalValue = field.dataset.original;
@@ -448,7 +517,7 @@ function processFieldChanges(fields, transaction) {
     hasChanges = true;
 
     // Handle date conversion for storage
-    if (fieldName === 'date' && newValue) {
+    if (fieldName === "date" && newValue) {
       const result = processDateField(field, newValue);
       if (result.success) {
         newValue = result.isoDate;
@@ -477,18 +546,22 @@ function processDateField(field, newValue) {
     const month = parseInt(match[2], 10);
     const year = parseInt(match[3], 10);
 
-    console.log(`🔍 Date input parsed: Day=${day}, Month=${month}, Year=${year} from "${newValue}"`);
+    console.log(
+      `🔍 Date input parsed: Day=${day}, Month=${month}, Year=${year} from "${newValue}"`
+    );
 
     const isoDate = convertDDMMYYYYToISO(newValue);
     if (isoDate) {
-      console.log(`🔄 Date converted: ${field.value} (dd/mm/yyyy) → ${isoDate} (ISO)`);
+      console.log(
+        `🔄 Date converted: ${field.value} (dd/mm/yyyy) → ${isoDate} (ISO)`
+      );
       return { success: true, isoDate };
     } else {
-      console.warn('Invalid date format:', newValue);
+      console.warn("Invalid date format:", newValue);
       return { success: false };
     }
   } else {
-    console.warn('Date does not match dd/mm/yyyy format:', newValue);
+    console.warn("Date does not match dd/mm/yyyy format:", newValue);
     return { success: false };
   }
 }
@@ -501,7 +574,7 @@ function updateFieldInTransaction(transaction, fieldName, newValue, field) {
   transaction.editedFields[fieldName] = true;
 
   // Update the original value
-  if (fieldName === 'date') {
+  if (fieldName === "date") {
     field.dataset.original = field.value; // Keep dd/mm/yyyy format
   } else {
     field.dataset.original = newValue;
@@ -511,9 +584,9 @@ function updateFieldInTransaction(transaction, fieldName, newValue, field) {
   updateFieldDisplayValue(field, fieldName, newValue, transaction);
 
   // Mark the cell as edited
-  const cell = field.closest('td');
+  const cell = field.closest("td");
   if (cell) {
-    cell.classList.add('edited-cell');
+    cell.classList.add("edited-cell");
     console.log(`✏️ Marked ${fieldName} cell as edited`);
   }
 }
@@ -522,15 +595,17 @@ function updateFieldInTransaction(transaction, fieldName, newValue, field) {
  * Helper function to update field display value
  */
 function updateFieldDisplayValue(field, fieldName, newValue, transaction) {
-  const cell = field.closest('td');
-  const displayValue = cell.querySelector('.display-value');
+  const cell = field.closest("td");
+  const displayValue = cell.querySelector(".display-value");
   if (!displayValue) return;
 
-  if (fieldName === 'income' || fieldName === 'expenses') {
+  if (fieldName === "income" || fieldName === "expenses") {
     const numValue = parseFloat(newValue) || 0;
-    displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : '';
-  } else if (fieldName === 'description') {
-    const cleanValue = String(newValue).replace(/\s*data-field=.*$/i, '').trim();
+    displayValue.textContent = numValue > 0 ? numValue.toFixed(2) : "";
+  } else if (fieldName === "description") {
+    const cleanValue = String(newValue)
+      .replace(/\s*data-field=.*$/i, "")
+      .trim();
     displayValue.textContent = cleanValue;
     transaction[fieldName] = cleanValue;
   } else {
@@ -543,9 +618,13 @@ function updateFieldDisplayValue(field, fieldName, newValue, transaction) {
  */
 function saveBatchChanges(transactionId, transaction, row, dateChanged) {
   try {
-    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
-    console.log(`✅ TRANSACTION SAVED BY ID: ${transactionId} saved to localStorage`);
-    console.log(`📝 SAVE VERIFICATION: Transaction marked as edited = ${transaction.edited}`);
+    localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+    console.log(
+      `✅ TRANSACTION SAVED BY ID: ${transactionId} saved to localStorage`
+    );
+    console.log(
+      `📝 SAVE VERIFICATION: Transaction marked as edited = ${transaction.edited}`
+    );
 
     // Immediate verification
     verifyBatchSave(transactionId);
@@ -557,17 +636,16 @@ function saveBatchChanges(transactionId, transaction, row, dateChanged) {
     updateUIAfterBatchSave(row);
 
     // Show success feedback
-    import('../uiManager.js').then(module => {
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Transaction updated', 'success');
+        module.showToast("Transaction updated", "success");
       }
     });
-
   } catch (error) {
-    console.error('Error saving transaction by ID:', error);
-    import('../uiManager.js').then(module => {
+    console.error("Error saving transaction by ID:", error);
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Error saving changes', 'error');
+        module.showToast("Error saving changes", "error");
       }
     });
   }
@@ -577,11 +655,15 @@ function saveBatchChanges(transactionId, transaction, row, dateChanged) {
  * Helper function to verify batch save
  */
 function verifyBatchSave(transactionId) {
-  const verification = localStorage.getItem('transactions');
+  const verification = localStorage.getItem("transactions");
   if (verification) {
     const parsed = JSON.parse(verification);
-    const savedTx = parsed.find(tx => tx.id === transactionId);
-    console.log(`🔍 VERIFICATION: Saved transaction has edited flag = ${savedTx ? savedTx.edited : 'NOT FOUND'}`);
+    const savedTx = parsed.find((tx) => tx.id === transactionId);
+    console.log(
+      `🔍 VERIFICATION: Saved transaction has edited flag = ${
+        savedTx ? savedTx.edited : "NOT FOUND"
+      }`
+    );
   }
 }
 
@@ -590,12 +672,12 @@ function verifyBatchSave(transactionId) {
  */
 function updateUIAfterBatchSave(row) {
   // Mark row as edited
-  row.classList.add('edited-row');
+  row.classList.add("edited-row");
 
   // Show revert-all button when edits are made
-  const revertAllBtn = row.querySelector('.btn-revert-all');
+  const revertAllBtn = row.querySelector(".btn-revert-all");
   if (revertAllBtn) {
-    revertAllBtn.style.display = 'inline-block';
+    revertAllBtn.style.display = "inline-block";
   }
 }
 
@@ -607,24 +689,26 @@ export function enterEditMode(index) {
   if (!row) return;
 
   // Set edit mode
-  row.dataset.editMode = 'true';
-  row.classList.add('editing-mode');
+  row.dataset.editMode = "true";
+  row.classList.add("editing-mode");
 
   // Hide display values and show input fields (except currency and category)
-  const displayValues = row.querySelectorAll('.display-value');
-  const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const displayValues = row.querySelectorAll(".display-value");
+  const editFields = row.querySelectorAll(
+    ".edit-field:not(.currency-field):not(.category-select)"
+  );
 
-  displayValues.forEach(span => span.style.display = 'none');
-  editFields.forEach(input => input.style.display = 'block');
+  displayValues.forEach((span) => (span.style.display = "none"));
+  editFields.forEach((input) => (input.style.display = "block"));
 
   // Hide edit button, show save/revert buttons
-  const editBtn = row.querySelector('.btn-edit');
-  const saveBtn = row.querySelector('.btn-save');
-  const revertBtn = row.querySelector('.btn-revert');
+  const editBtn = row.querySelector(".btn-edit");
+  const saveBtn = row.querySelector(".btn-save");
+  const revertBtn = row.querySelector(".btn-revert");
 
-  editBtn.style.display = 'none';
-  saveBtn.style.display = 'inline-block';
-  revertBtn.style.display = 'inline-block';
+  editBtn.style.display = "none";
+  saveBtn.style.display = "inline-block";
+  revertBtn.style.display = "inline-block";
 }
 
 /**
@@ -635,59 +719,69 @@ export function exitEditMode(index) {
   if (!row) return;
 
   // Unset edit mode
-  row.dataset.editMode = 'false';
-  row.classList.remove('editing-mode', 'has-changes');
+  row.dataset.editMode = "false";
+  row.classList.remove("editing-mode", "has-changes");
 
   // Show display values and hide input fields (except currency and category)
-  const displayValues = row.querySelectorAll('.display-value');
-  const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const displayValues = row.querySelectorAll(".display-value");
+  const editFields = row.querySelectorAll(
+    ".edit-field:not(.currency-field):not(.category-select)"
+  );
 
-  displayValues.forEach(span => span.style.display = 'block');
-  editFields.forEach(input => input.style.display = 'none');
+  displayValues.forEach((span) => (span.style.display = "block"));
+  editFields.forEach((input) => (input.style.display = "none"));
 
   // Show edit button, hide save/revert buttons
-  const editBtn = row.querySelector('.btn-edit');
-  const saveBtn = row.querySelector('.btn-save');
-  const revertBtn = row.querySelector('.btn-revert');
+  const editBtn = row.querySelector(".btn-edit");
+  const saveBtn = row.querySelector(".btn-save");
+  const revertBtn = row.querySelector(".btn-revert");
 
-  editBtn.style.display = 'inline-block';
-  saveBtn.style.display = 'none';
-  revertBtn.style.display = 'none';
+  editBtn.style.display = "inline-block";
+  saveBtn.style.display = "none";
+  revertBtn.style.display = "none";
 }
 
 /**
  * Exit edit mode for a specific row using transaction ID (more reliable)
  */
 export function exitEditModeById(transactionId) {
-  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  const row = document.querySelector(
+    `tr[data-transaction-id="${transactionId}"]`
+  );
   if (!row) {
-    console.warn(`⚠️ Row not found for transaction ID ${transactionId} in exitEditModeById`);
+    console.warn(
+      `⚠️ Row not found for transaction ID ${transactionId} in exitEditModeById`
+    );
     return;
   }
 
   console.log(`🔄 EXITING EDIT MODE: Transaction ID ${transactionId}`);
 
   // Unset edit mode
-  row.dataset.editMode = 'false';
-  row.classList.remove('editing-mode', 'has-changes');
+  row.dataset.editMode = "false";
+  row.classList.remove("editing-mode", "has-changes");
 
   // Show display values and hide input fields (except currency and category)
-  const displayValues = row.querySelectorAll('.display-value');
-  const editFields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const displayValues = row.querySelectorAll(".display-value");
+  const editFields = row.querySelectorAll(
+    ".edit-field:not(.currency-field):not(.category-select)"
+  );
 
-  displayValues.forEach(span => span.style.display = 'block');
-  editFields.forEach(input => input.style.display = 'none');
+  displayValues.forEach((span) => (span.style.display = "block"));
+  editFields.forEach((input) => (input.style.display = "none"));
 
   // Show edit button, hide save/revert buttons
-  const editBtn = row.querySelector('.btn-edit');
-  const saveBtn = row.querySelector('.btn-save');
-  const revertBtn = row.querySelector('.btn-revert'); // This is the "Cancel changes" button
+  const editBtn = row.querySelector(".btn-edit");
+  const saveBtn = row.querySelector(".btn-save");
+  const revertBtn = row.querySelector(".btn-revert"); // This is the "Cancel changes" button
 
-  if (editBtn) editBtn.style.display = 'inline-block';
-  if (saveBtn) saveBtn.style.display = 'none';
+  if (editBtn) editBtn.style.display = "inline-block";
+  if (saveBtn) saveBtn.style.display = "none";
   if (revertBtn) {
-    revertBtn.style.display = 'none';
-    console.log(`✅ HIDDEN: Cancel changes button (↶) for transaction ${transactionId}`);
+    revertBtn.style.display = "none";
+    console.log(
+      `✅ HIDDEN: Cancel changes button (↶) for transaction ${transactionId}`
+    );
   }
 }
 
@@ -697,19 +791,31 @@ export function exitEditModeById(transactionId) {
 export function revertTransactionChanges(index) {
   const row = document.querySelector(`tr[data-transaction-index="${index}"]`);
   if (!row) {
-    console.warn(`⚠️ Row not found for index ${index} in revertTransactionChanges`);
+    console.warn(
+      `⚠️ Row not found for index ${index} in revertTransactionChanges`
+    );
     return;
   }
 
-  const fields = row.querySelectorAll('.edit-field:not(.currency-field):not(.category-select)');
+  const fields = row.querySelectorAll(
+    ".edit-field:not(.currency-field):not(.category-select)"
+  );
 
-  fields.forEach(field => {
+  fields.forEach((field) => {
     const originalValue = field.dataset.original;
     if (originalValue !== undefined && originalValue !== null) {
       field.value = originalValue;
-      console.log(`🔄 Reverted field ${field.dataset.field || 'unknown'} to "${originalValue}"`);
+      console.log(
+        `🔄 Reverted field ${
+          field.dataset.field || "unknown"
+        } to "${originalValue}"`
+      );
     } else {
-      console.warn(`⚠️ No original value found for field ${field.dataset.field || 'unknown'}, keeping current value`);
+      console.warn(
+        `⚠️ No original value found for field ${
+          field.dataset.field || "unknown"
+        }, keeping current value`
+      );
     }
   });
 
@@ -724,17 +830,19 @@ export function revertAllChangesToOriginal(transactionId, index) {
   console.log(`🔄 REVERTING BY ID: Transaction ${transactionId}`);
 
   if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
-    console.error('❌ No transactions array in AppState');
+    console.error("❌ No transactions array in AppState");
     return;
   }
 
   // Find transaction by ID instead of relying on index
-  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  const transactionIndex = AppState.transactions.findIndex(
+    (tx) => tx.id === transactionId
+  );
   if (transactionIndex === -1) {
     console.error(`❌ Transaction with ID ${transactionId} not found`);
-    import('../uiManager.js').then(module => {
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Transaction not found', 'error');
+        module.showToast("Transaction not found", "error");
       }
     });
     return;
@@ -743,10 +851,16 @@ export function revertAllChangesToOriginal(transactionId, index) {
   const transaction = AppState.transactions[transactionIndex];
 
   // Check if we have original data to revert to
-  const hasOriginalData = transaction.originalData && Object.keys(transaction.originalData).length > 0;
-  const hasEditedFields = transaction.editedFields && Object.keys(transaction.editedFields).length > 0;
+  const hasOriginalData =
+    transaction.originalData &&
+    Object.keys(transaction.originalData).length > 0;
+  const hasEditedFields =
+    transaction.editedFields &&
+    Object.keys(transaction.editedFields).length > 0;
 
-  console.log(`🔍 REVERT CHECK: Original data exists = ${hasOriginalData}, Edited fields exist = ${hasEditedFields}`);
+  console.log(
+    `🔍 REVERT CHECK: Original data exists = ${hasOriginalData}, Edited fields exist = ${hasEditedFields}`
+  );
 
   if (hasOriginalData) {
     console.log(`📋 ORIGINAL DATA:`, transaction.originalData);
@@ -757,17 +871,19 @@ export function revertAllChangesToOriginal(transactionId, index) {
   }
 
   if (!hasOriginalData && !hasEditedFields) {
-    console.log('ℹ️ No original data or edited fields found');
-    import('../uiManager.js').then(module => {
+    console.log("ℹ️ No original data or edited fields found");
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('No changes to revert', 'info');
+        module.showToast("No changes to revert", "info");
       }
     });
     return;
   }
 
   // Confirm with user
-  if (!confirm('Revert all changes to the original values from the file upload?')) {
+  if (
+    !confirm("Revert all changes to the original values from the file upload?")
+  ) {
     return;
   }
 
@@ -786,33 +902,41 @@ export function revertAllChangesToOriginal(transactionId, index) {
   delete transaction.editedFields;
   delete transaction.edited;
 
-  console.log(`✅ REVERT COMPLETE: Transaction ${transactionId} reverted to original state`);
+  console.log(
+    `✅ REVERT COMPLETE: Transaction ${transactionId} reverted to original state`
+  );
 
   // Save to localStorage
   try {
-    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
-    console.log(`💾 REVERT SAVED: Transaction ${transactionId} saved to localStorage`);
+    localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+    console.log(
+      `💾 REVERT SAVED: Transaction ${transactionId} saved to localStorage`
+    );
 
     // Hide the revert-all button since there's nothing left to revert
-    const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+    const row = document.querySelector(
+      `tr[data-transaction-id="${transactionId}"]`
+    );
     if (row) {
-      const revertAllBtn = row.querySelector('.btn-revert-all');
+      const revertAllBtn = row.querySelector(".btn-revert-all");
       if (revertAllBtn) {
-        revertAllBtn.style.display = 'none';
-        console.log(`👁️ BUTTON HIDDEN: Revert-all button hidden for transaction ${transactionId}`);
+        revertAllBtn.style.display = "none";
+        console.log(
+          `👁️ BUTTON HIDDEN: Revert-all button hidden for transaction ${transactionId}`
+        );
       }
     }
 
-    import('../uiManager.js').then(module => {
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Transaction reverted successfully', 'success');
+        module.showToast("Transaction reverted successfully", "success");
       }
     });
   } catch (error) {
-    console.error('Error reverting transaction:', error);
-    import('../uiManager.js').then(module => {
+    console.error("Error reverting transaction:", error);
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Error reverting transaction', 'error');
+        module.showToast("Error reverting transaction", "error");
       }
     });
   }
@@ -825,55 +949,60 @@ export function deleteTransactionById(transactionId) {
   console.log(`🗑️ DELETING TRANSACTION: ${transactionId}`);
 
   if (!AppState.transactions || !Array.isArray(AppState.transactions)) {
-    console.error('❌ No transactions array in AppState');
+    console.error("❌ No transactions array in AppState");
     return;
   }
 
   // Find transaction by ID
-  const transactionIndex = AppState.transactions.findIndex(tx => tx.id === transactionId);
+  const transactionIndex = AppState.transactions.findIndex(
+    (tx) => tx.id === transactionId
+  );
   if (transactionIndex === -1) {
     console.error(`❌ Transaction with ID ${transactionId} not found`);
-    import('../uiManager.js').then(module => {
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Transaction not found', 'error');
+        module.showToast("Transaction not found", "error");
       }
     });
     return;
   }
 
   // Confirm deletion
-  if (!confirm('Are you sure you want to delete this transaction?')) {
+  if (!confirm("Are you sure you want to delete this transaction?")) {
     return;
   }
 
   // Remove transaction from array
   AppState.transactions.splice(transactionIndex, 1);
 
-  console.log(`✅ TRANSACTION DELETED: ${transactionId}, remaining transactions: ${AppState.transactions.length}`);
+  console.log(
+    `✅ TRANSACTION DELETED: ${transactionId}, remaining transactions: ${AppState.transactions.length}`
+  );
 
   // Save to localStorage
   try {
-    localStorage.setItem('transactions', JSON.stringify(AppState.transactions));
-    console.log(`💾 DELETE SAVED: Transaction ${transactionId} removed from localStorage`);
+    localStorage.setItem("transactions", JSON.stringify(AppState.transactions));
+    console.log(
+      `💾 DELETE SAVED: Transaction ${transactionId} removed from localStorage`
+    );
 
-    import('../uiManager.js').then(module => {
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Transaction deleted successfully', 'success');
+        module.showToast("Transaction deleted successfully", "success");
       }
     });
 
     // Trigger refresh of transaction display
-    import('./transactionCoordinator.js').then(module => {
+    import("./transactionCoordinator.js").then((module) => {
       if (module.refreshTransactionDisplay) {
         module.refreshTransactionDisplay();
       }
     });
-
   } catch (error) {
-    console.error('Error deleting transaction:', error);
-    import('../uiManager.js').then(module => {
+    console.error("Error deleting transaction:", error);
+    import("../uiManager.js").then((module) => {
       if (module.showToast) {
-        module.showToast('Error deleting transaction', 'error');
+        module.showToast("Error deleting transaction", "error");
       }
     });
   }
