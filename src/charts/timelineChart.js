@@ -1048,7 +1048,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Export functions for use in other modules
-export { renderTimelineChart, groupTransactionsByPeriod, getPeriodLabel };
+export { renderTimelineChart, groupTransactionsByPeriod, getPeriodLabel, formatChartData };
 
 /**
  * Format numbers safely for chart labels

@@ -5,7 +5,7 @@
  */
 
 // Legacy CommonJS test – covered by real-time-currency-updates.test.mjs (ESM)
-describe.skip('Real-time Currency Updates (CJS legacy)', () => {
+describe('Real-time Currency Updates (CJS legacy placeholder)', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
@@ -77,9 +77,10 @@ describe.skip('Real-time Currency Updates (CJS legacy)', () => {
     const editorContent = fs.readFileSync(editorPath, 'utf8');
 
     // Verify chart canvas checking is implemented
-    expect(editorContent).toContain('getElementById(\'incomeExpenseChart\')');
-    expect(editorContent).toContain('getElementById(\'expenseChart\')');
-    expect(editorContent).toContain('getElementById(\'timelineChart\')');
+    // Allow either single or double quotes around IDs
+    expect(editorContent).toMatch(/getElementById\(['"]incomeExpenseChart['"]\)/);
+    expect(editorContent).toMatch(/getElementById\(['"]expenseChart['"]\)/);
+    expect(editorContent).toMatch(/getElementById\(['"]timelineChart['"]\)/);
     expect(editorContent).toContain('Charts not visible, skipping chart update');
   });
 
@@ -158,7 +159,8 @@ describe.skip('Real-time Currency Updates (CJS legacy)', () => {
     // Verify the flow from saveFieldChangeById to handleCurrencyUpdate
     expect(editorContent).toContain('function saveFieldChangeById(transactionId, fieldName, newValue)');
     expect(editorContent).toContain('handleSpecialFieldUpdates(transactionId, fieldName, newValue)');
-    expect(editorContent).toContain('if (fieldName === \'currency\')');
+    // Accept either single or double quotes around currency
+    expect(editorContent).toMatch(/if\s*\(fieldName\s*===\s*['"]currency['"]\)/);
     expect(editorContent).toContain('handleCurrencyUpdate(transactionId, newValue)');
   });
 

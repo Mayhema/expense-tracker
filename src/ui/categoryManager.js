@@ -240,20 +240,20 @@ function buildCategoriesGrid(categories) {
       "</div>" +
       (subCount > 0
         ? '<button class="btn-subcategories" data-category="' +
-          categoryName +
-          '">' +
-          '<span class="subcategory-icon">📁</span>' +
-          "<span>Manage " +
-          subCount +
-          " subcategories</span>" +
-          '<span class="expand-icon">▼</span>' +
-          "</button>"
+        categoryName +
+        '">' +
+        '<span class="subcategory-icon">📁</span>' +
+        "<span>Manage " +
+        subCount +
+        " subcategories</span>" +
+        '<span class="expand-icon">▼</span>' +
+        "</button>"
         : '<button class="btn-add-subcategory" data-category="' +
-          categoryName +
-          '">' +
-          '<span class="add-icon">+</span>' +
-          "<span>Add subcategory</span>" +
-          "</button>") +
+        categoryName +
+        '">' +
+        '<span class="add-icon">+</span>' +
+        "<span>Add subcategory</span>" +
+        "</button>") +
       "</div>" +
       "<!-- Edit Form (hidden by default) -->" +
       '<div class="category-edit-form" style="display: none;">' +
@@ -559,7 +559,7 @@ function attachCategoryManagerEventListeners(container, modal) {
   // Delete category buttons (new card layout)
   container.querySelectorAll(".btn-delete").forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      const categoryName = e.target.dataset.category;
+      const categoryName = (e.currentTarget || e.target).dataset.category;
       if (confirm('Delete category "' + categoryName + '"?')) {
         if (deleteCategory(categoryName)) {
           container.innerHTML = buildCategoryManagerHTML();
@@ -572,8 +572,9 @@ function attachCategoryManagerEventListeners(container, modal) {
   // Save edit buttons
   container.querySelectorAll(".btn-save-edit").forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      const categoryName = e.target.dataset.category;
-      const categoryCard = e.target.closest(".category-card");
+      const target = e.currentTarget || e.target;
+      const categoryName = target.dataset.category;
+      const categoryCard = target.closest(".category-card");
       const nameInput = categoryCard.querySelector(".edit-name-input");
       const colorInput = categoryCard.querySelector(".edit-color-input");
       const orderInput = categoryCard.querySelector(".edit-order-input");
@@ -1052,8 +1053,8 @@ export function resetToDefaultCategories() {
 
       console.log(
         "Reset: Loaded " +
-          Object.keys(AppState.categories).length +
-          " default categories"
+        Object.keys(AppState.categories).length +
+        " default categories"
       );
 
       // Update all category UI elements
@@ -1233,8 +1234,8 @@ function attachSubcategoryModalEventListeners(container, modal, categoryName) {
       if (
         confirm(
           'Are you sure you want to remove the subcategory "' +
-            subcategoryName +
-            '"?'
+          subcategoryName +
+          '"?'
         )
       ) {
         delete AppState.categories[categoryName].subcategories[subcategoryName];
@@ -1581,8 +1582,8 @@ export function addSubcategory(parentName, subName, subColor) {
     import("./uiManager.js").then((module) => {
       module.showToast(
         'Parent category "' +
-          parentName +
-          '" not found. Please create it first.',
+        parentName +
+        '" not found. Please create it first.',
         "error"
       );
     });
@@ -1759,7 +1760,7 @@ function attachSubcategoryEventListeners(
   const addBtn = subcategoriesSection.querySelector(".add-subcategory-btn");
   if (addBtn) {
     addBtn.addEventListener("click", (e) => {
-      const parentName = e.target.getAttribute("data-parent");
+      const parentName = (e.currentTarget || e.target).getAttribute("data-parent");
       const nameInput = subcategoriesSection.querySelector(".subname-input");
       const colorInput = subcategoriesSection.querySelector(".subcolor-input");
 
@@ -1801,8 +1802,8 @@ function attachSubcategoryEventListeners(
     .querySelectorAll(".btn-save-subcategory")
     .forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const parentName = e.target.getAttribute("data-parent");
-        const oldSubName = e.target.getAttribute("data-subcategory");
+        const parentName = (e.currentTarget || e.target).getAttribute("data-parent");
+        const oldSubName = (e.currentTarget || e.target).getAttribute("data-subcategory");
         const subcategoryCard = e.target.closest(".subcategory-card");
         const nameInput = subcategoryCard.querySelector(".edit-subname-input");
         const colorInput = subcategoryCard.querySelector(
@@ -1845,8 +1846,8 @@ function attachSubcategoryEventListeners(
     .querySelectorAll(".btn-delete-subcategory")
     .forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const parentName = e.target.getAttribute("data-parent");
-        const subName = e.target.getAttribute("data-subcategory");
+        const parentName = (e.currentTarget || e.target).getAttribute("data-parent");
+        const subName = (e.currentTarget || e.target).getAttribute("data-subcategory");
 
         if (confirm('Delete subcategory "' + subName + '"?')) {
           if (deleteSubcategory(parentName, subName)) {
