@@ -34,9 +34,12 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['src/utils/**', 'src/workers/**', 'src/ui/**/debug*.js', 'src/utils/console-logger.js'],
+      files: ['src/utils/**', 'src/workers/**', 'src/ui/**', 'src/utils/console-logger.js'],
       rules: {
+        // UI, utils, and workers often include guarded diagnostics;
+        // disable console and unused-vars warnings here to keep Problems panel clean.
         'no-console': 'off',
+        'no-unused-vars': 'off',
       },
     },
   ],

@@ -36,7 +36,8 @@ describe('Transaction Editor Flows (API-level)', () => {
       return {
         getItem: jest.fn((key) => (key in store ? store[key] : '[]')),
         setItem: jest.fn((key, value) => {
-          store[key] = String(value);
+          // Expect callers to pass serialized values (e.g., JSON.stringify)
+          store[key] = value;
         }),
         removeItem: jest.fn((key) => {
           delete store[key];
@@ -54,6 +55,9 @@ describe('Transaction Editor Flows (API-level)', () => {
   });
 
   test('saveFieldChangeById updates category and styles category cell', async () => {
+    jest.useFakeTimers();
+    // Avoid chart updates path
+    document.getElementById = jest.fn(() => null);
     const { saveFieldChangeById } = await import('../ui/transaction/transactionEditor.js');
 
     // Act
@@ -64,14 +68,18 @@ describe('Transaction Editor Flows (API-level)', () => {
     expect(tx.category).toBe('Food');
     expect(tx.subcategory).toBe('Groceries');
     expect(tx.editedFields?.category).toBe(true);
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(
-      'transactions',
-      expect.any(String)
-    );
+    // Ensure we persist a stringified payload, not raw objects
+    const [key, value] = window.localStorage.setItem.mock.calls.find(([k]) => k === 'transactions') || [];
+    expect(key).toBe('transactions');
+    expect(typeof value).toBe('string');
 
     // Assert UI style updated
     const cell = document.querySelector('tr[data-transaction-id="tx_1"] .category-cell');
     expect(cell.style.cssText).toContain('background-color');
+
+    // Drain any scheduled work (summary/charts updates) and restore timers
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   test('saveFieldChangeById updates currency and marks editedFields', async () => {

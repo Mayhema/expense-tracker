@@ -6,15 +6,12 @@
 self.onmessage = async (e) => {
   const { type, payload } = e.data || {};
   try {
-    switch (type) {
-      case 'csv': {
-        const text = payload;
-        const rows = text.split(/\r?\n/).map((r) => r.split(','));
-        postMessage({ ok: true, data: rows });
-        break;
-      }
-      default:
-        postMessage({ ok: false, error: `Unsupported type: ${type}` });
+    if (type === 'csv') {
+      const text = payload;
+      const rows = text.split(/\r?\n/).map((r) => r.split(','));
+      postMessage({ ok: true, data: rows });
+    } else {
+      postMessage({ ok: false, error: `Unsupported type: ${type}` });
     }
   } catch (err) {
     postMessage({ ok: false, error: String(err?.message || err) });

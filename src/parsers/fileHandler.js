@@ -2,6 +2,7 @@
 
 // Update imports
 import { AppState } from "../core/appState.js";
+import { createParserClient } from "../utils/parserWorkerClient.js";
 import {
   isExcelDate,
   excelDateToJSDate,
@@ -95,20 +96,35 @@ export async function handleFileUpload(file) {
  * @returns {Promise<Array<Array>>} Parsed data
  */
 async function parseCSV(file) {
+  const useWorker =
+    Boolean(globalThis.APP_FEATURES?.useWorkerParsing) ||
+    Boolean(localStorage.getItem("useWorkerParsing"));
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
       try {
         const text = e.target.result;
+
+        if (useWorker) {
+          try {
+            const client = createParserClient();
+            const rows = await client.parseCSV(text);
+            client.terminate?.();
+            console.log(`[Worker] Parsed CSV: ${rows.length} rows`);
+            resolve(rows);
+            return;
+          } catch (err) {
+            console.warn("Worker parse failed; falling back to main thread:", err);
+          }
+        }
+
+        // Fallback: main-thread parsing
         const rows = text
           .split("\n")
-          .map((row) => {
-            // Simple CSV parsing - handles quoted fields
-            return parseCSVRow(row);
-          })
+          .map((row) => parseCSVRow(row))
           .filter((row) => row.length > 0);
-
         console.log(`Parsed CSV: ${rows.length} rows`);
         resolve(rows);
       } catch (error) {
@@ -204,7 +220,7 @@ async function parseXML(file) {
  * @param {string} row - CSV row string
  * @returns {Array<string>} Parsed fields
  */
-function parseCSVRow(row) {
+export function parseCSVRow(row) {
   const result = [];
   let current = "";
   let inQuotes = false;
@@ -213,16 +229,38 @@ function parseCSVRow(row) {
   while (i < row.length) {
     const char = row[i];
 
+    // Support backslash-escaped quotes within quoted fields: \"
+    if (inQuotes && char === "\\" && row[i + 1] === '"') {
+      current += '"';
+      i += 2;
+      continue;
+    }
+
     if (char === '"') {
-      if (inQuotes && row[i + 1] === '"') {
-        // Escaped quote
-        current += '"';
-        i += 2; // Skip both quotes
-      } else {
-        // Toggle quote state
-        inQuotes = !inQuotes;
+      if (inQuotes) {
+        if (row[i + 1] === '"') {
+          // Escaped quote using doubled quotes
+          current += '"';
+          i += 2; // Skip both quotes
+          continue;
+        }
+        // Heuristic: treat quote as literal unless it's immediately followed by a delimiter or EOL
+        const next = row[i + 1];
+        if (next !== undefined && next !== ',' && next !== '\\n' && next !== '\\r') {
+          // Literal quote inside quoted field (non-standard CSV but tolerated)
+          current += '"';
+          i++;
+          continue;
+        }
+        // Otherwise, this quote closes the field
+        inQuotes = false;
         i++;
+        continue;
       }
+      // Opening quote
+      inQuotes = true;
+      i++;
+      continue;
     } else if (char === "," && !inQuotes) {
       // Field separator
       result.push(current.trim());
@@ -286,14 +324,14 @@ export function generateFileSignature(
     // FIXED: Include header content in signature for better uniqueness, normalized
     const headerContent = data[0]
       ? data[0]
-          .map((cell) => {
-            if (!cell) return "";
-            return String(cell)
-              .toLowerCase()
-              .replace(/[^a-z0-9]/g, "") // Remove special chars
-              .substring(0, 10); // Limit length
-          })
-          .join("|")
+        .map((cell) => {
+          if (!cell) return "";
+          return String(cell)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "") // Remove special chars
+            .substring(0, 10); // Limit length
+        })
+        .join("|")
       : "";
 
     // FIXED: Analyze data patterns to create structure fingerprint
@@ -439,10 +477,10 @@ export function getSignatureString(signature) {
 
   // Otherwise extract one of the signatures
   return (
+    signature.structureSig ||
     signature.mappingSig ||
     signature.formatSig ||
     signature.contentSig ||
-    signature.structureSig ||
     JSON.stringify(signature)
   );
 }
@@ -557,8 +595,8 @@ export function isDuplicateFile(fileName, signature) {
     const fileSig =
       typeof f.signature === "object"
         ? f.signature.formatSig ||
-          f.signature.structureSig ||
-          f.signature.mappingSig
+        f.signature.structureSig ||
+        f.signature.mappingSig
         : f.signature;
 
     const checkSig =
