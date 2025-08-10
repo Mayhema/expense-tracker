@@ -1,5 +1,7 @@
 // Try to use a Web Worker for parsing; fall back to main-thread parsing if unavailable.
 
+import { parseCSVText } from './csv.js';
+
 export function createParserClient() {
   let worker = null;
   if (typeof Worker !== 'undefined') {
@@ -9,10 +11,7 @@ export function createParserClient() {
 
   if (!worker) {
     return {
-      parseCSV(text) {
-        const rows = text.split(/\r?\n/).map((r) => r.split(','));
-        return Promise.resolve(rows);
-      },
+      parseCSV(text) { return Promise.resolve(parseCSVText(text)); },
       terminate() { },
       isWorker: false,
     };

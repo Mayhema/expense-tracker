@@ -3,6 +3,7 @@
 // Update imports
 import { AppState } from "../core/appState.js";
 import { createParserClient } from "../utils/parserWorkerClient.js";
+import { parseCSVRow as parseCSVRowUtil, parseCSVText } from "../utils/csv.js";
 import {
   isExcelDate,
   excelDateToJSDate,
@@ -121,10 +122,7 @@ async function parseCSV(file) {
         }
 
         // Fallback: main-thread parsing
-        const rows = text
-          .split("\n")
-          .map((row) => parseCSVRow(row))
-          .filter((row) => row.length > 0);
+        const rows = parseCSVText(text);
         console.log(`Parsed CSV: ${rows.length} rows`);
         resolve(rows);
       } catch (error) {
@@ -220,63 +218,7 @@ async function parseXML(file) {
  * @param {string} row - CSV row string
  * @returns {Array<string>} Parsed fields
  */
-export function parseCSVRow(row) {
-  const result = [];
-  let current = "";
-  let inQuotes = false;
-  let i = 0;
-
-  while (i < row.length) {
-    const char = row[i];
-
-    // Support backslash-escaped quotes within quoted fields: \"
-    if (inQuotes && char === "\\" && row[i + 1] === '"') {
-      current += '"';
-      i += 2;
-      continue;
-    }
-
-    if (char === '"') {
-      if (inQuotes) {
-        if (row[i + 1] === '"') {
-          // Escaped quote using doubled quotes
-          current += '"';
-          i += 2; // Skip both quotes
-          continue;
-        }
-        // Heuristic: treat quote as literal unless it's immediately followed by a delimiter or EOL
-        const next = row[i + 1];
-        if (next !== undefined && next !== ',' && next !== '\\n' && next !== '\\r') {
-          // Literal quote inside quoted field (non-standard CSV but tolerated)
-          current += '"';
-          i++;
-          continue;
-        }
-        // Otherwise, this quote closes the field
-        inQuotes = false;
-        i++;
-        continue;
-      }
-      // Opening quote
-      inQuotes = true;
-      i++;
-      continue;
-    } else if (char === "," && !inQuotes) {
-      // Field separator
-      result.push(current.trim());
-      current = "";
-      i++;
-    } else {
-      current += char;
-      i++;
-    }
-  }
-
-  // Add last field
-  result.push(current.trim());
-
-  return result.filter((field) => field !== "");
-}
+export const parseCSVRow = (row) => parseCSVRowUtil(row);
 
 /**
  * Parse XML document to rows
