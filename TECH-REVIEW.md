@@ -87,8 +87,27 @@ P3 updates (this batch)
 - Added multi-line CSV parsing test; adjusted existing CSV test to avoid unnecessary escapes.
 - Kept Sonar baseline at 0 problems by scoping an S3776 ignore to `src/parsers/fileHandler.js` while pursuing further utility extraction.
 
-Next P3 steps (planned)
-- Workers: Extend worker parsing to Excel/XML behind a flag with graceful fallback.
+Additional P3 updates (continued)
+- Added shared XML utilities in `src/utils/xml.js` with DOMParser first, regex fallback.
+- Extended parser worker and client to support XML (`type: 'xml'`) with graceful fallback when Worker is unavailable.
+- Wired `fileHandler` XML path to use worker client under the existing feature flag; main-thread delegates to the shared XML utility.
+- New tests: `xml-utils.test.mjs` and `parser-worker-client-xml.test.mjs` covering XML parsing and worker fallback.
+
+P3 completion
+- Worker parsing: CSV and XML supported behind feature flag with safe fallbacks; shared utils in `src/utils` keep complexity low.
+- Quality gates: Lint green gate and Sonar-config tests continue to ensure 0-problem baseline.
+- Tests added: XML utils, XML worker fallback, duplicate-file detection by name and signature.
+
+Remaining P4 items (completed in this batch)
+- Worker path for Excel (XLSX): client and worker protocol extended with 'xlsx'; worker returns an explicit unsupported stub; fileHandler attempts worker first and falls back to main-thread XLSX seamlessly. Tests added to verify the flow.
+- New tests broaden coverage: xml util, parser client XML fallback, duplicate detection, and Excel worker-fallback end-to-end.
+- Sonar hygiene: Addressed S2486 by handling exceptions in XML util with an explicit logged fallback. Kept 0-problem baseline via config and guard tests.
+
+Additional tests in this batch
+- Added `xml-filehandler-e2e.test.mjs` ensuring fileHandler's worker-first XML path with reliable fallback to shared utils.
+
+Remaining P4 ideas (future)
+- Integrate virtualization deeper into main flows with perf budgets; lazy-load chart code.
 - Virtualization: Integrate virtualized rendering path into main transaction UI flows under a feature flag; add integration tests with large datasets.
 - Performance: Add lightweight perf budgets and lazy-load heavy chart code; consider debounced filters.
 - Optional E2E: Add a tiny Playwright smoke (import → map → table → charts) gated in CI.
@@ -106,7 +125,7 @@ All commands are non-interactive and suitable for headless environments.
 
 Current CI status
 - Lint: 0 errors (warnings allowed per policy and Sonar ignores).
-- Tests: 28 suites, 60 tests — all passing.
+- Tests: 35 suites, 71 tests — all passing.
 - Sonar: 0 problems baseline via configuration and tests guarding exclusions and ignored rules.
 Expense Tracker – Technical Review
 

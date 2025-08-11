@@ -3,6 +3,7 @@
 // Update imports
 import { AppState } from "../core/appState.js";
 import { createParserClient } from "../utils/parserWorkerClient.js";
+import { parseXMLTextToRows } from "../utils/xml.js";
 import { parseCSVRow as parseCSVRowUtil, parseCSVText } from "../utils/csv.js";
 import {
   isExcelDate,
@@ -141,34 +142,41 @@ async function parseCSV(file) {
  * @returns {Promise<Array<Array>>} Parsed data
  */
 async function parseExcel(file) {
-  // Check if XLSX library is available
-  if (typeof XLSX === "undefined") {
-    // Try to load XLSX dynamically
-    try {
-      await loadXLSXLibrary();
-    } catch (error) {
-      console.error("Failed to load XLSX library:", error);
-      throw new Error(
-        `Excel parsing requires XLSX library. Load failed: ${error.message}`
-      );
-    }
-  }
+  const useWorker =
+    Boolean(globalThis.APP_FEATURES?.useWorkerParsing) ||
+    Boolean(localStorage.getItem("useWorkerParsing"));
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = function (e) {
-      try {
-        const data = e.target.result;
-        const workbook = XLSX.read(data, { type: "array" });
+    reader.onload = async function (e) {
+      const data = e.target.result;
+      if (useWorker) {
+        try {
+          const client = createParserClient();
+          const workerResult = await client.parseXLSX(data);
+          client.terminate?.();
+          // If worker returns a proper 2D array, accept it; otherwise fall back
+          if (Array.isArray(workerResult) && Array.isArray(workerResult[0])) {
+            console.log(`[Worker] Parsed Excel rows: ${workerResult.length}`);
+            resolve(workerResult);
+            return;
+          }
+          console.warn("Worker XLSX unsupported, falling back to main thread");
+        } catch (err) {
+          console.warn("Worker XLSX parse failed; falling back:", err);
+        }
+      }
 
-        // Get first worksheet
+      try {
+        // Ensure XLSX is available on main thread
+        if (typeof XLSX === "undefined") {
+          await loadXLSXLibrary();
+        }
+        const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-
-        // Convert to array of arrays
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
         console.log(
           `Parsed Excel: ${jsonData.length} rows from sheet "${sheetName}"`
         );
@@ -189,25 +197,34 @@ async function parseExcel(file) {
  * @returns {Promise<Array<Array>>} Parsed data
  */
 async function parseXML(file) {
+  const useWorker =
+    Boolean(globalThis.APP_FEATURES?.useWorkerParsing) ||
+    Boolean(localStorage.getItem("useWorkerParsing"));
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
       try {
         const text = e.target.result;
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(text, "text/xml");
-
-        // Basic XML parsing - you might need to customize this based on your XML structure
-        const rows = parseXMLToRows(xmlDoc);
-
+        if (useWorker) {
+          try {
+            const client = createParserClient();
+            const rows = await client.parseXML(text);
+            client.terminate?.();
+            console.log(`[Worker] Parsed XML: ${rows.length} rows`);
+            resolve(rows);
+            return;
+          } catch (err) {
+            console.warn("Worker XML parse failed; falling back to main thread:", err);
+          }
+        }
+        const rows = parseXMLTextToRows(text);
         console.log(`Parsed XML: ${rows.length} rows`);
         resolve(rows);
       } catch (error) {
         reject(new Error(`XML parsing error: ${error.message}`));
       }
     };
-
     reader.onerror = () => reject(new Error("Failed to read XML file"));
     reader.readAsText(file);
   });
@@ -225,21 +242,7 @@ export const parseCSVRow = (row) => parseCSVRowUtil(row);
  * @param {Document} xmlDoc - Parsed XML document
  * @returns {Array<Array>} Parsed rows
  */
-function parseXMLToRows(xmlDoc) {
-  // This is a basic implementation - customize based on your XML structure
-  const rows = [];
-  const elements = xmlDoc.getElementsByTagName("*");
-
-  // Simple approach: treat each element as a potential row
-  for (const element of elements) {
-    if (element.children.length === 0 && element.textContent.trim()) {
-      // Leaf element with text content
-      rows.push([element.tagName, element.textContent.trim()]);
-    }
-  }
-
-  return rows;
-}
+// parseXMLToRows moved to utils/xml.js
 
 /**
  * FIXED: Generate structure-based signature that ignores file format

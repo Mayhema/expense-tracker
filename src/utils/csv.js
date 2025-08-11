@@ -41,7 +41,6 @@ export function parseCSVRow(row) {
 
   while (i < row.length) {
     const ch = row[i];
-    const next = row[i + 1];
 
     if (isBackslashEscapedQuote(row, i, inQuotes)) {
       current += '"';
