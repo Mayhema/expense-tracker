@@ -39,6 +39,43 @@ function getModalOverlay() {
   return modalCache.overlay;
 }
 
+// Helper: lock body scroll
+function lockBodyScroll() {
+  if (!document.body.classList.contains('modal-open')) {
+    const previousScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.classList.add('modal-open');
+    document.body.dataset.prevScroll = String(previousScrollY);
+    document.body.style.top = `-${previousScrollY}px`;
+    document.body.style.width = '100%';
+  }
+}
+
+// Helper: unlock body scroll
+function unlockBodyScrollIfLast(modalContainer) {
+  if (modalContainer && modalContainer.children.length > 0) return; // still modals
+  if (document.body.classList.contains('modal-open')) {
+    const prev = parseInt(document.body.dataset.prevScroll || '0', 10) || 0;
+    document.body.classList.remove('modal-open');
+    document.body.style.top = '';
+    document.body.style.width = '';
+    delete document.body.dataset.prevScroll;
+    try {
+      window.scrollTo(0, prev);
+    } catch (e) {
+      console.warn('Failed to restore scroll position', e);
+    }
+  }
+}
+
+// Helper: create element with styles & classes
+function createElement(tag, { className = '', styles = '', html = '' } = {}) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (styles) el.style.cssText = styles;
+  if (html) el.innerHTML = html;
+  return el;
+}
+
 /**
  * Show a modal with the given options
  */
@@ -94,33 +131,46 @@ export function showModal(options = {}) {
   }
 
   // Create modal overlay
-  const modalOverlay = document.createElement("div");
-  modalOverlay.className = "modal-overlay";
-  modalOverlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-    visibility: visible;
-    opacity: 1;
-    z-index: 10001;
-  `;
+  const modalOverlay = createElement('div', {
+    className: 'modal-overlay',
+    styles: `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      visibility: visible;
+      opacity: 1;
+      z-index: 10001;`
+  });
+  modalOverlay.setAttribute('role', 'dialog');
+  modalOverlay.setAttribute('aria-modal', 'true');
 
   // Create modal dialog
-  const modalDialog = document.createElement("div");
-  modalDialog.className = `modal-dialog modal-${size}`;
+  const modalDialog = createElement('div', { className: `modal-dialog modal-${size}` });
+  // Layout: dialog acts as a column container with inner body handling scroll
+  // Use a safe viewport width minus margins to avoid triggering horizontal scrollbars
+  let maxWidth;
+  if (size === "xlarge") {
+    maxWidth = "min(1100px, calc(100vw - 40px))";
+  } else if (size === "large") {
+    maxWidth = "min(900px, calc(100vw - 40px))";
+  } else {
+    maxWidth = "600px";
+  }
   modalDialog.style.cssText = `
     background-color: white;
     border-radius: 8px;
-    max-width: ${size === "large" ? "90vw" : "600px"};
+    max-width: ${maxWidth};
     max-height: 90vh;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* prevent horizontal scroll at dialog level */
     margin: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     position: relative;
@@ -128,32 +178,23 @@ export function showModal(options = {}) {
   `;
 
   // Create modal content structure
-  const modalContentWrapper = document.createElement("div");
-  modalContentWrapper.className = "modal-content";
+  const modalContentWrapper = createElement('div', {
+    className: 'modal-content',
+    styles: `display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;`
+  });
 
   // Modal header
-  const modalHeader = document.createElement("div");
-  modalHeader.className = "modal-header";
-  modalHeader.style.cssText = `
-    padding: 20px 24px 0 24px;
-    border-bottom: 1px solid #eee;
-    position: relative;
-  `;
-  modalHeader.innerHTML = `
-    <h3 class="modal-title" style="margin: 0 0 16px 0; font-size: 1.25rem; font-weight: 600;">${title}</h3>
-    ${
-      showCloseButton
-        ? '<button class="modal-close-btn" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>'
-        : ""
-    }
-  `;
+  const modalHeader = createElement('div', {
+    className: 'modal-header',
+    styles: `padding:20px 24px 0 24px;border-bottom:1px solid #eee;position:relative;flex-shrink:0;`,
+    html: `<h3 class="modal-title" style="margin:0 0 16px 0;font-size:1.25rem;font-weight:600;">${title}</h3>${showCloseButton ? '<button class="modal-close-btn" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>' : ''}`
+  });
 
   // Modal body
-  const modalBody = document.createElement("div");
-  modalBody.className = "modal-body";
-  modalBody.style.cssText = `
-    padding: 24px;
-  `;
+  const modalBody = createElement('div', {
+    className: 'modal-body',
+    styles: `padding:24px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;width:100%;`
+  });
 
   // Handle content - can be string or element
   if (typeof content === "string") {
@@ -179,7 +220,9 @@ export function showModal(options = {}) {
   modalContainer.style.display = "block";
   modalOverlay.style.display = "flex";
 
-  // Create modal object with methods
+  // Lock background scrolling
+  lockBodyScroll();
+
   const modal = {
     element: modalOverlay,
     content: modalBody,
@@ -193,6 +236,7 @@ export function showModal(options = {}) {
         modalContainer.style.display = "none";
         modalContainer.style.pointerEvents = "none";
       }
+      unlockBodyScrollIfLast(modalContainer);
       activeModal = null;
       modalCreationInProgress = false;
     },
@@ -226,6 +270,41 @@ export function showModal(options = {}) {
     }
   };
   document.addEventListener("keydown", handleEscape);
+
+  // Prevent wheel/touch scroll from bubbling to body (Chrome background scroll issue)
+  modalBody.addEventListener('wheel', (e) => {
+    // Allow default scrolling inside modalBody but stop propagation so body doesn't scroll when at edges
+    e.stopPropagation();
+  }, { passive: true });
+  modalBody.addEventListener('touchmove', (e) => {
+    e.stopPropagation();
+  }, { passive: true });
+
+  // Basic focus trap
+  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const focusable = () => Array.from(modalDialog.querySelectorAll(focusableSelectors)).filter(el => !el.disabled && el.offsetParent !== null);
+  const handleTab = (e) => {
+    if (e.key !== 'Tab') return;
+    const nodes = focusable();
+    if (!nodes.length) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+      return;
+    }
+    if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  modalDialog.addEventListener('keydown', handleTab);
+  // Focus first element after render
+  requestAnimationFrame(() => {
+    const nodes = focusable();
+    (nodes[0] || modalDialog).focus({ preventScroll: true });
+  });
 
   console.log("CRITICAL: Modal created successfully, returning modal object");
 

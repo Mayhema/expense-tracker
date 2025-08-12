@@ -186,9 +186,8 @@ function buildEnhancedCategoryManagerHTML() {
           </div>
 
           <!-- Empty State -->
-          <div class="empty-state" id="emptyState" style="display: ${
-            categoryCount === 0 ? "flex" : "none"
-          }">
+          <div class="empty-state" id="emptyState" style="display: ${categoryCount === 0 ? "flex" : "none"
+    }">
             <div class="empty-content">
               <div class="empty-icon">📂</div>
               <h3>No Categories Yet</h3>
@@ -274,11 +273,10 @@ function buildEnhancedCategoriesGrid(categories) {
           <div class="category-info">
             <h4 class="category-name">${name}</h4>
             <p class="category-meta">
-              ${
-                subcategoryCount > 0
-                  ? `${subcategoryCount} subcategories`
-                  : "Simple category"
-              }
+              ${subcategoryCount > 0
+          ? `${subcategoryCount} subcategories`
+          : "Simple category"
+        }
             </p>
           </div>
           <div class="category-actions">
@@ -297,10 +295,9 @@ function buildEnhancedCategoriesGrid(categories) {
           </div>
         </div>
 
-        ${
-          subcategoryCount > 0
-            ? buildSubcategoriesPreview(subcategories, subcategoryCount)
-            : ""
+        ${subcategoryCount > 0
+          ? buildSubcategoriesPreview(subcategories, subcategoryCount)
+          : ""
         }
       </div>
     `;
@@ -323,15 +320,15 @@ function buildSubcategoriesPreview(subcategories, subcategoryCount) {
         <h5>Subcategories (${subcategoryCount})</h5>
         <div class="subcategories-list">
           ${Object.entries(subcategories)
-            .slice(0, 3)
-            .map(
-              ([subName, subColor]) => `
+      .slice(0, 3)
+      .map(
+        ([subName, subColor]) => `
             <span class="subcategory-tag" style="border-left-color: ${subColor}">
               ${subName}
             </span>
           `
-            )
-            .join("")}
+      )
+      .join("")}
           ${moreText}
         </div>
       </div>
@@ -568,11 +565,8 @@ function showAddCategoryModal() {
 
       <div style="margin-bottom: 1.5rem;">
         <label for="newCategoryColor" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Category Color</label>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <input type="color" id="newCategoryColor" value="#667eea"
-                 style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
-          <span id="colorPreview" style="padding: 0.5rem 1rem; background: #667eea; color: white; border-radius: 6px; font-size: 0.9rem;">Preview</span>
-        </div>
+        <input type="color" id="newCategoryColor" value="#667eea"
+               style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem;">
@@ -589,13 +583,7 @@ function showAddCategoryModal() {
     closeOnClickOutside: false,
   });
 
-  // Color preview update
-  const colorInput = modalContent.querySelector("#newCategoryColor");
-  const colorPreview = modalContent.querySelector("#colorPreview");
-
-  colorInput.addEventListener("input", (e) => {
-    colorPreview.style.backgroundColor = e.target.value;
-  });
+  // No preview element needed; input shows the color
 
   // Event handlers
   modalContent
@@ -644,11 +632,8 @@ function showEditCategoryModal(categoryName) {
 
       <div style="margin-bottom: 1.5rem;">
         <label for="editCategoryColor" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Category Color</label>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <input type="color" id="editCategoryColor" value="${color}"
-                 style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
-          <span id="editColorPreview" style="padding: 0.5rem 1rem; background: ${color}; color: white; border-radius: 6px; font-size: 0.9rem;">Preview</span>
-        </div>
+        <input type="color" id="editCategoryColor" value="${color}"
+               style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem;">
@@ -665,13 +650,7 @@ function showEditCategoryModal(categoryName) {
     closeOnClickOutside: false,
   });
 
-  // Color preview update
-  const colorInput = modalContent.querySelector("#editCategoryColor");
-  const colorPreview = modalContent.querySelector("#editColorPreview");
-
-  colorInput.addEventListener("input", (e) => {
-    colorPreview.style.backgroundColor = e.target.value;
-  });
+  // No preview element needed; input shows the color
 
   // Event handlers
   modalContent
@@ -749,12 +728,11 @@ function showSubcategoriesModal(categoryName) {
       <div>
         <h4 style="margin: 0 0 1rem 0;">Existing Subcategories</h4>
         <div id="subcategoriesList" style="min-height: 200px;">
-          ${
-            Object.keys(subcategories).length === 0
-              ? '<p style="text-align: center; color: #666; padding: 2rem;">No subcategories yet. Add one above.</p>'
-              : Object.entries(subcategories)
-                  .map(
-                    ([name, color]) => `
+          ${Object.keys(subcategories).length === 0
+      ? '<p style="text-align: center; color: #666; padding: 2rem;">No subcategories yet. Add one above.</p>'
+      : Object.entries(subcategories)
+        .map(
+          ([name, color]) => `
               <div class="subcategory-item" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 8px;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                   <div style="width: 24px; height: 24px; background: ${color}; border-radius: 4px;"></div>
@@ -767,9 +745,9 @@ function showSubcategoriesModal(categoryName) {
                 </div>
               </div>
             `
-                  )
-                  .join("")
-          }
+        )
+        .join("")
+    }
         </div>
       </div>
 
@@ -903,6 +881,16 @@ function toggleBulkOperations() {
 
   sidebar.style.display = isVisible ? "none" : "block";
 
+  // Toggle bulk-mode class on root container to show/hide checkboxes
+  const root = document.querySelector('.enhanced-category-manager');
+  if (root) {
+    if (isVisible) {
+      root.classList.remove('bulk-mode');
+    } else {
+      root.classList.add('bulk-mode');
+    }
+  }
+
   if (!isVisible) {
     sidebar.querySelector(".sidebar-content").innerHTML = `
       <h4>Bulk Operations</h4>
@@ -1009,9 +997,8 @@ function showImportExportModal() {
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = `categories-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
+      link.download = `categories-${new Date().toISOString().split("T")[0]
+        }.json`;
       link.click();
 
       URL.revokeObjectURL(url);
@@ -1090,6 +1077,8 @@ function refreshCategoriesGrid() {
     categoriesGrid.innerHTML = buildEnhancedCategoriesGrid(
       AppState.categories || {}
     );
+    // Reapply draggable attribute after rebuild
+    categoriesGrid.querySelectorAll('.enhanced-category-card').forEach(card => { card.draggable = true; });
   }
 
   updateEmptyState();
@@ -1158,8 +1147,7 @@ function updateEmptyState() {
   categoriesGrid.style.display = isEmpty ? "none" : "grid";
 
   console.log(
-    `Empty state: ${isEmpty ? "showing" : "hiding"} empty state, ${
-      isEmpty ? "hiding" : "showing"
+    `Empty state: ${isEmpty ? "showing" : "hiding"} empty state, ${isEmpty ? "hiding" : "showing"
     } categories grid`
   );
 }
@@ -1212,6 +1200,19 @@ function initializeDragAndDrop(container) {
         dropTarget.insertAdjacentElement("beforebegin", draggedElement);
       }
 
+      // Persist new order to AppState.categories using 'order' field
+      const cards = Array.from(container.querySelectorAll(".enhanced-category-card"));
+      cards.forEach((card, idx) => {
+        const name = card.getAttribute("data-category");
+        if (AppState.categories[name]) {
+          if (typeof AppState.categories[name] === "string") {
+            AppState.categories[name] = { color: AppState.categories[name], order: idx + 1 };
+          } else {
+            AppState.categories[name].order = idx + 1;
+          }
+        }
+      });
+      saveCategories();
       showToast("Category order updated", "success");
     }
   });
