@@ -14,13 +14,18 @@ let enhancedCategoryModalInstance = null;
  * 🎯 Main function to show the enhanced category manager modal
  */
 export async function showEnhancedCategoryManagerModal() {
-  // Prevent multiple modals
+  // Prevent multiple modals, but reset stale references if DOM is clean
   if (enhancedCategoryModalInstance) {
-    console.log("Enhanced category manager modal already open");
-    return enhancedCategoryModalInstance;
+    const stillMounted = !!document.querySelector('.modal-overlay');
+    if (!stillMounted) {
+      enhancedCategoryModalInstance = null;
+    } else {
+      console.log("Category manager modal already open");
+      return enhancedCategoryModalInstance;
+    }
   }
 
-  console.log("Opening enhanced category manager modal...");
+  console.log("Opening category manager modal...");
 
   // Ensure categories are loaded before showing the modal (now async)
   await ensureCategoriesLoaded();
@@ -37,10 +42,10 @@ export async function showEnhancedCategoryManagerModal() {
   modalContent.innerHTML = buildEnhancedCategoryManagerHTML();
 
   const modal = showModal({
-    title: "🎨 Enhanced Category Manager",
+    title: "Category Manager",
     content: modalContent,
     size: "xlarge",
-    closeOnClickOutside: false,
+    closeOnClickOutside: true,
   });
 
   // Store reference and override close method
@@ -59,7 +64,7 @@ export async function showEnhancedCategoryManagerModal() {
   // Ensure categories are displayed properly
   setTimeout(() => {
     refreshCategoriesGrid();
-    console.log("Categories grid refreshed after modal display");
+  console.log("Categories grid refreshed after modal display");
   }, 100);
 
   return modal;
@@ -365,7 +370,7 @@ function addEnhancedCategoryStyles() {
   const hasManagerStyles = Array.from(
     document.querySelectorAll('link[rel="stylesheet"]')
   ).some((link) =>
-    /styles\/enhanced-category-manager\.css$/i.test(
+    /styles\/category-manager\.css$/i.test(
       link.getAttribute("href") || ""
     )
   );
@@ -375,7 +380,7 @@ function addEnhancedCategoryStyles() {
       const link = document.createElement("link");
       link.id = "enhancedCategoryStyles";
       link.rel = "stylesheet";
-      // Use main bundle which already @imports the manager CSS
+  // Use main bundle which already @imports the manager CSS
       link.href = "styles/styles.css";
       document.head.appendChild(link);
       return;

@@ -178,11 +178,11 @@ function checkRealButtonStructure(button) {
 
   addTestResult(
     'Enhanced Category Button Content',
-    iconText === '🎨' && buttonText === 'Enhanced Categories',
+    iconText === '🎨' && (buttonText === 'Category Manager' || buttonText === 'Categories'),
     `Icon: "${iconText}", Text: "${buttonText}"`
   );
 
-  return hasIcon && hasText && iconText === '🎨' && buttonText === 'Enhanced Categories';
+  return hasIcon && hasText && iconText === '🎨' && (buttonText === 'Category Manager' || buttonText === 'Categories');
 }
 
 /**
@@ -393,7 +393,7 @@ async function testAccessibilityFeatures(moduleContent) {
  */
 async function testEnhancedCategoryCss() {
   try {
-    const cssPath = path.join(__dirname, '../../src/styles/enhanced-category-manager.css');
+  const cssPath = path.join(__dirname, '../../src/styles/category-manager.css');
     const cssExists = fs.existsSync(cssPath);
 
     addTestResult(
@@ -403,7 +403,7 @@ async function testEnhancedCategoryCss() {
     );
 
     if (cssExists) {
-      const cssContent = fs.readFileSync(cssPath, 'utf8');
+  const cssContent = fs.readFileSync(cssPath, 'utf8');
       await testCSSClasses(cssContent);
       await testDarkModeSupport(cssContent);
       await testResponsiveDesign(cssContent);
@@ -535,8 +535,8 @@ async function testCssImport() {
     const mainCssPath = path.join(__dirname, '../../src/styles/styles.css');
     const mainCssContent = fs.readFileSync(mainCssPath, 'utf8');
 
-    // Accept any presence of enhanced-category-manager.css reference (robust to formatting/quotes)
-    const hasImport = mainCssContent.includes('enhanced-category-manager.css');
+  // Expect canonical category-manager.css to be imported
+  const hasImport = mainCssContent.includes('category-manager.css');
 
     addTestResult(
       'Enhanced Category Manager CSS Import',
@@ -563,7 +563,7 @@ async function testHtmlUpdates() {
 
     const hasEnhancedButton = htmlContent.includes('id="enhancedCategoriesBtn"');
     const hasCorrectIcon = htmlContent.includes('🎨');
-    const hasCorrectText = htmlContent.includes('Enhanced Categories');
+  const hasCorrectText = htmlContent.includes('Category Manager') || htmlContent.includes('Categories');
 
     addTestResult(
       'HTML Enhanced Category Button',
@@ -583,7 +583,7 @@ async function testEnhancedFeatures() {
     const modulePath = path.join(__dirname, '../../src/ui/enhancedCategoryManager.js');
     const moduleContent = fs.readFileSync(modulePath, 'utf8');
     // Also read canonical CSS to detect responsive design moved out of JS
-    const cssPath = path.join(__dirname, '../../src/styles/enhanced-category-manager.css');
+  const cssPath = path.join(__dirname, '../../src/styles/category-manager.css');
     const cssContent = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '';
 
     // Test modern UI features
@@ -635,12 +635,12 @@ async function testEnhancedFeatures() {
 async function testFileStructure() {
   try {
     const requiredFiles = [
-      'src/ui/enhancedCategoryManager.js',
-      'src/styles/enhanced-category-manager.css',
-      'src/index.html',
-      'src/ui/sidebarManager.js',
-      'src/styles/styles.css'
-    ];
+        'src/ui/enhancedCategoryManager.js',
+        'src/styles/category-manager.css',
+        'src/index.html',
+        'src/ui/sidebarManager.js',
+        'src/styles/styles.css'
+      ];
 
     const existingFiles = requiredFiles.filter(file =>
       fs.existsSync(path.join(__dirname, '../../', file))
@@ -758,7 +758,7 @@ if (typeof describe !== 'undefined') {
     }, 30000); // 30 second timeout for comprehensive tests
 
     test('modal scrolling and layout is properly configured', async () => {
-      const cssPath = path.join(__dirname, '../../src/styles/enhanced-category-manager.css');
+  const cssPath = path.join(__dirname, '../../src/styles/category-manager.css');
       const cssContent = fs.readFileSync(cssPath, 'utf8');
 
       // Test for proper modal container constraints - 90vh height and compact width for better vertical space

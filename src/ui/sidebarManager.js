@@ -341,11 +341,16 @@ function initializeActionButtons() {
     console.log("Upload button initialized with clean event listener");
   }
 
-  // FIXED: Add missing category manager button handler for the main header button
+  // Category Manager button should open the enhanced manager (now default)
   const categoryManagerBtn = document.getElementById("categoryManagerBtn");
   if (categoryManagerBtn) {
-    categoryManagerBtn.removeEventListener("click", handleCategoryManagerClick);
-    categoryManagerBtn.addEventListener("click", handleCategoryManagerClick);
+    const newBtn = categoryManagerBtn.cloneNode(true);
+    categoryManagerBtn.parentNode.replaceChild(newBtn, categoryManagerBtn);
+    newBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      _handleEnhancedCategories();
+    });
   }
 
   // FIXED: Add missing export button handler for the main header button
@@ -620,22 +625,7 @@ function _handleShowMergedFiles() {
 }
 
 function _handleEditCategories() {
-  import("./categoryManager.js")
-    .then((module) => {
-      if (module.showCategoryManagerModal) {
-        module.showCategoryManagerModal();
-      } else {
-        console.error("showCategoryManagerModal function not found");
-      }
-    })
-    .catch((err) => {
-      console.error("Error loading category manager:", err);
-      import("./uiManager.js").then((uiModule) => {
-        if (uiModule.showToast) {
-          uiModule.showToast("Error opening category manager", "error");
-        }
-      });
-    });
+  _handleEnhancedCategories();
 }
 
 function _handleEnhancedCategories() {

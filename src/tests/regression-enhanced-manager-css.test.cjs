@@ -15,10 +15,10 @@ describe('Regression: Enhanced Category Manager CSS consolidation', () => {
     expect(content).toMatch(/enhancedCategoryStyles/);
   });
 
-  test('canonical stylesheet includes enhanced-category-manager.css', () => {
+  test('canonical stylesheet includes category-manager.css', () => {
     const stylesPath = path.join(__dirname, '../../src/styles/styles.css');
     const styles = fs.readFileSync(stylesPath, 'utf8');
     // Accept both single or double quotes to be robust against formatters
-    expect(styles).toMatch(/@import\s+["']\.\/enhanced-category-manager\.css["'];?/);
+    expect(styles).toMatch(/@import\s+["']\.\/category-manager\.css["'];?/);
   });
 });
