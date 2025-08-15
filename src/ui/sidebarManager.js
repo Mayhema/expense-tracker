@@ -159,7 +159,7 @@ function initializeDebugModeToggle() {
       console.log("Debug label clicked, current state:", newToggle.checked);
       newToggle.checked = !newToggle.checked;
       console.log("Debug label new state:", newToggle.checked);
-      // Trigger the same enhanced behavior as toggle clicks
+  // Trigger the same behavior as toggle clicks
       newToggle.dispatchEvent(new Event("change", { bubbles: true }));
       newToggle.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -243,7 +243,7 @@ function initializeDarkModeToggle() {
       console.log("Dark mode label clicked, current state:", newToggle.checked);
       newToggle.checked = !newToggle.checked;
       console.log("Dark mode label new state:", newToggle.checked);
-      // Trigger the same enhanced behavior as toggle clicks
+  // Trigger the same behavior as toggle clicks
       newToggle.dispatchEvent(new Event("change", { bubbles: true }));
       newToggle.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -341,7 +341,7 @@ function initializeActionButtons() {
     console.log("Upload button initialized with clean event listener");
   }
 
-  // Category Manager button should open the enhanced manager (now default)
+  // Category Manager button opens the default Category Manager
   const categoryManagerBtn = document.getElementById("categoryManagerBtn");
   if (categoryManagerBtn) {
     const newBtn = categoryManagerBtn.cloneNode(true);
@@ -349,7 +349,7 @@ function initializeActionButtons() {
     newBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      _handleEnhancedCategories();
+      handleCategoryManagerClick(e);
     });
   }
 
@@ -399,27 +399,10 @@ function initializeActionButtons() {
     newCategoriesBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      _handleEditCategories();
+  handleCategoryManagerClick(e);
     });
   }
 
-  // Enhanced Category Manager Button
-  const enhancedCategoriesBtn = document.getElementById(
-    "enhancedCategoriesBtn"
-  );
-  if (enhancedCategoriesBtn) {
-    const newEnhancedCategoriesBtn = enhancedCategoriesBtn.cloneNode(true);
-    enhancedCategoriesBtn.parentNode.replaceChild(
-      newEnhancedCategoriesBtn,
-      enhancedCategoriesBtn
-    );
-
-    newEnhancedCategoriesBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      _handleEnhancedCategories();
-    });
-  }
 
   // Debug buttons
   initializeDebugButtons();
@@ -464,7 +447,9 @@ function initializeDebugButtons() {
     },
     {
       id: "saveLogBtn",
-      handler: handleSaveLogClick,
+      handler: () => {
+        handleSaveLogClick();
+      },
     },
     {
       id: "resetAppBtn",
@@ -482,8 +467,9 @@ function initializeDebugButtons() {
     const element = document.getElementById(button.id);
     if (element) {
       // FIXED: Remove any existing listeners first to prevent duplicates
-      element.removeEventListener("click", button.handler);
-      element.addEventListener("click", button.handler);
+      element.replaceWith(element.cloneNode(true));
+      const newEl = document.getElementById(button.id);
+      newEl.addEventListener("click", button.handler);
       console.log(`Debug button initialized: ${button.id}`);
     } else {
       console.warn(`Debug button element not found: ${button.id}`);
@@ -624,30 +610,9 @@ function _handleShowMergedFiles() {
     });
 }
 
+// Unified handler loads the default Category Manager modal
 function _handleEditCategories() {
-  _handleEnhancedCategories();
-}
-
-function _handleEnhancedCategories() {
-  import("./enhancedCategoryManager.js")
-    .then(async (module) => {
-      if (module.showEnhancedCategoryManagerModal) {
-        await module.showEnhancedCategoryManagerModal();
-      } else {
-        console.error("showEnhancedCategoryManagerModal function not found");
-      }
-    })
-    .catch((err) => {
-      console.error("Error loading enhanced category manager:", err);
-      import("./uiManager.js").then((uiModule) => {
-        if (uiModule.showToast) {
-          uiModule.showToast(
-            "Error opening enhanced category manager",
-            "error"
-          );
-        }
-      });
-    });
+  handleCategoryManagerClick(new Event("click"));
 }
 
 /**

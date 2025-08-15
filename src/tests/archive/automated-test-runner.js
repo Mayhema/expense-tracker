@@ -48,7 +48,7 @@ const CONFIG = {
     /categoryManager\.test\.js$/,
     /utils\.test\.js$/,
     /test-filter-improvements\.js$/,
-    /test-enhanced-filter-ui\.js$/,
+  /test-improved-filter-ui\.js$/,
     /advancedFilters\.test\.js$/,
   ],
   timeoutMs: 30000,

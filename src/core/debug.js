@@ -1,4 +1,4 @@
-// Enhanced existing debug functionality
+// Improved existing debug functionality
 export function initializeDebugMode() {
   const debugToggle = document.getElementById("debugModeToggle");
 

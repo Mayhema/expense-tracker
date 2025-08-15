@@ -2,7 +2,7 @@ import { AppState } from "../core/appState.js";
 import { showModal } from "../ui/modalManager.js";
 
 /**
- * Enhanced debug function for transaction data with detailed analysis
+ * Debug function for transaction data with detailed analysis
  */
 export function inspectTransactionData() {
   console.log("Opening transaction data inspection modal...");
@@ -362,7 +362,7 @@ export function debugSignatures() {
   modalContent.innerHTML = currentFileSection + mappingsSection + filesSection;
 
   showModal({
-    title: "🔍 Debug: File Signatures & Mappings",
+  title: "Debug: File Signatures & Mappings",
     content: modalContent,
     size: "large",
   });

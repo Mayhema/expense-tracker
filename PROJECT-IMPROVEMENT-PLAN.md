@@ -8,7 +8,7 @@ This plan consolidates a project-wide review (bugs, cleanup, structure) plus a r
 - Gate risky changes behind feature flags; prefer progressive enhancement.
 
 ## Phase 0 – Immediate fixes (1–2 PRs)
-- Enhanced Category Manager modal sizing
+- Category Manager modal sizing improvements
   - Make inner list fully visible with its own scroll; header/toolbar/footer remain fixed. (Done)
   - Verify across breakpoints (<=480px, <=768px) and dark mode.
   - Add a tiny visual smoke test (screenshot diff optional) or DOM height assertions.
@@ -29,7 +29,7 @@ Acceptance criteria
   - HTML
     - `src/src/index.html` appears duplicate of root `index.html`; validate and remove duplicate.
   - Styles
-    - Identify unused: `filters_clean.css`, `table-fixes.css`, `smartUploadWizard.css`, `category-manager.css` vs `enhanced-category-manager.css`.
+  - Identify unused: `filters_clean.css`, `table-fixes.css`, `smartUploadWizard.css`, `category-manager.css`.
   - Tests
     - Deduplicate CJS/ESM pairs where both exist with identical assertions (keep ESM-first; convert CJS when useful).
 - Logging and debug surface
@@ -60,7 +60,7 @@ Acceptance criteria
 - Parsing off-main-thread
   - Keep CSV/XML in worker by default; evaluate bundling XLSX into a dedicated worker build or maintain main-thread fallback with progress indicator.
 - Accessibility
-  - Keyboard navigation for the Enhanced Category Manager; focus traps and ARIA labels audit.
+  - Keyboard navigation for the Category Manager; focus traps and ARIA labels audit.
 
 Acceptance criteria
 - Large dataset render stays responsive (<~100ms UI thread stutter budget in tests).
@@ -73,7 +73,7 @@ Acceptance criteria
   - Targets per category/overall; visual goal overlays; 80%/100% thresholds.
 - ML-powered Categorization Trainer (lightweight)
   - Naive Bayes/decision tree over description/amount/date with user feedback loop.
-- Enhanced Interactive Visualizations
+- Interactive Visualizations improvements
   - Drill-downs, date sliders, simple moving-average projections.
 - Progressive Onboarding
   - First-run tutorial; contextual tooltips; replayable help.

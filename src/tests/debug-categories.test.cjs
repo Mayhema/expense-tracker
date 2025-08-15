@@ -23,31 +23,31 @@ describe('Debug Categories', () => {
     expect(categoriesContent).toContain('Transportation');
     expect(categoriesContent).toContain('subcategories');
 
-    // Verify the enhanced category manager imports AppState correctly
-    const enhancedManagerPath = path.join(__dirname, '../ui/enhancedCategoryManager.js');
-    const enhancedManagerContent = fs.readFileSync(enhancedManagerPath, 'utf8');
+  // Verify the Category Manager modal imports AppState correctly
+  const managerPath = path.join(__dirname, '../ui/categoryManagerModal.js');
+  const managerContent = fs.readFileSync(managerPath, 'utf8');
 
-    expect(enhancedManagerContent).toContain('import { AppState');
-    expect(enhancedManagerContent).toContain('AppState.categories');
-    expect(enhancedManagerContent).toContain('buildEnhancedCategoriesGrid');
+  expect(managerContent).toContain('import { AppState');
+  expect(managerContent).toContain('AppState.categories');
+  expect(managerContent).toContain('buildCategoriesGrid');
 
     console.log('✅ All category-related imports and references found');
   });
 
-  test('should verify that categories display correctly in enhanced manager', () => {
-    const enhancedManagerPath = path.join(__dirname, '../ui/enhancedCategoryManager.js');
-    const enhancedManagerContent = fs.readFileSync(enhancedManagerPath, 'utf8');
+  test('should verify that categories display correctly in category manager', () => {
+  const managerPath = path.join(__dirname, '../ui/categoryManagerModal.js');
+  const managerContent = fs.readFileSync(managerPath, 'utf8');
 
     // Check if the categories grid is properly built
-    expect(enhancedManagerContent).toContain('Object.entries(categories)');
-    expect(enhancedManagerContent).toContain('enhanced-category-card');
-    expect(enhancedManagerContent).toContain('subcategories-preview');
+  expect(managerContent).toContain('Object.entries(categories)');
+  expect(managerContent).toContain('category-card');
+  expect(managerContent).toContain('subcategories-preview');
 
     // Check if empty state is handled
-    expect(enhancedManagerContent).toContain('Object.keys(categories).length === 0');
-    expect(enhancedManagerContent).toContain('empty-state');
+  expect(managerContent).toContain('Object.keys(categories).length === 0');
+  expect(managerContent).toContain('empty-state');
 
-    console.log('✅ Categories display logic found in enhanced manager');
+  console.log('✅ Categories display logic found in Category Manager modal');
   });
 
   test('should verify the categories data loading process', () => {

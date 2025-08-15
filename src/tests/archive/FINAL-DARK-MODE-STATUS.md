@@ -5,7 +5,7 @@
 ### 1. **Dropdown Lists Visibility in Advanced Filters**
 
 **Issue:** "in drop down lists in the 🔍 Advanced Filters, cant be seen"
-**Fix Applied:** Enhanced dark mode dropdown styling in `main.css`
+**Fix Applied:** Improved dark mode dropdown styling in `main.css`
 
 ```css
 body.dark-mode select option {
@@ -36,7 +36,7 @@ body.dark-mode .category-dropdown {
 ### 3. **Advanced Filters UI Consistency**
 
 **Issue:** "make the 🔍 Advanced Filters look in ui point of view as the same context as the rest of the web page. in the same 'language'"
-**Fix Applied:** Enhanced futuristic dark mode styling in `filters.css`
+**Fix Applied:** Improved futuristic dark mode styling in `filters.css`
 
 - Multi-column responsive grid (1-5 columns based on screen size)
 - Cyberpunk gradient backgrounds
@@ -62,7 +62,7 @@ body.dark-mode div[class*="summary"] {
 ### 5. **Modal Table Headers Too White**
 
 **Issue:** "in some of the modals (i added one example), the header table is to white for the dark mode"
-**Fix Applied:** Enhanced modal table styling in `modals.css`
+**Fix Applied:** Improved modal table styling in `modals.css`
 
 ```css
 body.dark-mode .modal-body table th {
@@ -146,7 +146,7 @@ All fixes have been implemented and verified:
 
 All user-reported issues have been systematically identified, addressed, and resolved. The application now provides a consistent, beautiful dark mode experience with:
 
-- Enhanced dropdown visibility
+- Improved dropdown visibility
 - Proper category dropdown functionality
 - Futuristic Advanced Filters styling
 - Dark transaction summary cards

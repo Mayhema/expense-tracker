@@ -99,13 +99,13 @@ function updateChartTheme(isDarkMode) {
 // Global UI utilities
 export const UIUtils = {
   /**
-   * Show a modal with enhanced configuration
+   * Show a modal with standard configuration
    */
-  showEnhancedModal: (config) => {
+  showStyledModal: (config) => {
     return __showModal({
       ...config,
-      className: `enhanced-modal ${config.className || ""}`,
-      closeOnClickOutside: config.closeOnClickOutside !== false,
+      className: config.className || "",
+      closeOnClickOutside: config?.closeOnClickOutside !== false,
     });
   },
 
@@ -141,3 +141,5 @@ export const UIUtils = {
     __showToast(message, "warning");
   },
 };
+
+// Alias removed to avoid deprecated terminology

@@ -185,7 +185,7 @@ function validateTransactionAmounts(transaction) {
 }
 
 /**
- * Validates transaction data with enhanced date validation
+ * Validates transaction data with improved date validation
  * @param {Object} transaction - Transaction object to validate
  * @returns {Object} Validation result with isValid and errors
  */

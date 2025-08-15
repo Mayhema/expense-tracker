@@ -50,7 +50,7 @@ window.saveConsoleLogs = function () {
   }
 };
 
-// FIXED: Enhanced log capture with proper JSON serialization
+// FIXED: Improved log capture with proper JSON serialization
 function appendToLog(type, args) {
   const timestamp = new Date().toISOString();
 

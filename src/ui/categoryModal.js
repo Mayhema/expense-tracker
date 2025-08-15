@@ -195,7 +195,7 @@ function renderSubcategories(parentName, subcategories) {
 }
 
 /**
- * Add enhanced styles for better modal layout
+ * Add styles for better modal layout
  */
 function addCategoryModalStyles() {
   if (document.getElementById("categoryModalStyles")) return;

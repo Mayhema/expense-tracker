@@ -1,10 +1,10 @@
-// Facade module: delegate UI to enhanced manager and keep minimal API
-import { showEnhancedCategoryManagerModal } from "./enhancedCategoryManager.js";
+// Facade module: delegate UI to the default Category Manager modal and keep minimal API
+import { showCategoryManagerModal as showCategoryManagerModalInternal } from "./categoryManagerModal.js";
 import { AppState, saveCategories } from "../core/appState.js";
 import { DEFAULT_CATEGORIES } from "../constants/categories.js";
 
 export function showCategoryManagerModal() {
-  return showEnhancedCategoryManagerModal();
+  return showCategoryManagerModalInternal();
 }
 
 // Legacy DOM rendering removed
@@ -12,12 +12,12 @@ export function showCategoryManagerModal() {
 /**
  * Setup drag and drop functionality for category reordering
  */
-// Drag/drop handled by enhanced manager
+// Drag/drop handled by category manager UI
 
 /**
  * Reorder categories by updating their order values
  */
-// Ordering handled by enhanced manager
+// Ordering handled by category manager UI
 
 // Helpers removed
 
@@ -34,7 +34,7 @@ export function resetToDefaultCategories() {
 /**
  * Handle managing subcategories for a category
  */
-// Legacy subcategory modal removed; handled by enhanced UI
+// Legacy subcategory modal removed; handled by category manager UI
 
 /**
  * Attach event listeners for subcategory management modal

@@ -4,6 +4,8 @@
 
 let activeModal = null;
 let modalCreationInProgress = false;
+// Maintain a stack of open modals to support stacking (parent stays open behind child)
+const modalStack = [];
 
 // FIXED: Cache frequently accessed DOM elements
 const modalCache = {
@@ -59,10 +61,15 @@ function unlockBodyScrollIfLast(modalContainer) {
     document.body.style.top = '';
     document.body.style.width = '';
     delete document.body.dataset.prevScroll;
+    // In JSDOM tests window.scrollTo is not implemented; guard to prevent noisy errors
     try {
-      window.scrollTo(0, prev);
+      if (typeof window.scrollTo === 'function') {
+        window.scrollTo(0, prev);
+      } else {
+        // No-op in non-browser environments
+      }
     } catch (e) {
-      console.warn('Failed to restore scroll position', e);
+      // Swallow to avoid polluting test output; it's safe to ignore restore failures
     }
   }
 }
@@ -86,24 +93,31 @@ export function showModal(options = {}) {
     return activeModal;
   }
 
-  // FIXED: Close any existing modal before creating a new one
-  if (activeModal) {
-    console.log("CRITICAL: Closing existing modal before creating new one");
-    activeModal.close();
-    activeModal = null;
-  }
-
+  // Enter creation critical section
   modalCreationInProgress = true;
 
   console.log("CRITICAL: showModal called with options:", options);
 
+  // Optionally keep previous modal (allow stacking)
   const {
     title = "Modal",
     content = "",
     size = "medium",
     closeOnClickOutside = true,
     showCloseButton = true,
+    keepPrevious = false,
   } = options;
+
+  // If stacking not requested, close any active modal first
+  if (activeModal && !keepPrevious) {
+    console.log("CRITICAL: Closing existing modal before creating new one");
+    try {
+      activeModal.close();
+    } catch (e) {
+      console.warn("Failed to close existing modal:", e);
+    }
+    activeModal = null;
+  }
 
   // CRITICAL FIX: Ensure modal container exists and is properly styled
   let modalContainer = document.getElementById("modalContainer");
@@ -167,7 +181,7 @@ export function showModal(options = {}) {
     background-color: white;
     border-radius: 8px;
     max-width: ${maxWidth};
-    max-height: 90vh;
+    max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
     overflow: hidden; /* prevent horizontal scroll at dialog level */
@@ -231,19 +245,24 @@ export function showModal(options = {}) {
       if (modalOverlay?.parentNode) {
         modalOverlay.parentNode.removeChild(modalOverlay);
       }
+    // Remove this modal from the stack
+    const idx = modalStack.indexOf(modal);
+    if (idx !== -1) modalStack.splice(idx, 1);
       // CRITICAL FIX: Hide container if no more modals
       if (modalContainer?.children.length === 0) {
         modalContainer.style.display = "none";
         modalContainer.style.pointerEvents = "none";
       }
       unlockBodyScrollIfLast(modalContainer);
-      activeModal = null;
+    // Restore previous modal as active if any remains
+    activeModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
       modalCreationInProgress = false;
     },
   };
 
   // Set as active modal
   activeModal = modal;
+  modalStack.push(modal);
   modalCreationInProgress = false;
 
   // Event listeners

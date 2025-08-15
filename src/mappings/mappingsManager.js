@@ -399,7 +399,7 @@ function areStructuresSimilar(sig1, sig2) {
     // unless they are exactly the same. This prevents auto-applying mappings
     // from completely different file types (Excel vs XML, etc.)
 
-    // In the future, this could be enhanced to decode the structure hash
+  // In the future, this could decode the structure hash
     // and compare actual column counts, data patterns, etc., but for now
     // we prioritize user control over automatic convenience
 

@@ -7,7 +7,7 @@
 #### ✅ Issue #1: Dropdown visibility in BOTH modes
 
 - Fixed dropdown options styling for both dark and regular modes
-- Enhanced z-index and visibility settings
+- Improved z-index and visibility settings
 
 #### ✅ Issue #2: Transaction summary white backgrounds
 

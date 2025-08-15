@@ -422,7 +422,7 @@ body.drag-over .drop-overlay {
   color: white;
 }
 
-/* Enhanced Animation */
+/* Subtle entrance animation */
 .template-card,
 .bulk-actions,
 .drop-overlay {

@@ -9,7 +9,7 @@
 - **Solution**: Added comprehensive dropdown option styling for BOTH modes in main.css and filters.css
 - **Files Modified**:
   - `src/styles/main.css` - Added `body:not(.dark-mode) select option` and `body.dark-mode select option` styling
-  - `src/styles/filters.css` - Enhanced dropdown visibility and z-index fixes
+  - `src/styles/filters.css` - Improved dropdown visibility and z-index fixes
 
 ### ✅ Issue #2: Transaction Summary White Backgrounds
 
@@ -18,7 +18,7 @@
 - **Solution**: Implemented ultimate CSS specificity with `html body.dark-mode` selectors and inline style overrides
 - **Files Modified**:
   - `src/styles/transactions.css` - Added ultra-high specificity selectors with `html body.dark-mode`
-  - `src/styles/main.css` - Enhanced dark mode summary card styling
+  - `src/styles/main.css` - Improved dark mode summary card styling
 
 ### ✅ Issue #3: Amount Range Input Overflow
 

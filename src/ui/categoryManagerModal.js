@@ -1,5 +1,5 @@
 /**
- * 🎨 Enhanced Category Manager - Modern UI/UX with Advanced Functionality
+ * 🎨 Category Manager - Modern UI/UX with Advanced Functionality
  * Features: Improved design, accessibility, bulk operations, drag & drop, validation
  */
 
@@ -8,20 +8,20 @@ import { showModal } from "./modalManager.js";
 import { showToast } from "./uiManager.js";
 
 // Singleton pattern to ensure only one modal is open
-let enhancedCategoryModalInstance = null;
+let categoryManagerModalInstance = null;
 
 /**
- * 🎯 Main function to show the enhanced category manager modal
+ * 🎯 Main function to show the category manager modal
  */
-export async function showEnhancedCategoryManagerModal() {
+export async function showCategoryManagerModal() {
   // Prevent multiple modals, but reset stale references if DOM is clean
-  if (enhancedCategoryModalInstance) {
+  if (categoryManagerModalInstance) {
     const stillMounted = !!document.querySelector('.modal-overlay');
     if (!stillMounted) {
-      enhancedCategoryModalInstance = null;
+      categoryManagerModalInstance = null;
     } else {
       console.log("Category manager modal already open");
-      return enhancedCategoryModalInstance;
+      return categoryManagerModalInstance;
     }
   }
 
@@ -33,38 +33,40 @@ export async function showEnhancedCategoryManagerModal() {
   const categories = AppState.categories || {};
   const categoryCount = Object.keys(categories).length;
   console.log(
-    `Enhanced Category Manager: Found ${categoryCount} categories`,
+    `Category Manager: Found ${categoryCount} categories`,
     categories
   );
 
   const modalContent = document.createElement("div");
-  modalContent.className = "enhanced-category-manager";
-  modalContent.innerHTML = buildEnhancedCategoryManagerHTML();
+  modalContent.className = "category-manager";
+  modalContent.setAttribute('role', 'region');
+  modalContent.setAttribute('aria-label', 'Category Manager');
+  modalContent.innerHTML = buildCategoryManagerHTML();
 
   const modal = showModal({
-    title: "Category Manager",
+  title: "Category Manager",
     content: modalContent,
     size: "xlarge",
     closeOnClickOutside: true,
   });
 
   // Store reference and override close method
-  enhancedCategoryModalInstance = modal;
+  categoryManagerModalInstance = modal;
   const originalClose = modal.close;
   modal.close = function () {
-    enhancedCategoryModalInstance = null;
+    categoryManagerModalInstance = null;
     originalClose.call(this);
   };
 
   // Apply styles and attach event listeners
-  addEnhancedCategoryStyles();
-  attachEnhancedEventListeners(modalContent, modal);
-  initializeEnhancedFeatures(modalContent);
+  ensureCategoryManagerStyles();
+  attachCategoryManagerEventListeners(modalContent, modal);
+  initializeCategoryManagerFeatures(modalContent);
 
   // Ensure categories are displayed properly
   setTimeout(() => {
     refreshCategoriesGrid();
-  console.log("Categories grid refreshed after modal display");
+    console.log("Categories grid refreshed after modal display");
   }, 100);
 
   return modal;
@@ -122,21 +124,17 @@ async function ensureCategoriesLoaded() {
 }
 
 /**
- * 🏗️ Build the enhanced HTML structure
+ * 🏗️ Build the HTML structure
  */
-function buildEnhancedCategoryManagerHTML() {
+function buildCategoryManagerHTML() {
   const categories = AppState.categories || {};
   const categoryCount = Object.keys(categories).length;
 
   return `
-    <div class="enhanced-category-container">
-      <!-- Header Section -->
-      <div class="enhanced-header">
+    <div class="category-manager-container">
+      <!-- Header Section (stats only, title moved to modal header) -->
+      <div class="category-header">
         <div class="header-content">
-          <div class="header-text">
-            <h2>Category Management</h2>
-            <p>Organize and customize your expense categories</p>
-          </div>
           <div class="header-stats">
             <div class="stat-item">
               <span class="stat-number">${categoryCount}</span>
@@ -151,10 +149,10 @@ function buildEnhancedCategoryManagerHTML() {
       </div>
 
       <!-- Toolbar Section -->
-      <div class="enhanced-toolbar">
+      <div class="category-toolbar">
         <div class="toolbar-left">
           <div class="search-container">
-            <input type="text" id="categorySearch" placeholder="🔍 Search categories..." class="search-input">
+            <input type="text" id="categorySearch" placeholder="Search categories..." class="search-input" aria-label="Search categories">
             <button id="clearSearch" class="search-clear" aria-label="Clear search">×</button>
           </div>
           <div class="filter-container">
@@ -167,38 +165,27 @@ function buildEnhancedCategoryManagerHTML() {
           </div>
         </div>
         <div class="toolbar-right">
-          <button id="bulkOperations" class="btn btn-secondary">
-            <span class="btn-icon">📦</span>
-            <span class="btn-text">Bulk Actions</span>
-          </button>
-          <button id="importExport" class="btn btn-secondary">
-            <span class="btn-icon">⚡</span>
-            <span class="btn-text">Import/Export</span>
-          </button>
-          <button id="addNewCategory" class="btn btn-primary">
-            <span class="btn-icon">+</span>
-            <span class="btn-text">Add Category</span>
-          </button>
+          <button id="bulkOperations" class="btn btn-secondary" aria-pressed="false">Bulk Actions</button>
+          <button id="importExport" class="btn btn-secondary">Import/Export</button>
+          <button id="addNewCategory" class="btn btn-primary">Add Category</button>
         </div>
       </div>
 
       <!-- Main Content Area -->
-      <div class="enhanced-content">
+      <div class="category-content">
         <div class="content-main">
           <!-- Categories Grid -->
           <div class="categories-grid" id="categoriesGrid">
-            ${buildEnhancedCategoriesGrid(categories)}
+            ${buildCategoriesGrid(categories)}
           </div>
 
           <!-- Empty State -->
           <div class="empty-state" id="emptyState" style="display: ${categoryCount === 0 ? "flex" : "none"
     }">
             <div class="empty-content">
-              <div class="empty-icon">📂</div>
               <h3>No Categories Yet</h3>
               <p>Create your first category to start organizing your expenses</p>
               <button class="btn btn-primary btn-large" id="createFirstCategory">
-                <span class="btn-icon">✨</span>
                 <span class="btn-text">Create First Category</span>
               </button>
             </div>
@@ -214,21 +201,15 @@ function buildEnhancedCategoryManagerHTML() {
       </div>
 
       <!-- Footer Section -->
-      <div class="enhanced-footer">
+      <div class="category-footer">
         <div class="footer-left">
           <span class="footer-info">
             <span id="selectedCount">0</span> categories selected
           </span>
         </div>
         <div class="footer-right">
-          <button id="resetCategories" class="btn btn-ghost">
-            <span class="btn-icon">🔄</span>
-            <span class="btn-text">Reset to Defaults</span>
-          </button>
-          <button id="closeModal" class="btn btn-secondary">
-            <span class="btn-icon">✕</span>
-            <span class="btn-text">Close</span>
-          </button>
+          <button id="resetCategories" class="btn btn-ghost">Reset to Defaults</button>
+          <button id="closeModal" class="btn btn-secondary">Close</button>
         </div>
       </div>
     </div>
@@ -236,19 +217,24 @@ function buildEnhancedCategoryManagerHTML() {
 }
 
 /**
- * 🎨 Build enhanced categories grid
+ * 🎨 Build categories grid
  */
-function buildEnhancedCategoriesGrid(categories) {
-  console.log("Building enhanced categories grid with:", categories);
+function buildCategoriesGrid(categories) {
+  console.log("Building categories grid with:", categories);
 
   if (!categories || Object.keys(categories).length === 0) {
     console.log("No categories to display - showing empty state");
     return "";
   }
 
-  const sortedCategories = Object.entries(categories).sort(([a], [b]) =>
-    a.localeCompare(b)
-  );
+  const sortedCategories = Object.entries(categories)
+    .sort(([aKey, aVal], [bKey, bVal]) => {
+      const aOrder = typeof aVal === 'object' && typeof aVal.order === 'number' ? aVal.order : Infinity;
+      const bOrder = typeof bVal === 'object' && typeof bVal.order === 'number' ? bVal.order : Infinity;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      // Fallback to alpha by key
+      return String(aKey).localeCompare(String(bKey));
+    });
 
   console.log(
     `Sorted categories for display:`,
@@ -267,10 +253,10 @@ function buildEnhancedCategoriesGrid(categories) {
       );
 
       return `
-      <div class="enhanced-category-card" data-category="${name}" data-color="${color}">
+      <div class="category-card" data-category="${name}" data-color="${color}">
         <div class="category-card-header">
           <div class="category-visual">
-            <div class="category-color" style="background-color: ${color}"></div>
+            <div class="category-color" style="background-color: ${color}" aria-hidden="true"></div>
             <div class="category-checkbox">
               <input type="checkbox" id="select-${index}" class="category-select">
             </div>
@@ -288,13 +274,10 @@ function buildEnhancedCategoriesGrid(categories) {
             <button class="action-btn edit-btn" data-action="edit" data-category="${name}" title="Edit category">
               <span class="action-icon">✏️</span>
             </button>
-            <button class="action-btn subcategory-btn" data-action="subcategories" data-category="${name}" title="Manage subcategories">
-              <span class="action-icon">📁</span>
-            </button>
             <button class="action-btn delete-btn" data-action="delete" data-category="${name}" title="Delete category">
               <span class="action-icon">🗑️</span>
             </button>
-            <button class="action-btn drag-handle" title="Drag to reorder">
+            <button class="action-btn drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
               <span class="action-icon">⋮⋮</span>
             </button>
           </div>
@@ -355,11 +338,11 @@ function getTotalSubcategories() {
 }
 
 /**
- * 🎨 Add enhanced styles
+ * 🎨 Ensure styles are loaded
  */
-function addEnhancedCategoryStyles() {
+function ensureCategoryManagerStyles() {
   // If already marked as loaded, do nothing
-  if (document.getElementById("enhancedCategoryStyles")) return;
+  if (document.getElementById("categoryManagerStyles")) return;
 
   // Ensure the canonical stylesheet is present; prefer main styles bundle
   const hasMainStyles = Array.from(
@@ -378,9 +361,9 @@ function addEnhancedCategoryStyles() {
   if (!hasMainStyles && !hasManagerStyles) {
     try {
       const link = document.createElement("link");
-      link.id = "enhancedCategoryStyles";
+      link.id = "categoryManagerStyles";
       link.rel = "stylesheet";
-  // Use main bundle which already @imports the manager CSS
+      // Use main bundle which already @imports the manager CSS
       link.href = "styles/styles.css";
       document.head.appendChild(link);
       return;
@@ -388,37 +371,37 @@ function addEnhancedCategoryStyles() {
       // Fallback: insert a minimal marker style (no duplicate rules)
       // Handle exception explicitly to avoid silent failures in analysis tools
       console.warn(
-        "EnhancedCategoryManager: failed to append stylesheet link, falling back to inline marker style.",
+        "CategoryManager: failed to append stylesheet link, falling back to inline marker style.",
         e
       );
       const style = document.createElement("style");
-      style.id = "enhancedCategoryStyles";
+      style.id = "categoryManagerStyles";
       style.textContent =
-        "/* Enhanced Category Manager styles loaded via canonical CSS */";
+        "/* Category Manager styles loaded via canonical CSS */";
       document.head.appendChild(style);
     }
   } else {
     // Add a lightweight marker to avoid re-running
     const style = document.createElement("style");
-    style.id = "enhancedCategoryStyles";
+    style.id = "categoryManagerStyles";
     style.textContent =
-      "/* Enhanced Category Manager styles already present via canonical CSS */";
+      "/* Category Manager styles already present via canonical CSS */";
     document.head.appendChild(style);
   }
 }
 
 /**
- * 🎮 Attach enhanced event listeners
+ * 🎮 Attach event listeners
  */
-function attachEnhancedEventListeners(container, modal) {
+function attachCategoryManagerEventListeners(container, modal) {
   // Search functionality
   const searchInput = container.querySelector("#categorySearch");
   const clearSearch = container.querySelector("#clearSearch");
 
   if (searchInput) {
-    searchInput.addEventListener("input", handleSearch);
-    searchInput.addEventListener("keyup", (e) => {
-      clearSearch.style.display = e.target.value ? "block" : "none";
+    searchInput.addEventListener("input", (e) => {
+      handleSearch(e);
+      if (clearSearch) clearSearch.style.display = e.target.value ? "block" : "none";
     });
   }
 
@@ -459,9 +442,6 @@ function attachEnhancedEventListeners(container, modal) {
         case "edit":
           showEditCategoryModal(categoryName);
           break;
-        case "subcategories":
-          showSubcategoriesModal(categoryName);
-          break;
         case "delete":
           handleDeleteCategory(categoryName);
           break;
@@ -472,7 +452,11 @@ function attachEnhancedEventListeners(container, modal) {
   // Bulk operations
   const bulkBtn = container.querySelector("#bulkOperations");
   if (bulkBtn) {
-    bulkBtn.addEventListener("click", toggleBulkOperations);
+    bulkBtn.addEventListener("click", (e) => {
+      const pressed = e.currentTarget.getAttribute('aria-pressed') === 'true';
+      e.currentTarget.setAttribute('aria-pressed', String(!pressed));
+      toggleBulkOperations();
+    });
   }
 
   // Import/Export
@@ -506,7 +490,7 @@ function attachEnhancedEventListeners(container, modal) {
  */
 function handleSearch(e) {
   const searchTerm = e.target.value.toLowerCase().trim();
-  const categoryCards = document.querySelectorAll(".enhanced-category-card");
+  const categoryCards = document.querySelectorAll(".category-card");
 
   categoryCards.forEach((card) => {
     const categoryName = card.dataset.category.toLowerCase();
@@ -522,7 +506,7 @@ function handleSearch(e) {
  */
 function handleFilter(e) {
   const filterValue = e.target.value;
-  const categoryCards = document.querySelectorAll(".enhanced-category-card");
+  const categoryCards = document.querySelectorAll(".category-card");
 
   categoryCards.forEach((card) => {
     const categoryName = card.dataset.category;
@@ -582,13 +566,12 @@ function showAddCategoryModal() {
   `;
 
   const modal = showModal({
-    title: "✨ Add New Category",
+    title: "Add New Category",
     content: modalContent,
     size: "medium",
     closeOnClickOutside: false,
+    keepPrevious: true,
   });
-
-  // No preview element needed; input shows the color
 
   // Event handlers
   modalContent
@@ -625,23 +608,59 @@ function showAddCategoryModal() {
 function showEditCategoryModal(categoryName) {
   const category = AppState.categories[categoryName];
   const color = typeof category === "object" ? category.color : category;
+  const subcategories = (typeof category === 'object' && category.subcategories) ? category.subcategories : {};
 
   const modalContent = document.createElement("div");
   modalContent.innerHTML = `
-    <div style="padding: 1.5rem;">
-      <div style="margin-bottom: 1.5rem;">
+    <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+      <div>
         <label for="editCategoryName" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Category Name</label>
         <input type="text" id="editCategoryName" value="${categoryName}"
                style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
       </div>
 
-      <div style="margin-bottom: 1.5rem;">
+      <div>
         <label for="editCategoryColor" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Category Color</label>
         <input type="color" id="editCategoryColor" value="${color}"
                style="width: 60px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem;">
+      <div>
+        <h4 style="margin: 0 0 0.75rem 0;">Subcategories</h4>
+        <div style="display: flex; gap: 1rem; align-items: end; margin-bottom: 1rem;">
+          <div style="flex: 1;">
+            <label for="newSubcategoryName" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Add Subcategory</label>
+            <input type="text" id="newSubcategoryName" placeholder="e.g., Organic Food"
+                   style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px;">
+          </div>
+          <div>
+            <label for="newSubcategoryColor" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Color</label>
+            <input type="color" id="newSubcategoryColor" value="#667eea"
+                   style="width: 56px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
+          </div>
+          <button id="addSubcategory" class="btn btn-primary">Add</button>
+        </div>
+
+        <div id="subcategoriesList" style="min-height: 120px;">
+          ${Object.keys(subcategories).length === 0
+            ? '<p style="text-align: center; color: #666; padding: 1rem;">No subcategories yet.</p>'
+            : Object.entries(subcategories).map(([name, clr]) => `
+              <div class="subcategory-item" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+                  <div style="width: 20px; height: 20px; background: ${clr}; border-radius: 4px;"></div>
+                  <span class="sub-name" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis;">${name}</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                  <input type="color" value="${clr}" data-subcategory="${name}" class="subcategory-color-picker"
+                         style="width: 32px; height: 32px; border: none; border-radius: 4px; cursor: pointer;">
+                  <button class="btn btn-ghost delete-subcategory" data-subcategory="${name}" title="Delete">🗑️</button>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
         <button id="cancelEdit" class="btn btn-secondary">Cancel</button>
         <button id="confirmEdit" class="btn btn-primary">Save Changes</button>
       </div>
@@ -649,13 +668,12 @@ function showEditCategoryModal(categoryName) {
   `;
 
   const modal = showModal({
-    title: `✏️ Edit Category: ${categoryName}`,
+    title: `Edit Category: ${categoryName}`,
     content: modalContent,
     size: "medium",
     closeOnClickOutside: false,
+    keepPrevious: true,
   });
-
-  // No preview element needed; input shows the color
 
   // Event handlers
   modalContent
@@ -677,18 +695,16 @@ function showEditCategoryModal(categoryName) {
       return;
     }
 
-    // Update category
+    // Normalize structure and update
+    const existing = AppState.categories[categoryName];
+    const normalized = typeof existing === 'object' ? { ...existing } : { color: existing, subcategories: {} };
+    normalized.color = newColor;
+
     if (newName !== categoryName) {
-      const categoryData = AppState.categories[categoryName];
       delete AppState.categories[categoryName];
-      AppState.categories[newName] =
-        typeof categoryData === "object"
-          ? { ...categoryData, color: newColor }
-          : newColor;
-    } else if (typeof AppState.categories[categoryName] === "object") {
-      AppState.categories[categoryName].color = newColor;
+      AppState.categories[newName] = normalized;
     } else {
-      AppState.categories[categoryName] = newColor;
+      AppState.categories[categoryName] = normalized;
     }
 
     saveCategories();
@@ -697,6 +713,62 @@ function showEditCategoryModal(categoryName) {
 
     // Refresh the main modal
     refreshCategoriesGrid();
+  });
+
+  // Add subcategory
+  modalContent.querySelector('#addSubcategory')?.addEventListener('click', () => {
+    const nameInput = modalContent.querySelector('#newSubcategoryName');
+    const colorInput = modalContent.querySelector('#newSubcategoryColor');
+    const name = nameInput.value.trim();
+    const clr = colorInput.value;
+    const currentName = modalContent.querySelector('#editCategoryName').value.trim() || categoryName;
+
+    if (!name) { showToast('Please enter a subcategory name', 'error'); return; }
+
+    // Ensure category object structure
+    if (typeof AppState.categories[currentName] === 'string') {
+      AppState.categories[currentName] = { color: AppState.categories[currentName], subcategories: {} };
+    } else if (!AppState.categories[currentName].subcategories) {
+      AppState.categories[currentName].subcategories = {};
+    }
+
+    if (AppState.categories[currentName].subcategories[name]) {
+      showToast('Subcategory already exists', 'error');
+      return;
+    }
+
+    AppState.categories[currentName].subcategories[name] = clr;
+    saveCategories();
+    showToast(`Subcategory "${name}" added`, 'success');
+
+    // Re-render list in place
+    showEditCategoryModal(currentName);
+  });
+
+  // Update subcategory color and delete
+  modalContent.addEventListener('change', (e) => {
+    if (e.target.classList.contains('subcategory-color-picker')) {
+      const subName = e.target.dataset.subcategory;
+      const newClr = e.target.value;
+      const currentName = modalContent.querySelector('#editCategoryName').value.trim() || categoryName;
+      if (typeof AppState.categories[currentName] !== 'object' || !AppState.categories[currentName].subcategories) return;
+      AppState.categories[currentName].subcategories[subName] = newClr;
+      saveCategories();
+      showToast(`Color updated for "${subName}"`, 'success');
+    }
+  });
+
+  modalContent.addEventListener('click', (e) => {
+    if (e.target.classList.contains('delete-subcategory')) {
+      const subName = e.target.dataset.subcategory;
+      const currentName = modalContent.querySelector('#editCategoryName').value.trim() || categoryName;
+      if (confirm(`Delete subcategory "${subName}"?`)) {
+        delete AppState.categories[currentName].subcategories[subName];
+        saveCategories();
+        showToast(`Subcategory "${subName}" deleted`, 'success');
+        showEditCategoryModal(currentName);
+      }
+    }
   });
 }
 
@@ -763,10 +835,11 @@ function showSubcategoriesModal(categoryName) {
   `;
 
   const modal = showModal({
-    title: `📁 Manage Subcategories: ${categoryName}`,
+    title: `Manage Subcategories: ${categoryName}`,
     content: modalContent,
     size: "large",
     closeOnClickOutside: false,
+    keepPrevious: true,
   });
 
   // Add subcategory functionality
@@ -887,7 +960,7 @@ function toggleBulkOperations() {
   sidebar.style.display = isVisible ? "none" : "block";
 
   // Toggle bulk-mode class on root container to show/hide checkboxes
-  const root = document.querySelector('.enhanced-category-manager');
+  const root = document.querySelector('.category-manager');
   if (root) {
     if (isVisible) {
       root.classList.remove('bulk-mode');
@@ -935,7 +1008,7 @@ function toggleBulkOperations() {
 function handleBulkDelete() {
   const selectedCategories = Array.from(
     document.querySelectorAll(".category-select:checked")
-  ).map((cb) => cb.closest(".enhanced-category-card").dataset.category);
+  ).map((cb) => cb.closest(".category-card").dataset.category);
 
   if (selectedCategories.length === 0) return;
 
@@ -987,7 +1060,7 @@ function showImportExportModal() {
   `;
 
   const modal = showModal({
-    title: "⚡ Import/Export Categories",
+    title: "Import/Export Categories",
     content: modalContent,
     size: "medium",
   });
@@ -1058,12 +1131,24 @@ function handleResetCategories() {
       "Are you sure you want to reset all categories to defaults? This will remove all your custom categories and cannot be undone."
     )
   ) {
-    // Import default categories function
-    import("../constants/categories.js").then((module) => {
+    // Use the reset helper from categoryManager facade to ensure AppState + storage update
+    import("../ui/categoryManager.js").then((module) => {
       if (module.resetToDefaultCategories) {
         module.resetToDefaultCategories();
         showToast("Categories reset to defaults successfully", "success");
         refreshCategoriesGrid();
+      } else {
+        // Fallback: direct import of defaults
+        import("../constants/categories.js").then((catModule) => {
+          if (catModule.DEFAULT_CATEGORIES) {
+            AppState.categories = { ...catModule.DEFAULT_CATEGORIES };
+            saveCategories();
+            showToast("Categories reset to defaults successfully", "success");
+            refreshCategoriesGrid();
+          } else {
+            showToast("Unable to reset categories", "error");
+          }
+        });
       }
     });
   }
@@ -1073,17 +1158,17 @@ function handleResetCategories() {
  * 🔄 Refresh categories grid
  */
 function refreshCategoriesGrid() {
-  const container = document.querySelector(".enhanced-category-manager");
+  const container = document.querySelector(".category-manager");
   if (!container) return;
 
   const categoriesGrid = container.querySelector("#categoriesGrid");
 
   if (categoriesGrid) {
-    categoriesGrid.innerHTML = buildEnhancedCategoriesGrid(
+    categoriesGrid.innerHTML = buildCategoriesGrid(
       AppState.categories || {}
     );
     // Reapply draggable attribute after rebuild
-    categoriesGrid.querySelectorAll('.enhanced-category-card').forEach(card => { card.draggable = true; });
+    categoriesGrid.querySelectorAll('.category-card').forEach(card => { card.draggable = true; });
   }
 
   updateEmptyState();
@@ -1135,32 +1220,29 @@ function updateEmptyState() {
     return;
   }
 
-  const allCards = categoriesGrid.querySelectorAll(".enhanced-category-card");
-  const visibleCards = categoriesGrid.querySelectorAll(
-    '.enhanced-category-card:not([style*="display: none"])'
-  );
-  const categoryCount = Object.keys(AppState.categories || {}).length;
+  const totalCategories = Object.keys(AppState.categories || {}).length;
+  const visibleCards = Array.from(document.querySelectorAll('.category-card'))
+    .filter(card => card.style.display !== 'none').length;
 
-  console.log(
-    `Empty state check: ${allCards.length} total cards, ${visibleCards.length} visible cards, ${categoryCount} categories in AppState`
-  );
+  const isTrulyEmpty = totalCategories === 0;
+  const isFilteredEmpty = totalCategories > 0 && visibleCards === 0;
 
-  // Use AppState.categories as the source of truth, not DOM elements
-  const isEmpty = categoryCount === 0;
+  if (isTrulyEmpty) {
+    emptyState.querySelector('h3').textContent = 'No Categories Yet';
+    emptyState.querySelector('p').textContent = 'Create your first category to start organizing your expenses';
+  } else if (isFilteredEmpty) {
+    emptyState.querySelector('h3').textContent = 'No Results';
+    emptyState.querySelector('p').textContent = 'Try adjusting your search or filters';
+  }
 
-  emptyState.style.display = isEmpty ? "flex" : "none";
-  categoriesGrid.style.display = isEmpty ? "none" : "grid";
-
-  console.log(
-    `Empty state: ${isEmpty ? "showing" : "hiding"} empty state, ${isEmpty ? "hiding" : "showing"
-    } categories grid`
-  );
+  emptyState.style.display = (isTrulyEmpty || isFilteredEmpty) ? 'flex' : 'none';
+  categoriesGrid.style.display = (isTrulyEmpty) ? 'none' : 'grid';
 }
 
 /**
- * 🎮 Initialize enhanced features
+ * 🎮 Initialize features
  */
-function initializeEnhancedFeatures(container) {
+function initializeCategoryManagerFeatures(container) {
   // Initialize drag and drop for category reordering
   initializeDragAndDrop(container);
 
@@ -1176,12 +1258,25 @@ function initializeEnhancedFeatures(container) {
  */
 function initializeDragAndDrop(container) {
   let draggedElement = null;
+  let isHandle = false;
+
+  container.addEventListener("mousedown", (e) => {
+    isHandle = !!e.target.closest('.drag-handle');
+  });
 
   container.addEventListener("dragstart", (e) => {
-    if (e.target.closest(".enhanced-category-card")) {
-      draggedElement = e.target.closest(".enhanced-category-card");
+    if (isHandle && e.target.closest(".category-card")) {
+      draggedElement = e.target.closest(".category-card");
       draggedElement.classList.add("dragging");
       e.dataTransfer.effectAllowed = "move";
+      try {
+        e.dataTransfer.setData('text/plain', draggedElement.dataset.category || 'drag');
+      } catch (err) {
+        // Some browsers may throw when setting drag data; assign to temp to satisfy lint
+        const _msg = err ? err.message : '';
+        // eslint-disable-next-line no-unused-vars
+        const _ignore = _msg;
+      }
     }
   });
 
@@ -1193,8 +1288,8 @@ function initializeDragAndDrop(container) {
   container.addEventListener("drop", (e) => {
     e.preventDefault();
 
-    const dropTarget = e.target.closest(".enhanced-category-card");
-    if (dropTarget && draggedElement && dropTarget !== draggedElement) {
+    const dropTarget = e.target.closest(".category-card");
+    if (isHandle && dropTarget && draggedElement && dropTarget !== draggedElement) {
       const rect = dropTarget.getBoundingClientRect();
       const midpoint = rect.top + rect.height / 2;
       const insertAfter = e.clientY > midpoint;
@@ -1206,7 +1301,7 @@ function initializeDragAndDrop(container) {
       }
 
       // Persist new order to AppState.categories using 'order' field
-      const cards = Array.from(container.querySelectorAll(".enhanced-category-card"));
+      const cards = Array.from(container.querySelectorAll(".category-card"));
       cards.forEach((card, idx) => {
         const name = card.getAttribute("data-category");
         if (AppState.categories[name]) {
@@ -1227,10 +1322,11 @@ function initializeDragAndDrop(container) {
       draggedElement.classList.remove("dragging");
       draggedElement = null;
     }
+    isHandle = false;
   });
 
   // Make category cards draggable
-  container.querySelectorAll(".enhanced-category-card").forEach((card) => {
+  container.querySelectorAll(".category-card").forEach((card) => {
     card.draggable = true;
   });
 }
@@ -1241,7 +1337,7 @@ function initializeDragAndDrop(container) {
 function initializeKeyboardShortcuts(container) {
   document.addEventListener("keydown", (e) => {
     // Only handle shortcuts when the modal is open
-    if (!enhancedCategoryModalInstance) return;
+    if (!categoryManagerModalInstance) return;
 
     // Ctrl/Cmd + K: Focus search
     if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -1258,9 +1354,9 @@ function initializeKeyboardShortcuts(container) {
       showAddCategoryModal();
     }
 
-    // Escape: Close any open modals
+  // Escape: Close modal
     if (e.key === "Escape") {
-      enhancedCategoryModalInstance?.close();
+      categoryManagerModalInstance?.close();
     }
   });
 }
@@ -1269,49 +1365,38 @@ function initializeKeyboardShortcuts(container) {
  * 💡 Initialize tooltips
  */
 function initializeTooltips(container) {
-  // Simple tooltip implementation
-  container.addEventListener("mouseenter", (e) => {
-    const element = e.target;
-    const title = element.getAttribute("title");
+  // More robust tooltip implementation
+  const onMouseOver = (e) => {
+    const element = e.target.closest('[title]');
+    if (!element) return;
+    const title = element.getAttribute('title');
+    if (!title) return;
+    element.setAttribute('data-tooltip', title);
+    element.removeAttribute('title');
 
-    if (title) {
-      element.setAttribute("data-tooltip", title);
-      element.removeAttribute("title");
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    tooltip.textContent = title;
+    document.body.appendChild(tooltip);
 
-      const tooltip = document.createElement("div");
-      tooltip.className = "tooltip";
-      tooltip.textContent = title;
-      tooltip.style.cssText = `
-        position: absolute;
-        background: #333;
-        color: white;
-        padding: 0.5rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        z-index: 10000;
-        pointer-events: none;
-        white-space: nowrap;
-      `;
+    const move = (ev) => {
+      tooltip.style.left = ev.pageX + 10 + 'px';
+      tooltip.style.top = ev.pageY - 30 + 'px';
+    };
+    move(e);
+    element.addEventListener('mousemove', move);
 
-      document.body.appendChild(tooltip);
-
-      const updatePosition = (e) => {
-        tooltip.style.left = e.pageX + 10 + "px";
-        tooltip.style.top = e.pageY - 30 + "px";
-      };
-
-      updatePosition(e);
-      element.addEventListener("mousemove", updatePosition);
-
-      element.addEventListener(
-        "mouseleave",
-        () => {
-          tooltip.remove();
-          element.setAttribute("title", element.getAttribute("data-tooltip"));
-          element.removeAttribute("data-tooltip");
-        },
-        { once: true }
-      );
-    }
-  });
+    const cleanup = () => {
+      tooltip.remove();
+      const t = element.getAttribute('data-tooltip');
+      if (t) element.setAttribute('title', t);
+      element.removeAttribute('data-tooltip');
+      element.removeEventListener('mousemove', move);
+      element.removeEventListener('mouseleave', cleanup);
+      element.removeEventListener('blur', cleanup);
+    };
+    element.addEventListener('mouseleave', cleanup, { once: true });
+    element.addEventListener('blur', cleanup, { once: true });
+  };
+  container.addEventListener('mouseover', onMouseOver);
 }

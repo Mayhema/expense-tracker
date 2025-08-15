@@ -45,7 +45,7 @@ function processCSVExport(transactions) {
   }
 
   try {
-    // ENHANCED: Include original data columns for edited transactions
+  // Include original data columns for edited transactions
     const headers = [
       "Date",
       "Description",
@@ -157,7 +157,7 @@ function processJSONExport(transactions) {
   }
 
   try {
-    // ENHANCED: Include original data for edited transactions in JSON export
+  // Include original data for edited transactions in JSON export
     const formattedTransactions = transactions.map((tx) => {
       const baseData = {
         date: tx.date ? formatDateToDDMMYYYY(tx.date) : "",

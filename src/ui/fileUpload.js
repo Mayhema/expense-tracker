@@ -496,7 +496,7 @@ async function handleAutoDetection(file, data) {
 
     console.log("CRITICAL: Auto-detected mapping:", autoMapping);
 
-    // Enhanced validation for auto-detection
+  // Improved validation for auto-detection
     const validMappings = autoMapping.filter((m) => m && m !== "–").length;
     const hasDate = autoMapping.includes("Date");
     const hasAmount =

@@ -216,7 +216,7 @@ expense-tracker/
 
 - **Budget Tracking**: Set and monitor spending budgets by category
 - **Recurring Transaction Detection**: Identify and manage recurring payments
-- **Enhanced Analytics**: More sophisticated financial analysis tools
+- **Advanced Analytics**: More sophisticated financial analysis tools
 - **Data Sync**: Optional cloud sync while maintaining privacy
 - **Mobile App**: Progressive Web App (PWA) features for mobile
 - **Bank Integration**: Secure bank connection APIs (when available)

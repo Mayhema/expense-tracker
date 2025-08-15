@@ -323,7 +323,7 @@ body.dark-mode .transaction-table th {
   vertical-align: middle !important;
 }
 
-/* Filter category dropdown styling with enhanced colors */
+/* Filter category dropdown styling with improved colors */
 #filterCategory {
   border: 1px solid var(--border-color) !important;
   padding: 8px 10px !important;
@@ -745,7 +745,7 @@ body.dark-mode .transaction-table .btn-revert:hover {
   background-color: #991b1b;
 }
 
-/* Enhanced action button styling */
+/* Action button styling */
 .transaction-table .btn-revert-all {
   background: #17a2b8;
   color: white;
@@ -774,7 +774,7 @@ body.dark-mode .transaction-table .btn-revert-all:hover {
   border-color: #1ea080;
 }
 
-/* Enhanced row styling for edited transactions - merged with existing styles */
+/* Row styling for edited transactions - merged with existing styles */
 
 /* FIXED: Add styles for edited cells */
 .transaction-table .edited-cell {

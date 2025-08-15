@@ -545,7 +545,7 @@ body.dark-mode .transaction-table tr:hover {
   margin: 0;
 }
 
-/* Enhanced Category Management Styles */
+/* Category Management Styles */
 .category-toggle-btn {
   background: transparent !important;
   border: 1px solid #ddd !important;
@@ -880,7 +880,7 @@ body.debug-mode .debug-only {
   }
 }
 
-/* ENHANCED Dark Mode - Complete coverage */
+/* Dark Mode - Complete coverage */
 body.dark-mode {
   background-color: #121212 !important;
   color: #e0e0e0 !important;

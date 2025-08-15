@@ -52,7 +52,7 @@
   box-sizing: border-box !important;
 }
 
-/* Dark mode styles for charts with enhanced readability */
+/* Dark mode styles for charts with improved readability */
 body.dark-mode .chart-container {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
   border: 2px solid rgba(102, 126, 234, 0.3) !important;
@@ -65,7 +65,7 @@ body.dark-mode .chart-container h3 {
   font-weight: 600 !important;
 }
 
-/* Enhanced chart text readability in dark mode */
+/* Chart text readability in dark mode */
 body.dark-mode .chart-container * {
   color: #e0e8ff !important;
   fill: #e0e8ff !important;

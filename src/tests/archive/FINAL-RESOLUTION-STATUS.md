@@ -10,7 +10,7 @@
 
 - Fixed dropdown visibility for **BOTH dark AND regular modes**
 - Added proper styling for `select option` elements in both modes
-- Enhanced z-index and overflow properties
+- Improved z-index and overflow properties
 
 **Files Modified**: `src/styles/main.css`
 
@@ -34,7 +34,7 @@
 
 - Applied **ULTIMATE CSS specificity** with `html body.dark-mode` selectors
 - Added inline style override selectors for `[style*="background"]`
-- Enhanced with gradient backgrounds and neon effects
+- Improved with gradient backgrounds and neon effects
 
 **Files Modified**: `src/styles/transactions.css`
 
@@ -57,7 +57,7 @@
 **Solution Applied**:
 
 - Already had futuristic cyberpunk styling implemented
-- Enhanced overflow properties to fix dropdown display issues
+- Improved overflow properties to fix dropdown display issues
 - Maintained multi-column responsive grid layout
 
 **Files Modified**: `src/styles/filters.css`
@@ -79,7 +79,7 @@
 11. ✅ Light mode chart text forced with high specificity
 12. ✅ Dark mode chart text forced with high specificity
 13. ✅ All chart elements covered
-14. ✅ Multiple CSS files have enhanced dark mode support
+14. ✅ Multiple CSS files have improved dark mode support
 15. ✅ Ultra-high specificity selectors everywhere
 
 ## Manual Testing Checklist ✅

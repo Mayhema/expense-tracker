@@ -1,5 +1,13 @@
 /* Modal-specific styles */
 
+/* Provide safe defaults for CSS variables used across modals */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #2c3e50;
+  --border-color: #e9ecef;
+  --transition: all 0.2s ease;
+}
+
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -17,7 +25,7 @@
 }
 
 .modal-content {
-  background: var(--bg-color);
+  background: var(--bg-color, #ffffff);
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -29,7 +37,7 @@
   transform: none !important;
   max-width: calc(100vw - 40px);
   max-height: calc(100vh - 40px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
 }
 
 .modal-header {
@@ -44,7 +52,14 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Enhanced Dark Mode Modal Support with Ultra High Specificity */
+/* Match main page header gradient in light mode */
+body:not(.dark-mode) .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode modal support with high specificity */
 body.dark-mode .modal-header,
 body.dark-mode .modal-header[style] {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
@@ -88,8 +103,11 @@ body.dark-mode .modal-close-btn[style] {
   position: absolute !important;
   top: 16px !important;
   right: 16px !important;
-  font-size: 24px !important;
+  font-size: 18px !important;
   cursor: pointer !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
 }
 
 body.dark-mode .modal-close-btn:hover,
@@ -153,35 +171,57 @@ body.dark-mode .modal-body .remove-file-btn {
   font-weight: 600;
   color: var(--text-color);
   flex: 1;
-  padding-right: 15px;
+  padding-right: 64px; /* more room for close button */
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+body:not(.dark-mode) .modal-header h2 {
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
 .modal-close-btn {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
-  font-size: 18px;
-  font-weight: bold;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 8px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: var(--transition);
-  flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #ffffff !important;
+  border: 2px solid rgba(0, 0, 0, 0.45) !important;
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  color: #111111 !important;
+  cursor: pointer !important;
+  padding: 6px !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: var(--transition) !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35) !important;
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
 }
 
 .modal-close-btn:hover {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: white;
-  border-color: #dc3545;
-  transform: scale(1.05);
-  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+  background: #dc3545 !important;
+  color: #fff !important;
+  border-color: #c82333 !important;
+  transform: scale(1.06) !important;
+  box-shadow: 0 4px 10px rgba(220, 53, 69, 0.35) !important;
+}
+
+/* Better focus ring for accessibility */
+.modal-close-btn:focus {
+  outline: 3px solid rgba(13, 110, 253, 0.5) !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure overlay and dialog are always scrollable regardless of zoom */
+.modal-overlay {
+  overflow: auto !important;
+}
+.modal-dialog {
+  max-height: calc(100vh - 40px) !important;
 }
 
 .modal-body {
@@ -189,7 +229,7 @@ body.dark-mode .modal-body .remove-file-btn {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
-  background: var(--bg-color);
+  background: var(--bg-color, #ffffff);
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
 }
@@ -377,4 +417,50 @@ body.modal-open {
   position: fixed;
   width: 100%;
   height: 100%;
+}
+
+/* Generic button styles for buttons used inside modals */
+.modal-body .btn,
+.modal-footer .btn,
+.modal-header .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: #f8f9fa;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.modal-body .btn-primary,
+.modal-footer .btn-primary,
+.modal-header .btn-primary {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+.modal-body .btn-secondary,
+.modal-footer .btn-secondary,
+.modal-header .btn-secondary {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  color: #212529;
+}
+
+.modal-body .btn-ghost,
+.modal-footer .btn-ghost,
+.modal-header .btn-ghost {
+  background: transparent;
+  border-color: #dee2e6;
+  color: #212529;
+}
+
+.modal-body .btn-large,
+.modal-footer .btn-large,
+.modal-header .btn-large {
+  padding: 10px 16px;
+  font-size: 1rem;
 }

@@ -77,7 +77,7 @@ export function isExcelDateColumn(columnValues) {
 }
 
 /**
- * Enhanced date detection that includes Excel dates (legacy function)
+ * Extended date detection that includes Excel dates (legacy function)
  * @param {Array} columnValues - Array of values from a column
  * @returns {boolean} True if column contains date-like values
  * @deprecated Use isDateColumn from dateUtils.js instead

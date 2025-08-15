@@ -51,7 +51,7 @@ Introduce a lightweight classifier that learns from user-corrected categorizatio
 
 ---
 
-## 4. Enhanced Interactive Data Visualizations
+## 4. Interactive Data Visualizations
 
 Elevate the analytics dashboard with drill-downs, date sliders, and forecast projections.
 
@@ -136,7 +136,7 @@ Turn the expense tracker into an installable PWA with offline caching and remind
 
 # Suggested Improvements 🚀
 
-4. Enhanced Analytics
+4. Advanced Analytics
    - Spending trends over time
    - Category spending patterns
    - Income vs expense forecasting
