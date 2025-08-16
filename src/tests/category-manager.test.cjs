@@ -100,15 +100,18 @@ async function testCategoryModule() {
 
     if (moduleExists) {
       const content = fs.readFileSync(modulePath, 'utf8');
-      const hasShow = content.includes('export async function showCategoryManagerModal');
-      const hasSearch = content.includes('handleSearch');
-      const hasFilter = content.includes('handleFilter');
-      const hasBulk = content.includes('toggleBulkOperations');
-      const hasImportExport = content.includes('showImportExportModal');
-      const hasDragDrop = content.includes('initializeDragAndDrop');
-
-      addTestResult('Category Manager Core/Features', hasShow && hasSearch && hasFilter && hasBulk && hasImportExport && hasDragDrop,
-        `show: ${hasShow ? '✓' : '✗'}, search: ${hasSearch ? '✓' : '✗'}, filter: ${hasFilter ? '✓' : '✗'}, bulk: ${hasBulk ? '✓' : '✗'}, import/export: ${hasImportExport ? '✓' : '✗'}, DnD: ${hasDragDrop ? '✓' : '✗'}`);
+      const features = [
+        ['show', 'export async function showCategoryManagerModal'],
+        ['search', 'handleSearch'],
+        ['filter', 'handleFilter'],
+        ['bulk', 'toggleBulkOperations'],
+        ['import/export', 'showImportExportModal'],
+        ['DnD', 'initializeDragAndDrop']
+      ];
+      const results = features.map(([label, token]) => [label, content.includes(token)]);
+      const hasAll = results.every(([, ok]) => ok);
+      const msg = results.map(([label, ok]) => `${label}: ${ok ? '✓' : '✗'}`).join(', ');
+      addTestResult('Category Manager Core/Features', hasAll, msg);
     }
   } catch (e) {
     addTestResult('Category Manager Module', false, e.message);
@@ -138,6 +141,19 @@ async function testSidebarIntegration() {
   }
 }
 
+function summarizeResults() {
+  console.log('\n📊 Test Results Summary');
+  console.log('='.repeat(30));
+  console.log(`✅ Passed: ${testResults.passed}`);
+  console.log(`❌ Failed: ${testResults.failed}`);
+  console.log(`📝 Total: ${testResults.total}`);
+  const rate = testResults.total ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+  console.log(`📈 Success Rate: ${rate}%`);
+  const success = testResults.failed === 0;
+  console.log(`\n🎯 Overall Result: ${success ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);
+  return success;
+}
+
 async function runCategoryManagerTests() {
   console.log(`\n🧪 ${TEST_CONFIG.testName}`);
   console.log('='.repeat(50));
@@ -150,20 +166,10 @@ async function runCategoryManagerTests() {
     await testSidebarIntegration();
   } catch (e) {
     console.error('❌ Test setup failed:', e.message);
-    testResults.failed++;
-    testResults.total++;
+    addTestResult('Test setup', false, e.message);
   }
 
-  console.log('\n📊 Test Results Summary');
-  console.log('='.repeat(30));
-  console.log(`✅ Passed: ${testResults.passed}`);
-  console.log(`❌ Failed: ${testResults.failed}`);
-  console.log(`📝 Total: ${testResults.total}`);
-  console.log(`📈 Success Rate: ${Math.round((testResults.passed / testResults.total) * 100)}%`);
-
-  const success = testResults.failed === 0;
-  console.log(`\n🎯 Overall Result: ${success ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);
-  return success;
+  return summarizeResults();
 }
 
 if (require.main === module) {

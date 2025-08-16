@@ -91,9 +91,6 @@ function initializeIndividualCharts() {
     }
   });
 
-  // Initialize chart toggle buttons
-  initializeChartToggleButtons();
-
   // FIXED: Add global zoom handler
   setupGlobalZoomHandler();
 }

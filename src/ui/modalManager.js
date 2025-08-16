@@ -14,6 +14,168 @@ const modalCache = {
   eventListeners: new Map(),
 };
 
+// Environment detection: true when running under jsdom (unit tests)
+const IS_JSDOM = typeof navigator !== 'undefined' && /jsdom/i.test((navigator.userAgent || ''));
+
+function ensureModalContainer() {
+  let modalContainer = document.getElementById("modalContainer");
+  if (!modalContainer) {
+    modalContainer = document.createElement("div");
+    modalContainer.id = "modalContainer";
+    modalContainer.className = "modal-container";
+    modalContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10000;
+      pointer-events: auto;
+      display: block;
+    `;
+    document.body.appendChild(modalContainer);
+    console.log("CRITICAL: Created modal container");
+  } else {
+    modalContainer.style.pointerEvents = "auto";
+    modalContainer.style.display = "block";
+    console.log("CRITICAL: Using existing modal container");
+  }
+  return modalContainer;
+}
+
+function createOverlayDialog({ size, title, content, showCloseButton }) {
+  const modalOverlay = createElement('div', {
+    className: 'modal-overlay',
+    styles: `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      visibility: visible;
+      opacity: 1;
+      z-index: 10001;`
+  });
+  modalOverlay.setAttribute('role', 'dialog');
+  modalOverlay.setAttribute('aria-modal', 'true');
+
+  const modalDialog = createElement('div', { className: `modal-dialog modal-${size}` });
+  let maxWidth;
+  if (size === "xlarge") {
+    maxWidth = "min(1100px, calc(100vw - 40px))";
+  } else if (size === "large") {
+    maxWidth = "min(900px, calc(100vw - 40px))";
+  } else {
+    maxWidth = "600px";
+  }
+  modalDialog.style.cssText = `
+    background-color: white;
+    border-radius: 8px;
+    max-width: ${maxWidth};
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 10002;
+  `;
+
+  const modalContentWrapper = createElement('div', {
+    className: 'modal-content',
+    styles: `display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;`
+  });
+
+  const modalHeader = createElement('div', {
+    className: 'modal-header',
+    styles: `padding:20px 24px 0 24px;border-bottom:1px solid #eee;position:relative;flex-shrink:0;`,
+    html: `<h3 class="modal-title" style="margin:0 0 16px 0;font-size:1.25rem;font-weight:600;">${title}</h3>${showCloseButton ? '<button class="modal-close-btn" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>' : ''}`
+  });
+
+  const modalBody = createElement('div', {
+    className: 'modal-body',
+    styles: `padding:24px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;width:100%;`
+  });
+
+  if (typeof content === "string") {
+    modalBody.innerHTML = content;
+  } else if (content instanceof Element) {
+    modalBody.appendChild(content);
+  } else {
+    console.error("CRITICAL ERROR: Invalid content type for modal");
+    modalBody.innerHTML = "<p>Error loading modal content</p>";
+  }
+
+  modalContentWrapper.appendChild(modalHeader);
+  modalContentWrapper.appendChild(modalBody);
+  modalDialog.appendChild(modalContentWrapper);
+  modalOverlay.appendChild(modalDialog);
+
+  return { modalOverlay, modalDialog, modalBody, modalHeader };
+}
+
+function setupModalInteractions(modal, { modalOverlay, modalDialog, modalBody, modalHeader }, { showCloseButton, closeOnClickOutside }) {
+  if (showCloseButton) {
+    const closeBtn = modalHeader.querySelector(".modal-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", modal.close);
+    }
+  }
+
+  if (closeOnClickOutside) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) {
+        modal.close();
+      }
+    });
+  }
+
+  const handleEscape = (e) => {
+    if (e.key === "Escape") {
+      modal.close();
+      document.removeEventListener("keydown", handleEscape);
+    }
+  };
+  document.addEventListener("keydown", handleEscape);
+
+  modalBody.addEventListener('wheel', (e) => {
+    e.stopPropagation();
+  }, { passive: true });
+  modalBody.addEventListener('touchmove', (e) => {
+    e.stopPropagation();
+  }, { passive: true });
+
+  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const focusable = () => Array.from(modalDialog.querySelectorAll(focusableSelectors)).filter(el => !el.disabled && el.offsetParent !== null);
+  const handleTab = (e) => {
+    if (e.key !== 'Tab') return;
+    const nodes = focusable();
+    if (!nodes.length) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+      return;
+    }
+    if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  modalDialog.addEventListener('keydown', handleTab);
+  requestAnimationFrame(() => {
+    const nodes = focusable();
+    (nodes[0] || modalDialog).focus({ preventScroll: true });
+  });
+}
+
 function getModalOverlay() {
   // FIXED: Cache the overlay element
   if (!modalCache.overlay) {
@@ -61,15 +223,17 @@ function unlockBodyScrollIfLast(modalContainer) {
     document.body.style.top = '';
     document.body.style.width = '';
     delete document.body.dataset.prevScroll;
-    // In JSDOM tests window.scrollTo is not implemented; guard to prevent noisy errors
+    // Restore scroll position; avoid jsdom's noisy not-implemented error
     try {
-      if (typeof window.scrollTo === 'function') {
+      if (!IS_JSDOM && typeof window.scrollTo === 'function') {
         window.scrollTo(0, prev);
-      } else {
-        // No-op in non-browser environments
       }
+      // else: No-op in test/non-browser environments
     } catch (e) {
-      // Swallow to avoid polluting test output; it's safe to ignore restore failures
+      if (typeof window !== 'undefined' && window.DEBUG_MODE) {
+        // eslint-disable-next-line no-console
+        console.debug('Scroll restore failed (non-fatal):', e);
+      }
     }
   }
 }
@@ -119,112 +283,11 @@ export function showModal(options = {}) {
     activeModal = null;
   }
 
-  // CRITICAL FIX: Ensure modal container exists and is properly styled
-  let modalContainer = document.getElementById("modalContainer");
-  if (!modalContainer) {
-    modalContainer = document.createElement("div");
-    modalContainer.id = "modalContainer";
-    modalContainer.className = "modal-container";
-    modalContainer.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 10000;
-      pointer-events: auto;
-      display: block;
-    `;
-    document.body.appendChild(modalContainer);
-    console.log("CRITICAL: Created modal container");
-  } else {
-    // CRITICAL FIX: Ensure existing container is properly visible
-    modalContainer.style.pointerEvents = "auto";
-    modalContainer.style.display = "block";
-    console.log("CRITICAL: Using existing modal container");
-  }
+  // Ensure modal container exists and is visible
+  const modalContainer = ensureModalContainer();
 
-  // Create modal overlay
-  const modalOverlay = createElement('div', {
-    className: 'modal-overlay',
-    styles: `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: auto;
-      visibility: visible;
-      opacity: 1;
-      z-index: 10001;`
-  });
-  modalOverlay.setAttribute('role', 'dialog');
-  modalOverlay.setAttribute('aria-modal', 'true');
-
-  // Create modal dialog
-  const modalDialog = createElement('div', { className: `modal-dialog modal-${size}` });
-  // Layout: dialog acts as a column container with inner body handling scroll
-  // Use a safe viewport width minus margins to avoid triggering horizontal scrollbars
-  let maxWidth;
-  if (size === "xlarge") {
-    maxWidth = "min(1100px, calc(100vw - 40px))";
-  } else if (size === "large") {
-    maxWidth = "min(900px, calc(100vw - 40px))";
-  } else {
-    maxWidth = "600px";
-  }
-  modalDialog.style.cssText = `
-    background-color: white;
-    border-radius: 8px;
-    max-width: ${maxWidth};
-    max-height: calc(100vh - 40px);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* prevent horizontal scroll at dialog level */
-    margin: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-    z-index: 10002;
-  `;
-
-  // Create modal content structure
-  const modalContentWrapper = createElement('div', {
-    className: 'modal-content',
-    styles: `display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;`
-  });
-
-  // Modal header
-  const modalHeader = createElement('div', {
-    className: 'modal-header',
-    styles: `padding:20px 24px 0 24px;border-bottom:1px solid #eee;position:relative;flex-shrink:0;`,
-    html: `<h3 class="modal-title" style="margin:0 0 16px 0;font-size:1.25rem;font-weight:600;">${title}</h3>${showCloseButton ? '<button class="modal-close-btn" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;">&times;</button>' : ''}`
-  });
-
-  // Modal body
-  const modalBody = createElement('div', {
-    className: 'modal-body',
-    styles: `padding:24px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;width:100%;`
-  });
-
-  // Handle content - can be string or element
-  if (typeof content === "string") {
-    modalBody.innerHTML = content;
-  } else if (content instanceof Element) {
-    modalBody.appendChild(content);
-  } else {
-    console.error("CRITICAL ERROR: Invalid content type for modal");
-    modalBody.innerHTML = "<p>Error loading modal content</p>";
-  }
-
-  // Assemble modal
-  modalContentWrapper.appendChild(modalHeader);
-  modalContentWrapper.appendChild(modalBody);
-  modalDialog.appendChild(modalContentWrapper);
-  modalOverlay.appendChild(modalDialog);
+  // Create overlay and dialog structure
+  const { modalOverlay, modalDialog, modalBody, modalHeader } = createOverlayDialog({ size, title, content, showCloseButton });
   modalContainer.appendChild(modalOverlay);
 
   console.log("CRITICAL: Modal DOM structure created and appended");
@@ -247,7 +310,9 @@ export function showModal(options = {}) {
       }
     // Remove this modal from the stack
     const idx = modalStack.indexOf(modal);
-    if (idx !== -1) modalStack.splice(idx, 1);
+    if (idx !== -1) {
+      modalStack.splice(idx, 1);
+    }
       // CRITICAL FIX: Hide container if no more modals
       if (modalContainer?.children.length === 0) {
         modalContainer.style.display = "none";
@@ -265,65 +330,8 @@ export function showModal(options = {}) {
   modalStack.push(modal);
   modalCreationInProgress = false;
 
-  // Event listeners
-  if (showCloseButton) {
-    const closeBtn = modalHeader.querySelector(".modal-close-btn");
-    if (closeBtn) {
-      closeBtn.addEventListener("click", modal.close);
-    }
-  }
-
-  if (closeOnClickOutside) {
-    modalOverlay.addEventListener("click", (e) => {
-      if (e.target === modalOverlay) {
-        modal.close();
-      }
-    });
-  }
-
-  // Handle escape key
-  const handleEscape = (e) => {
-    if (e.key === "Escape") {
-      modal.close();
-      document.removeEventListener("keydown", handleEscape);
-    }
-  };
-  document.addEventListener("keydown", handleEscape);
-
-  // Prevent wheel/touch scroll from bubbling to body (Chrome background scroll issue)
-  modalBody.addEventListener('wheel', (e) => {
-    // Allow default scrolling inside modalBody but stop propagation so body doesn't scroll when at edges
-    e.stopPropagation();
-  }, { passive: true });
-  modalBody.addEventListener('touchmove', (e) => {
-    e.stopPropagation();
-  }, { passive: true });
-
-  // Basic focus trap
-  const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-  const focusable = () => Array.from(modalDialog.querySelectorAll(focusableSelectors)).filter(el => !el.disabled && el.offsetParent !== null);
-  const handleTab = (e) => {
-    if (e.key !== 'Tab') return;
-    const nodes = focusable();
-    if (!nodes.length) return;
-    const first = nodes[0];
-    const last = nodes[nodes.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-      return;
-    }
-    if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
-  modalDialog.addEventListener('keydown', handleTab);
-  // Focus first element after render
-  requestAnimationFrame(() => {
-    const nodes = focusable();
-    (nodes[0] || modalDialog).focus({ preventScroll: true });
-  });
+  // Event listeners and focus handling
+  setupModalInteractions(modal, { modalOverlay, modalDialog, modalBody, modalHeader }, { showCloseButton, closeOnClickOutside });
 
   console.log("CRITICAL: Modal created successfully, returning modal object");
 

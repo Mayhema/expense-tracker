@@ -256,10 +256,10 @@ function buildCategoriesGrid(categories) {
       <div class="category-card" data-category="${name}" data-color="${color}">
         <div class="category-card-header">
           <div class="category-visual">
-            <div class="category-color" style="background-color: ${color}" aria-hidden="true"></div>
             <div class="category-checkbox">
-              <input type="checkbox" id="select-${index}" class="category-select">
+              <input type="checkbox" id="select-${index}" class="category-select-checkbox">
             </div>
+            <div class="category-color" style="background-color: ${color}" aria-hidden="true"></div>
           </div>
           <div class="category-info">
             <h4 class="category-name">${name}</h4>
@@ -479,7 +479,7 @@ function attachCategoryManagerEventListeners(container, modal) {
 
   // Checkbox selection
   container.addEventListener("change", (e) => {
-    if (e.target.classList.contains("category-select")) {
+    if (e.target.classList.contains("category-select-checkbox")) {
       updateSelectionCount(container);
     }
   });
@@ -608,7 +608,27 @@ function showAddCategoryModal() {
 function showEditCategoryModal(categoryName) {
   const category = AppState.categories[categoryName];
   const color = typeof category === "object" ? category.color : category;
-  const subcategories = (typeof category === 'object' && category.subcategories) ? category.subcategories : {};
+  // subcategories are rendered on demand from AppState inside renderSubcategoriesList
+
+  // Helper: slightly adjust a hex color (lighten for positive percent, darken for negative)
+  const tweakColor = (hex, percent = 12) => {
+    try {
+      const n = hex.replace('#', '');
+      const bigint = parseInt(n.length === 3 ? n.split('').map(c => c + c).join('') : n, 16);
+      let r = (bigint >> 16) & 255;
+      let g = (bigint >> 8) & 255;
+      let b = bigint & 255;
+      const adjust = (v) => Math.max(0, Math.min(255, Math.round(v + (percent/100)*255)));
+      r = adjust(r); g = adjust(g); b = adjust(b);
+      const toHex = (v) => v.toString(16).padStart(2, '0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    } catch (err) {
+      if (window?.DEBUG_MODE) {
+        console.warn('tweakColor failed, using original color', err?.message || err);
+      }
+      return hex;
+    }
+  };
 
   const modalContent = document.createElement("div");
   modalContent.innerHTML = `
@@ -634,31 +654,14 @@ function showEditCategoryModal(categoryName) {
                    style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 8px;">
           </div>
           <div>
-            <label for="newSubcategoryColor" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Color</label>
-            <input type="color" id="newSubcategoryColor" value="#667eea"
+      <label for="newSubcategoryColor" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Color</label>
+      <input type="color" id="newSubcategoryColor" value="${tweakColor(color, 12)}"
                    style="width: 56px; height: 40px; border: none; border-radius: 8px; cursor: pointer;">
           </div>
           <button id="addSubcategory" class="btn btn-primary">Add</button>
         </div>
 
-        <div id="subcategoriesList" style="min-height: 120px;">
-          ${Object.keys(subcategories).length === 0
-            ? '<p style="text-align: center; color: #666; padding: 1rem;">No subcategories yet.</p>'
-            : Object.entries(subcategories).map(([name, clr]) => `
-              <div class="subcategory-item" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; margin-bottom: 0.5rem; background: #f8f9fa; border-radius: 8px;">
-                <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
-                  <div style="width: 20px; height: 20px; background: ${clr}; border-radius: 4px;"></div>
-                  <span class="sub-name" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis;">${name}</span>
-                </div>
-                <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
-                  <input type="color" value="${clr}" data-subcategory="${name}" class="subcategory-color-picker"
-                         style="width: 32px; height: 32px; border: none; border-radius: 4px; cursor: pointer;">
-                  <button class="btn btn-ghost delete-subcategory" data-subcategory="${name}" title="Delete">🗑️</button>
-                </div>
-              </div>
-            `).join('')}
-        </div>
-      </div>
+      <div id="subcategoriesList" style="min-height: 120px;"></div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
         <button id="cancelEdit" class="btn btn-secondary">Cancel</button>
@@ -674,6 +677,43 @@ function showEditCategoryModal(categoryName) {
     closeOnClickOutside: false,
     keepPrevious: true,
   });
+
+  // Ensure the main Category Manager grid reflects changes when closing this modal
+  const __originalClose = modal.close;
+  modal.close = function () {
+    try { refreshCategoriesGrid(); } catch (err) {
+      if (window?.DEBUG_MODE) { console.warn('refreshCategoriesGrid failed on close:', err?.message || err); }
+    }
+    __originalClose.call(this);
+  };
+
+  // Helper: render subcategories list in place (no new modal stacking)
+  const renderSubcategoriesList = (currentName) => {
+    const list = modalContent.querySelector('#subcategoriesList');
+    const cat = AppState.categories[currentName];
+    const subs = (typeof cat === 'object' && cat.subcategories) ? cat.subcategories : {};
+    if (!list) return;
+    if (Object.keys(subs).length === 0) {
+      list.innerHTML = '<p style="text-align: center; color: #666; padding: 1rem;">No subcategories yet.</p>';
+      return;
+    }
+    list.innerHTML = Object.entries(subs).map(([name, clr]) => `
+      <div class="subcategory-item" data-subcategory="${name}" style="display:flex; align-items:center; justify-content:space-between; padding:0.75rem; margin-bottom:0.5rem; background:#f8f9fa; border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:0.75rem; min-width:0;">
+          <div class="sub-color-chip" style="width:20px; height:20px; background:${clr}; border-radius:4px;"></div>
+          <span class="sub-name" style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</span>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+          <input type="color" value="${clr}" data-subcategory="${name}" class="subcategory-color-picker" style="width:32px; height:32px; border:none; border-radius:4px; cursor:pointer;">
+          <button class="btn btn-ghost rename-subcategory" data-subcategory="${name}" title="Rename">✏️</button>
+          <button class="btn btn-ghost delete-subcategory" data-subcategory="${name}" title="Delete">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  // Initial render of subcategories
+  renderSubcategoriesList(categoryName);
 
   // Event handlers
   modalContent
@@ -737,12 +777,18 @@ function showEditCategoryModal(categoryName) {
       return;
     }
 
-    AppState.categories[currentName].subcategories[name] = clr;
-    saveCategories();
-    showToast(`Subcategory "${name}" added`, 'success');
-
-    // Re-render list in place
-    showEditCategoryModal(currentName);
+  AppState.categories[currentName].subcategories[name] = clr;
+  saveCategories();
+  showToast(`Subcategory "${name}" added`, 'success');
+  // Re-render list in place and update the main grid behind
+    renderSubcategoriesList(currentName);
+    try { refreshCategoriesGrid(); } catch (err) {
+      if (window?.DEBUG_MODE) { console.warn('refreshCategoriesGrid failed after add subcategory:', err?.message || err); }
+    }
+  // Reset inputs and suggest next color based on category color
+  nameInput.value = '';
+  const catColor = (typeof AppState.categories[currentName] === 'object' ? AppState.categories[currentName].color : AppState.categories[currentName]) || color;
+  colorInput.value = tweakColor(catColor, 12);
   });
 
   // Update subcategory color and delete
@@ -755,10 +801,14 @@ function showEditCategoryModal(categoryName) {
       AppState.categories[currentName].subcategories[subName] = newClr;
       saveCategories();
       showToast(`Color updated for "${subName}"`, 'success');
+      try { refreshCategoriesGrid(); } catch (err) {
+        if (window?.DEBUG_MODE) { console.warn('refreshCategoriesGrid failed after color change:', err?.message || err); }
+      }
     }
   });
 
   modalContent.addEventListener('click', (e) => {
+    // Delete
     if (e.target.classList.contains('delete-subcategory')) {
       const subName = e.target.dataset.subcategory;
       const currentName = modalContent.querySelector('#editCategoryName').value.trim() || categoryName;
@@ -766,8 +816,62 @@ function showEditCategoryModal(categoryName) {
         delete AppState.categories[currentName].subcategories[subName];
         saveCategories();
         showToast(`Subcategory "${subName}" deleted`, 'success');
-        showEditCategoryModal(currentName);
+        renderSubcategoriesList(currentName);
+        try { refreshCategoriesGrid(); } catch (err) {
+          if (window?.DEBUG_MODE) { console.warn('refreshCategoriesGrid failed after delete:', err?.message || err); }
+        }
       }
+    }
+
+    // Rename (toggle inline editor)
+    if (e.target.classList.contains('rename-subcategory')) {
+      const currentName = modalContent.querySelector('#editCategoryName').value.trim() || categoryName;
+      const subName = e.target.dataset.subcategory;
+      const row = e.target.closest('.subcategory-item');
+      if (!row) return;
+      const nameSpan = row.querySelector('.sub-name');
+      if (!nameSpan) return;
+      // Build inline editor
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = subName;
+      input.style.cssText = 'padding:4px 6px; border:1px solid #ccc; border-radius:4px; max-width:200px;';
+      nameSpan.replaceWith(input);
+      input.focus();
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = 'Save';
+      saveBtn.className = 'btn btn-primary';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.className = 'btn btn-secondary';
+      const controls = document.createElement('div');
+      controls.style.display = 'flex';
+      controls.style.gap = '6px';
+      controls.appendChild(saveBtn);
+      controls.appendChild(cancelBtn);
+      // Insert controls just before the color/edit/delete controls
+      const right = row.querySelector('div:last-child');
+      row.insertBefore(controls, right);
+
+      const cleanup = () => { controls.remove(); renderSubcategoriesList(currentName); };
+      cancelBtn.addEventListener('click', cleanup);
+      saveBtn.addEventListener('click', () => {
+        const newName = input.value.trim();
+        if (!newName) { showToast('Please enter a name', 'error'); return; }
+        if (newName !== subName && AppState.categories[currentName].subcategories[newName]) {
+          showToast('Subcategory name already exists', 'error');
+          return;
+        }
+        const clr = AppState.categories[currentName].subcategories[subName];
+        delete AppState.categories[currentName].subcategories[subName];
+        AppState.categories[currentName].subcategories[newName] = clr;
+        saveCategories();
+        showToast('Subcategory renamed', 'success');
+        try { refreshCategoriesGrid(); } catch (err) {
+          if (window?.DEBUG_MODE) { console.warn('refreshCategoriesGrid failed after rename:', err?.message || err); }
+        }
+        cleanup();
+      });
     }
   });
 }
@@ -984,14 +1088,14 @@ function toggleBulkOperations() {
     // Attach bulk operation handlers
     sidebar.querySelector("#selectAll").addEventListener("click", () => {
       document
-        .querySelectorAll(".category-select")
+        .querySelectorAll(".category-select-checkbox")
         .forEach((cb) => (cb.checked = true));
       updateSelectionCount();
     });
 
     sidebar.querySelector("#selectNone").addEventListener("click", () => {
       document
-        .querySelectorAll(".category-select")
+        .querySelectorAll(".category-select-checkbox")
         .forEach((cb) => (cb.checked = false));
       updateSelectionCount();
     });
@@ -1007,7 +1111,7 @@ function toggleBulkOperations() {
  */
 function handleBulkDelete() {
   const selectedCategories = Array.from(
-    document.querySelectorAll(".category-select:checked")
+  document.querySelectorAll(".category-select-checkbox:checked")
   ).map((cb) => cb.closest(".category-card").dataset.category);
 
   if (selectedCategories.length === 0) return;
@@ -1126,32 +1230,37 @@ function showImportExportModal() {
  * 🔄 Handle reset categories
  */
 function handleResetCategories() {
-  if (
-    confirm(
-      "Are you sure you want to reset all categories to defaults? This will remove all your custom categories and cannot be undone."
-    )
-  ) {
-    // Use the reset helper from categoryManager facade to ensure AppState + storage update
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <div style="padding:1rem; display:flex; flex-direction:column; gap:0.75rem;">
+      <h3 style="margin:0;">Reset Categories</h3>
+      <p>This will remove your custom categories and restore defaults. This action cannot be undone.</p>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+        <button id="cancelReset" class="btn btn-secondary">Cancel</button>
+        <button id="confirmReset" class="btn btn-primary">Reset</button>
+      </div>
+    </div>`;
+
+  const confirmModal = showModal({ title: 'Confirm Reset', content, size: 'small', closeOnClickOutside: true, keepPrevious: true });
+  content.querySelector('#cancelReset')?.addEventListener('click', () => confirmModal.close());
+  content.querySelector('#confirmReset')?.addEventListener('click', () => {
     import("../ui/categoryManager.js").then((module) => {
       if (module.resetToDefaultCategories) {
         module.resetToDefaultCategories();
-        showToast("Categories reset to defaults successfully", "success");
-        refreshCategoriesGrid();
       } else {
-        // Fallback: direct import of defaults
         import("../constants/categories.js").then((catModule) => {
           if (catModule.DEFAULT_CATEGORIES) {
             AppState.categories = { ...catModule.DEFAULT_CATEGORIES };
             saveCategories();
-            showToast("Categories reset to defaults successfully", "success");
-            refreshCategoriesGrid();
-          } else {
-            showToast("Unable to reset categories", "error");
           }
         });
       }
+    }).finally(() => {
+      showToast("Categories reset to defaults successfully", "success");
+      refreshCategoriesGrid();
+      confirmModal.close();
     });
-  }
+  });
 }
 
 /**
@@ -1194,7 +1303,7 @@ function updateHeaderStats(container) {
  */
 function updateSelectionCount(container = document) {
   const selectedCount = container.querySelectorAll(
-    ".category-select:checked"
+  ".category-select-checkbox:checked"
   ).length;
   const countDisplay = container.querySelector("#selectedCount");
   const bulkDeleteBtn = container.querySelector("#bulkDelete");
@@ -1272,10 +1381,9 @@ function initializeDragAndDrop(container) {
       try {
         e.dataTransfer.setData('text/plain', draggedElement.dataset.category || 'drag');
       } catch (err) {
-        // Some browsers may throw when setting drag data; assign to temp to satisfy lint
-        const _msg = err ? err.message : '';
-        // eslint-disable-next-line no-unused-vars
-        const _ignore = _msg;
+        if (window?.DEBUG_MODE) {
+          console.warn('setData failed in dragstart:', err?.message || err);
+        }
       }
     }
   });
